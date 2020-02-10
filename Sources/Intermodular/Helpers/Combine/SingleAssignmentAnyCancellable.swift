@@ -32,9 +32,7 @@ open class SingleAssignmentAnyCancellable: Cancellable {
                 return
             }
             
-            if base != nil {
-                base = nil
-            }
+            base?.cancel()
             
             isCancelled = true
         }
