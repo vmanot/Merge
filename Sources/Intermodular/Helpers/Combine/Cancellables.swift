@@ -23,8 +23,6 @@ public final class Cancellables: Cancellable {
     
     public func remove(_ cancellable: AnyCancellable) {
         queue.async {
-            cancellable.cancel()
-            
             self.cancellables.remove(cancellable)
         }
     }

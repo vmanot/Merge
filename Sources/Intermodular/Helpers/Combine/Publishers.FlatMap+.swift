@@ -24,6 +24,16 @@ extension Publisher {
     public func mapTo<T>(_ value: T) -> Publishers.FlatMap<Result<T, Failure>.Publisher, Self> {
         flatMap({ _ in Just(value).setFailureType(to: Failure.self) })
     }
+    
+    public func flatMap<P: Publisher>(
+        maxPublishers: Subscribers.Demand = .unlimited,
+        _ transform: @escaping (Output) -> P
+    ) -> Publishers.FlatMap<Publishers.MapError<P, Error>, Publishers.MapError<Self, Error>>  {
+        eraseError().flatMap(maxPublishers: maxPublishers) { output in
+            transform(output)
+                .eraseError()
+        }
+    }
 }
 
 extension Publisher where Failure == Error {

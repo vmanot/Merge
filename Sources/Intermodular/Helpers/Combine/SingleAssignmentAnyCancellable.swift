@@ -2,39 +2,27 @@
 // Copyright (c) Vatsal Manot
 //
 
+import Dispatch
 import Combine
 import Swift
 
 open class SingleAssignmentAnyCancellable: Cancellable {
-    private let lock = OSUnfairLock()
+    static let cancelQueue = DispatchQueue(label:
+        "com.vmanot.Merge.SingleAssignmentAnyCancellable")
     
-    private var base: AnyCancellable?
-    private var isCancelled: Bool = false
+    private var base: AnyCancellable = .empty()
     
     public init() {
         
     }
     
     public func set<C: Cancellable>(_ base: C) {
-        lock.withCriticalScope {
-            guard !isCancelled else {
-                base.cancel()
-                return
-            }
-            
-            self.base = .init(base)
-        }
+        self.base = .init(base)
     }
     
     public func cancel() {
-        lock.withCriticalScope {
-            guard !isCancelled else {
-                return
-            }
-            
-            base = nil
-            
-            isCancelled = true
+        Self.cancelQueue.async {
+            self.base = .empty()
         }
     }
 }
