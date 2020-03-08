@@ -16,6 +16,10 @@ extension Publisher {
         then(Deferred(createPublisher: createPublisher))
     }
     
+    public func then<P: Publisher>(deferred createPublisher: @escaping () -> P) -> AnyPublisher<P.Output, Error> {
+        then(Deferred(createPublisher: createPublisher))
+    }
+    
     public func then(_ action: @escaping () -> Void) -> Publishers.Map<Self, Output> {
         map { output -> Output in
             action()
