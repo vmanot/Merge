@@ -98,6 +98,17 @@ extension Publisher {
     }
 }
 
+extension Publisher {
+    public func sink(
+        storeIn cancellables: Cancellables,
+        receiveValue: @escaping (Result<Output, Failure>) -> Void
+    ) {
+        toResultPublisher()
+            .handleOutput(receiveValue)
+            .subscribe(storeIn: cancellables)
+    }
+}
+
 extension Publisher where Failure == Never {
     public func sink(
         storeIn cancellables: Cancellables,
