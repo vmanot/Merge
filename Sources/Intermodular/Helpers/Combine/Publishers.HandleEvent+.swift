@@ -19,6 +19,20 @@ extension Publisher {
         )
     }
     
+    /// Performs the specified closure upon completion.
+    public func handleError(
+        _ receiveError: @escaping (Failure) -> ()
+    ) -> Publishers.HandleEvents<Self> {
+        handleCompletion { completion in
+            switch completion {
+                case .finished:
+                    return
+                case .failure(let error):
+                    receiveError(error)
+            }
+        }
+    }
+    
     /// Performs the specified closure upon cancellation.
     public func handleCancel(
         _ receiveCancel: @escaping () -> ()
@@ -44,7 +58,7 @@ extension Publisher {
             receiveRequest: nil
         )
     }
-        
+    
     public func handleOutput<P: Publisher>(
         _ receiveOutput: @escaping (Output) -> P
     ) -> AnyPublisher<Output, Failure> where P.Failure == Never {
