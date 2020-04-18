@@ -20,3 +20,15 @@ extension Publisher where Failure == Never {
         }
     }
 }
+
+extension Publisher where Failure == Error {
+    public func unwrap<Wrapped>() -> Publishers.TryMap<Self, Wrapped> where Optional<Wrapped> == Output {
+        tryMap { value -> Wrapped in
+            guard let value = value else {
+                throw UnwrapError.this
+            }
+            
+            return value
+        }
+    }
+}

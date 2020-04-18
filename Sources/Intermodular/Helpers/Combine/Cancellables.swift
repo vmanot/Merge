@@ -5,6 +5,7 @@
 import Combine
 import Dispatch
 import Swift
+import SwiftUI
 
 /// A thread-safe collection suitable for storing instanes of `AnyCancellable`.
 public final class Cancellables: Cancellable {
@@ -81,7 +82,7 @@ public final class Cancellables: Cancellable {
     }
 }
 
-// MARK: - Helpers -
+// MARK: - API -
 
 extension AnyCancellable {
     public func store(in cancellables: Cancellables) {
@@ -121,5 +122,23 @@ extension Publisher where Failure == Never {
     ) {
         handleOutput(receiveValue)
             .subscribe(storeIn: cancellables)
+    }
+}
+
+// MARK: - Auxiliary Implementation -
+
+extension Cancellables {
+    fileprivate struct EnvironmentKey: SwiftUI.EnvironmentKey {
+        static let defaultValue = Cancellables()
+    }
+}
+
+extension EnvironmentValues {
+    public var cancellables: Cancellables {
+        get {
+            self[Cancellables.EnvironmentKey]
+        } set {
+            self[Cancellables.EnvironmentKey] = newValue
+        }
     }
 }
