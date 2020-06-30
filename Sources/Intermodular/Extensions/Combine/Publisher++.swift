@@ -13,4 +13,8 @@ extension Publisher {
             Just(.failure($0))
         }
     }
+    
+    public func printOnError() -> Publishers.HandleEvents<Self> {
+        handleError({ Swift.print($0) })
+    }
 }

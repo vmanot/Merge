@@ -26,6 +26,14 @@ extension Publisher {
             return output
         }
     }
+    
+    public func then<S: Scheduler>(
+        on scheduler: S,
+        options: S.SchedulerOptions? = nil,
+        _ action: @escaping () -> Void
+    ) -> Publishers.Map<Publishers.ReceiveOn<Self, S>, Publishers.ReceiveOn<Self, S>.Output> {
+        receive(on: scheduler, options: options).then(action)
+    }
 }
 
 extension Publisher where Failure == Never {
@@ -33,5 +41,27 @@ extension Publisher where Failure == Never {
         _ publisher: P
     ) -> Publishers.FlatMap<P, Self> where P.Failure == Never {
         flatMap({ _ in publisher })
+    }
+}
+
+extension Publisher where Failure == Error {
+    public func then(_ action: @escaping () throws -> Void) -> Publishers.FlatMap<AnyPublisher<Self.Output, Error>, Self> {
+        flatMap { output -> AnyPublisher<Output, Error> in
+            do {
+                try action()
+                
+                return Just(output).setFailureType(to: Error.self).eraseToAnyPublisher()
+            } catch {
+                return Fail(error: error).eraseToAnyPublisher()
+            }
+        }
+    }
+    
+    public func then<S: Scheduler>(
+        on scheduler: S,
+        options: S.SchedulerOptions? = nil,
+        _ action: @escaping () throws -> Void
+    ) -> Publishers.FlatMap<AnyPublisher<Publishers.ReceiveOn<Self, S>.Output, Error>, Publishers.ReceiveOn<Self, S>> {
+        receive(on: scheduler, options: options).then(action)
     }
 }

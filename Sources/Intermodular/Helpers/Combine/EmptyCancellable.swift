@@ -3,7 +3,6 @@
 //
 
 import Combine
-import Dispatch
 import Swift
 
 public final class EmptyCancellable: Cancellable {
