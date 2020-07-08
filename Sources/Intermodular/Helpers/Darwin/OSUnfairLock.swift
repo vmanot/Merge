@@ -6,26 +6,32 @@ import Darwin
 import Swift
 
 /// An `os_unfair_lock` wrapper.
+@usableFromInline
 final class OSUnfairLock {
-    private let base: os_unfair_lock_t
+    @usableFromInline
+    let base: os_unfair_lock_t
     
+    @usableFromInline
     init() {
         base = .allocate(capacity: 1)
         base.initialize(to: os_unfair_lock())
     }
     
-    deinit {
-        base.deinitialize(count: 1)
-        base.deallocate()
-    }
-        
+    @usableFromInline
     func withCriticalScope<Result>(_ body: () -> Result) -> Result {
         os_unfair_lock_lock(base)
-
+        
         defer {
             os_unfair_lock_unlock(base)
         }
         
         return body()
     }
+    
+    @usableFromInline
+    deinit {
+        base.deinitialize(count: 1)
+        base.deallocate()
+    }
+    
 }

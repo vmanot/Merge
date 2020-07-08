@@ -12,10 +12,12 @@ public struct SinkPublisher<P: Publisher>: Publisher {
     public let base = PassthroughSubject<Output, Failure>()
     public var subscription: AnyCancellable
     
+    @inlinable
     public init(publisher: P) {
         subscription = publisher.subscribe(base)
     }
     
+    @inlinable
     public func receive<S: Subscriber>(
         subscriber: S
     ) where S.Input == Output, S.Failure == Failure {
@@ -24,6 +26,7 @@ public struct SinkPublisher<P: Publisher>: Publisher {
 }
 
 extension Publisher {
+    @inlinable
     public func sinkPublisher() -> SinkPublisher<Self> {
         SinkPublisher(publisher: self)
     }

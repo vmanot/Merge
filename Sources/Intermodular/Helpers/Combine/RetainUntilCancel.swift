@@ -7,14 +7,19 @@ import Dispatch
 import Swift
 
 public final class RetainUntilCancel<Child: Cancellable>: Cancellable {
-    private var instance: RetainUntilCancel?
-    private var child: Child?
+    @usableFromInline
+    var instance: RetainUntilCancel?
     
+    @usableFromInline
+    var child: Child?
+    
+    @inlinable
     public init(_ cancellable: Child) {
         instance = self
         child = cancellable
     }
     
+    @inlinable
     public func cancel() {
         instance = nil
         
@@ -27,6 +32,7 @@ public final class RetainUntilCancel<Child: Cancellable>: Cancellable {
 
 extension Publisher {
     @discardableResult
+    @inlinable
     public func retainSink(
         receiveCompletion: @escaping ((Subscribers.Completion<Failure>) -> Void),
         receiveValue: @escaping ((Output) -> Void)
@@ -43,6 +49,7 @@ extension Publisher {
         return cancellable
     }
     
+    @inlinable
     public func retainSink() -> RetainUntilCancel<SingleAssignmentAnyCancellable> {
         retainSink(
             receiveCompletion: { _ in },
@@ -52,6 +59,7 @@ extension Publisher {
 }
 
 extension Publisher where Failure == Never {
+    @inlinable
     public func retainSink(
         receiveValue: @escaping ((Output) -> Void)
     ) -> RetainUntilCancel<SingleAssignmentAnyCancellable> {

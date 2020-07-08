@@ -9,7 +9,7 @@ import SwiftUI
 
 /// A thread-safe collection suitable for storing instanes of `AnyCancellable`.
 public final class Cancellables: Cancellable {
-    private var queue = DispatchQueue(label: "Merge.Cancellables.maintenance")
+    private var queue = DispatchQueue(label: "com.vmanot.Merge.Cancellables.maintenance")
     private var cancellables: Set<AnyCancellable> = []
     
     public init() {
