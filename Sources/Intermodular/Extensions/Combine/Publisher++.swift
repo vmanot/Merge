@@ -18,3 +18,19 @@ extension Publisher {
         handleError({ Swift.print($0) })
     }
 }
+
+extension Publisher {
+    public func succeeds() -> AnyPublisher<Bool, Never> {
+        map({ _ in true })
+            .reduce(true, { $0 && $1 })
+            .catch({ _ in Just(false) })
+            .eraseToAnyPublisher()
+    }
+    
+    public func fails() -> AnyPublisher<Bool, Never> {
+        map({ _ in false })
+            .reduce(false, { $0 && $1 })
+            .catch({ _ in Just(true) })
+            .eraseToAnyPublisher()
+    }
+}

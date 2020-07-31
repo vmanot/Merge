@@ -7,6 +7,7 @@ import Swift
 
 extension Publisher {
     /// Performs the specified closure upon completion.
+    @inlinable
     public func handleCompletion(
         _ receiveCompletion: @escaping (Subscribers.Completion<Failure>) -> ()
     ) -> Publishers.HandleEvents<Self> {
@@ -20,6 +21,7 @@ extension Publisher {
     }
     
     /// Performs the specified closure upon completion.
+    @inlinable
     public func handleError(
         _ receiveError: @escaping (Failure) -> ()
     ) -> Publishers.HandleEvents<Self> {
@@ -34,6 +36,7 @@ extension Publisher {
     }
     
     /// Performs the specified closure upon cancellation.
+    @inlinable
     public func handleCancel(
         _ receiveCancel: @escaping () -> ()
     ) -> Publishers.HandleEvents<Self> {
@@ -47,6 +50,7 @@ extension Publisher {
     }
     
     /// Performs the specified closure upon output.
+    @inlinable
     public func handleOutput(
         _ receiveOutput: @escaping (Output) -> ()
     ) -> Publishers.HandleEvents<Self> {
@@ -59,6 +63,7 @@ extension Publisher {
         )
     }
     
+    @inlinable
     public func handleOutput<P: Publisher>(
         _ receiveOutput: @escaping (Output) -> P
     ) -> AnyPublisher<Output, Failure> where P.Failure == Never {
@@ -71,6 +76,7 @@ extension Publisher {
     }
     
     /// Performs the specified closure upon request.
+    @inlinable
     public func handleRequest(
         _ receiveRequest: @escaping (Subscribers.Demand) -> ()
     ) -> Publishers.HandleEvents<Self> {
@@ -84,6 +90,7 @@ extension Publisher {
     }
     
     /// Performs the specified closure upon receipt of subscription.
+    @inlinable
     public func handleSubscription(
         _ receiveSubscription: @escaping (Subscription) -> ()
     ) -> Publishers.HandleEvents<Self> {
