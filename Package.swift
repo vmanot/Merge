@@ -1,4 +1,4 @@
-// swift-tools-version:5.1
+// swift-tools-version:5.2
 
 import PackageDescription
 
@@ -16,8 +16,5 @@ let package = Package(
     targets: [
         .target(name: "Merge", dependencies: [], path: "Sources"),
         .testTarget(name: "MergeTests", dependencies: ["Merge"], path: "Tests")
-    ],
-    swiftLanguageVersions: [
-        .version("5.1")
     ]
 )
