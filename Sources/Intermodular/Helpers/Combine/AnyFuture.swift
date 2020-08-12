@@ -26,6 +26,20 @@ extension AnyFuture {
     }
 }
 
+extension AnyFuture {
+    public static func result(_ result: Result<Output, Failure>) -> Self {
+        AnyPublisher.result(result)._unsafe_eraseToAnyFuture()
+    }
+    
+    public static func just(_ output: Output) -> Self {
+        AnyPublisher.just(output)._unsafe_eraseToAnyFuture()
+    }
+    
+    public static func failure(_ failure: Failure) -> Self {
+        AnyPublisher.failure(failure)._unsafe_eraseToAnyFuture()
+    }
+}
+
 extension Publisher {
     public func _unsafe_eraseToAnyFuture() -> AnyFuture<Output, Failure> {
         .init(_unsafe: self)
