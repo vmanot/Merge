@@ -5,20 +5,20 @@
 import Combine
 import Swift
 
-public protocol opaque_VoidSender {
+public protocol _opaque_VoidSender {
     func send()
 }
 
 // MARK: - Auxiliary Implementation -
 
-extension CurrentValueSubject: opaque_VoidSender where Output == Void {
+extension CurrentValueSubject: _opaque_VoidSender where Output == Void {
     
 }
 
-extension ObservableObjectPublisher: opaque_VoidSender {
+extension ObservableObjectPublisher: _opaque_VoidSender {
     
 }
 
-extension PassthroughSubject: opaque_VoidSender where Output == Void {
+extension PassthroughSubject: _opaque_VoidSender where Output == Void {
     
 }
