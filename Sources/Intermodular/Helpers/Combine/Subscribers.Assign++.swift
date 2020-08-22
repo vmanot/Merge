@@ -20,4 +20,126 @@ extension Publisher {
             object[keyPath: keyPath] = $0
         }
     }
+    
+    @inlinable
+    public func publish<Root>(
+        to keyPath: ReferenceWritableKeyPath<Root, Result<Output, Error>>,
+        on object: Root
+    ) -> Publishers.HandleEvents<Self> {
+        handleEvents(
+            receiveSubscription: nil,
+            receiveOutput: {
+                object[keyPath: keyPath] = .success($0)
+            },
+            receiveCompletion: {
+                if case let .failure(error) = $0 {
+                    object[keyPath: keyPath] = .failure(error)
+                }
+            },
+            receiveCancel: nil,
+            receiveRequest: nil
+        )
+    }
+    
+    @inlinable
+    public func publish<Root>(
+        to keyPath: ReferenceWritableKeyPath<Root, Result<Output, Failure>>,
+        on object: Root
+    ) -> Publishers.HandleEvents<Self> {
+        handleEvents(
+            receiveSubscription: nil,
+            receiveOutput: {
+                object[keyPath: keyPath] = .success($0)
+            },
+            receiveCompletion: {
+                if case let .failure(error) = $0 {
+                    object[keyPath: keyPath] = .failure(error)
+                }
+            },
+            receiveCancel: nil,
+            receiveRequest: nil
+        )
+    }
+    
+    @inlinable
+    public func publish<Root>(
+        to keyPath: ReferenceWritableKeyPath<Root, Result<Output, Error>?>,
+        on object: Root
+    ) -> Publishers.HandleEvents<Self> {
+        handleEvents(
+            receiveSubscription: nil,
+            receiveOutput: {
+                object[keyPath: keyPath] = .success($0)
+            },
+            receiveCompletion: {
+                if case let .failure(error) = $0 {
+                    object[keyPath: keyPath] = .failure(error)
+                }
+            },
+            receiveCancel: nil,
+            receiveRequest: nil
+        )
+    }
+    
+    @inlinable
+    public func publish<Root>(
+        to keyPath: ReferenceWritableKeyPath<Root, Result<Output, Failure>?>,
+        on object: Root
+    ) -> Publishers.HandleEvents<Self> {
+        handleEvents(
+            receiveSubscription: nil,
+            receiveOutput: {
+                object[keyPath: keyPath] = .success($0)
+            },
+            receiveCompletion: {
+                if case let .failure(error) = $0 {
+                    object[keyPath: keyPath] = .failure(error)
+                }
+            },
+            receiveCancel: nil,
+            receiveRequest: nil
+        )
+    }
+}
+
+extension Publisher where Failure == Error {
+    @inlinable
+    public func publish<Root>(
+        to keyPath: ReferenceWritableKeyPath<Root, Result<Output, Error>>,
+        on object: Root
+    ) -> Publishers.HandleEvents<Self> {
+        handleEvents(
+            receiveSubscription: nil,
+            receiveOutput: {
+                object[keyPath: keyPath] = .success($0)
+            },
+            receiveCompletion: {
+                if case let .failure(error) = $0 {
+                    object[keyPath: keyPath] = .failure(error)
+                }
+            },
+            receiveCancel: nil,
+            receiveRequest: nil
+        )
+    }
+
+    @inlinable
+    public func publish<Root>(
+        to keyPath: ReferenceWritableKeyPath<Root, Result<Output, Error>?>,
+        on object: Root
+    ) -> Publishers.HandleEvents<Self> {
+        handleEvents(
+            receiveSubscription: nil,
+            receiveOutput: {
+                object[keyPath: keyPath] = .success($0)
+            },
+            receiveCompletion: {
+                if case let .failure(error) = $0 {
+                    object[keyPath: keyPath] = .failure(error)
+                }
+            },
+            receiveCancel: nil,
+            receiveRequest: nil
+        )
+    }
 }
