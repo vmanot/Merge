@@ -3,35 +3,31 @@
 //
 
 import Darwin
-import Swift
+import Swallow
 
 /// An `os_unfair_lock` wrapper.
-@usableFromInline
-final class OSUnfairLock {
-    @usableFromInline
-    let base: os_unfair_lock_t
+public final class OSUnfairLock: Initiable, TestableLock {
+    private let base: os_unfair_lock_t
     
-    @usableFromInline
-    init() {
+    public init() {
         base = .allocate(capacity: 1)
         base.initialize(to: os_unfair_lock())
     }
     
-    @usableFromInline
-    func withCriticalScope<Result>(_ body: () -> Result) -> Result {
+    public func acquireOrBlock() {
         os_unfair_lock_lock(base)
-        
-        defer {
-            os_unfair_lock_unlock(base)
-        }
-        
-        return body()
     }
     
-    @usableFromInline
+    public func acquireOrFail() throws {
+        try os_unfair_lock_trylock(base).throw(if: ==false)
+    }
+    
+    public func relinquish() {
+        os_unfair_lock_unlock(base)
+    }
+    
     deinit {
         base.deinitialize(count: 1)
         base.deallocate()
     }
-    
 }

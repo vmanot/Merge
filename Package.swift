@@ -11,10 +11,32 @@ let package = Package(
         .watchOS(.v6)
     ],
     products: [
-        .library(name: "Merge", targets: ["Merge"])
+        .library(
+            name: "Merge",
+            targets: ["Merge"]
+        )
+    ],
+    dependencies: [
+        .package(url: "https://github.com/vmanot/Compute.git", .branch("master")),
+        .package(url: "https://github.com/vmanot/FoundationX.git", .branch("master")),
+        .package(url: "https://github.com/vmanot/Swallow.git", .branch("master"))
     ],
     targets: [
-        .target(name: "Merge", dependencies: [], path: "Sources"),
-        .testTarget(name: "MergeTests", dependencies: ["Merge"], path: "Tests")
+        .target(
+            name: "Merge",
+            dependencies: [
+                "Compute",
+                "FoundationX",
+                "Swallow"
+            ],
+            path: "Sources"
+        ),
+        .testTarget(
+            name: "MergeTests",
+            dependencies: [
+                "Merge"
+            ],
+            path: "Tests"
+        )
     ]
 )
