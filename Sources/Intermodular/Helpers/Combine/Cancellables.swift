@@ -18,18 +18,18 @@ public final class Cancellables: Cancellable {
     
     public func insert(_ cancellable: AnyCancellable) {
         queue.async {
-            self.cancellables.insert(cancellable)
+            cancellable.store(in: &self.cancellables)
         }
     }
     
     public func insert<C: Cancellable>(_ cancellable: C) {
         queue.async {
-            self.cancellables.insert(.init(cancellable))
+            cancellable.store(in: &self.cancellables)
         }
     }
     
     public func remove(_ cancellable: AnyCancellable) {
-        queue.async {
+        queue.async {            
             self.cancellables.remove(cancellable)
         }
     }
