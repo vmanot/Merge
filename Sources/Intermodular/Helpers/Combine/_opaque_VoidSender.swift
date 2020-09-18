@@ -9,7 +9,7 @@ public protocol _opaque_VoidSender {
     func send()
 }
 
-// MARK: - Concrete Implementations -
+// MARK: - Conformances -
 
 extension CurrentValueSubject: _opaque_VoidSender where Output == Void {
     

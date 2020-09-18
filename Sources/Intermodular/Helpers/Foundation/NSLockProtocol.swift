@@ -27,7 +27,7 @@ extension NSLockProtocol where Self: TestableLock {
     }
 }
 
-// MARK: - Concrete Implementations -
+// MARK: - Conformances -
 
 extension NSLock: NSLockProtocol {
 
