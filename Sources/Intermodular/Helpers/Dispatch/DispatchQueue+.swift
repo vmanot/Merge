@@ -42,7 +42,7 @@ extension DispatchTimeInterval: CustomStringConvertible {
             case .never:
                 return "never"
             @unknown default:
-                TODO.unimplemented
+                return "unknown"
         }
     }
 }
