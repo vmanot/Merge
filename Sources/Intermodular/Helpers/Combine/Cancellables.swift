@@ -29,7 +29,7 @@ public final class Cancellables: Cancellable {
     }
     
     public func remove(_ cancellable: AnyCancellable) {
-        queue.async {            
+        queue.async {
             self.cancellables.remove(cancellable)
         }
     }
@@ -88,6 +88,15 @@ public final class Cancellables: Cancellable {
 extension AnyCancellable {
     public func store(in cancellables: Cancellables) {
         cancellables.insert(self)
+    }
+}
+
+extension Cancellable {
+    @discardableResult
+    public func store(in cancellables: Cancellables) -> Self {
+        cancellables.insert(self)
+        
+        return self
     }
 }
 

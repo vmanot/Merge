@@ -37,6 +37,6 @@ public struct Observed<Value: ObservableObject> {
     ) where EnclosingSelf.ObjectWillChangePublisher: _opaque_VoidSender {
         subscription = wrappedValue
             .objectWillChange
-            .assign(to: _enclosingInstance.objectWillChange)
+            .publish(to: _enclosingInstance.objectWillChange)
     }
 }

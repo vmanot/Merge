@@ -27,24 +27,14 @@ extension PassthroughSubject: _opaque_VoidSender where Output == Void {
 
 extension Publisher where Failure == Never {
     @inlinable
-    public func publish(to publisher: _opaque_VoidSender) -> some Publisher {
-        handleOutput({ _ in publisher.send() })
-    }
-    
-    @inlinable
-    public func assign(to publisher: _opaque_VoidSender) -> AnyCancellable {
+    public func publish(to publisher: _opaque_VoidSender) -> AnyCancellable {
         sink(receiveValue: { _ in publisher.send() })
     }
 }
 
 extension ObservableObjectPublisher {
     @inlinable
-    public func publish(to publisher: _opaque_VoidSender) -> some Publisher {
-        handleOutput({ publisher.send() })
-    }
-    
-    @inlinable
-    public func assign(to publisher: _opaque_VoidSender) -> AnyCancellable {
+    public func publish(to publisher: _opaque_VoidSender) -> AnyCancellable {
         sink(receiveValue: { _ in publisher.send() })
     }
 }
