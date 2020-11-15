@@ -7,18 +7,8 @@ import Dispatch
 import Swallow
 
 extension DispatchTime: CustomStringConvertible {
-    public var nanosecondsSinceNow: Int {
-        TODO.here(.addressEdgeCase, note: "possible overflow")
-        return Int(uptimeNanoseconds) - Int(DispatchTime.now().uptimeNanoseconds)
-    }
-    
-    public var secondsSinceNow: Double {
-        TODO.here(.improve, note: "use a more precise floating point type")
-        return Double(nanosecondsSinceNow) / Double(NSEC_PER_SEC)
-    }
-    
     public var description: String {
-        return "(.now() + \(secondsSinceNow) seconds)"
+        return "(.now() + \(Double(Int(uptimeNanoseconds) - Int(DispatchTime.now().uptimeNanoseconds)) / Double(NSEC_PER_SEC)) seconds)"
     }
 }
 
