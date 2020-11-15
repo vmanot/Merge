@@ -14,7 +14,7 @@ public enum DarwinAtomicOperationMemoryOrder: Hashable {
     case sequentiallyConsistent
 }
 
-// MARK: - Protocol Implementations -
+// MARK: - Protocol Conformances -
 
 extension DarwinAtomicOperationMemoryOrder: Codable {
     public init(from decoder: Decoder) throws {
@@ -67,7 +67,7 @@ extension DarwinAtomicOperationMemoryOrder: RawRepresentable {
     }
 }
 
-// MARK: - Ancillary Protocol Implementations -
+// MARK: - Ancillary Protocol Conformances -
 
 extension memory_order: Codable {
     public init(from decoder: Decoder) throws {

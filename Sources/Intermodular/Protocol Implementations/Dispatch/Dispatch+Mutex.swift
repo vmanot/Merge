@@ -86,7 +86,7 @@ public struct DispatchReentrantMutexDevice: ReentrantMutex, ScopedMutex {
     }
 }
 
-// MARK: - Protocol Implementations -
+// MARK: - Protocol Conformances -
 
 extension DispatchMutexDevice: Initiable {
     public init() {

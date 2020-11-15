@@ -98,7 +98,7 @@ extension MutexProtectedWrapper {
     }
 }
 
-// MARK: - Protocol Implementations -
+// MARK: - Protocol Conformances -
 
 extension MutexProtectedWrapper where Mutex: Initiable {
     public convenience init(_ value: Value) {
@@ -106,7 +106,7 @@ extension MutexProtectedWrapper where Mutex: Initiable {
     }
 }
 
-// MARK: - Conditional Protocol Implementations -
+// MARK: - Conditional Protocol Conformances -
 
 extension MutexProtectedWrapper: CustomStringConvertible where Value: CustomStringConvertible {
     public var description: String {

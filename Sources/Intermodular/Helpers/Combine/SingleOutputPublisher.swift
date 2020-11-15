@@ -9,7 +9,7 @@ public protocol SingleOutputPublisher: Publisher {
     
 }
 
-// MARK: - Protocol Implementations -
+// MARK: - Protocol Conformances -
 
 extension Future: SingleOutputPublisher {
     

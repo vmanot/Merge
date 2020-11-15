@@ -11,7 +11,7 @@ import Swallow
     func unlock()
 }
 
-// MARK: - Protocol Implementations -
+// MARK: - Protocol Conformances -
 
 extension NSLockProtocol where Self: TestableLock {
     public func acquireOrBlock() {
