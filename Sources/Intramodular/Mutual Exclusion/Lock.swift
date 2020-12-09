@@ -4,21 +4,15 @@
 
 import Swallow
 
-public protocol Lock: ScopedMutex {
-    associatedtype AcquireResult
-    associatedtype ReleaseResult
-    
-    @discardableResult
-    func acquireOrBlock() -> AcquireResult
-    @discardableResult
-    func relinquish() -> ReleaseResult
+public protocol Lock: ScopedMutex {    
+    func acquireOrBlock()
+    func relinquish()
 }
 
-public protocol TestableLock: Lock, TestableScopedMutex {
-    associatedtype AttemptedAcquireResult
-    
+public protocol TestableLock: Lock, TestableScopedMutex {    
     var hasBeenAcquired: Bool { get }
-    func acquireOrFail() throws -> AttemptedAcquireResult
+    
+    func acquireOrFail() throws
 }
 
 public protocol ReentrantLock: Lock, ReentrantMutex {

@@ -40,6 +40,7 @@ extension ScopedMutex {
     public func _withCriticalScopeForReading<T>(_ f: (() throws -> T)) rethrows -> T {
         return try withCriticalScope(f)
     }
+    
     @discardableResult
     public func _withCriticalScopeForWriting<T>(_ f: (() throws -> T)) rethrows -> T {
         return try withCriticalScope(f)
@@ -51,10 +52,12 @@ extension ScopedReadWriteMutex {
     public func withCriticalScope<T>(_ f: (() throws -> T)) rethrows -> T {
         return try withCriticalScopeForWriting(f)
     }
+    
     @discardableResult
     public func _withCriticalScopeForReading<T>(_ f: (() throws -> T)) rethrows -> T {
         return try withCriticalScopeForReading(f)
     }
+    
     @discardableResult
     public func _withCriticalScopeForWriting<T>(_ f: (() throws -> T)) rethrows -> T {
         return try withCriticalScopeForWriting(f)

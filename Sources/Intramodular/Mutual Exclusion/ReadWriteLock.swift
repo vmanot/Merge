@@ -5,25 +5,17 @@
 import Swallow
 
 protocol ReadWriteLock: Lock {
-    @discardableResult
-    func acquireOrBlockForReading() -> AcquireResult
-    @discardableResult
-    func relinquishForReading() -> ReleaseResult
+    func acquireOrBlockForReading()
+    func relinquishForReading()
 
-    @discardableResult
-    func acquireOrBlockForWriting() -> AcquireResult
-    @discardableResult
-    func relinquishForWriting() -> ReleaseResult
+    func acquireOrBlockForWriting()
+    func relinquishForWriting()
 }
 
 protocol ReentrantReadWriteLock: ReentrantLock {
-    @discardableResult
-    func acquireOrBlockForReading() -> AcquireResult
-    @discardableResult
-    func relinquishForReading() -> ReleaseResult
+    func acquireOrBlockForReading()
+    func relinquishForReading()
 
-    @discardableResult
-    func acquireOrBlockForWriting() -> AcquireResult
-    @discardableResult
-    func relinquishForWriting() -> ReleaseResult
+    func acquireOrBlockForWriting()
+    func relinquishForWriting()
 }

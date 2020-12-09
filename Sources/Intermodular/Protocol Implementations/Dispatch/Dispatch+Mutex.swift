@@ -17,13 +17,7 @@ extension DispatchGroup: ScopedMutex {
 
 public struct DispatchMutexDevice: ScopedReadWriteMutex {
     private var queue: DispatchQueue
-    
-    public var objectIdentifierTree: ObjectIdentifierTree {
-        return queue
-            .objectIdentifierTree
-            .wrapped(by: type(of: self))
-    }
-    
+        
     public var isUniquelyReferenced: Bool {
         mutating get {
             return isKnownUniquelyReferenced(&queue)
@@ -54,13 +48,7 @@ public struct DispatchMutexDevice: ScopedReadWriteMutex {
 public struct DispatchReentrantMutexDevice: ReentrantMutex, ScopedMutex {
     private var queueTagKey = DispatchSpecificKey<Void>()
     private var queue: DispatchQueue
-    
-    public var objectIdentifierTree: ObjectIdentifierTree {
-        return queue
-            .objectIdentifierTree
-            .wrapped(by: type(of: self))
-    }
-    
+        
     public var isUniquelyReferenced: Bool {
         mutating get {
             return isKnownUniquelyReferenced(&queue)
