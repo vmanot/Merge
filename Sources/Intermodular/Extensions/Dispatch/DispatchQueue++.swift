@@ -63,11 +63,11 @@ extension DispatchQueue {
 extension DispatchQueue {
     private static let queueIdentifierKey = DispatchSpecificKey<DispatchGlobalQueueIdentifier>()
     private static let mainQueueTagKey = DispatchSpecificKey<Void>()
-    private static var areAllKnownQueuesIdentified: OSUnfairMutexProtectedWrapper<Bool> = false
+    private static var areAllKnownQueuesIdentified: MutexProtectedValue<Bool, OSUnfairLock> = false
     
     private final class DispatchGlobalQueueIdentifier: WrapperBase<DispatchQoS.QoSClass> {
         deinit {
-            areAllKnownQueuesIdentified.value = false
+            areAllKnownQueuesIdentified.mutate({ $0 = false })
         }
     }
     

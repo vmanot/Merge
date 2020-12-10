@@ -4,10 +4,10 @@
 
 import Swallow
 
-public protocol Suspendable: ReferenceType {
+public protocol Suspendable {
     func suspend()
 }
 
-public protocol Resumable: ReferenceType {
+public protocol Resumable {
     func resume()
 }

@@ -5,19 +5,15 @@
 import Foundation
 import Swallow
 
-open class AnyMutexProtectedWrapper<Value>: MutableValueConvertible {
+open class AnyMutexProtectedValue<Value> {
     open var unsafelyAccessedValue: Value
-    
-    open var value: Value {
-        get {
-            return withCriticalScopeForReading({ $0 })
-        } set {
-            withCriticalScopeForWriting({ $0 = newValue })
-        }
-    }
     
     fileprivate init(unsafelyAccessedValue: Value) {
         self.unsafelyAccessedValue = unsafelyAccessedValue
+    }
+    
+    open var wrappedValue: Value {
+        fatalError()
     }
     
     open func withCriticalScopeForReading<T>(_: ((Value) throws -> T)) rethrows -> T {
@@ -29,8 +25,29 @@ open class AnyMutexProtectedWrapper<Value>: MutableValueConvertible {
     }
 }
 
-public final class MutexProtectedWrapper<Value, Mutex: ScopedMutex>: AnyMutexProtectedWrapper<Value> {
+@propertyWrapper
+public final class MutexProtectedValue<Value, Mutex: ScopedMutex>: AnyMutexProtectedValue<Value> {
     public let mutex: Mutex
+    
+    override public var wrappedValue: Value {
+        withCriticalScopeForReading({ $0 })
+    }
+    
+    public var projectedValue: AnyMutexProtectedValue<Value> {
+        self
+    }
+        
+    public init(wrappedValue: Value, mutex: Mutex) {
+        self.mutex = mutex
+        
+        super.init(unsafelyAccessedValue: wrappedValue)
+    }
+    
+    public init(wrappedValue: Value) where Mutex == OSUnfairLock {
+        self.mutex = .init()
+        
+        super.init(unsafelyAccessedValue: wrappedValue)
+    }
     
     public override func withCriticalScopeForReading<T>(_ body: ((Value) throws -> T)) rethrows -> T {
         return try mutex._withCriticalScopeForReading {
@@ -43,22 +60,16 @@ public final class MutexProtectedWrapper<Value, Mutex: ScopedMutex>: AnyMutexPro
             try body(&unsafelyAccessedValue)
         }
     }
-    
-    public init(_ value: Value, mutex: Mutex) {
-        self.mutex = mutex
-        
-        super.init(unsafelyAccessedValue: value)
-    }
 }
 
-extension MutexProtectedWrapper {
+extension MutexProtectedValue {
     public func map<T>(_ transform: ((Value) throws -> T)) rethrows -> T {
         return try mutex._withCriticalScopeForReading {
             return try transform(unsafelyAccessedValue)
         }
     }
     
-    public func map<Other, OtherMutex, T>(with other: MutexProtectedWrapper<Other, OtherMutex>, _ transform: ((Value, Other) throws -> T)) rethrows -> T {
+    public func map<Other, OtherMutex, T>(with other: MutexProtectedValue<Other, OtherMutex>, _ transform: ((Value, Other) throws -> T)) rethrows -> T {
         return try map { value in
             try other.map { otherValue in
                 try transform(value, otherValue)
@@ -72,7 +83,7 @@ extension MutexProtectedWrapper {
         }
     }
     
-    public func mutate<Other, OtherMutex, T>(with other: MutexProtectedWrapper<Other, OtherMutex>, _ mutate: ((inout Value, inout Other) throws -> T)) rethrows -> T {
+    public func mutate<Other, OtherMutex, T>(with other: MutexProtectedValue<Other, OtherMutex>, _ mutate: ((inout Value, inout Other) throws -> T)) rethrows -> T {
         return try self.mutate { value in
             try other.mutate { otherValue in
                 try mutate(&value, &otherValue)
@@ -100,51 +111,57 @@ extension MutexProtectedWrapper {
 
 // MARK: - Protocol Conformances -
 
-extension MutexProtectedWrapper where Mutex: Initiable {
-    public convenience init(_ value: Value) {
-        self.init(value, mutex: Mutex())
+extension MutexProtectedValue where Mutex: Initiable {
+    public convenience init(wrappedValue: Value) {
+        self.init(wrappedValue: wrappedValue, mutex: Mutex())
     }
 }
 
 // MARK: - Conditional Protocol Conformances -
 
-extension MutexProtectedWrapper: CustomStringConvertible where Value: CustomStringConvertible {
+extension MutexProtectedValue: CustomStringConvertible where Value: CustomStringConvertible {
     public var description: String {
         return map({ $0.description })
     }
 }
 
-extension MutexProtectedWrapper: ExpressibleByArrayLiteral where Mutex: Initiable, Value: ExpressibleByArrayLiteral {
+extension MutexProtectedValue: ExpressibleByArrayLiteral where Mutex: Initiable, Value: ExpressibleByArrayLiteral {
     public typealias ArrayLiteralElement = Value.ArrayLiteralElement
     
     public convenience init(arrayLiteral elements: ArrayLiteralElement...) {
-        self.init(.init(_arrayLiteral: elements))
+        self.init(wrappedValue: .init(_arrayLiteral: elements))
     }
 }
 
-extension MutexProtectedWrapper: ExpressibleByBooleanLiteral where Mutex: Initiable, Value: ExpressibleByBooleanLiteral {
+extension MutexProtectedValue: ExpressibleByBooleanLiteral where Mutex: Initiable, Value: ExpressibleByBooleanLiteral {
     public typealias BooleanLiteralType = Value.BooleanLiteralType
     
     public convenience init(booleanLiteral value: BooleanLiteralType) {
-        self.init(.init(booleanLiteral: value))
+        self.init(wrappedValue: .init(booleanLiteral: value))
     }
 }
 
-extension MutexProtectedWrapper: ExpressibleByIntegerLiteral where Mutex: Initiable, Value: ExpressibleByIntegerLiteral {
+extension MutexProtectedValue: ExpressibleByIntegerLiteral where Mutex: Initiable, Value: ExpressibleByIntegerLiteral {
     public typealias IntegerLiteralType = Value.IntegerLiteralType
     
     public convenience init(integerLiteral value: IntegerLiteralType) {
-        self.init(.init(integerLiteral: value))
+        self.init(wrappedValue: .init(integerLiteral: value))
     }
 }
 
-extension MutexProtectedWrapper: BidirectionalCollection where Value: BidirectionalCollection {
+extension MutexProtectedValue: ExpressibleByNilLiteral where Mutex: Initiable, Value: ExpressibleByNilLiteral {
+    public convenience init(nilLiteral value: Void) {
+        self.init(wrappedValue: .init(nilLiteral: ()))
+    }
+}
+
+extension MutexProtectedValue: BidirectionalCollection where Value: BidirectionalCollection {
     public func index(before i: Value.Index) -> Value.Index {
         return map({ $0.startIndex })
     }
 }
 
-extension MutexProtectedWrapper: Collection where Value: Collection {
+extension MutexProtectedValue: Collection where Value: Collection {
     public typealias Index = Value.Index
     public typealias SubSequence = Value.SubSequence
     
@@ -165,14 +182,14 @@ extension MutexProtectedWrapper: Collection where Value: Collection {
     }
 }
 
-extension MutexProtectedWrapper: DestructivelyMutableSequence where Mutex: Initiable, Value: ResizableSequence {
+extension MutexProtectedValue: DestructivelyMutableSequence where Mutex: Initiable, Value: ResizableSequence {
     public func forEach<T>(destructivelyMutating iterator: ((inout Element?) throws -> T)) rethrows {
         return try mutate { try $0.forEach(destructivelyMutating: iterator) }
     }
 }
 
-extension MutexProtectedWrapper: Equatable where Value: Equatable {
-    public static func == (lhs: MutexProtectedWrapper, rhs: MutexProtectedWrapper) -> Bool {
+extension MutexProtectedValue: Equatable where Value: Equatable {
+    public static func == (lhs: MutexProtectedValue, rhs: MutexProtectedValue) -> Bool {
         return lhs.map { lhsValue in
             rhs.map { rhsValue in
                 lhsValue == rhsValue
@@ -181,7 +198,7 @@ extension MutexProtectedWrapper: Equatable where Value: Equatable {
     }
 }
 
-extension MutexProtectedWrapper: ExtensibleSequence where Value: ExtensibleSequence {
+extension MutexProtectedValue: ExtensibleSequence where Value: ExtensibleSequence {
     public typealias ElementInsertResult = Value.ElementInsertResult
     public typealias ElementsInsertResult = Value.ElementsInsertResult
     public typealias ElementAppendResult = Value.ElementAppendResult
@@ -238,13 +255,13 @@ extension MutexProtectedWrapper: ExtensibleSequence where Value: ExtensibleSeque
     }
 }
 
-extension MutexProtectedWrapper: Hashable where Value: Hashable {
+extension MutexProtectedValue: Hashable where Value: Hashable {
     public func hash(into hasher: inout Hasher) {
         map { hasher.combine($0) }
     }
 }
 
-extension MutexProtectedWrapper: MutableCollection where Value: MutableCollection {
+extension MutexProtectedValue: MutableCollection where Value: MutableCollection {
     public subscript(position: Index) -> Element {
         get {
             return map { $0[position] }
@@ -255,17 +272,17 @@ extension MutexProtectedWrapper: MutableCollection where Value: MutableCollectio
     }
 }
 
-extension MutexProtectedWrapper: MutableSequence where Value: MutableSequence {
+extension MutexProtectedValue: MutableSequence where Value: MutableSequence {
     public func forEach<T>(mutating iterator: ((inout Element) throws -> T)) rethrows {
         return try mutate { try $0.forEach(mutating: iterator) }
     }
 }
 
-extension MutexProtectedWrapper: ResizableSequence where Mutex: Initiable, Value: ResizableSequence {
+extension MutexProtectedValue: ResizableSequence where Mutex: Initiable, Value: ResizableSequence {
     
 }
 
-extension MutexProtectedWrapper: Sequence where Value: Sequence {
+extension MutexProtectedValue: Sequence where Value: Sequence {
     public typealias Element = Value.Element
     public typealias Iterator = Value.Iterator
     
@@ -274,75 +291,75 @@ extension MutexProtectedWrapper: Sequence where Value: Sequence {
     }
 }
 
-extension MutexProtectedWrapper: SequenceInitiableSequence where Mutex: Initiable, Value: SequenceInitiableSequence {
+extension MutexProtectedValue: SequenceInitiableSequence where Mutex: Initiable, Value: SequenceInitiableSequence {
     public convenience init<S: Sequence>(_ sequence: S) where S.Element == Element {
-        self.init(Value(sequence))
+        self.init(wrappedValue: Value(sequence))
     }
     
     public convenience init<C: Collection>(_ collection: C) where C.Element == Element {
-        self.init(Value(collection))
+        self.init(wrappedValue: Value(collection))
     }
 }
 
 // MARK: - Helpers -
 
-public typealias DispatchMutexProtectedWrapper<Value> = MutexProtectedWrapper<Value, DispatchMutexDevice>
-public typealias DispatchReentrantMutexProtectedWrapper<Value> = MutexProtectedWrapper<Value, DispatchMutexDevice>
-public typealias NSMutexProtectedWrapper<Value> = MutexProtectedWrapper<Value, NSLock>
-public typealias NSRecursiveMutexProtectedWrapper<Value> = MutexProtectedWrapper<Value, NSRecursiveLock>
-public typealias OSUnfairMutexProtectedWrapper<Value> = MutexProtectedWrapper<Value, OSUnfairLock>
+public typealias DispatchMutexProtectedValue<Value> = MutexProtectedValue<Value, DispatchMutexDevice>
+public typealias DispatchReentrantMutexProtectedValue<Value> = MutexProtectedValue<Value, DispatchMutexDevice>
+public typealias NSMutexProtectedValue<Value> = MutexProtectedValue<Value, NSLock>
+public typealias NSRecursiveMutexProtectedValue<Value> = MutexProtectedValue<Value, NSRecursiveLock>
+public typealias OSUnfairMutexProtectedValue<Value> = MutexProtectedValue<Value, OSUnfairLock>
 
-extension MutexProtectedWrapper where Value == Bool {
-    public static func && <OtherMutex>(lhs: MutexProtectedWrapper, rhs: MutexProtectedWrapper<Value, OtherMutex>) -> Bool {
+extension MutexProtectedValue where Value == Bool {
+    public static func && <OtherMutex>(lhs: MutexProtectedValue, rhs: MutexProtectedValue<Value, OtherMutex>) -> Bool {
         return lhs.map(with: rhs) { $0 && $1 }
     }
 }
 
-extension MutexProtectedWrapper where Value: BinaryInteger {
+extension MutexProtectedValue where Value: BinaryInteger {
     @inlinable
-    public static func + (lhs: MutexProtectedWrapper, rhs: Value) -> Value {
+    public static func + (lhs: MutexProtectedValue, rhs: Value) -> Value {
         return lhs.map({ $0 + rhs })
     }
     
     @inlinable
-    public static func += (lhs: MutexProtectedWrapper, rhs: Value) {
+    public static func += (lhs: MutexProtectedValue, rhs: Value) {
         lhs.mutate({ $0 += rhs })
     }
     
     @inlinable
-    public static func - (lhs: MutexProtectedWrapper, rhs: Value) -> Value {
+    public static func - (lhs: MutexProtectedValue, rhs: Value) -> Value {
         return lhs.map({ $0 - rhs })
     }
     
     @inlinable
-    public static func -= (lhs: MutexProtectedWrapper, rhs: Value) {
+    public static func -= (lhs: MutexProtectedValue, rhs: Value) {
         lhs.mutate({ $0 += rhs })
     }
     
     @inlinable
-    public static func * (lhs: MutexProtectedWrapper, rhs: Value) -> Value {
+    public static func * (lhs: MutexProtectedValue, rhs: Value) -> Value {
         return lhs.map({ $0 * rhs })
     }
     
     @inlinable
-    public static func *= (lhs: MutexProtectedWrapper, rhs: Value) {
+    public static func *= (lhs: MutexProtectedValue, rhs: Value) {
         lhs.mutate({ $0 *= rhs })
     }
 }
 
-extension MutexProtectedWrapper where Value: Equatable {
-    public static func == (lhs: MutexProtectedWrapper, rhs: Value) -> Bool {
+extension MutexProtectedValue where Value: Equatable {
+    public static func == (lhs: MutexProtectedValue, rhs: Value) -> Bool {
         return lhs.map({ $0 == rhs })
     }
 }
 
-public func withCriticalScope<V, M, T>(_ x: MutexProtectedWrapper<V, M>, _ body: ((inout V) throws -> T)) rethrows -> T {
+public func withCriticalScope<V, M, T>(_ x: MutexProtectedValue<V, M>, _ body: ((inout V) throws -> T)) rethrows -> T {
     return try x.mutate { x in
         try body(&x)
     }
 }
 
-public func withCriticalScope<V1, M1, V2, M2, T>(_ x: MutexProtectedWrapper<V1, M1>, _ y: MutexProtectedWrapper<V2, M2>, _ body: ((inout V1, inout V2) throws -> T)) rethrows -> T {
+public func withCriticalScope<V1, M1, V2, M2, T>(_ x: MutexProtectedValue<V1, M1>, _ y: MutexProtectedValue<V2, M2>, _ body: ((inout V1, inout V2) throws -> T)) rethrows -> T {
     return try x.mutate(with: y) { xValue, yValue in
         try body(&xValue, &yValue)
     }

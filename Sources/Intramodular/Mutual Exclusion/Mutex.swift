@@ -4,11 +4,11 @@
 
 import Swallow
 
-public protocol Mutex: MultithreadableReferenceType {
+public protocol Mutex: ThreadSafe {
     
 }
 
 public protocol ReentrantMutex: Mutex {
-
+    
 }
 
