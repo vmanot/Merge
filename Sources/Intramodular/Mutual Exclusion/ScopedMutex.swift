@@ -27,7 +27,17 @@ public protocol TestableScopedMutex: ScopedMutex {
     func withCriticalScope<T>(attempt _: (() throws -> T)) rethrows -> T?
 }
 
-public protocol MutexProtected: ThreadSafe {
+public protocol _opaque_MutexProtected {
+    var _opaque_mutex: Mutex { get }
+}
+
+extension MutexProtected {
+    public var _opaque_mutex: Merge.Mutex {
+        mutex
+    }
+}
+
+public protocol MutexProtected: _opaque_MutexProtected, ThreadSafe {
     associatedtype Mutex: Merge.Mutex
     
     var mutex: Mutex { get }

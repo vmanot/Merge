@@ -27,22 +27,42 @@ open class AnyMutexProtectedValue<Value> {
 
 @propertyWrapper
 public final class MutexProtectedValue<Value, Mutex: ScopedMutex>: AnyMutexProtectedValue<Value> {
-    public let mutex: Mutex
+    public private(set) var mutex: Mutex
     
     override public var wrappedValue: Value {
         withCriticalScopeForReading({ $0 })
     }
     
+    public static subscript<EnclosingSelf>(
+        _enclosingInstance instance: EnclosingSelf,
+        wrapped wrappedKeyPath: KeyPath<EnclosingSelf, Value>,
+        storage storageKeyPath: KeyPath<EnclosingSelf, MutexProtectedValue>
+    ) -> Value {
+        get {
+            if let _instance = instance as? _opaque_MutexProtected, let mutex = _instance._opaque_mutex as? Mutex {
+                instance[keyPath: storageKeyPath].mutex = mutex
+            }
+            
+            return instance[keyPath: storageKeyPath].wrappedValue
+        }
+    }
+    
     public var projectedValue: AnyMutexProtectedValue<Value> {
         self
     }
-        
+    
     public init(wrappedValue: Value, mutex: Mutex) {
         self.mutex = mutex
         
         super.init(unsafelyAccessedValue: wrappedValue)
     }
     
+    public init(wrappedValue: Value) where Mutex: Initiable {
+        self.mutex = .init()
+        
+        super.init(unsafelyAccessedValue: wrappedValue)
+    }
+
     public init(wrappedValue: Value) where Mutex == OSUnfairLock {
         self.mutex = .init()
         
@@ -106,14 +126,6 @@ extension MutexProtectedValue {
             unsafelyAccessedValue = newValue
             return (oldValue, newValue)
         }
-    }
-}
-
-// MARK: - Protocol Conformances -
-
-extension MutexProtectedValue where Mutex: Initiable {
-    public convenience init(wrappedValue: Value) {
-        self.init(wrappedValue: wrappedValue, mutex: Mutex())
     }
 }
 
@@ -364,3 +376,10 @@ public func withCriticalScope<V1, M1, V2, M2, T>(_ x: MutexProtectedValue<V1, M1
         try body(&xValue, &yValue)
     }
 }
+
+// MARK: - API -
+
+extension MutexProtected where Self.Mutex: ScopedMutex {
+    public typealias MutexProtectedValue<T> = Merge.MutexProtectedValue<T, Self.Mutex>
+}
+
