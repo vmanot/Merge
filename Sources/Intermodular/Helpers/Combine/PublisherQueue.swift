@@ -23,7 +23,7 @@ public struct PublisherQueue<Upstream: Publisher, Context: Scheduler>: Publisher
     
     public func send(_ publisher: Upstream) {
         scheduler.schedule {
-            publisher.receive(on: scheduler).sinkResult(storeIn: cancellables, receiveValue: {
+            publisher.receive(on: scheduler).sinkResult(in: cancellables, receiveValue: {
                 switch $0 {
                     case .success(let value):
                         output.send(value)

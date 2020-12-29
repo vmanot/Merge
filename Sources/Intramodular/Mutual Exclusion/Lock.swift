@@ -4,12 +4,12 @@
 
 import Swallow
 
-public protocol Lock: ScopedMutex {    
+public protocol Lock: ScopedMutex {
     func acquireOrBlock()
     func relinquish()
 }
 
-public protocol TestableLock: Lock, TestableScopedMutex {    
+public protocol TestableLock: Lock, TestableScopedMutex {
     var hasBeenAcquired: Bool { get }
     
     func acquireOrFail() throws
@@ -52,5 +52,23 @@ extension TestableLock {
             relinquish()
         }
         return try f()
+    }
+}
+
+// MARK: - Conformances -
+
+public final class AnyLock: Lock {
+    public let base: Lock
+    
+    public init<L: Lock>(_ base: L) {
+        self.base = base
+    }
+    
+    public func acquireOrBlock() {
+        base.acquireOrBlock()
+    }
+    
+    public func relinquish() {
+        base.relinquish()
     }
 }

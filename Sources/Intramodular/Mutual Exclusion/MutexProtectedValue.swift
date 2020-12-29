@@ -16,11 +16,7 @@ open class AnyMutexProtectedValue<Value> {
         fatalError()
     }
     
-    open func withCriticalScopeForReading<T>(_: ((Value) throws -> T)) rethrows -> T {
-        Never.materialize(reason: .abstract)
-    }
-    
-    open func withCriticalScopeForWriting<T>(_: ((inout Value) throws -> T)) rethrows -> T {
+    open func mutate<T>(_ mutate: ((inout Value) throws -> T)) rethrows -> T {
         Never.materialize(reason: .abstract)
     }
 }
@@ -30,7 +26,17 @@ public final class MutexProtectedValue<Value, Mutex: ScopedMutex>: AnyMutexProte
     public private(set) var mutex: Mutex
     
     override public var wrappedValue: Value {
-        withCriticalScopeForReading({ $0 })
+        get {
+            mutex._withCriticalScopeForReading({ unsafelyAccessedValue })
+        }
+    }
+    
+    public var assignedValue: Value {
+        get {
+            wrappedValue
+        } set {
+            mutate({ $0 = newValue })
+        }
     }
     
     public static subscript<EnclosingSelf>(
@@ -47,7 +53,7 @@ public final class MutexProtectedValue<Value, Mutex: ScopedMutex>: AnyMutexProte
         }
     }
     
-    public var projectedValue: AnyMutexProtectedValue<Value> {
+    public var projectedValue: MutexProtectedValue {
         self
     }
     
@@ -62,22 +68,16 @@ public final class MutexProtectedValue<Value, Mutex: ScopedMutex>: AnyMutexProte
         
         super.init(unsafelyAccessedValue: wrappedValue)
     }
-
-    public init(wrappedValue: Value) where Mutex == OSUnfairLock {
-        self.mutex = .init()
+    
+    public init(wrappedValue: Value) where Mutex == AnyLock {
+        self.mutex = .init(OSUnfairLock())
         
         super.init(unsafelyAccessedValue: wrappedValue)
     }
     
-    public override func withCriticalScopeForReading<T>(_ body: ((Value) throws -> T)) rethrows -> T {
-        return try mutex._withCriticalScopeForReading {
-            try body(unsafelyAccessedValue)
-        }
-    }
-    
-    public override func withCriticalScopeForWriting<T>(_ body: ((inout Value) throws -> T)) rethrows -> T {
+    override public func mutate<T>(_ mutate: ((inout Value) throws -> T)) rethrows -> T {
         return try mutex._withCriticalScopeForWriting {
-            try body(&unsafelyAccessedValue)
+            return try mutate(&unsafelyAccessedValue)
         }
     }
 }
@@ -94,12 +94,6 @@ extension MutexProtectedValue {
             try other.map { otherValue in
                 try transform(value, otherValue)
             }
-        }
-    }
-    
-    public func mutate<T>(_ mutate: ((inout Value) throws -> T)) rethrows -> T {
-        return try mutex._withCriticalScopeForWriting {
-            return try mutate(&unsafelyAccessedValue)
         }
     }
     
@@ -218,52 +212,52 @@ extension MutexProtectedValue: ExtensibleSequence where Value: ExtensibleSequenc
     
     @discardableResult
     public func insert(_ newElement: Element) -> ElementInsertResult {
-        return mutate { $0.insert(newElement) }
+        mutate { $0.insert(newElement) }
     }
     
     @discardableResult
     public func insert<S: Sequence>(contentsOf newElements: S) -> ElementsInsertResult where S.Element == Element {
-        return mutate { $0.insert(contentsOf: newElements) }
+        mutate { $0.insert(contentsOf: newElements) }
     }
     
     @discardableResult
     public func insert<C: Collection>(contentsOf newElements: C) -> ElementsInsertResult where C.Element == Element {
-        return mutate { $0.insert(contentsOf: newElements) }
+        mutate { $0.insert(contentsOf: newElements) }
     }
     
     @discardableResult
     public func insert<C: BidirectionalCollection>(contentsOf newElements: C) -> ElementsInsertResult where C.Element == Element {
-        return mutate { $0.insert(contentsOf: newElements) }
+        mutate { $0.insert(contentsOf: newElements) }
     }
     
     @discardableResult
     public func insert<C: RandomAccessCollection>(contentsOf newElements: C) -> ElementsInsertResult where C.Element == Element {
-        return mutate { $0.insert(contentsOf: newElements) }
+        mutate { $0.insert(contentsOf: newElements) }
     }
     
     @discardableResult
     public func append(_ newElement: Element) -> ElementAppendResult {
-        return mutate { $0.append(newElement) }
+        mutate { $0.append(newElement) }
     }
     
     @discardableResult
     public func append<S: Sequence>(contentsOf newElements: S) -> ElementsAppendResult where S.Element == Element {
-        return mutate { $0.append(contentsOf: newElements) }
+        mutate { $0.append(contentsOf: newElements) }
     }
     
     @discardableResult
     public func append<C: Collection>(contentsOf newElements: C) -> ElementsAppendResult where C.Element == Element {
-        return mutate { $0.append(contentsOf: newElements) }
+        mutate { $0.append(contentsOf: newElements) }
     }
     
     @discardableResult
     public func append<C: BidirectionalCollection>(contentsOf newElements: C) -> ElementsAppendResult where C.Element == Element {
-        return mutate { $0.append(contentsOf: newElements) }
+        mutate { $0.append(contentsOf: newElements) }
     }
     
     @discardableResult
     public func append<C: RandomAccessCollection>(contentsOf newElements: C) -> ElementsAppendResult where C.Element == Element {
-        return mutate { $0.append(contentsOf: newElements) }
+        mutate { $0.append(contentsOf: newElements) }
     }
 }
 

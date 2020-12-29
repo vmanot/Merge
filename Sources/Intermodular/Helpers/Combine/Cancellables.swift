@@ -11,7 +11,8 @@ import SwiftUI
 public final class Cancellables: Cancellable {
     private var queue = DispatchQueue(label: "com.vmanot.Merge.Cancellables.maintenance")
     private var cancellables: Set<AnyCancellable> = []
-    
+    private var operations: Set<Operation> = []
+
     public init() {
         
     }
@@ -22,6 +23,12 @@ public final class Cancellables: Cancellable {
         }
     }
     
+    public func insert(_ operation: Operation) {
+        queue.async {
+            self.operations.insert(operation)
+        }
+    }
+
     public func insert<C: Cancellable>(_ cancellable: C) {
         queue.async {
             cancellable.store(in: &self.cancellables)
@@ -101,37 +108,37 @@ extension Cancellable {
 }
 
 extension Publisher {
-    public func subscribe(storeIn cancellables: Cancellables) {
+    public func subscribe(in cancellables: Cancellables) {
         cancellables.subscribe(to: self)
     }
     
-    public func subscribe<S: Subscriber>(_ subscriber: S, storeIn cancellables: Cancellables) where S.Input == Output, S.Failure == Failure {
+    public func subscribe<S: Subscriber>(_ subscriber: S, in cancellables: Cancellables) where S.Input == Output, S.Failure == Failure {
         cancellables.subscribe(subscriber, to: self)
     }
     
-    public func subscribe<S: Subject>(_ subject: S, storeIn cancellables: Cancellables) where S.Output == Output, S.Failure == Failure {
+    public func subscribe<S: Subject>(_ subject: S, in cancellables: Cancellables) where S.Output == Output, S.Failure == Failure {
         cancellables.subscribe(subject, to: self)
     }
 }
 
 extension Publisher {
     public func sinkResult(
-        storeIn cancellables: Cancellables,
+        in cancellables: Cancellables,
         receiveValue: @escaping (Result<Output, Failure>) -> Void
     ) {
         toResultPublisher()
             .handleOutput(receiveValue)
-            .subscribe(storeIn: cancellables)
+            .subscribe(in: cancellables)
     }
 }
 
 extension Publisher where Failure == Never {
     public func sink(
-        storeIn cancellables: Cancellables,
+        in cancellables: Cancellables,
         receiveValue: @escaping (Output) -> Void
     ) {
         handleOutput(receiveValue)
-            .subscribe(storeIn: cancellables)
+            .subscribe(in: cancellables)
     }
 }
 

@@ -17,18 +17,18 @@ extension DispatchGroup: ScopedMutex {
 
 public struct DispatchMutexDevice: ScopedReadWriteMutex {
     private var queue: DispatchQueue
-        
+    
     public var isUniquelyReferenced: Bool {
         mutating get {
             return isKnownUniquelyReferenced(&queue)
         }
     }
     
-    public init(targetQueue: DispatchQueue?) {
+    public init(label: String? = nil, target: DispatchQueue? = nil) {
         self.queue = DispatchQueue(
-            label: "com.vmanot.Merge.DispatchMutexDevice",
+            label: label ?? "com.vmanot.Merge.DispatchMutexDevice",
             attributes: [.concurrent],
-            target: targetQueue
+            target: target
         )
     }
     
@@ -48,18 +48,18 @@ public struct DispatchMutexDevice: ScopedReadWriteMutex {
 public struct DispatchReentrantMutexDevice: ReentrantMutex, ScopedMutex {
     private var queueTagKey = DispatchSpecificKey<Void>()
     private var queue: DispatchQueue
-        
+    
     public var isUniquelyReferenced: Bool {
         mutating get {
             return isKnownUniquelyReferenced(&queue)
         }
     }
     
-    public init(targetQueue: DispatchQueue?) {
+    public init(target: DispatchQueue? = nil) {
         self.queue = DispatchQueue(
             label: "com.vmanot.Merge.DispatchReentrantMutexDevice",
             attributes: [.concurrent],
-            target: targetQueue
+            target: target
         )
         
         self.queue.setSpecific(key: queueTagKey, value: ())
@@ -78,12 +78,12 @@ public struct DispatchReentrantMutexDevice: ReentrantMutex, ScopedMutex {
 
 extension DispatchMutexDevice: Initiable {
     public init() {
-        self.init(targetQueue: nil)
+        self.init(target: nil)
     }
 }
 
 extension DispatchReentrantMutexDevice: Initiable {
     public init() {
-        self.init(targetQueue: nil)
+        self.init(target: nil)
     }
 }
