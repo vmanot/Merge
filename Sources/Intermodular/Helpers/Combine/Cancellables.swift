@@ -12,7 +12,7 @@ public final class Cancellables: Cancellable {
     private var queue = DispatchQueue(label: "com.vmanot.Merge.Cancellables.maintenance")
     private var cancellables: Set<AnyCancellable> = []
     private var operations: Set<Operation> = []
-
+    
     public init() {
         
     }
@@ -28,7 +28,7 @@ public final class Cancellables: Cancellable {
             self.operations.insert(operation)
         }
     }
-
+    
     public func insert<C: Cancellable>(_ cancellable: C) {
         queue.async {
             cancellable.store(in: &self.cancellables)
