@@ -8,6 +8,17 @@ import Foundation
 import Swallow
 
 extension DispatchQueue {
+    @usableFromInline
+    static func asyncOnMainIfNecessary(execute work: @escaping () -> ()) {
+        if Thread.isMainThread {
+            work()
+        } else {
+            DispatchQueue.main.async(execute: work)
+        }
+    }
+}
+
+extension DispatchQueue {
     public subscript<T>(_ key: DispatchSpecificKey<T>) -> T? {
         get {
             return getSpecific(key: key)
