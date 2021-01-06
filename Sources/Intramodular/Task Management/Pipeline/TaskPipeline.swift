@@ -2,7 +2,9 @@
 // Copyright (c) Vatsal Manot
 //
 
-import SwiftUIX
+import Combine
+import Swift
+import SwiftUI
 
 public final class TaskPipeline: CancellablesHolder, ObservableObject {
     public enum Error: Swift.Error {

@@ -2,8 +2,8 @@
 // Copyright (c) Vatsal Manot
 //
 
+import Combine
 import Swift
-import SwiftUIX
 
 /// The status of a task.
 public enum TaskStatus<Success, Error: Swift.Error> {

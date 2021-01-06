@@ -2,8 +2,9 @@
 // Copyright (c) Vatsal Manot
 //
 
+import Combine
 import Swift
-import SwiftUIX
+import SwiftUI
 
 public struct TaskButtonConfiguration {
     public let label: AnyView

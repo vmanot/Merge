@@ -2,8 +2,9 @@
 // Copyright (c) Vatsal Manot
 //
 
+import Combine
 import Swift
-import SwiftUIX
+import SwiftUI
 
 public protocol _opaque_TaskButtonStyle {
     func _opaque_makeBody(configuration: TaskButtonConfiguration) -> AnyView
@@ -31,7 +32,7 @@ extension TaskButtonStyle {
 
 extension _opaque_TaskButtonStyle where Self: TaskButtonStyle {
     public func _opaque_makeBody(configuration: TaskButtonConfiguration) -> AnyView {
-        return makeBody(configuration: configuration).eraseToAnyView()
+        .init(makeBody(configuration: configuration))
     }
 }
 

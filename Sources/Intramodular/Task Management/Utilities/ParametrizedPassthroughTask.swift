@@ -2,8 +2,8 @@
 // Copyright (c) Vatsal Manot
 //
 
+import Combine
 import Swift
-import SwiftUIX
 
 /// A task that performs type erasure by wrapping another task.
 open class ParametrizedPassthroughTask<Input, Success, Error: Swift.Error>: PassthroughTask<Success, Error>, ParametrizedTask {

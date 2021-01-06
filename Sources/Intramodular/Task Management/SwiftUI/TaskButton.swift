@@ -2,6 +2,7 @@
 // Copyright (c) Vatsal Manot
 //
 
+import Combine
 import Swift
 import SwiftUIX
 
@@ -10,39 +11,19 @@ public struct TaskButton<Success, Error: Swift.Error, Label: View>: View {
     private let action: () -> AnyTask<Success, Error>?
     private let label: (TaskStatus<Success, Error>) -> Label
     
-    @OptionalEnvironmentObject var taskPipeline: TaskPipeline?
-    @OptionalObservedObject var currentTask: AnyTask<Success, Error>?
+    @OptionalEnvironmentObject private var taskPipeline: TaskPipeline?
+    @OptionalObservedObject private var currentTask: AnyTask<Success, Error>?
     
-    @Environment(\.buttonStyle) var buttonStyle
-    @Environment(\.cancellables) var cancellables
-    @Environment(\.errorContext) var errorContext
-    @Environment(\.isEnabled) var isEnabled
-    @Environment(\.taskName) var taskName
-    @Environment(\.taskDisabled) var taskDisabled
-    @Environment(\.taskInterruptible) var taskInterruptible
-    @Environment(\.taskRestartable) var taskRestartable
+    @Environment(\.buttonStyle) private var buttonStyle
+    @Environment(\.cancellables) private var cancellables
+    @Environment(\.errorContext) private var errorContext
+    @Environment(\.isEnabled) private var isEnabled
+    @Environment(\.taskName) private var taskName
+    @Environment(\.taskDisabled) private var taskDisabled
+    @Environment(\.taskInterruptible) private var taskInterruptible
+    @Environment(\.taskRestartable) private var taskRestartable
     
-    public var task: AnyTask<Success, Error>? {
-        if let currentTask = currentTask {
-            return currentTask
-        } else if let taskName = taskName, let task = taskPipeline?[taskName] as? AnyTask<Success, Error> {
-            return task
-        } else {
-            return nil
-        }
-    }
-    
-    public var taskStatusDescription: TaskStatusDescription {
-        return task?.statusDescription
-            ?? taskName.flatMap({ taskPipeline?.lastStatus(for: $0) })
-            ?? .idle
-    }
-    
-    public var lastTaskStatusDescription: TaskStatusDescription? {
-        taskName.flatMap({ taskPipeline?.lastStatus(for: $0) })
-    }
-    
-    @State var taskRenewalSubscription: AnyCancellable?
+    @State private var taskRenewalSubscription: AnyCancellable?
     
     public var body: some View {
         Button(action: trigger) {
@@ -58,6 +39,26 @@ public struct TaskButton<Success, Error: Swift.Error, Label: View>: View {
             )
         }
         .disabled(!isEnabled || taskDisabled)
+    }
+    
+    private var task: AnyTask<Success, Error>? {
+        if let currentTask = currentTask {
+            return currentTask
+        } else if let taskName = taskName, let task = taskPipeline?[taskName] as? AnyTask<Success, Error> {
+            return task
+        } else {
+            return nil
+        }
+    }
+    
+    private var taskStatusDescription: TaskStatusDescription {
+        return task?.statusDescription
+            ?? taskName.flatMap({ taskPipeline?.lastStatus(for: $0) })
+            ?? .idle
+    }
+    
+    private var lastTaskStatusDescription: TaskStatusDescription? {
+        taskName.flatMap({ taskPipeline?.lastStatus(for: $0) })
     }
     
     private func trigger() {
@@ -105,6 +106,8 @@ public struct TaskButton<Success, Error: Swift.Error, Label: View>: View {
     }
 }
 
+// MARK: - Initializers -
+
 extension TaskButton {
     public init(
         action: @escaping () -> AnyTask<Success, Error>,
@@ -139,6 +142,26 @@ extension TaskButton {
     }
 }
 
+extension TaskButton where Label == Text {
+    public init(
+        titleKey: LocalizedStringKey,
+        action: @escaping () -> AnyTask<Success, Error>
+    ) {
+        self.init(action: action) {
+            Text(titleKey)
+        }
+    }
+    
+    public init<S: StringProtocol>(
+        title: S,
+        action: @escaping () -> AnyTask<Success, Error>
+    ) {
+        self.init(action: action) {
+            Text(title)
+        }
+    }
+}
+
 extension TaskButton where Success == Void, Error == Swift.Error {
     public init(
         action: @escaping () throws -> Void,
@@ -166,5 +189,13 @@ extension TaskButton where Success == Void, Error == Swift.Error {
         let label = label()
         
         self.init(action: action, label: { _ in label })
+    }
+}
+
+// MARK: - Protocol Conformances -
+
+extension TaskButton: ActionLabelView where Error == Swift.Error, Success == Void {
+    public init(action: Action, label: () -> Label) {
+        self.init(action: action.perform, label: label)
     }
 }

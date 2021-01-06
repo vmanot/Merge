@@ -2,13 +2,13 @@
 // Copyright (c) Vatsal Manot
 //
 
+import Combine
 import Swift
-import SwiftUIX
+import SwiftUI
 
 public enum TaskStatusDescription: Hashable {
     case idle
     case started
-    case progress(Progress?)
     case canceled
     case success
     case error(OpaqueError)
@@ -19,7 +19,7 @@ extension TaskStatusDescription {
         switch self {
             case .idle:
                 return false
-            case .started, .progress, .success:
+            case .started, .success:
                 return true
             case .canceled, .error:
                 return false
@@ -30,7 +30,7 @@ extension TaskStatusDescription {
         switch self {
             case .idle:
                 return false
-            case .started, .progress, .success:
+            case .started, .success:
                 return false
             case .canceled, .error:
                 return true
@@ -45,8 +45,6 @@ extension TaskStatusDescription {
                 return false
             case .started:
                 return false
-            case .progress:
-                return false
             case .canceled:
                 return true
             case .success:
@@ -60,7 +58,7 @@ extension TaskStatusDescription {
 extension TaskStatusDescription {
     public var isActive: Bool {
         switch self {
-            case .started, .progress:
+            case .started:
                 return true
             default:
                 return false
