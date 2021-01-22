@@ -151,7 +151,10 @@ extension TaskProtocol {
             .eraseToAnyPublisher()
     }
     
-    public func onResult(_ receiveCompletion: @escaping (TaskResult<Success, Error>) -> Void) {
+    @discardableResult
+    public func onResult(
+        _ receiveCompletion: @escaping (TaskResult<Success, Error>) -> Void
+    ) -> Self {
         if let result = result {
             receiveCompletion(result)
         } else {
@@ -160,21 +163,31 @@ extension TaskProtocol {
                 .sink(receiveValue: receiveCompletion)
                 .store(in: cancellables)
         }
+        
+        return self
     }
     
-    public func onStatusChange(receiveValue: @escaping (TaskStatus<Success, Error>) -> ()) {
+    @discardableResult
+    public func onStatusChange(
+        receiveValue: @escaping (TaskStatus<Success, Error>) -> ()
+    ) -> Self {
         objectWillChange.sink(receiveValue: receiveValue)
             .store(in: cancellables)
+        
+        return self
     }
     
+    @discardableResult
     public func onStatus(
         _ status: StatusDescription,
         perform action: @escaping (TaskStatus<Success, Error>) -> ()
-    ) {
+    ) -> Self {
         objectWillChange
             .filter({ status == TaskStatusDescription($0) })
             .sink(receiveValue: action)
             .store(in: cancellables)
+        
+        return self
     }
 }
 

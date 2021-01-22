@@ -11,6 +11,10 @@ public protocol SingleOutputPublisher: Publisher {
 
 // MARK: - Protocol Conformances -
 
+extension Deferred: SingleOutputPublisher where DeferredPublisher: SingleOutputPublisher {
+    
+}
+
 extension Future: SingleOutputPublisher {
     
 }
