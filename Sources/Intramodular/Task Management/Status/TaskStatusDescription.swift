@@ -8,7 +8,8 @@ import SwiftUI
 
 public enum TaskStatusDescription: Hashable {
     case idle
-    case started
+    case active
+    case paused
     case canceled
     case success
     case error(OpaqueError)
@@ -19,7 +20,7 @@ extension TaskStatusDescription {
         switch self {
             case .idle:
                 return false
-            case .started, .success:
+            case .active, .paused, .success:
                 return true
             case .canceled, .error:
                 return false
@@ -30,7 +31,7 @@ extension TaskStatusDescription {
         switch self {
             case .idle:
                 return false
-            case .started, .success:
+            case .active, .paused, .success:
                 return false
             case .canceled, .error:
                 return true
@@ -41,15 +42,9 @@ extension TaskStatusDescription {
 extension TaskStatusDescription {
     public var isCompletion: Bool {
         switch self {
-            case .idle:
+            case .idle, .active, .paused:
                 return false
-            case .started:
-                return false
-            case .canceled:
-                return true
-            case .success:
-                return true
-            case .error:
+            case .canceled, .success, .error:
                 return true
         }
     }
@@ -58,7 +53,7 @@ extension TaskStatusDescription {
 extension TaskStatusDescription {
     public var isActive: Bool {
         switch self {
-            case .started:
+            case .active:
                 return true
             default:
                 return false
@@ -69,8 +64,10 @@ extension TaskStatusDescription {
         switch status {
             case .idle:
                 self = .idle
-            case .started:
-                self = .started
+            case .active:
+                self = .active
+            case .paused:
+                self = .paused
             case .canceled:
                 self = .canceled
             case .success:

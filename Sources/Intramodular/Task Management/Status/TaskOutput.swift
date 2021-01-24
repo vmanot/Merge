@@ -12,6 +12,10 @@ public enum TaskOutput<Success, Error: Swift.Error> {
 }
 
 extension TaskOutput {
+    public var successValue: Success? {
+        TaskStatus(self).successValue
+    }
+    
     public var isTerminal: Bool {
         switch self {
             case .success:

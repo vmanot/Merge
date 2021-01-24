@@ -2,6 +2,7 @@
 // Copyright (c) Vatsal Manot
 //
 
+import Combine
 import Foundation
 import Swallow
 
@@ -13,11 +14,15 @@ public protocol _opaque_Task: _opaque_Identifiable, CancellablesHolder, Subscrip
     var _opaque_statusWillChange: AnyPublisher<TaskStatus<Any, Swift.Error>, Never> { get }
     
     var name: TaskName { get }
+    var progress: Progress { get }
     
     var statusDescription: StatusDescription { get }
     var statusDescriptionWillChange: AnyPublisher<StatusDescription, Never> { get }
     
     func start()
+    func pause() throws
+    func resume() throws
+    func cancel()
 }
 
 /// A task is a token of activity with status-reporting.
@@ -34,8 +39,12 @@ public protocol TaskProtocol: _opaque_Task, Identifiable, ObservableObject, Publ
     
     var name: TaskName { get }
     var status: TaskStatus<Success, Error> { get }
+    var progress: Progress { get }
     
     func start()
+    func pause() throws
+    func resume() throws
+    func cancel()
 }
 
 // MARK: - Implementation -
@@ -59,6 +68,14 @@ extension _opaque_Task where Self: TaskProtocol {
             .map({ StatusDescription($0) })
             .eraseToAnyPublisher()
     }
+    
+    public func pause() throws {
+        throw Never.Reason.unsupported
+    }
+    
+    public func resume() throws {
+        throw Never.Reason.unsupported
+    }
 }
 
 extension Publisher where Self: TaskProtocol {
@@ -81,7 +98,7 @@ extension Publisher where Self: TaskProtocol {
         start()
         
         objectWillChange
-            .filter({ !$0.isIdle })
+            .filter({ $0 != .idle })
             .setFailureType(to: Failure.self)
             .flatMap({ status -> AnyPublisher<Output, Failure> in
                 if let output = status.output {
@@ -144,13 +161,7 @@ extension TaskProtocol {
     public var result: TaskResult<Success, Error>? {
         TaskResult(status)
     }
-    
-    public var successPublisher: AnyPublisher<Success, Failure> {
-        self.compactMap({ TaskStatus<Success, Error>($0).successValue })
-            .mapError({ TaskStatus<Success, Error>($0).failure! })
-            .eraseToAnyPublisher()
-    }
-    
+        
     @discardableResult
     public func onResult(
         _ receiveCompletion: @escaping (TaskResult<Success, Error>) -> Void

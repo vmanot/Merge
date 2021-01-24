@@ -22,7 +22,9 @@ public enum TaskResult<Success, Error: Swift.Error> {
         switch status {
             case .idle:
                 return nil
-            case .started:
+            case .active:
+                return nil
+            case .paused:
                 return nil
             case .canceled:
                 self = .canceled

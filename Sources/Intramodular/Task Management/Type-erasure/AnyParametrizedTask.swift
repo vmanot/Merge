@@ -2,6 +2,7 @@
 // Copyright (c) Vatsal Manot
 //
 
+import FoundationX
 import Swift
 
 open class AnyParametrizedTask<Input, Success, Error: Swift.Error>: TaskProtocol {
@@ -23,6 +24,10 @@ open class AnyParametrizedTask<Input, Success, Error: Swift.Error>: TaskProtocol
     
     public var status: Status {
         getStatusImpl()
+    }
+    
+    public var progress: Progress {
+        base.progress
     }
     
     public var objectWillChange: AnyPublisher<Status, Never> {

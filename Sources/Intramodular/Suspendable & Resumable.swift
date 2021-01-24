@@ -5,9 +5,9 @@
 import Swallow
 
 public protocol Suspendable {
-    func suspend()
+    func suspend() throws
 }
 
 public protocol Resumable {
-    func resume()
+    func resume() throws
 }

@@ -32,8 +32,8 @@ extension Publisher where Failure == Never {
     }
     
     @inlinable
-    public func publish(to publisher: _opaque_ObservableObject) -> AnyCancellable {
-        sink(receiveValue: { _ in try! publisher._opaque_objectWillChange_send() })
+    public func publish(to object: _opaque_ObservableObject) -> AnyCancellable {
+        sink(receiveValue: { _ in try! object._opaque_objectWillChange_send() })
     }
 }
 

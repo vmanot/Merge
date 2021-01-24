@@ -2,6 +2,7 @@
 // Copyright (c) Vatsal Manot
 //
 
+import Foundation
 import Swift
 
 open class TaskBase<Success, Error: Swift.Error>: TaskProtocol {
@@ -16,8 +17,8 @@ open class TaskBase<Success, Error: Swift.Error>: TaskProtocol {
     
     public var name: TaskName = .init() {
         willSet {
-            guard !status.isActive else {
-                fatalError()
+            guard status != .active else {
+                fatalError("Cannot change the name of an active task.")
             }
         }
         
@@ -33,6 +34,8 @@ open class TaskBase<Success, Error: Swift.Error>: TaskProtocol {
     public var status: Status {
         statusValueSubject.value
     }
+    
+    public let progress = Progress()
     
     public init() {
         

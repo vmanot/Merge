@@ -2,6 +2,7 @@
 // Copyright (c) Vatsal Manot
 //
 
+import Foundation
 import Swift
 
 /// A task that performs type erasure by wrapping another task.
@@ -21,6 +22,10 @@ open class AnyTask<Success, Error: Swift.Error>: TaskProtocol {
     
     public var status: Status {
         getStatusImpl()
+    }
+    
+    public var progress: Progress {
+        base.progress
     }
     
     public var objectWillChange: AnyPublisher<Status, Never> {

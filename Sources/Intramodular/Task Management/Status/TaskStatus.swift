@@ -8,7 +8,8 @@ import Swift
 /// The status of a task.
 public enum TaskStatus<Success, Error: Swift.Error> {
     case idle
-    case started
+    case active
+    case paused
     case canceled
     case success(Success)
     case error(Error)
@@ -17,23 +18,6 @@ public enum TaskStatus<Success, Error: Swift.Error> {
 // MARK: - Extensions -
 
 extension TaskStatus {
-    public var isIdle: Bool {
-        if case .idle = self {
-            return true
-        } else {
-            return false
-        }
-    }
-    
-    public var isActive: Bool {
-        switch self {
-            case .started:
-                return true
-            default:
-                return false
-        }
-    }
-    
     public var isTerminal: Bool {
         switch self {
             case .success, .canceled, .error:
@@ -77,7 +61,7 @@ extension TaskStatus {
 extension TaskStatus {
     public var output: TaskOutput<Success, Error>? {
         switch self {
-            case .started:
+            case .active:
                 return .started
             case .success(let success):
                 return .success(success)
@@ -89,7 +73,7 @@ extension TaskStatus {
     public init(_ output: TaskOutput<Success, Error>) {
         switch output {
             case .started:
-                self = .started
+                self = .active
             case .success(let success):
                 self = .success(success)
         }
@@ -121,8 +105,10 @@ extension TaskStatus {
         switch self {
             case .idle:
                 return .idle
-            case .started:
-                return .started
+            case .active:
+                return .active
+            case .paused:
+                return .paused
             case .canceled:
                 return .canceled
             case .success(let success):
@@ -136,8 +122,10 @@ extension TaskStatus {
         switch self {
             case .idle:
                 return .idle
-            case .started:
-                return .started
+            case .active:
+                return .active
+            case .paused:
+                return .paused
             case .canceled:
                 return .canceled
             case .success(let success):
@@ -162,15 +150,14 @@ extension TaskStatus: Hashable where Success: Hashable, Error: Hashable {
 
 extension AnyTask {
     public enum _GeneralStatusComparison {
-        case active
         case inactive
         
         public static func == (lhs: Self, rhs: Status) -> Bool {
-            switch lhs {
-                case .active:
-                    return rhs.isActive
-                case .inactive:
-                    return !rhs.isActive
+            switch (lhs, rhs) {
+                case (.inactive, .active):
+                    return false
+                default:
+                    return true
             }
         }
         
@@ -181,7 +168,8 @@ extension AnyTask {
     
     public enum _ExactStatusComparison {
         case idle
-        case started
+        case active
+        case paused
         case canceled
         case success
         case error
@@ -190,7 +178,9 @@ extension AnyTask {
             switch (lhs, rhs) {
                 case (.idle, .idle):
                     return true
-                case (.started, .started):
+                case (.active, .active):
+                    return true
+                case (.paused, .paused):
                     return true
                 case (.canceled, .canceled):
                     return true
@@ -215,11 +205,7 @@ extension AnyTask {
 
 // MARK: - Helpers -
 
-extension TaskProtocol {
-    public var isActive: Bool {
-        status.isActive
-    }
-    
+extension TaskProtocol {    
     public var hasSucceeded: Bool {
         if case .success = statusDescription {
             return true

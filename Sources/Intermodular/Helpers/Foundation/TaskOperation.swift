@@ -58,15 +58,16 @@ open class TaskOperation<Base: TaskProtocol>: Operation {
             return
         }
         
-        _executing = true
-        
         base.onStatusChange { status in
             switch status {
                 case .idle:
                     self._executing = false
                     self._finished = false
-                case .started:
+                case .active:
                     self._executing = true
+                    self._finished = false
+                case .paused:
+                    self._executing = false
                     self._finished = false
                 case .canceled:
                     self._executing = false

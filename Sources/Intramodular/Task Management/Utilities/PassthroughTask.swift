@@ -75,7 +75,7 @@ open class PassthroughTask<Success, Error: Swift.Error>: TaskBase<Success, Error
             publisher.sinkResult(attemptToFulfill)
         }
     }
-        
+    
     open func willSend(status: Status) {
         
     }
@@ -86,7 +86,7 @@ open class PassthroughTask<Success, Error: Swift.Error>: TaskBase<Success, Error
     
     public func send(status: Status) {
         willSend(status: status)
-
+        
         defer {
             didSend(status: status)
         }
@@ -94,8 +94,10 @@ open class PassthroughTask<Success, Error: Swift.Error>: TaskBase<Success, Error
         switch status {
             case .idle:
                 assertionFailure()
-            case .started:
-                statusValueSubject.send(.started)
+            case .active:
+                statusValueSubject.send(.active)
+            case .paused:
+                statusValueSubject.send(.paused)
             case .canceled: do {
                 queue.async {
                     self.bodyCancellable.cancel()
@@ -119,7 +121,7 @@ open class PassthroughTask<Success, Error: Swift.Error>: TaskBase<Success, Error
     /// Start the task.
     final override public func start() {
         func _start() {
-            send(status: .started)
+            send(status: .active)
             
             bodyCancellable = body(self as! Self)
         }
