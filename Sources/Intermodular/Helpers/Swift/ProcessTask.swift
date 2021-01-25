@@ -17,6 +17,7 @@ public final class ProcessTask: TaskProtocol {
     }
     
     public let process: Process
+    public let progress = Progress()
     
     private let base = PassthroughTask<Void, Error>()
     
