@@ -2,10 +2,9 @@
 // Copyright (c) Vatsal Manot
 //
 
-import Combine
 import Swift
 
-public struct TaskSuccessPublisher<Upstream: TaskProtocol>: Publisher {
+public struct TaskSuccessPublisher<Upstream: TaskProtocol>: SingleOutputPublisher {
     public typealias Output = Upstream.Success
     public typealias Failure = Upstream.Failure
     

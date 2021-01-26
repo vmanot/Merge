@@ -7,6 +7,10 @@ import Dispatch
 import Swallow
 
 extension DispatchQoS.QoSClass {
+    public static var current: Self {
+        DispatchQoS.QoSClass(rawValue: qos_class_self()) ?? .unspecified
+    }
+    
     public init(qos: QualityOfService) {
         switch qos {
             case .userInteractive:
