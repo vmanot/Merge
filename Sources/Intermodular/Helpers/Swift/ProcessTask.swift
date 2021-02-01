@@ -77,7 +77,9 @@ public final class ProcessTask: Task {
 
 extension ProcessTask {
     private func setupPipes() {
-        process.standardOutput = standardOutputPipe
+        guard !process.isRunning else {
+            return
+        }
         
         standardOutputPipe.fileHandleForReading.readabilityHandler = {
             let data = $0.availableData
@@ -88,9 +90,7 @@ extension ProcessTask {
             
             self.standardOutputData.send(data)
         }
-        
-        process.standardError = standardErrorPipe
-        
+                
         standardErrorPipe.fileHandleForReading.readabilityHandler = {
             let data = $0.availableData
             
@@ -100,11 +100,17 @@ extension ProcessTask {
             
             self.standardErrorData.send(data)
         }
+        
+        process.standardOutput = standardOutputPipe
+        process.standardError = standardErrorPipe
     }
     
     private func teardownPipes() {
         standardOutputPipe.fileHandleForReading.readabilityHandler?(standardOutputPipe.fileHandleForReading)
         standardErrorPipe.fileHandleForReading.readabilityHandler?(standardErrorPipe.fileHandleForReading)
+        
+        standardOutputData.send(completion: .finished)
+        standardErrorData.send(completion: .finished)
     }
 }
 

@@ -35,14 +35,18 @@ extension Publishers.Encode: SingleOutputPublisher where Upstream: SingleOutputP
     
 }
 
-extension Publishers.First: SingleOutputPublisher where Upstream: SingleOutputPublisher {
+extension Publishers.First: SingleOutputPublisher {
     
 }
 
-extension Publishers.Last: SingleOutputPublisher where Upstream: SingleOutputPublisher {
+extension Publishers.Last: SingleOutputPublisher {
     
 }
 
 extension Publishers.Map: SingleOutputPublisher where Upstream: SingleOutputPublisher {
+    
+}
+
+extension Publishers.Print: SingleOutputPublisher where Upstream: SingleOutputPublisher {
     
 }
