@@ -6,7 +6,7 @@ import Foundation
 import Swift
 
 /// A task that performs type erasure by wrapping another task.
-open class AnyTask<Success, Error: Swift.Error>: TaskProtocol {
+open class AnyTask<Success, Error: Swift.Error>: Task {
     public typealias Output = TaskOutput<Success, Error>
     public typealias Failure = TaskFailure<Error>
     public typealias Status = TaskStatus<Success, Error>
@@ -60,7 +60,7 @@ open class AnyTask<Success, Error: Swift.Error>: TaskProtocol {
 }
 
 extension AnyTask {
-    public convenience init<T: TaskProtocol>(_ base: T) where T.Success == Success, T.Error == Error {
+    public convenience init<T: Task>(_ base: T) where T.Success == Success, T.Error == Error {
         self.init(
             base: base,
             getStatusImpl: { base.status },
@@ -104,7 +104,7 @@ extension AnyTask {
     }
 }
 
-extension TaskProtocol {
+extension Task {
     public func eraseToAnyTask() -> AnyTask<Success, Error> {
         .init(self)
     }

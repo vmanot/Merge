@@ -60,6 +60,27 @@ extension TaskResult {
     }
 }
 
+// MARK: - API -
+
+extension TaskStatus {
+    public init(_ result: TaskResult<Success, Error>) {
+        switch result {
+            case .canceled:
+                self = .canceled
+            case .success(let value):
+                self = .success(value)
+            case .error(let error):
+                self = .error(error)
+        }
+    }
+}
+
+extension Task {
+    public var result: TaskResult<Success, Error>? {
+        TaskResult(status)
+    }
+}
+
 // MARK: - Auxiliary Implementation -
 
 extension TaskResult {
@@ -84,21 +105,6 @@ extension TaskResult {
         
         public static func == (lhs: TaskResult, rhs: Comparison) -> Bool {
             rhs == lhs
-        }
-    }
-}
-
-// MARK: - Helpers -
-
-extension TaskStatus {
-    public init(_ result: TaskResult<Success, Error>) {
-        switch result {
-            case .canceled:
-                self = .canceled
-            case .success(let value):
-                self = .success(value)
-            case .error(let error):
-                self = .error(error)
         }
     }
 }

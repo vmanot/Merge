@@ -4,7 +4,7 @@
 
 import Swift
 
-extension TaskProtocol where Success == Void {
+extension Task where Success == Void {
     public func concatenate(with other: Self) -> AnyTask<Void, Error> {
         PassthroughTask<Void, Error> { (task: PassthroughTask) in
             Publishers.Concatenate(prefix: self, suffix: other).sinkResult { result in

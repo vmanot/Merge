@@ -6,7 +6,7 @@ import Foundation
 import Swift
 
 extension Tasks {
-    public final class HandleEvents<Base: TaskProtocol>: TaskProtocol {
+    public final class HandleEvents<Base: Task>: Task {
         public typealias Success = Base.Success
         public typealias Error = Base.Error
         
@@ -77,7 +77,7 @@ extension Tasks {
 
 // MARK: - API -
 
-extension TaskProtocol {
+extension Task {
     public func handleEvents(
         receiveStart: (() -> Void)? = nil,
         receiveCancel: (() -> Void)? = nil

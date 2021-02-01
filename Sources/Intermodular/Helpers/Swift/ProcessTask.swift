@@ -8,7 +8,7 @@ import Combine
 import Foundation
 import os
 
-public final class ProcessTask: TaskProtocol {
+public final class ProcessTask: Task {
     public typealias Success = Void
     
     public enum Error: Swift.Error {

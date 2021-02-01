@@ -5,31 +5,27 @@
 import Darwin
 import Swallow
 
-public struct DarwinAtomicFlag {
-    @usableFromInline
-    var value: atomic_flag
+/*public struct DarwinAtomicFlag {
+    var wrappedValue: atomic_flag
     
     public init() {
-        self.value = .init()
+        self.wrappedValue = atomic_flag()
     }
 
-    @inlinable
     public mutating func testAndSet(withOrder order: DarwinAtomicOperationMemoryOrder) -> Bool {
-        return atomic_flag_test_and_set_explicit(&value, order.rawValue)
+        atomic_flag_test_and_set_explicit(&wrappedValue, order.rawValue)
     }
 
-    @inlinable
     public mutating func testAndSet() -> Bool {
-        return atomic_flag_test_and_set(&value)
+        atomic_flag_test_and_set(&wrappedValue)
     }
 
-    @inlinable
     public mutating func clear(withOrder order: DarwinAtomicOperationMemoryOrder) {
-        atomic_flag_clear_explicit(&value, order.rawValue)
+        atomic_flag_clear_explicit(&wrappedValue, order.rawValue)
     }
 
-    @inlinable
     public mutating func clear() {
-        atomic_flag_clear(&value)
+        atomic_flag_clear(&wrappedValue)
     }
 }
+*/

@@ -205,7 +205,7 @@ extension AnyTask {
 
 // MARK: - Helpers -
 
-extension TaskProtocol {    
+extension Task {    
     public var hasSucceeded: Bool {
         if case .success = statusDescription {
             return true

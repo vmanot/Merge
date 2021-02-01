@@ -38,5 +38,6 @@ public struct Observed<Value: ObservableObject> {
         subscription = wrappedValue
             .objectWillChange
             .publish(to: _enclosingInstance.objectWillChange)
+            .sink()
     }
 }

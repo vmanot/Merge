@@ -5,7 +5,7 @@
 import FoundationX
 import Swift
 
-open class AnyParametrizedTask<Input, Success, Error: Swift.Error>: TaskProtocol {
+open class AnyParametrizedTask<Input, Success, Error: Swift.Error>: Task {
     public typealias Status = TaskStatus<Success, Error>
     
     public let base: _opaque_Task

@@ -4,7 +4,7 @@
 
 import Swift
 
-public struct TaskSuccessPublisher<Upstream: TaskProtocol>: SingleOutputPublisher {
+public struct TaskSuccessPublisher<Upstream: Task>: SingleOutputPublisher {
     public typealias Output = Upstream.Success
     public typealias Failure = Upstream.Failure
     
@@ -25,7 +25,7 @@ public struct TaskSuccessPublisher<Upstream: TaskProtocol>: SingleOutputPublishe
 
 // MARK: - API -
 
-extension TaskProtocol {
+extension Task {
     public var successPublisher: TaskSuccessPublisher<Self> {
         TaskSuccessPublisher(upstream: self)
     }

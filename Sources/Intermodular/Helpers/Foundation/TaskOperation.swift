@@ -6,7 +6,7 @@ import Combine
 import Foundation
 import Swallow
 
-open class TaskOperation<Base: TaskProtocol>: Operation {
+open class TaskOperation<Base: Task>: Operation {
     public let base: Base
     
     public init(_ base: Base) {
@@ -53,13 +53,15 @@ open class TaskOperation<Base: TaskProtocol>: Operation {
         true
     }
     
+    private var statusObservation: AnyCancellable?
+    
     open override func start() {
         guard isReady && !isCancelled else {
             return
         }
         
-        base.onStatusChange { status in
-            switch status {
+        statusObservation = base.toResultPublisher().sink { status in
+            switch TaskStatus(status) {
                 case .idle:
                     self._executing = false
                     self._finished = false
@@ -102,7 +104,7 @@ open class TaskOperation<Base: TaskProtocol>: Operation {
 
 // MARK: - API -
 
-extension TaskProtocol {
+extension Task {
     public func convertToOperation() -> TaskOperation<Self> {
         .init(self)
     }
@@ -115,7 +117,7 @@ extension Publisher {
 }
 
 extension AnyProtocol where Self == Operation {
-    public init<T: TaskProtocol>(task: T) {
+    public init<T: Task>(task: T) {
         self = task.convertToOperation()
     }
 }

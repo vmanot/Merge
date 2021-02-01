@@ -7,7 +7,7 @@ import Combine
 import Swift
 
 extension Tasks {
-    public final class Map<Upstream: TaskProtocol, Success>: TaskProtocol {
+    public final class Map<Upstream: Task, Success>: Task {
         public typealias Success = Success
         public typealias Error = Upstream.Error
         public typealias Status = TaskStatus<Success, Error>
@@ -59,7 +59,7 @@ extension Tasks {
 
 // MARK: - API -
 
-extension TaskProtocol {
+extension Task {
     public func map<T>(_ transform: @escaping (Success) -> T) -> Tasks.Map<Self, T> {
         Tasks.Map(upstream: self, transform: transform)
     }

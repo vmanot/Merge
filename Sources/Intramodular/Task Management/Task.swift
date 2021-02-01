@@ -26,7 +26,7 @@ public protocol _opaque_Task: _opaque_Identifiable, CancellablesHolder, Subscrip
 }
 
 /// A task is a token of activity with status-reporting.
-public protocol TaskProtocol: _opaque_Task, Identifiable, ObservableObject, Publisher where
+public protocol Task: _opaque_Task, Identifiable, ObservableObject, Publisher where
     ObjectWillChangePublisher.Output == TaskStatus<Self.Success, Self.Error>,
     Self.Output == TaskOutput<Self.Success, Self.Error>,
     Self.Failure == TaskFailure<Self.Error>
@@ -49,7 +49,7 @@ public protocol TaskProtocol: _opaque_Task, Identifiable, ObservableObject, Publ
 
 // MARK: - Implementation -
 
-extension _opaque_Task where Self: TaskProtocol {
+extension _opaque_Task where Self: Task {
     public var _opaque_status: TaskStatus<Any, Swift.Error> {
         status.map({ $0 as Any }).mapError({ $0 as Swift.Error })
     }
@@ -78,7 +78,7 @@ extension _opaque_Task where Self: TaskProtocol {
     }
 }
 
-extension Publisher where Self: TaskProtocol {
+extension Publisher where Self: Task {
     public func receive<S: Subscriber>(
         subscriber: S
     ) where S.Input == Output, S.Failure == Failure {
@@ -116,7 +116,7 @@ extension Publisher where Self: TaskProtocol {
     }
 }
 
-extension Subscription where Self: TaskProtocol {
+extension Subscription where Self: Task {
     public func request(_ demand: Subscribers.Demand) {
         guard demand != .none, statusDescription == .idle else {
             return
@@ -128,40 +128,7 @@ extension Subscription where Self: TaskProtocol {
 
 // MARK: - API -
 
-extension _opaque_Task {
-    public func onOutput(perform action: @escaping () -> ()) {
-        statusDescriptionWillChange.sink { status in
-            if status.isOutput {
-                action()
-            }
-        }
-        .store(in: cancellables)
-    }
-    
-    public func onSuccess(perform action: @escaping () -> ()) {
-        statusDescriptionWillChange.sink { status in
-            if status == .success {
-                action()
-            }
-        }
-        .store(in: cancellables)
-    }
-    
-    public func onFailure(perform action: @escaping () -> ()) {
-        statusDescriptionWillChange.sink { status in
-            if status.isFailure {
-                action()
-            }
-        }
-        .store(in: cancellables)
-    }
-}
-
-extension TaskProtocol {
-    public var result: TaskResult<Success, Error>? {
-        TaskResult(status)
-    }
-        
+extension Task {
     @discardableResult
     public func onResult(
         _ receiveCompletion: @escaping (TaskResult<Success, Error>) -> Void
@@ -174,29 +141,6 @@ extension TaskProtocol {
                 .sink(receiveValue: receiveCompletion)
                 .store(in: cancellables)
         }
-        
-        return self
-    }
-    
-    @discardableResult
-    public func onStatusChange(
-        receiveValue: @escaping (TaskStatus<Success, Error>) -> ()
-    ) -> Self {
-        objectWillChange.sink(receiveValue: receiveValue)
-            .store(in: cancellables)
-        
-        return self
-    }
-    
-    @discardableResult
-    public func onStatus(
-        _ status: StatusDescription,
-        perform action: @escaping (TaskStatus<Success, Error>) -> ()
-    ) -> Self {
-        objectWillChange
-            .filter({ status == TaskStatusDescription($0) })
-            .sink(receiveValue: action)
-            .store(in: cancellables)
         
         return self
     }
