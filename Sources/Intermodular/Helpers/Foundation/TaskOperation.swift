@@ -110,7 +110,7 @@ extension Task {
     }
 }
 
-extension Publisher {
+extension SingleOutputPublisher {
     public func convertToOperation() -> TaskOperation<AnyTask<Output, Failure>> {
         convertToTask().convertToOperation()
     }
@@ -123,7 +123,7 @@ extension AnyProtocol where Self == Operation {
 }
 
 extension AnyProtocol where Self == Operation {
-    public init<P: Publisher>(publisher: P) {
+    public init<P: SingleOutputPublisher>(publisher: P) {
         self = publisher.convertToOperation()
     }
 }

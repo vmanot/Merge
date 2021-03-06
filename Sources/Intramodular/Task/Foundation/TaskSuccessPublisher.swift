@@ -27,6 +27,6 @@ public struct TaskSuccessPublisher<Upstream: Task>: SingleOutputPublisher {
 
 extension Task {
     public var successPublisher: TaskSuccessPublisher<Self> {
-        TaskSuccessPublisher(upstream: self)
+        .init(upstream: self)
     }
 }

@@ -6,25 +6,6 @@ import Combine
 import Foundation
 import Swallow
 
-/// A type-erased shadow protocol for `Task`.
-public protocol _opaque_Task: _opaque_Identifiable, CancellablesHolder, Subscription {
-    typealias StatusDescription = TaskStatusDescription
-    
-    var _opaque_status: TaskStatus<Any, Swift.Error> { get }
-    var _opaque_statusWillChange: AnyPublisher<TaskStatus<Any, Swift.Error>, Never> { get }
-    
-    var name: TaskName { get }
-    var progress: Progress { get }
-    
-    var statusDescription: StatusDescription { get }
-    var statusDescriptionWillChange: AnyPublisher<StatusDescription, Never> { get }
-    
-    func start()
-    func pause() throws
-    func resume() throws
-    func cancel()
-}
-
 /// A task is a token of activity with status-reporting.
 public protocol Task: _opaque_Task, Identifiable, ObservableObject, Publisher where
     ObjectWillChangePublisher.Output == TaskStatus<Self.Success, Self.Error>,
@@ -129,20 +110,12 @@ extension Subscription where Self: Task {
 // MARK: - API -
 
 extension Task {
-    @discardableResult
-    public func onResult(
-        _ receiveCompletion: @escaping (TaskResult<Success, Error>) -> Void
-    ) -> Self {
-        if let result = result {
-            receiveCompletion(result)
-        } else {
-            objectWillChange
-                .compactMap(TaskResult.init)
-                .sink(receiveValue: receiveCompletion)
-                .store(in: cancellables)
+    public func startIfNecessary() {
+        guard status == .idle else {
+            return
         }
         
-        return self
+        start()
     }
 }
 

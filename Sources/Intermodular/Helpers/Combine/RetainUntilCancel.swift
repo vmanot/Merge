@@ -48,7 +48,8 @@ extension Publisher {
         
         return cancellable
     }
-    
+
+    @discardableResult
     @inlinable
     public func retainSink() -> RetainUntilCancel<SingleAssignmentAnyCancellable> {
         retainSink(
@@ -59,6 +60,7 @@ extension Publisher {
 }
 
 extension Publisher where Failure == Never {
+    @discardableResult
     @inlinable
     public func retainSink(
         receiveValue: @escaping ((Output) -> Void)

@@ -6,76 +6,98 @@
 
 import Combine
 import Foundation
+import Swallow
+import System
 import os
 
-public final class ProcessTask: Task {
-    public typealias Success = Void
-    
-    public enum Error: Swift.Error {
-        case exitFailure(ProcessExitFailure)
-        case unknown(Swift.Error)
-    }
-    
-    public let process: Process
-    public let progress = Progress()
-    
-    private let base = PassthroughTask<Void, Error>()
-    
-    private let standardOutputPipe = Pipe()
-    private let standardOutputData = PassthroughSubject<Data, Never>()
-    private let standardErrorPipe = Pipe()
-    private let standardErrorData = PassthroughSubject<Data, Never>()
-    
-    public var name: TaskName {
-        .init(process.processIdentifier)
-    }
-    
-    public var status: TaskStatus<Success, Error> {
-        base.status
-    }
-    
-    public var objectWillChange: AnyPublisher<TaskStatus<Success, Error>, Never> {
-        base.objectWillChange
-    }
-    
-    public init(process: Process) {
-        self.process = process
-    }
-    
-    public func start() {
-        setupPipes()
+extension Process {
+    public final class Task: Merge.Task {
+        public typealias Success = Void
         
-        process.terminationHandler = { [weak self] process in
-            guard let `self` = self else {
-                return
+        public enum Error: Swift.Error {
+            case exitFailure(ProcessExitFailure)
+            case unknown(Swift.Error)
+        }
+        
+        public let process: Process
+        public let progress = Progress() // FIXME!!!
+        
+        private let base = PassthroughTask<Void, Error>()
+        
+        private let standardOutputPipe = Pipe()
+        private let standardOutputData = PassthroughSubject<Data, Never>()
+        private let standardErrorPipe = Pipe()
+        private let standardErrorData = PassthroughSubject<Data, Never>()
+        
+        public var name: TaskName {
+            .init(process.processIdentifier)
+        }
+        
+        public var status: TaskStatus<Success, Error> {
+            base.status
+        }
+        
+        public var objectWillChange: AnyPublisher<TaskStatus<Success, Error>, Never> {
+            base.objectWillChange
+        }
+        
+        public init(process: Process) {
+            self.process = process
+        }
+        
+        public func start() {
+            setupPipes()
+            
+            process.terminationHandler = { [weak self] process in
+                guard let `self` = self else {
+                    return
+                }
+                
+                self.teardownPipes()
+                
+                let terminationStatus = process.terminationStatus
+                
+                if terminationStatus == 0 {
+                    self.base.send(.success(()))
+                } else {
+                    self.base.send(.error(.exitFailure(.exit(status: terminationStatus))))
+                }
             }
             
-            self.teardownPipes()
-            
-            let terminationStatus = process.terminationStatus
-            
-            if terminationStatus == 0 {
-                self.base.send(.success(()))
-            } else {
-                self.base.send(.error(.exitFailure(.exit(status: terminationStatus))))
+            do {
+                try process.run()
+                
+                base.send(.started)
+            } catch {
+                base.send(.error(.unknown(error)))
+                
+                if let errorData = error.localizedDescription.data(using: .utf8) {
+                    standardErrorData.send(errorData)
+                }
+                
+                teardownPipes()
             }
         }
         
-        do {
-            try process.run()
-        } catch {
-            base.send(completion: .failure(.unknown(error)))
+        public func waitUntilExit() throws {
+            startIfNecessary()
+            
+            process.waitUntilExit()
+            
+            if let failure = TaskFailure(base.status) {
+                throw failure
+            }
         }
-    }
-    
-    public func cancel() {
-        process.terminate()
         
-        base.send(completion: .failure(.canceled))
+        public func cancel() {
+            process.terminate()
+            
+            base.send(.canceled)
+        }
     }
 }
 
-extension ProcessTask {
+extension Process.Task {
     private func setupPipes() {
         guard !process.isRunning else {
             return
@@ -90,7 +112,7 @@ extension ProcessTask {
             
             self.standardOutputData.send(data)
         }
-                
+        
         standardErrorPipe.fileHandleForReading.readabilityHandler = {
             let data = $0.availableData
             
@@ -114,16 +136,18 @@ extension ProcessTask {
     }
 }
 
-// MARK: - API -
+// MARK: - Initializers -
 
-extension ProcessTask {
+extension Process.Task {
     public convenience init(
+        currentDirectoryURL: URL? = nil,
         executableURL: URL,
         arguments: [String],
         environment: [String: String]? = nil
     ) {
         let process = Process()
         
+        process.currentDirectoryURL = currentDirectoryURL
         process.executableURL = executableURL
         process.arguments = arguments
         process.environment = environment
@@ -132,13 +156,31 @@ extension ProcessTask {
     }
     
     public convenience init(
+        currentDirectoryURL: URL? = nil,
         executablePath: String,
         arguments: [String],
         environment: [String: String]? = nil
     ) {
         let process = Process()
         
+        process.currentDirectoryURL = currentDirectoryURL
         process.executableURL = URL(fileURLWithPath: executablePath)
+        process.arguments = arguments
+        process.environment = environment
+        
+        self.init(process: process)
+    }
+    
+    public convenience init(
+        currentDirectoryPath: FilePath? = nil,
+        executablePath: FilePath,
+        arguments: [String],
+        environment: [String: String]? = nil
+    ) {
+        let process = Process()
+        
+        process.currentDirectoryURL = currentDirectoryPath.flatMap(URL.init)
+        process.executableURL = URL(executablePath)
         process.arguments = arguments
         process.environment = environment
         
@@ -146,15 +188,32 @@ extension ProcessTask {
     }
 }
 
-extension ProcessTask {
-    public var standardOutput: AnyPublisher<Data, Never> {
-        standardOutputData.eraseToAnyPublisher()
-    }
-    
-    public var standardError: AnyPublisher<Data, Never> {
-        standardErrorData.eraseToAnyPublisher()
+// MARK: - API -
+
+extension Process.Task {
+    public var terminationStatus: Int32 {
+        process.terminationStatus
     }
 }
 
+extension Process.Task {
+    public var standardOutputAndErrorPublisher: AnyPublisher<Either<Data, Erroneous<Data>>, Never> {
+        Publishers.Merge(
+            standardOutputData.map({ .left($0) }),
+            standardErrorData.map({ .right(.init($0)) })
+        )
+        .handleEvents(receiveSubscription: { _ in self.startIfNecessary() })
+        .eraseToAnyPublisher()
+    }
+    
+    public var standardOutputAndErrorLinesPublisher: AnyPublisher<Either<String, Erroneous<String>>, Never> {
+        Publishers.Merge(
+            standardOutputData.lines().map({ .left($0) }),
+            standardErrorData.lines().map({ .right(.init($0)) })
+        )
+        .handleEvents(receiveSubscription: { _ in self.startIfNecessary() })
+        .eraseToAnyPublisher()
+    }
+}
 
 #endif

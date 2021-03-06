@@ -48,7 +48,7 @@ extension Future where Output == Void {
 }
 
 extension Future where Output == Void, Failure == Never {
-    public static func perform(_ action: @escaping () -> Void) -> Self {
+    public static func Error(_ action: @escaping () -> Void) -> Self {
         return .init { attemptToFulfill in
             attemptToFulfill(.success(action()))
         }
@@ -62,6 +62,19 @@ extension Future where Output == Void, Failure == Never {
         return .init { attemptToFulfill in
             scheduler.schedule(options: options) {
                 attemptToFulfill(.success(action()))
+            }
+        }
+    }
+}
+
+extension Future where Failure == Swift.Error {
+    @_disfavoredOverload
+    public convenience init(_ attemptToFulfill: @escaping (Promise) throws -> Void)  {
+        self.init { promise in
+            do {
+                try attemptToFulfill(promise)
+            } catch {
+                promise(.failure(error))
             }
         }
     }

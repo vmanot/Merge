@@ -10,6 +10,16 @@ public enum TaskFailure<Error: Swift.Error>: Swift.Error {
     case error(Error)
 }
 
+extension TaskFailure {
+    public init?<Success>(_ status: TaskStatus<Success, Error>) {
+        if let failure = status.failure {
+            self = failure
+        } else {
+            return nil
+        }
+    }
+}
+
 // MARK: - Protocol Conformances -
 
 extension TaskFailure: Equatable where Error: Equatable {

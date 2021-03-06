@@ -2,9 +2,8 @@
 // Copyright (c) Vatsal Manot
 //
 
-import Combine
 import Swift
-import SwiftUI
+import SwiftUIX
 
 public protocol _opaque_TaskButtonStyle {
     func _opaque_makeBody(configuration: TaskButtonConfiguration) -> AnyView
@@ -63,9 +62,39 @@ public struct DefaultTaskButtonStyle: TaskButtonStyle {
     
     @inlinable
     public func makeBody(configuration: TaskButtonConfiguration) -> some View {
-        return configuration.label
+        configuration.label
     }
 }
+
+#if os(iOS) || os(macOS) || os(tvOS) || targetEnvironment(macCatalyst)
+
+public struct ActivityIndicatorTaskButtonStyle: TaskButtonStyle {
+    @inlinable
+    public init() {
+        
+    }
+    
+    @inlinable
+    public func makeBody(configuration: TaskButtonConfiguration) -> some View {
+        PassthroughView {
+            if configuration.status == .active {
+                #if os(macOS)
+                ActivityIndicator()
+                    .style(.small)
+                #else
+                ActivityIndicator()
+                    .style(.regular)
+                #endif
+            } else {
+                configuration.label
+            }
+        }
+        .animation(.default)
+        
+    }
+}
+
+#endif
 
 // MARK: - API -
 

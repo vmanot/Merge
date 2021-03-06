@@ -15,7 +15,15 @@ extension Deferred: SingleOutputPublisher where DeferredPublisher: SingleOutputP
     
 }
 
+extension Fail: SingleOutputPublisher {
+    
+}
+
 extension Future: SingleOutputPublisher {
+    
+}
+
+extension Just: SingleOutputPublisher {
     
 }
 
@@ -48,5 +56,13 @@ extension Publishers.Map: SingleOutputPublisher where Upstream: SingleOutputPubl
 }
 
 extension Publishers.Print: SingleOutputPublisher where Upstream: SingleOutputPublisher {
+    
+}
+
+extension Publishers.ReceiveOn: SingleOutputPublisher where Upstream: SingleOutputPublisher {
+    
+}
+
+extension Result.Publisher: SingleOutputPublisher {
     
 }

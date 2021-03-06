@@ -83,14 +83,13 @@ extension AnyTask where Success == Any, Error == Swift.Error {
 
 extension AnyTask {
     public static func failure(_ error: Error) -> AnyTask {
-        AnyPublisher<Success, Error>
-            .failure(error)
+        Fail<Success, Error>(error: error)
             .convertToTask()
     }
     
     public static func success(_ success: Success) -> AnyTask {
-        AnyPublisher<Success, Error>
-            .just(success)
+        Just(success)
+            .setFailureType(to: Error.self)
             .convertToTask()
     }
     

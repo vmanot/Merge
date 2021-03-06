@@ -140,11 +140,26 @@ extension TaskButton {
     ) where P.Output == Success, P.Failure == Error {
         self.init(action: { action().convertToTask() }, label: label)
     }
+    
+    public init<P: Publisher>(
+        action: @escaping () throws -> P,
+        @ViewBuilder label: () -> Label
+    ) where P.Output == Success, Error == Swift.Error {
+        self.init {
+            do {
+                return try action().mapError({ $0 as Swift.Error }).convertToTask()
+            } catch {
+                return AnyTask<Success, Error>.failure(error)
+            }
+        } label: {
+            label()
+        }
+    }
 }
 
 extension TaskButton where Label == Text {
     public init(
-        titleKey: LocalizedStringKey,
+        _ titleKey: LocalizedStringKey,
         action: @escaping () -> AnyTask<Success, Error>
     ) {
         self.init(action: action) {
@@ -153,9 +168,18 @@ extension TaskButton where Label == Text {
     }
     
     public init<S: StringProtocol>(
-        title: S,
+        _ title: S,
         action: @escaping () -> AnyTask<Success, Error>
     ) {
+        self.init(action: action) {
+            Text(title)
+        }
+    }
+    
+    public init<S: StringProtocol, P: Publisher>(
+        _ title: S,
+        action: @escaping () throws -> P
+    ) where P.Output == Success, Error == Swift.Error {
         self.init(action: action) {
             Text(title)
         }

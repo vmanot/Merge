@@ -151,18 +151,56 @@ extension TaskStatus: Hashable where Success: Hashable, Error: Hashable {
 extension AnyTask {
     public enum _GeneralStatusComparison {
         case inactive
-        
+        case finished
+
         public static func == (lhs: Self, rhs: Status) -> Bool {
             switch (lhs, rhs) {
+                case (.inactive, .idle):
+                    return true
                 case (.inactive, .active):
                     return false
-                default:
+                case (.inactive, .paused):
+                    return true
+                case (.inactive, .canceled):
+                    return true
+                case (.inactive, .success):
+                    return true
+                case (.inactive, .error):
+                    return true
+                    
+                case (.finished, .idle):
+                    return false
+                case (.finished, .active):
+                    return false
+                case (.finished, .paused):
+                    return false
+                case (.finished, .canceled):
+                    return true
+                case (.finished, .success):
+                    return true
+                case (.finished, .error):
                     return true
             }
         }
         
         public static func == (lhs: Status, rhs: Self) -> Bool {
             rhs == lhs
+        }
+        
+        public static func != (lhs: Self, rhs: Status) -> Bool {
+            !(lhs == rhs)
+        }
+        
+        public static func != (lhs: Status, rhs: Self) -> Bool {
+            !(lhs == rhs)
+        }
+        
+        public static func == (lhs: Optional<Status>, rhs: Self) -> Bool {
+            guard let lhs = lhs else {
+                return false
+            }
+            
+            return lhs == rhs
         }
     }
     
@@ -199,6 +237,14 @@ extension AnyTask {
         
         public static func != (lhs: Status, rhs: Self) -> Bool {
             !(rhs == lhs)
+        }
+        
+        public static func == (lhs: Optional<Status>, rhs: Self) -> Bool {
+            guard let lhs = lhs else {
+                return false
+            }
+            
+            return lhs == rhs
         }
     }
 }
