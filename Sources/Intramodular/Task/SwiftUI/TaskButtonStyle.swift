@@ -43,7 +43,7 @@ fileprivate struct TaskButtonStyleEnvironmentKey: EnvironmentKey {
 
 extension EnvironmentValues {
     @usableFromInline
-    var buttonStyle: _opaque_TaskButtonStyle {
+    var _taskButtonStyle: _opaque_TaskButtonStyle {
         get {
             self[TaskButtonStyleEnvironmentKey]
         } set {
@@ -85,12 +85,14 @@ public struct ActivityIndicatorTaskButtonStyle: TaskButtonStyle {
                 ActivityIndicator()
                     .style(.regular)
                 #endif
+            } else if configuration.status == .failure {
+                Image(systemName: .exclamationmarkTriangleFill)
+                    .foregroundColor(.yellow)
+                    .imageScale(.small)
             } else {
                 configuration.label
             }
         }
-        .animation(.default)
-        
     }
 }
 
@@ -100,7 +102,7 @@ public struct ActivityIndicatorTaskButtonStyle: TaskButtonStyle {
 
 extension View {
     @inlinable
-    public func buttonStyle<Style: TaskButtonStyle>(_ style: Style) -> some View {
-        environment(\.buttonStyle, style)
+    public func taskButtonStyle<Style: TaskButtonStyle>(_ style: Style) -> some View {
+        environment(\._taskButtonStyle, style)
     }
 }

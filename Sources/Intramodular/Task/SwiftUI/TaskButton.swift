@@ -14,7 +14,7 @@ public struct TaskButton<Success, Error: Swift.Error, Label: View>: View {
     @OptionalEnvironmentObject private var taskPipeline: TaskPipeline?
     @OptionalObservedObject private var currentTask: AnyTask<Success, Error>?
     
-    @Environment(\.buttonStyle) private var buttonStyle
+    @Environment(\._taskButtonStyle) private var buttonStyle
     @Environment(\.cancellables) private var cancellables
     @Environment(\.errorContext) private var errorContext
     @Environment(\.isEnabled) private var isEnabled
@@ -38,7 +38,12 @@ public struct TaskButton<Success, Error: Swift.Error, Label: View>: View {
                 )
             )
         }
-        .disabled(!isEnabled || taskDisabled)
+        .disabled(
+            false
+                || !isEnabled
+                || taskDisabled
+                || (currentTask?.status == .finished && !taskRestartable)
+        )
     }
     
     private var task: AnyTask<Success, Error>? {
@@ -70,6 +75,8 @@ public struct TaskButton<Success, Error: Swift.Error, Label: View>: View {
     }
     
     private func subscribe(to task: AnyTask<Success, Error>) {
+        currentTask = task
+        
         task.objectWillChange.sink(
             in: taskPipeline?.cancellables ?? cancellables
         ) { [weak errorContext] status in
@@ -80,11 +87,7 @@ public struct TaskButton<Success, Error: Swift.Error, Label: View>: View {
             }
         }
         
-        currentTask = task
-        
-        if task.status == .idle {
-            task.start()
-        }
+        task.startIfNecessary()
     }
     
     private func acquireTaskIfNecessary() {
