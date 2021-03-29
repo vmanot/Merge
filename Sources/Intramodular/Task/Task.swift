@@ -18,7 +18,7 @@ public protocol Task: _opaque_Task, Identifiable, ObservableObject, Publisher wh
     associatedtype Output = TaskOutput<Success, Error>
     associatedtype Failure = TaskFailure<Error>
     
-    var name: TaskName { get }
+    var taskIdentifier: TaskIdentifier { get }
     var status: TaskStatus<Success, Error> { get }
     var progress: Progress { get }
     

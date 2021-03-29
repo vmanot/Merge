@@ -11,7 +11,7 @@ public protocol _opaque_Task: _opaque_Identifiable, CancellablesHolder, Subscrip
     var _opaque_status: TaskStatus<Any, Swift.Error> { get }
     var _opaque_statusWillChange: AnyPublisher<TaskStatus<Any, Swift.Error>, Never> { get }
     
-    var name: TaskName { get }
+    var taskIdentifier: TaskIdentifier { get }
     var progress: Progress { get }
     
     var statusDescription: StatusDescription { get }
@@ -23,11 +23,15 @@ public protocol _opaque_Task: _opaque_Identifiable, CancellablesHolder, Subscrip
     func cancel()
 }
 
-public final class OpaqueTask: Task {
+public final class OpaqueTask: CustomStringConvertible, Task {
     public typealias Success = Any
     public typealias Error = Swift.Error
     
     private let base: _opaque_Task
+    
+    public var description: String {
+        (base as? CustomStringConvertible)?.description ?? "(Task)"
+    }
     
     public var status: TaskStatus<Success, Error> {
         base._opaque_status
@@ -37,8 +41,12 @@ public final class OpaqueTask: Task {
         base._opaque_statusWillChange
     }
     
-    public var name: TaskName {
-        base.name
+    public var id: some Hashable {
+        base._opaque_id
+    }
+    
+    public var taskIdentifier: TaskIdentifier {
+        base.taskIdentifier
     }
     
     public var progress: Progress {

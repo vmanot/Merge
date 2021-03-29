@@ -10,20 +10,14 @@ open class TaskBase<Success, Error: Swift.Error>: Task {
     
     public let cancellables = Cancellables()
     
-    @Published public private(set) var combineIdentifier = CombineIdentifier()
-    
     @usableFromInline
     internal let statusValueSubject = CurrentValueSubject<Status, Never>(.idle)
     
-    public var name: TaskName = .init() {
+    public var taskIdentifier: TaskIdentifier = .init() {
         willSet {
             guard status != .active else {
                 fatalError("Cannot change the name of an active task.")
             }
-        }
-        
-        didSet {
-            combineIdentifier = .init()
         }
     }
     

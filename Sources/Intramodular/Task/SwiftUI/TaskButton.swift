@@ -219,7 +219,7 @@ extension TaskButton where Success == Void, Error == Swift.Error {
     }
 }
 
-// MARK: - Protocol Conformances -
+// MARK: - Conformances -
 
 extension TaskButton: ActionLabelView where Error == Swift.Error, Success == Void {
     public init(action: Action, label: () -> Label) {

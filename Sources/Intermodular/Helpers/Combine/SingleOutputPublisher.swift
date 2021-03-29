@@ -9,7 +9,7 @@ public protocol SingleOutputPublisher: Publisher {
     
 }
 
-// MARK: - Protocol Conformances -
+// MARK: - Conformances -
 
 extension Deferred: SingleOutputPublisher where DeferredPublisher: SingleOutputPublisher {
     

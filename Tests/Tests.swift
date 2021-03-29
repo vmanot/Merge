@@ -7,17 +7,21 @@
 import XCTest
 
 final class MergeTests: XCTestCase {
-    func testOutput() {
+    func subscribeAndWaitUntilDoneTests() {
         print(DispatchQoS.QoSClass.current)
 
-        let f1 = Future.async(qos: .unspecified) {
+        let f1 = Future.async(qos: .unspecified) { () -> Int in
             sleep(2)
+            
+            return 1
         }
         
-        let f2 = Future.async(qos: .unspecified) {
+        let f2 = Future.async(qos: .unspecified) { () -> Int in
             sleep(2)
+            
+            return 2
         }
         
-        print(f1.subscribeAndWaitUntilDone(), f2.subscribeAndWaitUntilDone())
+        XCTAssert((f1.subscribeAndWaitUntilDone(), f2.subscribeAndWaitUntilDone()) == (1, 2))
     }
 }

@@ -20,7 +20,7 @@ extension TaskFailure {
     }
 }
 
-// MARK: - Protocol Conformances -
+// MARK: - Conformances -
 
 extension TaskFailure: Equatable where Error: Equatable {
     

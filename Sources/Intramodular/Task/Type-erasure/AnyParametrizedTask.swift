@@ -18,8 +18,8 @@ open class AnyParametrizedTask<Input, Success, Error: Swift.Error>: Task {
         base.cancellables
     }
     
-    public var name: TaskName {
-        base.name
+    public var taskIdentifier: TaskIdentifier {
+        base.taskIdentifier
     }
     
     public var status: Status {

@@ -149,7 +149,7 @@ open class PassthroughTask<Success, Error: Swift.Error>: TaskBase<Success, Error
     }
 }
 
-// MARK: - Protocol Conformances -
+// MARK: - Conformances -
 
 extension PassthroughTask: ConnectablePublisher {
     public func connect() -> Cancellable {

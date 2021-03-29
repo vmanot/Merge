@@ -29,11 +29,11 @@ open class ParametrizedPassthroughTask<Input, Success, Error: Swift.Error>: Pass
     }
 }
 
-extension ParametrizedPassthroughTask where Success == Void {
+extension ParametrizedPassthroughTask where Success == Void, Error == Swift.Error {
     public class func action(
-        _ action: @escaping (ParametrizedPassthroughTask) -> Void
+        _ action: @escaping (ParametrizedPassthroughTask) throws -> Void
     ) -> Self {
-        .action({ action($0 as! ParametrizedPassthroughTask) })
+        .action({ try action($0 as! ParametrizedPassthroughTask) })
     }
 }
 

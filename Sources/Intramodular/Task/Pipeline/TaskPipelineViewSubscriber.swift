@@ -9,7 +9,7 @@ import SwiftUI
 struct TaskPipelineViewSubscriber: ViewModifier {
     @Environment(\.taskPipeline) var pipeline
     
-    let filter: TaskName
+    let filter: TaskIdentifier
     let action: (TaskStatusDescription) -> ()
     
     func body(content: Content) -> some View {
@@ -25,7 +25,7 @@ struct TaskPipelineViewSubscriber: ViewModifier {
 
 extension View {
     public func onStatusChange(
-        of name: TaskName,
+        of name: TaskIdentifier,
         perform action: @escaping (TaskStatusDescription) -> Void
     ) -> some View {
         modifier(TaskPipelineViewSubscriber(filter: name) {

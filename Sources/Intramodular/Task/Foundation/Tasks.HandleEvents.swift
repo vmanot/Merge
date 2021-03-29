@@ -19,8 +19,8 @@ extension Tasks {
             base.objectWillChange
         }
         
-        public var name: TaskName {
-            base.name
+        public var taskIdentifier: TaskIdentifier {
+            base.taskIdentifier
         }
         
         public var status: TaskStatus<Success, Error> {

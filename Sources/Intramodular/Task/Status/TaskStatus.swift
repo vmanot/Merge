@@ -136,7 +136,7 @@ extension TaskStatus {
     }
 }
 
-// MARK: - Protocol Conformances -
+// MARK: - Conformances -
 
 extension TaskStatus: Equatable where Success: Equatable, Error: Equatable {
     

@@ -29,7 +29,7 @@ extension Tasks {
             self.transform = transform
         }
         
-        public let name: TaskName = .init() // FIXME!!!
+        public let taskIdentifier: TaskIdentifier = .init() // FIXME!!!
         
         public var status: TaskStatus<Success, Error> {
             upstream.status.map(transform)

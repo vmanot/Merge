@@ -35,7 +35,7 @@ extension TaskOutput {
     }
 }
 
-// MARK: - Protocol Conformances -
+// MARK: - Conformances -
 
 extension TaskOutput: Equatable where Success: Equatable {
     

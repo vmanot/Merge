@@ -7,11 +7,11 @@ import Foundation
 import Swift
 import SwiftUIX
 
-public struct TaskName: Hashable {
+public struct TaskIdentifier: Hashable {
     private let base: AnyHashable
     
     public init<H: Hashable>(_ base: H) {
-        if let base = base as? TaskName {
+        if let base = base as? TaskIdentifier {
             self = base
         } else {
             self.base = .init(base)
@@ -30,11 +30,11 @@ public struct TaskName: Hashable {
 // MARK: - Auxiliary Implementation -
 
 extension EnvironmentValues {
-    public var taskName: TaskName? {
+    public var taskName: TaskIdentifier? {
         get {
-            self[DefaultEnvironmentKey<TaskName>]
+            self[DefaultEnvironmentKey<TaskIdentifier>]
         } set {
-            self[DefaultEnvironmentKey<TaskName>] = newValue
+            self[DefaultEnvironmentKey<TaskIdentifier>] = newValue
         }
     }
 }
@@ -42,7 +42,7 @@ extension EnvironmentValues {
 // MARK: - API -
 
 extension View {
-    public func taskName(_ name: TaskName) -> some View {
+    public func taskName(_ name: TaskIdentifier) -> some View {
         environment(\.taskName, name)
     }
     

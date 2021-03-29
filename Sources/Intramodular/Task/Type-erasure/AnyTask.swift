@@ -36,8 +36,8 @@ open class AnyTask<Success, Error: Swift.Error>: Task {
         base.cancellables
     }
     
-    public var name: TaskName {
-        base.name
+    public var taskIdentifier: TaskIdentifier {
+        base.taskIdentifier
     }
     
     private init(

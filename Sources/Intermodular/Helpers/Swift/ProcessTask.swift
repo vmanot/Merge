@@ -29,7 +29,7 @@ extension Process {
         private let standardErrorPipe = Pipe()
         private let standardErrorData = PassthroughSubject<Data, Never>()
         
-        public var name: TaskName {
+        public var name: TaskIdentifier {
             .init(process.processIdentifier)
         }
         
@@ -59,12 +59,16 @@ extension Process {
                 
                 if terminationStatus == 0 {
                     self.base.send(.success(()))
+                    
+                    self.progress.completedUnitCount = 1
                 } else {
                     self.base.send(.error(.exitFailure(.exit(status: terminationStatus))))
                 }
             }
             
             do {
+                progress.totalUnitCount = 1
+                
                 try process.run()
                 
                 base.send(.started)
