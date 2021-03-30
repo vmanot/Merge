@@ -29,7 +29,7 @@ extension Process {
         private let standardErrorPipe = Pipe()
         private let standardErrorData = PassthroughSubject<Data, Never>()
         
-        public var name: TaskIdentifier {
+        public var taskIdentifier: TaskIdentifier {
             .init(process.processIdentifier)
         }
         
