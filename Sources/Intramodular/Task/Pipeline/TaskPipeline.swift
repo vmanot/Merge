@@ -24,7 +24,7 @@ public final class TaskPipeline: CancellablesHolder, ObservableObject {
     @usableFromInline
     @Published var idToTaskMap: [AnyHashable: OpaqueTask] = [:]
     @usableFromInline
-    @Published var taskIDToTaskMap: [TaskIdentifier: AnyHashable] = [:]
+    @Published var taskIDToIDMap: [TaskIdentifier: AnyHashable] = [:]
     
     public init(parent: TaskPipeline? = nil) {
         self.parent = parent
@@ -52,7 +52,7 @@ extension TaskPipeline {
         }
         
         idToTaskMap[task.id] = .init(task)
-        taskIDToTaskMap[task.taskIdentifier] = task.id
+        taskIDToIDMap[task.taskIdentifier] = task.id
         
         task.then({ [weak task] in task.map(self.updateState) })
             .subscribe(in: cancellables)
@@ -60,12 +60,12 @@ extension TaskPipeline {
     
     @inlinable
     public subscript(_ name: TaskIdentifier) -> AnyTask<Any, Swift.Error>? {
-        idToTaskMap[name].map(AnyTask.init(_opaque:))
+        taskIDToIDMap[name].flatMap({ idToTaskMap[$0] }).map(AnyTask.init(_opaque:))
     }
     
     @inlinable
     public func lastStatus(for taskName: TaskIdentifier) -> TaskStatusDescription? {
-        guard let lastID = taskIDToTaskMap[taskName] else {
+        guard let lastID = taskIDToIDMap[taskName] else {
             return nil
         }
         
