@@ -4,7 +4,7 @@
 
 import Combine
 import Dispatch
-import Swift
+import Swallow
 import SwiftUI
 
 /// A thread-safe collection suitable for storing instanes of `AnyCancellable`.
@@ -91,6 +91,12 @@ public final class Cancellables: Cancellable {
 }
 
 // MARK: - API -
+
+extension Cancellables {
+    public func store(@ArrayBuilder<Cancellable> cancellables: () -> [Cancellable]) {
+        cancellables().forEach({ $0.store(in: self) })
+    }
+}
 
 extension AnyCancellable {
     public func store(in cancellables: Cancellables) {

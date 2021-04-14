@@ -10,7 +10,7 @@ public final class TaskPipeline: CancellablesHolder, ObservableObject {
     public enum Error: Swift.Error {
         
     }
-    
+
     public let cancellables = Cancellables()
     
     private weak var parent: TaskPipeline?
@@ -19,22 +19,18 @@ public final class TaskPipeline: CancellablesHolder, ObservableObject {
         .init(idToTaskMap.values)
     }
     
-    @usableFromInline
-    @Published var idToStatusesMap: [AnyHashable: [TaskStatusDescription]] = [:]
-    @usableFromInline
     @Published var idToTaskMap: [AnyHashable: OpaqueTask] = [:]
-    @usableFromInline
     @Published var taskIDToIDMap: [TaskIdentifier: AnyHashable] = [:]
+    @Published var taskIDToStatusesMap: [TaskIdentifier: [TaskStatusDescription]] = [:]
     
     public init(parent: TaskPipeline? = nil) {
         self.parent = parent
     }
     
-    @usableFromInline
     func updateState<T: Task>(for task: T) {
         DispatchQueue.asyncOnMainIfNecessary {
             if task.status.isTerminal {
-                self.idToStatusesMap[task.id, default: []].append(task.statusDescription)
+                self.taskIDToStatusesMap[task.taskIdentifier, default: []].append(task.statusDescription)
                 self.idToTaskMap.removeValue(forKey: task.id)
             } else {
                 self.idToTaskMap[task.id] = .init(task)
@@ -54,30 +50,23 @@ extension TaskPipeline {
         idToTaskMap[task.id] = .init(task)
         taskIDToIDMap[task.taskIdentifier] = task.id
         
-        task.then({ [weak task] in task.map(self.updateState) })
+        task.statusDescriptionWillChange
+            .then({ [weak task] in task.map(self.updateState) })
             .subscribe(in: cancellables)
     }
     
-    @inlinable
     public subscript(_ name: TaskIdentifier) -> AnyTask<Any, Swift.Error>? {
         taskIDToIDMap[name].flatMap({ idToTaskMap[$0] }).map(AnyTask.init(_opaque:))
     }
     
-    @inlinable
-    public func lastStatus(for taskName: TaskIdentifier) -> TaskStatusDescription? {
-        guard let lastID = taskIDToIDMap[taskName] else {
-            return nil
-        }
-        
-        return idToStatusesMap[lastID]?.last
+    public func lastStatus(for identifier: TaskIdentifier) -> TaskStatusDescription? {
+        taskIDToStatusesMap[identifier]?.last
     }
     
-    @inlinable
     public func cancel(_ taskName: TaskIdentifier) {
         idToTaskMap[taskName]?.cancel()
     }
     
-    @inlinable
     public func cancelAllTasks() {
         idToTaskMap.values.forEach({ $0.cancel() })
     }
@@ -85,20 +74,16 @@ extension TaskPipeline {
 
 // MARK: - Auxiliary Implementation -
 
-extension TaskPipeline {
-    @usableFromInline
-    struct EnvironmentKey: SwiftUI.EnvironmentKey {
-        public static let defaultValue = TaskPipeline()
-    }
-}
-
 extension EnvironmentValues {
-    @inlinable
+    struct TaskPipelineKey: SwiftUI.EnvironmentKey {
+        static let defaultValue = TaskPipeline()
+    }
+    
     public var taskPipeline: TaskPipeline {
         get {
-            self[TaskPipeline.EnvironmentKey]
+            self[TaskPipelineKey]
         } set {
-            self[TaskPipeline.EnvironmentKey] = newValue
+            self[TaskPipelineKey] = newValue
         }
     }
 }
@@ -106,9 +91,8 @@ extension EnvironmentValues {
 // MARK: - API -
 
 extension View {
-    @inlinable
+    /// Supplies a task pipeline to a view subhierachy.
     public func taskPipeline(_ pipeline: TaskPipeline) -> some View {
-        self.environment(\.taskPipeline, pipeline)
-            .environmentObject(pipeline)
+        environment(\.taskPipeline, pipeline).environmentObject(pipeline)
     }
 }

@@ -244,4 +244,9 @@ extension Publisher {
         PassthroughTask(publisher: self)
             .eraseToAnyTask()
     }
+    
+    @_disfavoredOverload
+    public func convertToTask() -> OpaqueTask {
+        convertToTask().eraseToOpaqueTask()
+    }
 }
