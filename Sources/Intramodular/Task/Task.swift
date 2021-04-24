@@ -86,13 +86,12 @@ extension Publisher where Self: Task {
                     return Just(output)
                         .setFailureType(to: Failure.self)
                         .eraseToAnyPublisher()
-                } else if let failure = status.failure {
-                    return Fail<Output, Failure>(error: failure)
-                        .eraseToAnyPublisher()
                 } else {
-                    fatalError()
+                    return Fail<Output, Failure>(error: status.failure ?? .canceled)
+                        .eraseToAnyPublisher()
                 }
             })
+            .prefix(1)
             .receive(subscriber: subscriber)
     }
 }
@@ -119,3 +118,10 @@ extension Task {
     }
 }
 
+public func awaitAndUnwrap<T: Task>(_ task: T) throws -> T.Success {
+    try task.successPublisher.subscribeAndWaitUntilDone().get()
+}
+
+public func awaitAndUnwrap<T: Task>(_ task: () throws -> T) throws -> T.Success {
+    try awaitAndUnwrap(task())
+}

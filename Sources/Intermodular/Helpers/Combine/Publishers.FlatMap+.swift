@@ -25,6 +25,15 @@ extension Publisher {
         flatMap({ _ in Just(value).setFailureType(to: Failure.self) })
     }
     
+    @_disfavoredOverload
+    public func flatMap<P>(
+        maxPublishers: Subscribers.Demand = .unlimited,
+        _ transform: @escaping (Self.Output) -> P
+    ) -> Publishers.FlatMap<P, Publishers.SetFailureType<Self, P.Failure>> {
+        .init(upstream: self.setFailureType(to: P.Failure.self), maxPublishers: maxPublishers, transform: transform)
+    }
+    
+    @_disfavoredOverload
     public func flatMap<P: Publisher>(
         maxPublishers: Subscribers.Demand = .unlimited,
         _ transform: @escaping (Output) -> P

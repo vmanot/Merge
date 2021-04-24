@@ -85,35 +85,31 @@ open class PassthroughTask<Success, Error: Swift.Error>: TaskBase<Success, Error
     }
     
     public func send(status: Status) {
-        willSend(status: status)
-        
-        defer {
-            didSend(status: status)
-        }
-        
-        switch status {
-            case .idle:
-                assertionFailure()
-            case .active:
-                statusValueSubject.send(.active)
-            case .paused:
-                statusValueSubject.send(.paused)
-            case .canceled: do {
-                queue.async {
-                    self.bodyCancellable.cancel()
-                    self.cancellables.cancel()
+        queue.sync {
+            willSend(status: status)
+            
+            defer {
+                didSend(status: status)
+            }
+            
+            switch status {
+                case .idle:
+                    assertionFailure()
+                case .active:
+                    statusValueSubject.send(.active)
+                case .paused:
+                    statusValueSubject.send(.paused)
+                case .canceled: do {
+                    bodyCancellable.cancel()
+                    cancellables.cancel()
+                    statusValueSubject.send(.canceled)
                 }
-                
-                statusValueSubject.send(.canceled)
-                statusValueSubject.send(completion: .finished)
-            }
-            case .success(let success): do {
-                statusValueSubject.send(.success(success))
-                statusValueSubject.send(completion: .finished)
-            }
-            case .error(let error): do {
-                statusValueSubject.send(.error(error))
-                statusValueSubject.send(completion: .finished)
+                case .success(let success): do {
+                    statusValueSubject.send(.success(success))
+                }
+                case .error(let error): do {
+                    statusValueSubject.send(.error(error))
+                }
             }
         }
     }

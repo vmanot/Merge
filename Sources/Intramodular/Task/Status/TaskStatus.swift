@@ -3,10 +3,10 @@
 //
 
 import Combine
-import Swift
+import Swallow
 
 /// The status of a task.
-public enum TaskStatus<Success, Error: Swift.Error> {
+public enum TaskStatus<Success, Error: Swift.Error>: AnyProtocol {
     case idle
     case active
     case paused
@@ -284,6 +284,27 @@ extension TaskStatus {
                 self = .success(value)
             case .failure(let error):
                 self = .error(error)
+        }
+    }
+    
+    public init(_ status: Result<TaskOutput<Success, Error>, TaskFailure<Error>>) {
+        switch status {
+            case .success(let output): do {
+                switch output {
+                    case .started:
+                        self = .active
+                    case .success(let value):
+                        self = .success(value)
+                }
+            }
+            case .failure(let failure): do {
+                switch failure {
+                    case .canceled:
+                        self = .canceled
+                    case .error(let error):
+                        self = .error(error)
+                }
+            }
         }
     }
 }

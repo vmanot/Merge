@@ -6,7 +6,7 @@ import Swift
 
 public struct TaskSuccessPublisher<Upstream: Task>: SingleOutputPublisher {
     public typealias Output = Upstream.Success
-    public typealias Failure = Upstream.Failure
+    public typealias Failure = Upstream.Error
     
     private let upstream: Upstream
     
@@ -17,8 +17,10 @@ public struct TaskSuccessPublisher<Upstream: Task>: SingleOutputPublisher {
     public func receive<S: Subscriber>(
         subscriber: S
     ) where S.Input == Output, S.Failure == Failure {
-        upstream
-            .compactMap({ $0.successValue })
+         upstream
+            .mapResult({ TaskStatus($0) })
+            .compactMap({ Result($0) })
+            .flatMap({ $0.publisher })
             .receive(subscriber: subscriber)
     }
 }
