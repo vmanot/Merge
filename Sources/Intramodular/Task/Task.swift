@@ -91,7 +91,6 @@ extension Publisher where Self: Task {
                         .eraseToAnyPublisher()
                 }
             })
-            .prefix(1)
             .receive(subscriber: subscriber)
     }
 }
