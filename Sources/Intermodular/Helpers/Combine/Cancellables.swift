@@ -83,10 +83,12 @@ public final class Cancellables: Cancellable {
         
         insert(cancellable)
         
-        publisher.handleEvents(
-            receiveCompletion: { [weak self] _ in self?.remove(cancellable) },
-            receiveCancel: { [weak self] in self?.remove(cancellable) }
-        ).receive(subscriber: subscriber)
+        publisher
+            .handleEvents(
+                receiveCompletion: { [weak self] _ in self?.remove(cancellable) },
+                receiveCancel: { [weak self] in self?.remove(cancellable) }
+            )
+            .receive(subscriber: subscriber)
     }
 }
 
