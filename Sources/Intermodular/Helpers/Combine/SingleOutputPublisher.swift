@@ -47,6 +47,10 @@ extension Publishers.First: SingleOutputPublisher {
     
 }
 
+extension Publishers.HandleEvents: SingleOutputPublisher where Upstream: SingleOutputPublisher {
+    
+}
+
 extension Publishers.Last: SingleOutputPublisher {
     
 }
@@ -60,6 +64,10 @@ extension Publishers.Print: SingleOutputPublisher where Upstream: SingleOutputPu
 }
 
 extension Publishers.ReceiveOn: SingleOutputPublisher where Upstream: SingleOutputPublisher {
+    
+}
+
+extension Publishers.TryMap: SingleOutputPublisher where Upstream: SingleOutputPublisher {
     
 }
 

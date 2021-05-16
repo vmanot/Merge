@@ -86,8 +86,13 @@ extension Publisher where Self: Task {
                     return Just(output)
                         .setFailureType(to: Failure.self)
                         .eraseToAnyPublisher()
+                } else if let failure = status.failure {
+                    return Fail<Output, Failure>(error: failure)
+                        .eraseToAnyPublisher()
                 } else {
-                    return Fail<Output, Failure>(error: status.failure ?? .canceled)
+                    assertionFailure()
+                    
+                    return Fail<Output, Failure>(error: .canceled)
                         .eraseToAnyPublisher()
                 }
             })
