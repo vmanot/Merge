@@ -34,6 +34,11 @@ public enum TaskResult<Success, Error: Swift.Error> {
                 self = .error(error)
         }
     }
+    
+    /// Returns the success value as a throwing expression.
+    public func get() throws -> Success {
+        try Result(from: self).unwrap().get()
+    }
 }
 
 extension TaskResult {
@@ -105,6 +110,19 @@ extension TaskResult {
         
         public static func == (lhs: TaskResult, rhs: Comparison) -> Bool {
             rhs == lhs
+        }
+    }
+}
+
+extension Result {
+    init?(from result: TaskResult<Success, Failure>) {
+        switch result {
+            case .canceled:
+                return nil
+            case .success(let value):
+                self = .success(value)
+            case .error(let error):
+                self = .failure(error)
         }
     }
 }
