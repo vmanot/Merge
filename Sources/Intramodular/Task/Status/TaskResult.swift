@@ -115,7 +115,7 @@ extension TaskResult {
 }
 
 extension Result {
-    init?(from result: TaskResult<Success, Failure>) {
+    public init?(from result: TaskResult<Success, Failure>) {
         switch result {
             case .canceled:
                 return nil
