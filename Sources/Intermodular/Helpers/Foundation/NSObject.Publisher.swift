@@ -6,14 +6,10 @@ import Foundation
 import Swift
 
 extension NSObject {
-    /// Publish values when the value identified by a default key changes.
-    ///
-    /// - Parameters:
-    ///   - key: The default key of the default value to publish.
-    ///   - initial: If `true`, the first output will be send immediately, before the observer registration method even returns.
-    /// - Returns: A publisher that emits elements each time the defaults’ value changes.
-    public func publisher<Value>(
+    /// Publish values when the value identified by a KVO-compliant keypath changes.
+    func publisher<Value>(
         for keyPath: String,
+        type: Value.Type = Value.self,
         initial: Bool = false
     ) -> StringKeyValueObservingPublisher<Value> {
         .init(
