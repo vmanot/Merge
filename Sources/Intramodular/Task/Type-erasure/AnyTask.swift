@@ -3,7 +3,7 @@
 //
 
 import Foundation
-import Swift
+import Swallow
 
 /// A task that performs type erasure by wrapping another task.
 open class AnyTask<Success, Error: Swift.Error>: Task {
@@ -84,6 +84,11 @@ extension AnyTask where Success == Any, Error == Swift.Error {
 extension AnyTask {
     public static func failure(_ error: Error) -> AnyTask {
         Fail<Success, Error>(error: error)
+            .convertToTask()
+    }
+    
+    public static func failure(description: String) -> AnyTask where Error == Swift.Error {
+        Fail<Success, Error>(error: CustomStringError(description: description))
             .convertToTask()
     }
     
