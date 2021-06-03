@@ -35,9 +35,7 @@ let package = Package(
         ),
         .testTarget(
             name: "MergeTests",
-            dependencies: [
-                "Merge"
-            ],
+            dependencies: ["Merge"],
             path: "Tests"
         )
     ]
