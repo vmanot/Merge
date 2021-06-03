@@ -24,4 +24,17 @@ extension Either: Publisher where
                 publisher.receive(subscriber: subscriber)
         }
     }
+    
+    public init(@PublisherBuilder _ createPublisher: () -> Either<LeftValue, RightValue>) {
+        self = createPublisher()
+    }
+}
+
+extension Either: SingleOutputPublisher where
+    LeftValue: SingleOutputPublisher,
+    RightValue: SingleOutputPublisher,
+    LeftValue.Output == RightValue.Output,
+    LeftValue.Failure == RightValue.Failure
+{
+    
 }

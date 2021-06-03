@@ -67,6 +67,10 @@ extension Publishers.ReceiveOn: SingleOutputPublisher where Upstream: SingleOutp
     
 }
 
+extension Publishers.Reduce: SingleOutputPublisher {
+    
+}
+
 extension Publishers.TryMap: SingleOutputPublisher where Upstream: SingleOutputPublisher {
     
 }

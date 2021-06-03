@@ -8,13 +8,13 @@ import Swallow
 
 extension DispatchTime: CustomStringConvertible {
     public var description: String {
-        return "(.now() + \(Double(Int(uptimeNanoseconds) - Int(DispatchTime.now().uptimeNanoseconds)) / Double(NSEC_PER_SEC)) seconds)"
+        "(.now() + \(Double(Int(uptimeNanoseconds) - Int(DispatchTime.now().uptimeNanoseconds)) / Double(NSEC_PER_SEC)) seconds)"
     }
 }
 
 extension DispatchWallTime: CustomStringConvertible {
     public var description: String {
-        return "(some dispatch wall time)"
+        "(some dispatch wall time)"
     }
 }
 

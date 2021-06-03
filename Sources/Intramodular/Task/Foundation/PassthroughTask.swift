@@ -100,9 +100,9 @@ open class PassthroughTask<Success, Error: Swift.Error>: TaskBase<Success, Error
                 case .paused:
                     statusValueSubject.send(.paused)
                 case .canceled: do {
+                    statusValueSubject.send(.canceled)
                     bodyCancellable.cancel()
                     cancellables.cancel()
-                    statusValueSubject.send(.canceled)
                 }
                 case .success(let success): do {
                     statusValueSubject.send(.success(success))
