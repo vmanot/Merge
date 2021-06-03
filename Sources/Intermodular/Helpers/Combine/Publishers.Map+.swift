@@ -25,6 +25,11 @@ extension Publisher {
         map({ _ in value })
     }
     
+    /// Maps all elements from an upstream publisher to a single value.
+    public func mapTo<T>(_ value: @escaping () -> T) -> Publishers.Map<Self, T> {
+        map({ _ in value() })
+    }
+    
     public func reduceAndMapTo<T>(_ value: T) -> Publishers.Map<Publishers.Reduce<Self, ()>, T>{
         reduce((), { _, _ in () }).mapTo(value)
     }
