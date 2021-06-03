@@ -20,8 +20,7 @@ extension Publisher {
         _ transform: @escaping (Output) -> P
     ) -> Publishers.FlatMap<Publishers.MapError<P, Error>, Publishers.MapError<Self, Error>>  {
         eraseError().flatMap(maxPublishers: maxPublishers) { output in
-            transform(output)
-                .eraseError()
+            transform(output).eraseError()
         }
     }
 }

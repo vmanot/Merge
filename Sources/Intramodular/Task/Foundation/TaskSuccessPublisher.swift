@@ -18,6 +18,7 @@ public struct TaskSuccessPublisher<Upstream: Task>: SingleOutputPublisher {
         subscriber: S
     ) where S.Input == Output, S.Failure == Failure {
          upstream
+            .prefixUntil(after: { $0.isTerminal })
             .mapResult({ TaskStatus($0) })
             .compactMap({ Result($0) })
             .flatMap({ $0.publisher })
