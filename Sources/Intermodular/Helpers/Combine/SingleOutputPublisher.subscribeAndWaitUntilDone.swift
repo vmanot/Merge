@@ -6,6 +6,7 @@ import Dispatch
 import Swallow
 
 extension SingleOutputPublisher {
+    @discardableResult
     public func subscribeAndWaitUntilDone() -> Result<Output, Failure> {
         var result: Result<Output, Failure>?
         let queue = DispatchQueue(qosClass: .current)
