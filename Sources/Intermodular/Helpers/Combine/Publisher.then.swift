@@ -3,7 +3,7 @@
 //
 
 import Combine
-import Swift
+import Swallow
 
 extension Publisher {
     public func then<P: Publisher>(_ publisher: P) -> AnyPublisher<P.Output, Error> {
@@ -12,14 +12,37 @@ extension Publisher {
             .eraseToAnyPublisher()
     }
     
+    public func then<P: Publisher>(
+        _ publisher: P
+    ) -> Publishers.FlatMap<P, Self> where P.Failure == Never {
+        flatMap({ _ in publisher })
+    }
+
     public func then<P: Publisher>(deferred createPublisher: @autoclosure @escaping () -> P) -> AnyPublisher<P.Output, Error> {
         then(Deferred(createPublisher: createPublisher))
     }
     
-    public func then<P: Publisher>(deferred createPublisher: @escaping () -> P) -> AnyPublisher<P.Output, Error> {
+    public func then<P: Publisher>(
+        deferred createPublisher: @escaping () -> P
+    ) -> AnyPublisher<P.Output, Error> {
         then(Deferred(createPublisher: createPublisher))
     }
-    
+
+    public func then<P: Publisher>(
+        deferred createPublisher: @escaping () -> Either<P, Combine.Empty<P.Output, P.Failure>>
+    ) -> AnyPublisher<P.Output, Error> {
+        then(Deferred(createPublisher: createPublisher))
+    }
+
+    public func then<P0: Publisher, P1: Publisher>(
+        @PublisherBuilder deferred createPublisher: @escaping () -> Either<P0, P1>
+    ) -> AnyPublisher<P0.Output, Error> where P0.Output == P1.Output, P1.Failure == P0.Failure {
+        then(Deferred(createPublisher: createPublisher))
+    }
+}
+
+extension Publisher {
+    @_disfavoredOverload
     public func then(_ action: @escaping () -> Void) -> Publishers.Map<Self, Output> {
         map { output -> Output in
             action()
@@ -27,6 +50,7 @@ extension Publisher {
         }
     }
     
+    @_disfavoredOverload
     public func then<S: Scheduler>(
         on scheduler: S,
         options: S.SchedulerOptions? = nil,
@@ -36,15 +60,8 @@ extension Publisher {
     }
 }
 
-extension Publisher where Failure == Never {
-    public func then<P: Publisher>(
-        _ publisher: P
-    ) -> Publishers.FlatMap<P, Self> where P.Failure == Never {
-        flatMap({ _ in publisher })
-    }
-}
-
 extension Publisher where Failure == Error {
+    @_disfavoredOverload
     public func then(_ action: @escaping () throws -> Void) -> Publishers.FlatMap<AnyPublisher<Self.Output, Error>, Self> {
         flatMap { output -> AnyPublisher<Output, Error> in
             do {
@@ -57,6 +74,7 @@ extension Publisher where Failure == Error {
         }
     }
     
+    @_disfavoredOverload
     public func then<S: Scheduler>(
         on scheduler: S,
         options: S.SchedulerOptions? = nil,
