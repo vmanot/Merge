@@ -126,6 +126,7 @@ public func awaitAndUnwrap<T: Task>(_ task: T) throws -> T.Success {
     try task.successPublisher.subscribeAndWaitUntilDone().get()
 }
 
+@discardableResult
 public func awaitAndUnwrap<T: Task>(_ task: () throws -> T) throws -> T.Success {
     try awaitAndUnwrap(task())
 }
