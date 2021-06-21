@@ -3,10 +3,11 @@
 //
 
 import Combine
-import Swift
+import Swallow
 
 @propertyWrapper
 public struct Observed<Value: ObservableObject> {
+    @MutableValueBox
     public var wrappedValue: Value
     
     private var subscription: AnyCancellable?
@@ -15,6 +16,14 @@ public struct Observed<Value: ObservableObject> {
         self.wrappedValue = wrappedValue
     }
     
+    public init<P: PropertyWrapper>(wrappedValue: P) where P.WrappedValue == Value {
+        self._wrappedValue = .init(AnyMutablePropertyWrapper(unsafelyAdapting: wrappedValue))
+    }
+
+    public init<P: MutablePropertyWrapper>(wrappedValue: P) where P.WrappedValue == Value {
+        self._wrappedValue = .init(wrappedValue)
+    }
+        
     public static subscript<EnclosingSelf: ObservableObject>(
         _enclosingInstance object: EnclosingSelf,
         wrapped wrappedKeyPath: ReferenceWritableKeyPath<EnclosingSelf, Value>,
