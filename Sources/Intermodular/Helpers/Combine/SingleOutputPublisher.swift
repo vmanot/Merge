@@ -59,6 +59,10 @@ extension Publishers.Map: SingleOutputPublisher where Upstream: SingleOutputPubl
     
 }
 
+extension Publishers.MapError: SingleOutputPublisher where Upstream: SingleOutputPublisher {
+    
+}
+
 extension Publishers.Print: SingleOutputPublisher where Upstream: SingleOutputPublisher {
     
 }

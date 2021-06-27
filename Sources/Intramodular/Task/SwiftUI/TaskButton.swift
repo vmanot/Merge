@@ -40,9 +40,9 @@ public struct TaskButton<Success, Error: Swift.Error, Label: View>: View {
         }
         .disabled(
             false
-                || !isEnabled
-                || taskDisabled
-                || (currentTask?.status == .finished && !taskRestartable)
+            || !isEnabled
+            || taskDisabled
+            || (currentTask?.status == .finished && !taskRestartable)
         )
     }
     
@@ -58,8 +58,8 @@ public struct TaskButton<Success, Error: Swift.Error, Label: View>: View {
     
     private var taskStatusDescription: TaskStatusDescription {
         return task?.statusDescription
-            ?? taskName.flatMap({ taskPipeline?.lastStatus(for: $0) })
-            ?? .idle
+        ?? taskName.flatMap({ taskPipeline?.lastStatus(for: $0) })
+        ?? .idle
     }
     
     private var lastTaskStatusDescription: TaskStatusDescription? {
@@ -196,15 +196,15 @@ extension TaskButton where Success == Void, Error == Swift.Error {
     ) {
         self.init(
             action: { () -> AnyPublisher<Void, Error> in
-                do {
-                    return Just(try action())
-                        .setFailureType(to: Error.self)
-                        .eraseToAnyPublisher()
-                } catch {
-                    return Fail(error: error)
-                        .eraseToAnyPublisher()
-                }
-            },
+            do {
+                return Just(try action())
+                    .setFailureType(to: Error.self)
+                    .eraseToAnyPublisher()
+            } catch {
+                return Fail(error: error)
+                    .eraseToAnyPublisher()
+            }
+        },
             label: label
         )
     }

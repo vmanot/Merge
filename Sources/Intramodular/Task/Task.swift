@@ -120,6 +120,15 @@ extension Task {
         
         start()
     }
+    
+    @discardableResult
+    public func startAndStore(in cancellables: Cancellables) -> Self {
+        start()
+        
+        store(in: cancellables)
+        
+        return self
+    }
 }
 
 extension Task {

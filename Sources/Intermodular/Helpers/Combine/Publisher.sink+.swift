@@ -12,16 +12,18 @@ extension Publisher {
     }
     
     /// Attaches a subscriber with closure-based behavior.
-    public func sinkResult(_ receiveCompletion: @escaping (Result<Output, Failure>) -> ()) -> AnyCancellable {
+    public func sinkResult(
+        _ receiveValue: @escaping (Result<Output, Failure>) -> ()
+    ) -> AnyCancellable {
         sink(receiveCompletion: { completion in
             switch completion {
                 case .finished:
                     break
                 case .failure(let error):
-                    receiveCompletion(.failure(error))
+                    receiveValue(.failure(error))
             }
         }, receiveValue: { value in
-            receiveCompletion(.success(value))
+            receiveValue(.success(value))
         })
     }
 }

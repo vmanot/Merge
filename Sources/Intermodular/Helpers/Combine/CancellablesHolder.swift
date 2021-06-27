@@ -12,7 +12,7 @@ public protocol CancellablesHolder {
 
 // MARK: - Implementation -
 
-private var cancellables_objcAssociationKey: Void = ()
+private var cancellables_objcAssociationKey: UInt = 0
 
 extension CancellablesHolder where Self: AnyObject {
     public var cancellables: Cancellables {
