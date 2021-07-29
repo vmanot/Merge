@@ -81,9 +81,9 @@ extension EnvironmentValues {
     
     public var taskPipeline: TaskPipeline {
         get {
-            self[TaskPipelineKey]
+            self[TaskPipelineKey.self]
         } set {
-            self[TaskPipelineKey] = newValue
+            self[TaskPipelineKey.self] = newValue
         }
     }
 }

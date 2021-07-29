@@ -45,9 +45,9 @@ extension EnvironmentValues {
     @usableFromInline
     var _taskButtonStyle: _opaque_TaskButtonStyle {
         get {
-            self[TaskButtonStyleEnvironmentKey]
+            self[TaskButtonStyleEnvironmentKey.self]
         } set {
-            self[TaskButtonStyleEnvironmentKey] = newValue
+            self[TaskButtonStyleEnvironmentKey.self] = newValue
         }
     }
 }

@@ -32,9 +32,9 @@ public struct TaskIdentifier: Hashable {
 extension EnvironmentValues {
     public var taskName: TaskIdentifier? {
         get {
-            self[DefaultEnvironmentKey<TaskIdentifier>]
+            self[DefaultEnvironmentKey<TaskIdentifier>.self]
         } set {
-            self[DefaultEnvironmentKey<TaskIdentifier>] = newValue
+            self[DefaultEnvironmentKey<TaskIdentifier>.self] = newValue
         }
     }
 }

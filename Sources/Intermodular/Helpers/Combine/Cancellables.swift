@@ -161,9 +161,9 @@ extension Cancellables {
 extension EnvironmentValues {
     public var cancellables: Cancellables {
         get {
-            self[Cancellables.EnvironmentKey]
+            self[Cancellables.EnvironmentKey.self]
         } set {
-            self[Cancellables.EnvironmentKey] = newValue
+            self[Cancellables.EnvironmentKey.self] = newValue
         }
     }
 }
