@@ -3,6 +3,7 @@
 //
 
 import Combine
+import Foundation
 import Swift
 
 public protocol SingleOutputPublisher: Publisher {
@@ -47,6 +48,10 @@ extension Publishers.First: SingleOutputPublisher {
     
 }
 
+extension Publishers.FlatMap: SingleOutputPublisher where  NewPublisher: SingleOutputPublisher {
+    
+}
+
 extension Publishers.HandleEvents: SingleOutputPublisher where Upstream: SingleOutputPublisher {
     
 }
@@ -75,10 +80,22 @@ extension Publishers.Reduce: SingleOutputPublisher {
     
 }
 
+extension Publishers.SetFailureType: SingleOutputPublisher where Upstream: SingleOutputPublisher {
+    
+}
+
+extension Publishers.Timeout: SingleOutputPublisher where Upstream: SingleOutputPublisher {
+    
+}
+
 extension Publishers.TryMap: SingleOutputPublisher where Upstream: SingleOutputPublisher {
     
 }
 
 extension Result.Publisher: SingleOutputPublisher {
+    
+}
+
+extension URLSession.DataTaskPublisher: SingleOutputPublisher {
     
 }

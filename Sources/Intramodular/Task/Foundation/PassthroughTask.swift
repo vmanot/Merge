@@ -64,13 +64,13 @@ open class PassthroughTask<Success, Error: Swift.Error>: TaskBase<Success, Error
         }
     }
     
-    required convenience public init(publisher: AnyPublisher<Success, Error>) {
+    required convenience public init(publisher: AnySingleOutputPublisher<Success, Error>) {
         self.init { attemptToFulfill in
             publisher.sinkResult(attemptToFulfill)
         }
     }
     
-    required convenience public init<P: Publisher>(publisher: P) where P.Output == Success, P.Failure == Error {
+    required convenience public init<P: SingleOutputPublisher>(publisher: P) where P.Output == Success, P.Failure == Error {
         self.init { attemptToFulfill in
             publisher.sinkResult(attemptToFulfill)
         }
@@ -235,10 +235,21 @@ extension PassthroughTask where Success == Void, Error == Swift.Error {
 
 // MARK: - Helpers -
 
-extension Publisher {
+extension SingleOutputPublisher {
     public func convertToTask() -> AnyTask<Output, Failure> {
         PassthroughTask(publisher: self)
             .eraseToAnyTask()
+    }
+    
+    @_disfavoredOverload
+    public func convertToTask() -> OpaqueTask {
+        convertToTask().eraseToOpaqueTask()
+    }
+}
+
+extension Publisher {
+    public func convertToTask() -> AnyTask<Void, Failure> {
+        reduceAndMapTo(()).convertToTask()
     }
     
     @_disfavoredOverload

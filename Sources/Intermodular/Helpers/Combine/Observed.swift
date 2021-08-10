@@ -6,7 +6,7 @@ import Combine
 import Swallow
 
 @propertyWrapper
-public struct Observed<Value: ObservableObject> {
+public struct Observed<Value: ObservableObject>: PropertyWrapper {
     @MutableValueBox
     public var wrappedValue: Value
     

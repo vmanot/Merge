@@ -40,9 +40,9 @@ public struct TaskButton<Success, Error: Swift.Error, Label: View>: View {
         }
         .disabled(
             false
-            || !isEnabled
-            || taskDisabled
-            || (currentTask?.status == .finished && !taskRestartable)
+                || !isEnabled
+                || taskDisabled
+                || (currentTask?.status == .finished && !taskRestartable)
         )
     }
     
@@ -58,8 +58,8 @@ public struct TaskButton<Success, Error: Swift.Error, Label: View>: View {
     
     private var taskStatusDescription: TaskStatusDescription {
         return task?.statusDescription
-        ?? taskName.flatMap({ taskPipeline?.lastStatus(for: $0) })
-        ?? .idle
+            ?? taskName.flatMap({ taskPipeline?.lastStatus(for: $0) })
+            ?? .idle
     }
     
     private var lastTaskStatusDescription: TaskStatusDescription? {
@@ -130,21 +130,21 @@ extension TaskButton {
         self.label = { _ in _label }
     }
     
-    public init<P: Publisher>(
+    public init<P: SingleOutputPublisher>(
         action: @escaping () -> P,
         @ViewBuilder label: @escaping (TaskStatus<Success, Error>) -> Label
     ) where P.Output == Success, P.Failure == Error {
         self.init(action: { action().convertToTask() }, label: label)
     }
     
-    public init<P: Publisher>(
+    public init<P: SingleOutputPublisher>(
         action: @escaping () -> P,
         @ViewBuilder label: () -> Label
     ) where P.Output == Success, P.Failure == Error {
         self.init(action: { action().convertToTask() }, label: label)
     }
     
-    public init<P: Publisher>(
+    public init<P: SingleOutputPublisher>(
         action: @escaping () throws -> P,
         @ViewBuilder label: () -> Label
     ) where P.Output == Success, Error == Swift.Error {
@@ -179,7 +179,7 @@ extension TaskButton where Label == Text {
         }
     }
     
-    public init<S: StringProtocol, P: Publisher>(
+    public init<S: StringProtocol, P: SingleOutputPublisher>(
         _ title: S,
         action: @escaping () throws -> P
     ) where P.Output == Success, Error == Swift.Error {
@@ -195,16 +195,16 @@ extension TaskButton where Success == Void, Error == Swift.Error {
         @ViewBuilder label: @escaping (TaskStatus<Success, Error>) -> Label
     ) {
         self.init(
-            action: { () -> AnyPublisher<Void, Error> in
-            do {
-                return Just(try action())
-                    .setFailureType(to: Error.self)
-                    .eraseToAnyPublisher()
-            } catch {
-                return Fail(error: error)
-                    .eraseToAnyPublisher()
-            }
-        },
+            action: { () -> AnySingleOutputPublisher<Void, Error> in
+                do {
+                    return Just(try action())
+                        .setFailureType(to: Error.self)
+                        .eraseToAnySingleOutputPublisher()
+                } catch {
+                    return Fail(error: error)
+                        .eraseToAnySingleOutputPublisher()
+                }
+            },
             label: label
         )
     }

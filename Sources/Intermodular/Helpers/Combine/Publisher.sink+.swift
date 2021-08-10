@@ -10,7 +10,9 @@ extension Publisher {
     public func sink() -> AnyCancellable {
         sink(receiveCompletion: { _ in }, receiveValue: { _ in })
     }
-    
+}
+
+extension SingleOutputPublisher {
     /// Attaches a subscriber with closure-based behavior.
     public func sinkResult(
         _ receiveValue: @escaping (Result<Output, Failure>) -> ()
