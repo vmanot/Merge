@@ -129,7 +129,9 @@ extension TaskButton {
         self.action = { action() }
         self.label = { _ in _label }
     }
-    
+}
+
+extension TaskButton {
     public init<P: SingleOutputPublisher>(
         action: @escaping () -> P,
         @ViewBuilder label: @escaping (TaskStatus<Success, Error>) -> Label
@@ -159,6 +161,37 @@ extension TaskButton {
         }
     }
 }
+
+extension TaskButton where Success == Void {
+    public init<P: Publisher>(
+        action: @escaping () -> P,
+        @ViewBuilder label: @escaping (TaskStatus<Success, Error>) -> Label
+    ) where P.Output == Success, P.Failure == Error {
+        self.init(action: { action().reduceAndMapTo(()).convertToTask() }, label: label)
+    }
+    
+    public init<P: Publisher>(
+        action: @escaping () -> P,
+        @ViewBuilder label: () -> Label
+    ) where P.Output == Success, P.Failure == Error {
+        self.init(action: { action().reduceAndMapTo(()).convertToTask() }, label: label)
+    }
+    
+    public init<P: SingleOutputPublisher>(
+        action: @escaping () -> P,
+        @ViewBuilder label: @escaping (TaskStatus<Success, Error>) -> Label
+    ) where P.Output == Success, P.Failure == Error {
+        self.init(action: { action().reduceAndMapTo(()).convertToTask() }, label: label)
+    }
+    
+    public init<P: SingleOutputPublisher>(
+        action: @escaping () -> P,
+        @ViewBuilder label: () -> Label
+    ) where P.Output == Success, P.Failure == Error {
+        self.init(action: { action().reduceAndMapTo(()).convertToTask() }, label: label)
+    }
+}
+
 
 extension TaskButton where Label == Text {
     public init(
