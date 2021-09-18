@@ -88,6 +88,22 @@ extension SingleOutputPublisher {
     }
     
     @_disfavoredOverload
+    public func then(_ action: @escaping () throws -> Void) -> AnySingleOutputPublisher<Void, Error> {
+        then(
+            Deferred { () -> AnySingleOutputPublisher<Void, Error> in
+                do {
+                    return Just(try action())
+                        .setFailureType(to: Error.self)
+                        .eraseToAnySingleOutputPublisher()
+                } catch {
+                    return Fail(error: error)
+                        .eraseToAnySingleOutputPublisher()
+                }
+            }
+        )
+    }
+
+    @_disfavoredOverload
     public func then<S: Scheduler>(
         on scheduler: S,
         options: S.SchedulerOptions? = nil,
