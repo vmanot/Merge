@@ -102,6 +102,20 @@ extension Publisher {
             receiveRequest: nil
         )
     }
+    
+    /// Performs the specified closure upon receipt of subscription.
+    @inlinable
+    public func onSubscribe(
+        perform action: @escaping () -> Void
+    ) -> Publishers.HandleEvents<Self> {
+        handleEvents(
+            receiveSubscription: { _ in action() },
+            receiveOutput: nil,
+            receiveCompletion: nil,
+            receiveCancel: nil,
+            receiveRequest: nil
+        )
+    }
 }
 
 extension Publisher {
