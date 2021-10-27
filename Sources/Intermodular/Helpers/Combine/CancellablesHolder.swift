@@ -16,6 +16,12 @@ private var cancellables_objcAssociationKey: UInt = 0
 
 extension CancellablesHolder where Self: AnyObject {
     public var cancellables: Cancellables {
+        objc_sync_enter(self)
+
+        defer {
+            objc_sync_exit(self)
+        }
+        
         if let result = objc_getAssociatedObject(self, &cancellables_objcAssociationKey) as? Cancellables {
             return result
         } else {
