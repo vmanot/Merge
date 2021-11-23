@@ -5,7 +5,9 @@
 import Combine
 import Swift
 
-/// A `ReplaySubject` is a subject that can buffer one or more values. It stores value events, up to its `bufferSize` in a first-in-first-out manner and then replays it to future subscribers and also forwards completion events.
+/// A `ReplaySubject` is a subject that can buffer one or more values.
+///
+/// It stores value events, up to its `bufferSize` in a first-in-first-out manner and then replays it to future subscribers and also forwards completion events.
 public final class ReplaySubject<Output, Failure: Error>: Subject {
     public typealias Output = Output
     public typealias Failure = Failure
@@ -38,7 +40,9 @@ public final class ReplaySubject<Output, Failure: Error>: Subject {
                 lock.relinquish()
             }
 
-            guard isActive else { return }
+            guard isActive else {
+                return
+            }
 
             buffer.append(value)
 
@@ -49,7 +53,7 @@ public final class ReplaySubject<Output, Failure: Error>: Subject {
             subscriptions = self.subscriptions
         }
 
-        subscriptions.forEach { $0.forwardValueToBuffer(value) }
+        subscriptions.forEach({ $0.forwardToBuffer(value) })
     }
 
     public func send(completion: Subscribers.Completion<Failure>) {
@@ -69,7 +73,7 @@ public final class ReplaySubject<Output, Failure: Error>: Subject {
             subscriptions = self.subscriptions
         }
 
-        subscriptions.forEach { $0.forwardCompletionToBuffer(completion) }
+        subscriptions.forEach({ $0.forwardToBuffer(completion: completion) })
     }
 
     public func send(subscription: Combine.Subscription) {
@@ -110,7 +114,7 @@ public final class ReplaySubject<Output, Failure: Error>: Subject {
             lock.relinquish()
         }
 
-        self.subscriptions.removeAll { $0.innerSubscriberIdentifier == subscriberIdentifier }
+        self.subscriptions.removeAll { $0.downstreamCombineIdentifier == subscriberIdentifier }
     }
 }
 
@@ -128,34 +132,16 @@ extension Publisher {
 // MARK: - Auxiliary Implementation -
 
 extension ReplaySubject {
-    final class Subscription<Downstream: Subscriber>: Combine.Subscription where Output == Downstream.Input, Failure == Downstream.Failure {
+    private final class Subscription<Downstream: Subscriber>: Combine.Subscription where Output == Downstream.Input, Failure == Downstream.Failure {
+        let downstreamCombineIdentifier: CombineIdentifier
 
         private var demandBuffer: DemandBuffer<Downstream>?
-        private var cancellationHandler: (() -> Void)?
+        private var onCancel: (() -> Void)?
 
-        fileprivate let innerSubscriberIdentifier: CombineIdentifier
-
-        init(downstream: Downstream, cancellationHandler: (() -> Void)?) {
+        init(downstream: Downstream, onCancel: (() -> Void)?) {
+            self.downstreamCombineIdentifier = downstream.combineIdentifier
             self.demandBuffer = DemandBuffer(subscriber: downstream)
-            self.innerSubscriberIdentifier = downstream.combineIdentifier
-            self.cancellationHandler = cancellationHandler
-        }
-
-        func replay(_ buffer: [Output], completion: Subscribers.Completion<Failure>?) {
-            buffer.forEach(forwardValueToBuffer)
-
-            if let completion = completion {
-                forwardCompletionToBuffer(completion)
-            }
-        }
-
-        func forwardValueToBuffer(_ value: Output) {
-            _ = demandBuffer?.buffer(value: value)
-        }
-
-        func forwardCompletionToBuffer(_ completion: Subscribers.Completion<Failure>) {
-            demandBuffer?.complete(completion: completion)
-            cancel()
+            self.onCancel = onCancel
         }
 
         func request(_ demand: Subscribers.Demand) {
@@ -163,10 +149,28 @@ extension ReplaySubject {
         }
 
         func cancel() {
-            cancellationHandler?()
-            cancellationHandler = nil
+            onCancel?()
+            onCancel = nil
 
             demandBuffer = nil
+        }
+
+        func replay(_ buffer: [Output], completion: Subscribers.Completion<Failure>?) {
+            buffer.forEach(forwardToBuffer)
+
+            if let completion = completion {
+                forwardToBuffer(completion: completion)
+            }
+        }
+
+        func forwardToBuffer(_ value: Output) {
+            _ = demandBuffer?.buffer(value: value)
+        }
+
+        func forwardToBuffer(completion: Subscribers.Completion<Failure>) {
+            demandBuffer?.complete(completion: completion)
+
+            cancel()
         }
     }
 }
