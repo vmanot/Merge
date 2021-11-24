@@ -84,7 +84,7 @@ public final class ReplaySubject<Output, Failure: Error>: Subject {
         let subscriberIdentifier = subscriber.combineIdentifier
 
         let subscription = Subscription(downstream: AnySubscriber(subscriber)) { [weak self] in
-            self?.completeSubscriber(withIdentifier: subscriberIdentifier)
+            self?.removeSubscriber(withIdentifier: subscriberIdentifier)
         }
 
         let buffer: [Output]
@@ -104,17 +104,18 @@ public final class ReplaySubject<Output, Failure: Error>: Subject {
         }
 
         subscriber.receive(subscription: subscription)
+
         subscription.replay(buffer, completion: completion)
     }
 
-    private func completeSubscriber(withIdentifier subscriberIdentifier: CombineIdentifier) {
+    private func removeSubscriber(withIdentifier subscriberIdentifier: CombineIdentifier) {
         lock.acquireOrBlock()
 
         defer {
             lock.relinquish()
         }
 
-        self.subscriptions.removeAll { $0.downstreamCombineIdentifier == subscriberIdentifier }
+        subscriptions.removeAll(where: { $0.downstreamCombineIdentifier == subscriberIdentifier })
     }
 }
 
