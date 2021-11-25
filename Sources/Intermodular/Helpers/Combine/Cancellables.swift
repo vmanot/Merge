@@ -11,7 +11,6 @@ import SwiftUI
 public final class Cancellables: Cancellable {
     private var queue = DispatchQueue(label: "com.vmanot.Merge.Cancellables.maintenance")
     private var cancellables: Set<AnyCancellable> = []
-    private var operations: Set<Operation> = []
     
     public init() {
         
@@ -20,12 +19,6 @@ public final class Cancellables: Cancellable {
     public func insert(_ cancellable: AnyCancellable) {
         queue.async {
             cancellable.store(in: &self.cancellables)
-        }
-    }
-    
-    public func insert(_ operation: Operation) {
-        queue.async {
-            self.operations.insert(operation)
         }
     }
     
@@ -147,6 +140,16 @@ extension Publisher where Failure == Never {
     ) {
         handleOutput(receiveValue)
             .subscribe(in: cancellables)
+    }
+}
+
+// MARK: - Conformances -
+
+extension Cancellables: ExpressibleByArrayLiteral {
+    public convenience init(arrayLiteral elements: AnyCancellable...) {
+        self.init()
+        
+        self.cancellables = .init(elements)
     }
 }
 
