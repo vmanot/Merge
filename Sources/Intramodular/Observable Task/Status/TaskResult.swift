@@ -80,7 +80,7 @@ extension TaskStatus {
     }
 }
 
-extension Task {
+extension ObservableTask {
     public var result: TaskResult<Success, Error>? {
         TaskResult(status)
     }

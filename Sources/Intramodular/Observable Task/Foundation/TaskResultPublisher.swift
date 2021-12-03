@@ -4,7 +4,7 @@
 
 import Swift
 
-public struct TaskResultPublisher<Upstream: Task>: SingleOutputPublisher {
+public struct TaskResultPublisher<Upstream: ObservableTask>: SingleOutputPublisher {
     public typealias Output = TaskResult<Upstream.Success, Upstream.Error>
     public typealias Failure = Never
     
@@ -31,7 +31,7 @@ public struct TaskResultPublisher<Upstream: Task>: SingleOutputPublisher {
 
 // MARK: - API -
 
-extension Task {
+extension ObservableTask {
     public var resultPublisher: TaskResultPublisher<Self> {
         .init(upstream: self)
     }

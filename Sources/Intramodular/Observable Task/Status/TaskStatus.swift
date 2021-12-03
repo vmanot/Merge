@@ -251,7 +251,7 @@ extension AnyTask {
 
 // MARK: - Helpers -
 
-extension Task {    
+extension ObservableTask {    
     public var hasSucceeded: Bool {
         if case .success = statusDescription {
             return true

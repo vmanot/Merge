@@ -27,7 +27,7 @@ public final class TaskPipeline: CancellablesHolder, ObservableObject {
         self.parent = parent
     }
     
-    func updateState<T: Task>(for task: T) {
+    func updateState<T: ObservableTask>(for task: T) {
         DispatchQueue.asyncOnMainIfNecessary {
             if task.status.isTerminal {
                 self.taskIDToStatusesMap[task.taskIdentifier, default: []].append(task.statusDescription)
@@ -42,7 +42,7 @@ public final class TaskPipeline: CancellablesHolder, ObservableObject {
 }
 
 extension TaskPipeline {
-    public func track<T: Task>(_ task: T) {
+    public func track<T: ObservableTask>(_ task: T) {
         guard idToTaskMap[task.id] == nil else {
             return
         }

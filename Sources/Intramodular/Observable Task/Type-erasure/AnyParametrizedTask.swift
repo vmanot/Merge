@@ -5,10 +5,10 @@
 import FoundationX
 import Swift
 
-open class AnyParametrizedTask<Input, Success, Error: Swift.Error>: Task {
+open class AnyParametrizedTask<Input, Success, Error: Swift.Error>: ObservableTask {
     public typealias Status = TaskStatus<Success, Error>
     
-    public let base: _opaque_Task
+    public let base: _opaque_ObservableTask
     
     private let getStatusImpl: () -> Status
     private let getObjectWillChangeImpl: () -> AnyPublisher<Status, Never>

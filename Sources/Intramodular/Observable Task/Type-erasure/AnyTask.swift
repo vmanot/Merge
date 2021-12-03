@@ -6,12 +6,12 @@ import Foundation
 import Swallow
 
 /// A task that performs type erasure by wrapping another task.
-open class AnyTask<Success, Error: Swift.Error>: Task {
+open class AnyTask<Success, Error: Swift.Error>: ObservableTask {
     public typealias Output = TaskOutput<Success, Error>
     public typealias Failure = TaskFailure<Error>
     public typealias Status = TaskStatus<Success, Error>
     
-    public let base: _opaque_Task
+    public let base: _opaque_ObservableTask
     
     private let getStatusImpl: () -> Status
     private let getObjectWillChangeImpl: () -> AnyPublisher<Status, Never>
@@ -41,7 +41,7 @@ open class AnyTask<Success, Error: Swift.Error>: Task {
     }
     
     private init(
-        base: _opaque_Task,
+        base: _opaque_ObservableTask,
         getStatusImpl: @escaping () -> Status,
         getObjectWillChangeImpl: @escaping () -> AnyPublisher<Status, Never>
     ) {
@@ -60,7 +60,7 @@ open class AnyTask<Success, Error: Swift.Error>: Task {
 }
 
 extension AnyTask {
-    public convenience init<T: Task>(_ base: T) where T.Success == Success, T.Error == Error {
+    public convenience init<T: ObservableTask>(_ base: T) where T.Success == Success, T.Error == Error {
         self.init(
             base: base,
             getStatusImpl: { base.status },
@@ -70,7 +70,7 @@ extension AnyTask {
 }
 
 extension AnyTask where Success == Any, Error == Swift.Error {
-    public convenience init(_opaque base: _opaque_Task) {
+    public convenience init(_opaque base: _opaque_ObservableTask) {
         self.init(
             base: base,
             getStatusImpl: { base._opaque_status },
@@ -108,7 +108,7 @@ extension AnyTask {
     }
 }
 
-extension Task {
+extension ObservableTask {
     public func eraseToAnyTask() -> AnyTask<Success, Error> {
         .init(self)
     }

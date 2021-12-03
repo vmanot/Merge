@@ -5,8 +5,6 @@
 import Combine
 import Swift
 
-public typealias AnyFuture<Output, Failure: Error> = AnySingleOutputPublisher<Output, Error>
-
 /// A single-output publisher that performs type erasure by wrapping another single-output publisher.
 public struct AnySingleOutputPublisher<Output, Failure: Error>: SingleOutputPublisher {
     public let base: AnyPublisher<Output, Failure>

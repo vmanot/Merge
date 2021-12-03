@@ -5,7 +5,7 @@
 import Swallow
 
 /// A type-erased shadow protocol for `Task`.
-public protocol _opaque_Task: _opaque_Identifiable, CancellablesHolder, Subscription {
+public protocol _opaque_ObservableTask: _opaque_Identifiable, CancellablesHolder, Subscription {
     typealias StatusDescription = TaskStatusDescription
     
     var _opaque_status: TaskStatus<Any, Swift.Error> { get }
@@ -23,11 +23,11 @@ public protocol _opaque_Task: _opaque_Identifiable, CancellablesHolder, Subscrip
     func cancel()
 }
 
-public final class OpaqueTask: CustomStringConvertible, Task {
+public final class OpaqueTask: CustomStringConvertible, ObservableTask {
     public typealias Success = Any
     public typealias Error = Swift.Error
     
-    private let base: _opaque_Task
+    private let base: _opaque_ObservableTask
     
     public var description: String {
         (base as? CustomStringConvertible)?.description ?? "(Task)"
@@ -61,7 +61,7 @@ public final class OpaqueTask: CustomStringConvertible, Task {
         base.statusDescriptionWillChange
     }
     
-    public init<T: Task>(_ base: T) {
+    public init<T: ObservableTask>(_ base: T) {
         self.base = base
     }
     
@@ -82,7 +82,7 @@ public final class OpaqueTask: CustomStringConvertible, Task {
     }
 }
 
-extension Task {
+extension ObservableTask {
     public func eraseToOpaqueTask() -> OpaqueTask {
         .init(self)
     }

@@ -7,7 +7,7 @@ import Foundation
 import Swallow
 
 /// A task is a token of activity with status-reporting.
-public protocol Task: _opaque_Task, Identifiable, ObservableObject, Publisher where
+public protocol ObservableTask: _opaque_ObservableTask, Identifiable, ObservableObject, Publisher where
     ObjectWillChangePublisher.Output == TaskStatus<Self.Success, Self.Error>,
     Self.Output == TaskOutput<Self.Success, Self.Error>,
     Self.Failure == TaskFailure<Self.Error>
@@ -30,7 +30,7 @@ public protocol Task: _opaque_Task, Identifiable, ObservableObject, Publisher wh
 
 // MARK: - Implementation -
 
-extension _opaque_Task where Self: Task {
+extension _opaque_ObservableTask where Self: ObservableTask {
     public var _opaque_status: TaskStatus<Any, Swift.Error> {
         status.map({ $0 as Any }).mapError({ $0 as Swift.Error })
     }
@@ -59,7 +59,7 @@ extension _opaque_Task where Self: Task {
     }
 }
 
-extension Publisher where Self: Task {
+extension Publisher where Self: ObservableTask {
     public func receive<S: Subscriber>(
         subscriber: S
     ) where S.Input == Output, S.Failure == Failure {
@@ -100,7 +100,7 @@ extension Publisher where Self: Task {
     }
 }
 
-extension Subscription where Self: Task {
+extension Subscription where Self: ObservableTask {
     public func request(_ demand: Subscribers.Demand) {
         guard demand != .none, statusDescription == .idle else {
             return
@@ -112,7 +112,7 @@ extension Subscription where Self: Task {
 
 // MARK: - API -
 
-extension Task {
+extension ObservableTask {
     public func startIfNecessary() {
         guard status == .idle else {
             return
@@ -131,7 +131,7 @@ extension Task {
     }
 }
 
-extension Task {
+extension ObservableTask {
     @discardableResult
     public func blockAndUnwrap() throws -> Success {
         try successPublisher.subscribeAndWaitUntilDone().get()

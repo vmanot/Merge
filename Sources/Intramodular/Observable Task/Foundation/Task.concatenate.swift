@@ -4,7 +4,7 @@
 
 import Swift
 
-extension Task where Success == Void {
+extension ObservableTask where Success == Void {
     public func concatenate(with other: Self) -> AnyTask<Void, Error> {
         PassthroughTask<Void, Error> { (task: PassthroughTask) in
             Publishers.Concatenate(prefix: self.successPublisher, suffix: other.successPublisher)

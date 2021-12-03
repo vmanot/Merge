@@ -6,7 +6,7 @@ import Combine
 import Foundation
 import Swallow
 
-open class TaskOperation<Base: Task>: Operation {
+open class TaskOperation<Base: ObservableTask>: Operation {
     public let base: Base
     
     public init(_ base: Base) {
@@ -104,7 +104,7 @@ open class TaskOperation<Base: Task>: Operation {
 
 // MARK: - API -
 
-extension Task {
+extension ObservableTask {
     public func convertToOperation() -> TaskOperation<Self> {
         .init(self)
     }
@@ -117,7 +117,7 @@ extension SingleOutputPublisher {
 }
 
 extension AnyProtocol where Self == Operation {
-    public init<T: Task>(task: T) {
+    public init<T: ObservableTask>(task: T) {
         self = task.convertToOperation()
     }
 }

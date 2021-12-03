@@ -5,7 +5,7 @@
 import Foundation
 import Swift
 
-open class TaskBase<Success, Error: Swift.Error>: Task {
+open class TaskBase<Success, Error: Swift.Error>: ObservableTask {
     public typealias Status = TaskStatus<Success, Error>
     
     public let cancellables = Cancellables()
