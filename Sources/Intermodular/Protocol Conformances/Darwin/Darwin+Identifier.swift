@@ -2,7 +2,6 @@
 // Copyright (c) Vatsal Manot
 //
 
-import Compute
 import Swallow
 
 public struct OSUnfairAtomicIdentifier: Identifier {
