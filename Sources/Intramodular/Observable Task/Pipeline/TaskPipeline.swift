@@ -20,18 +20,49 @@ public final class TaskPipeline: CancellablesHolder, ObservableObject {
     }
     
     @Published var idToTaskMap: [AnyHashable: OpaqueTask] = [:]
-    @Published var taskIDToIDMap: [TaskIdentifier: AnyHashable] = [:]
-    @Published var taskIDToStatusesMap: [TaskIdentifier: [TaskStatusDescription]] = [:]
+    @Published var idToStatusHistoryMap: [AnyHashable: [TaskStatusDescription]] = [:]
     
+    @Published var idToCustomTaskIdentifierMap: [AnyHashable: AnyHashable] = [:]
+    @Published var customTaskIdentifierToIDMap: [AnyHashable: AnyHashable] = [:]
+
     public init(parent: TaskPipeline? = nil) {
         self.parent = parent
     }
+}
+
+extension TaskPipeline {
+    public func track<T: ObservableTask>(
+        _ task: T,
+        withCustomIdentifier customTaskIdentifier: AnyHashable?
+    ) {
+        guard idToTaskMap[task.id] == nil else {
+            return
+        }
+        
+        idToTaskMap[task.id] = .init(task)
+        idToCustomTaskIdentifierMap[task.id] = customTaskIdentifier
+        
+        if let customTaskIdentifier = customTaskIdentifier {
+            idToCustomTaskIdentifierMap[task.id] = customTaskIdentifier
+            customTaskIdentifierToIDMap[customTaskIdentifier] = task.id
+        }
+        
+        task.statusDescriptionWillChange
+            .then({ [weak task] in task.map(self.updateState) })
+            .subscribe(in: cancellables)
+    }
+    
     
     func updateState<T: ObservableTask>(for task: T) {
         DispatchQueue.asyncOnMainIfNecessary {
             if task.status.isTerminal {
-                self.taskIDToStatusesMap[task.taskIdentifier, default: []].append(task.statusDescription)
+                self.idToStatusHistoryMap[task.id, default: []].append(task.statusDescription)
                 self.idToTaskMap.removeValue(forKey: task.id)
+                
+                if let customTaskIdentifier = self.idToCustomTaskIdentifierMap[task.id] {
+                    self.idToCustomTaskIdentifierMap.removeValue(forKey: task.id)
+                    self.customTaskIdentifierToIDMap.removeValue(forKey: customTaskIdentifier)
+                }
             } else {
                 self.idToTaskMap[task.id] = .init(task)
             }
@@ -39,40 +70,30 @@ public final class TaskPipeline: CancellablesHolder, ObservableObject {
             self.objectWillChange.send()
         }
     }
-}
-
-extension TaskPipeline {
-    public func track<T: ObservableTask>(_ task: T) {
-        guard idToTaskMap[task.id] == nil else {
-            return
-        }
+    
+    public subscript(customTaskIdentifier identifier: AnyHashable) -> AnyTask<Any, Swift.Error>? {
+        customTaskIdentifierToIDMap[identifier]
+            .flatMap({ idToTaskMap[$0] })
+            .map(AnyTask.init(_opaque:))
+    }
+    
+    public func lastStatus(forCustomTaskIdentifier identifier: AnyHashable) -> TaskStatusDescription? {
+        customTaskIdentifierToIDMap[identifier].flatMap({ idToStatusHistoryMap[$0]?.last })
+    }
         
-        idToTaskMap[task.id] = .init(task)
-        taskIDToIDMap[task.taskIdentifier] = task.id
-        
-        task.statusDescriptionWillChange
-            .then({ [weak task] in task.map(self.updateState) })
-            .subscribe(in: cancellables)
-    }
-    
-    public subscript(_ name: TaskIdentifier) -> AnyTask<Any, Swift.Error>? {
-        taskIDToIDMap[name].flatMap({ idToTaskMap[$0] }).map(AnyTask.init(_opaque:))
-    }
-    
-    public func lastStatus(for identifier: TaskIdentifier) -> TaskStatusDescription? {
-        taskIDToStatusesMap[identifier]?.last
-    }
-    
-    public func cancel(_ taskName: TaskIdentifier) {
-        idToTaskMap[taskName]?.cancel()
-    }
-    
     public func cancelAllTasks() {
         idToTaskMap.values.forEach({ $0.cancel() })
     }
 }
 
-// MARK: - Auxiliary Implementation -
+// MARK: - SwiftUI API -
+
+extension View {
+    /// Supplies a task pipeline to a view subhierachy.
+    public func taskPipeline(_ pipeline: TaskPipeline) -> some View {
+        environment(\.taskPipeline, pipeline).environmentObject(pipeline)
+    }
+}
 
 extension EnvironmentValues {
     struct TaskPipelineKey: SwiftUI.EnvironmentKey {
@@ -85,14 +106,5 @@ extension EnvironmentValues {
         } set {
             self[TaskPipelineKey.self] = newValue
         }
-    }
-}
-
-// MARK: - API -
-
-extension View {
-    /// Supplies a task pipeline to a view subhierachy.
-    public func taskPipeline(_ pipeline: TaskPipeline) -> some View {
-        environment(\.taskPipeline, pipeline).environmentObject(pipeline)
     }
 }

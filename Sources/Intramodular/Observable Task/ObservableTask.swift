@@ -18,7 +18,6 @@ public protocol ObservableTask: _opaque_ObservableTask, Identifiable, Observable
     associatedtype Output = TaskOutput<Success, Error>
     associatedtype Failure = TaskFailure<Error>
     
-    var taskIdentifier: TaskIdentifier { get }
     var status: TaskStatus<Success, Error> { get }
     var progress: Progress { get }
     
@@ -34,6 +33,7 @@ extension _opaque_ObservableTask where Self: ObservableTask {
     public var _opaque_status: TaskStatus<Any, Swift.Error> {
         status.map({ $0 as Any }).mapError({ $0 as Swift.Error })
     }
+    
     public var _opaque_statusWillChange: AnyPublisher<TaskStatus<Any, Swift.Error>, Never> {
         objectWillChange
             .map({ $0.map({ $0 as Any }).mapError({ $0 as Swift.Error }) })

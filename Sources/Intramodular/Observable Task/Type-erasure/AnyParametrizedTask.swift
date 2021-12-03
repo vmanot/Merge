@@ -17,11 +17,7 @@ open class AnyParametrizedTask<Input, Success, Error: Swift.Error>: ObservableTa
     public var cancellables: Cancellables {
         base.cancellables
     }
-    
-    public var taskIdentifier: TaskIdentifier {
-        base.taskIdentifier
-    }
-    
+        
     public var status: Status {
         getStatusImpl()
     }

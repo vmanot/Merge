@@ -11,7 +11,6 @@ public protocol _opaque_ObservableTask: _opaque_Identifiable, CancellablesHolder
     var _opaque_status: TaskStatus<Any, Swift.Error> { get }
     var _opaque_statusWillChange: AnyPublisher<TaskStatus<Any, Swift.Error>, Never> { get }
     
-    var taskIdentifier: TaskIdentifier { get }
     var progress: Progress { get }
     
     var statusDescription: StatusDescription { get }
@@ -43,10 +42,6 @@ public final class OpaqueTask: CustomStringConvertible, ObservableTask {
     
     public var id: some Hashable {
         base._opaque_id
-    }
-    
-    public var taskIdentifier: TaskIdentifier {
-        base.taskIdentifier
     }
     
     public var progress: Progress {

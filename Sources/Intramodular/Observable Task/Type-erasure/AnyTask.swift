@@ -6,17 +6,19 @@ import Foundation
 import Swallow
 
 /// A task that performs type erasure by wrapping another task.
-open class AnyTask<Success, Error: Swift.Error>: ObservableTask {
+public final class AnyTask<Success, Error: Swift.Error>: ObservableTask {
+    public typealias ID = AnyHashable
     public typealias Output = TaskOutput<Success, Error>
     public typealias Failure = TaskFailure<Error>
     public typealias Status = TaskStatus<Success, Error>
-    
+    public typealias ObjectWillChangePublisher = AnyPublisher<Status, Never>
+
     public let base: _opaque_ObservableTask
     
     private let getStatusImpl: () -> Status
     private let getObjectWillChangeImpl: () -> AnyPublisher<Status, Never>
     
-    public var id: AnyHashable {
+    public var id: ID {
         base._opaque_id
     }
     
@@ -28,18 +30,14 @@ open class AnyTask<Success, Error: Swift.Error>: ObservableTask {
         base.progress
     }
     
-    public var objectWillChange: AnyPublisher<Status, Never> {
+    public var objectWillChange: ObjectWillChangePublisher {
         getObjectWillChangeImpl()
     }
     
     public var cancellables: Cancellables {
         base.cancellables
     }
-    
-    public var taskIdentifier: TaskIdentifier {
-        base.taskIdentifier
-    }
-    
+        
     private init(
         base: _opaque_ObservableTask,
         getStatusImpl: @escaping () -> Status,

@@ -9,12 +9,12 @@ import SwiftUI
 struct TaskPipelineViewSubscriber: ViewModifier {
     @Environment(\.taskPipeline) var pipeline
     
-    let filter: TaskIdentifier
+    let filter: AnyHashable
     let action: (TaskStatusDescription) -> ()
     
     func body(content: Content) -> some View {
         content.onReceive(self.pipeline.objectWillChange) {
-            if let status = self.pipeline[self.filter]?.statusDescription {
+            if let status = self.pipeline[customTaskIdentifier: self.filter]?.statusDescription {
                 self.action(status)
             }
         }
@@ -25,7 +25,7 @@ struct TaskPipelineViewSubscriber: ViewModifier {
 
 extension View {
     public func onStatusChange(
-        of name: TaskIdentifier,
+        of name: AnyHashable,
         perform action: @escaping (TaskStatusDescription) -> Void
     ) -> some View {
         modifier(TaskPipelineViewSubscriber(filter: name) {

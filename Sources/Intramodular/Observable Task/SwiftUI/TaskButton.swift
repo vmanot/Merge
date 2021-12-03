@@ -16,9 +16,9 @@ public struct TaskButton<Success, Error: Swift.Error, Label: View>: View {
     
     @Environment(\._taskButtonStyle) private var buttonStyle
     @Environment(\.cancellables) private var cancellables
+    @Environment(\.customTaskIdentifier) private var customTaskIdentifier
     @Environment(\.errorContext) private var errorContext
     @Environment(\.isEnabled) private var isEnabled
-    @Environment(\.taskName) private var taskName
     @Environment(\.taskDisabled) private var taskDisabled
     @Environment(\.taskInterruptible) private var taskInterruptible
     @Environment(\.taskRestartable) private var taskRestartable
@@ -49,7 +49,7 @@ public struct TaskButton<Success, Error: Swift.Error, Label: View>: View {
     private var task: AnyTask<Success, Error>? {
         if let currentTask = currentTask {
             return currentTask
-        } else if let taskName = taskName, let task = taskPipeline?[taskName] as? AnyTask<Success, Error> {
+        } else if let customTaskIdentifier = customTaskIdentifier, let task = taskPipeline?[customTaskIdentifier: customTaskIdentifier] as? AnyTask<Success, Error> {
             return task
         } else {
             return nil
@@ -58,12 +58,12 @@ public struct TaskButton<Success, Error: Swift.Error, Label: View>: View {
     
     private var taskStatusDescription: TaskStatusDescription {
         return task?.statusDescription
-            ?? taskName.flatMap({ taskPipeline?.lastStatus(for: $0) })
+            ?? customTaskIdentifier.flatMap({ taskPipeline?.lastStatus(forCustomTaskIdentifier: $0) })
             ?? .idle
     }
     
     private var lastTaskStatusDescription: TaskStatusDescription? {
-        taskName.flatMap({ taskPipeline?.lastStatus(for: $0) })
+        customTaskIdentifier.flatMap({ taskPipeline?.lastStatus(forCustomTaskIdentifier: $0) })
     }
     
     private func trigger() {
@@ -97,7 +97,7 @@ public struct TaskButton<Success, Error: Swift.Error, Label: View>: View {
             }
         }
         
-        if let taskName = taskName, let taskPipeline = taskPipeline, let task = taskPipeline[taskName] as? AnyTask<Success, Error> {
+        if let customTaskIdentifier = customTaskIdentifier, let taskPipeline = taskPipeline, let task = taskPipeline[customTaskIdentifier: customTaskIdentifier] as? AnyTask<Success, Error> {
             currentTask = task
         } else {
             if let task = action() {
@@ -257,5 +257,29 @@ extension TaskButton where Success == Void, Error == Swift.Error {
 extension TaskButton: ActionLabelView where Error == Swift.Error, Success == Void {
     public init(action: Action, label: () -> Label) {
         self.init(action: action.perform, label: label)
+    }
+}
+
+// MARK: - Auxiliary Implementation -
+
+extension EnvironmentValues {
+    public var customTaskIdentifier: AnyHashable? {
+        get {
+            self[DefaultEnvironmentKey<AnyHashable>.self]
+        } set {
+            self[DefaultEnvironmentKey<AnyHashable>.self] = newValue
+        }
+    }
+}
+
+// MARK: - API -
+
+extension View {
+    public func customTaskIdentifier(_ name: AnyHashable) -> some View {
+        environment(\.customTaskIdentifier, name)
+    }
+    
+    public func customTaskIdentifier<H: Hashable>(_ name: H) -> some View {
+        customTaskIdentifier(.init(name))
     }
 }
