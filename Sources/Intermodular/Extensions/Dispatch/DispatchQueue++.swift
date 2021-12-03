@@ -42,6 +42,7 @@ extension DispatchQueue {
         self.init(label: label, qos: qos, attributes: attributes, autoreleaseFrequency: autoreleaseFrequency, target: target)
     }
     
+    @_disfavoredOverload
     public convenience init<T>(
         label: T.Type,
         qosClass: DispatchQoS.QoSClass = .unspecified,

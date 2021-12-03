@@ -48,7 +48,7 @@ extension Publishers.First: SingleOutputPublisher {
     
 }
 
-extension Publishers.FlatMap: SingleOutputPublisher where  NewPublisher: SingleOutputPublisher {
+extension Publishers.FlatMap: SingleOutputPublisher where Upstream: SingleOutputPublisher, NewPublisher: SingleOutputPublisher {
     
 }
 
@@ -81,6 +81,10 @@ extension Publishers.Reduce: SingleOutputPublisher {
 }
 
 extension Publishers.SetFailureType: SingleOutputPublisher where Upstream: SingleOutputPublisher {
+    
+}
+
+extension Publishers.SubscribeOn: SingleOutputPublisher where Upstream: SingleOutputPublisher {
     
 }
 
