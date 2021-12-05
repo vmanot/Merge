@@ -11,7 +11,7 @@ import System
 import os
 
 extension Process {
-    public final class Task: ObservableTask, CustomCombineIdentifierConvertible {
+    public final class Task: ObservableTask {
         public typealias Success = Void
         
         public enum Error: Swift.Error {
@@ -29,8 +29,8 @@ extension Process {
         private let standardErrorPipe = Pipe()
         private let standardErrorData = PassthroughSubject<Data, Never>()
         
-        public var combineIdentifier: CombineIdentifier {
-            CombineIdentifier(process.processIdentifier)
+        public var id: some Hashable {
+            process.processIdentifier
         }
 
         public var status: TaskStatus<Success, Error> {
