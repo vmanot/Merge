@@ -7,47 +7,53 @@ import Dispatch
 import Swallow
 import SwiftUI
 
-/// A thread-safe collection suitable for storing instanes of `AnyCancellable`.
+/// A thread-safe collection suitable for storing instances of `AnyCancellable`.
 public final class Cancellables: Cancellable {
-    private var queue = DispatchQueue(label: "com.vmanot.Merge.Cancellables.maintenance")
+    private var queue = DispatchQueue(label: "com.vmanot.Merge.Cancellables")
     private var cancellables: Set<AnyCancellable> = []
     
     public init() {
         
     }
     
+    /// Adds the given cancellable object to the set.
     public func insert(_ cancellable: AnyCancellable) {
         queue.async {
             cancellable.store(in: &self.cancellables)
         }
     }
     
+    /// Adds the given cancellable object to the set.
     public func insert<C: Cancellable>(_ cancellable: C) {
         queue.async {
             cancellable.store(in: &self.cancellables)
         }
     }
     
+    /// Removes the specified cancellable object from the set.
     public func remove(_ cancellable: AnyCancellable) {
         queue.async {
             self.cancellables.remove(cancellable)
         }
     }
     
+    /// Cancels and removes all cancellable objects from within the set.
     public func cancel() {
         queue.async {
             self.cancellables.forEach({ $0.cancel() })
             self.cancellables.removeAll()
         }
     }
-    
-    public func subscribe<P: Publisher>(to publisher: P) {
+}
+
+extension Cancellables {
+    fileprivate func subscribe<P: Publisher>(to publisher: P) {
         let innerCancellable = SingleAssignmentAnyCancellable()
         let cancellable = AnyCancellable(innerCancellable)
         
         insert(cancellable)
         
-        let __cancellable = publisher
+        let cancelOrCompletionHandler = publisher
             .handleCancelOrCompletion { [weak self, weak cancellable] _ in
                 guard let cancellable = cancellable else {
                     return
@@ -58,17 +64,17 @@ public final class Cancellables: Cancellable {
             .sink()
         
         queue.sync {
-            innerCancellable.set(__cancellable)
+            innerCancellable.set(cancelOrCompletionHandler)
         }
     }
     
-    public func subscribe<S: Subject, P: Publisher>(_ subject: S, to publisher: P) where S.Output == P.Output, S.Failure == P.Failure {
+    fileprivate func subscribe<S: Subject, P: Publisher>(_ subject: S, to publisher: P) where S.Output == P.Output, S.Failure == P.Failure {
         let innerCancellable = SingleAssignmentAnyCancellable()
         let cancellable = AnyCancellable(innerCancellable)
         
         insert(cancellable)
         
-        let __cancellable = publisher
+        let cancelOrCompletionHandler = publisher
             .handleCancelOrCompletion { [weak self, weak cancellable] _ in
                 guard let cancellable = cancellable else {
                     return
@@ -79,7 +85,7 @@ public final class Cancellables: Cancellable {
             .subscribe(subject)
 
         queue.sync {
-            innerCancellable.set(__cancellable)
+            innerCancellable.set(cancelOrCompletionHandler)
         }
     }
     
