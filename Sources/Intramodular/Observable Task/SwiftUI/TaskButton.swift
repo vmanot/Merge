@@ -87,7 +87,9 @@ public struct TaskButton<Success, Error: Swift.Error, Label: View>: View {
             }
         }
         
-        task.startIfNecessary()
+        if task.status == .idle {
+            task.start()
+        }
     }
     
     private func acquireTaskIfNecessary() {

@@ -42,32 +42,44 @@ public final class Cancellables: Cancellable {
     }
     
     public func subscribe<P: Publisher>(to publisher: P) {
-        let _cancellable = SingleAssignmentAnyCancellable()
-        let cancellable = AnyCancellable(_cancellable)
+        let innerCancellable = SingleAssignmentAnyCancellable()
+        let cancellable = AnyCancellable(innerCancellable)
         
         insert(cancellable)
         
-        let __cancellable = publisher.handleCancelOrCompletion { [weak self] _ in
-            self?.remove(cancellable)
-        }.sink()
+        let __cancellable = publisher
+            .handleCancelOrCompletion { [weak self, weak cancellable] _ in
+                guard let cancellable = cancellable else {
+                    return
+                }
+
+                self?.remove(cancellable)
+            }
+            .sink()
         
         queue.sync {
-            _cancellable.set(__cancellable)
+            innerCancellable.set(__cancellable)
         }
     }
     
     public func subscribe<S: Subject, P: Publisher>(_ subject: S, to publisher: P) where S.Output == P.Output, S.Failure == P.Failure {
-        let _cancellable = SingleAssignmentAnyCancellable()
-        let cancellable = AnyCancellable(_cancellable)
+        let innerCancellable = SingleAssignmentAnyCancellable()
+        let cancellable = AnyCancellable(innerCancellable)
         
         insert(cancellable)
         
-        let __cancellable = publisher.handleCancelOrCompletion { [weak self] _ in
-            self?.remove(cancellable)
-        }.subscribe(subject)
-        
+        let __cancellable = publisher
+            .handleCancelOrCompletion { [weak self, weak cancellable] _ in
+                guard let cancellable = cancellable else {
+                    return
+                }
+                
+                self?.remove(cancellable)
+            }
+            .subscribe(subject)
+
         queue.sync {
-            _cancellable.set(__cancellable)
+            innerCancellable.set(__cancellable)
         }
     }
     

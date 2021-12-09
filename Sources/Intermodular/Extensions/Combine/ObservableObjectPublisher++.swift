@@ -8,6 +8,6 @@ import Swift
 extension ObservableObjectPublisher {
     @inlinable
     public func publish(to publisher: ObservableObjectPublisher) -> some Publisher {
-        handleOutput({ publisher.send() })
+        handleOutput({ [weak publisher] in publisher?.send() })
     }
 }

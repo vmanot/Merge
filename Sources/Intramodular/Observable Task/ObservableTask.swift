@@ -110,27 +110,6 @@ extension Subscription where Self: ObservableTask {
     }
 }
 
-// MARK: - API -
-
-extension ObservableTask {
-    public func startIfNecessary() {
-        guard status == .idle else {
-            return
-        }
-        
-        start()
-    }
-    
-    @discardableResult
-    public func startAndStore(in cancellables: Cancellables) -> Self {
-        start()
-        
-        store(in: cancellables)
-        
-        return self
-    }
-}
-
 extension ObservableTask {
     @discardableResult
     public func blockAndUnwrap() throws -> Success {

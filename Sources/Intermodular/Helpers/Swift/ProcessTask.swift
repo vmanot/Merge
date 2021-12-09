@@ -46,6 +46,10 @@ extension Process {
         }
         
         public func start() {
+            guard status == .idle else {
+                return
+            }
+
             setupPipes()
             
             process.terminationHandler = { [weak self] process in
@@ -215,7 +219,7 @@ extension Process.Task {
             standardOutputData.lines().map({ .left($0) }),
             standardErrorData.lines().map({ .right(.init($0)) })
         )
-        .handleEvents(receiveSubscription: { _ in self.startIfNecessary() })
+        .handleEvents(receiveSubscription: { _ in self.start() })
         .eraseToAnyPublisher()
     }
 }

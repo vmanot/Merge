@@ -6,7 +6,7 @@ import Combine
 import Swallow
 
 public protocol _opaque_ObservableObject {
-    var _opaque_objectWillChange: AnyPublisher<Any, Never> { get }
+    var _opaque_objectWillChange: AnyObjectWillChangePublisher { get }
     
     func _opaque_objectWillChange_send() throws
 }
@@ -14,8 +14,8 @@ public protocol _opaque_ObservableObject {
 // MARK: - Implementation -
 
 extension _opaque_ObservableObject where Self: ObservableObject {
-    public var _opaque_objectWillChange: AnyPublisher<Any, Never> {
-        objectWillChange.map({ $0 }).eraseToAnyPublisher()
+    public var _opaque_objectWillChange: AnyObjectWillChangePublisher {
+        AnyObjectWillChangePublisher(from: self)
     }
     
     public func _opaque_objectWillChange_send() throws {

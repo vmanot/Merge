@@ -6,23 +6,25 @@ import Dispatch
 import Combine
 import Swift
 
-open class SingleAssignmentAnyCancellable: Cancellable {
-    static let cancelQueue = DispatchQueue(label:
-        "com.vmanot.Merge.SingleAssignmentAnyCancellable")
+public final class SingleAssignmentAnyCancellable: Cancellable {
+    private let lock = OSUnfairLock()
     
-    private var base: AnyCancellable = .empty()
+    private var base: AnyCancellable?
     
     public init() {
         
     }
     
     public func set<C: Cancellable>(_ base: C) {
-        self.base = .init(base)
+        lock.withCriticalScope {
+            self.base = .init(base)
+        }
     }
     
     public func cancel() {
-        Self.cancelQueue.async {
-            self.base = .empty()
+        lock.withCriticalScope {
+            self.base?.cancel()
+            self.base = nil
         }
     }
 }

@@ -36,12 +36,12 @@ open class PassthroughTask<Success, Error: Swift.Error>: TaskBase<Success, Error
         _ attemptToFulfill: @escaping (@escaping (Result<Success, Error>) -> ()) -> Void
     ) {
         self.init { (task: PassthroughTask<Success, Error>) in
-            attemptToFulfill { result in
+            attemptToFulfill { [weak task] result in
                 switch result {
                     case .success(let value):
-                        task.succeed(with: value)
+                        task?.succeed(with: value)
                     case .failure(let value):
-                        task.fail(with: value)
+                        task?.fail(with: value)
                 }
             }
             
