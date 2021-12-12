@@ -88,7 +88,7 @@ extension Process {
         }
         
         public func waitUntilExit() throws {
-            startIfNecessary()
+            start()
             
             process.waitUntilExit()
             
@@ -210,7 +210,7 @@ extension Process.Task {
             standardOutputData.map({ .left($0) }),
             standardErrorData.map({ .right(.init($0)) })
         )
-        .handleEvents(receiveSubscription: { _ in self.startIfNecessary() })
+        .handleEvents(receiveSubscription: { _ in self.start() })
         .eraseToAnyPublisher()
     }
     

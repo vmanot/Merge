@@ -17,7 +17,7 @@ public struct TaskButton<Success, Error: Swift.Error, Label: View>: View {
     @Environment(\._taskButtonStyle) private var buttonStyle
     @Environment(\.cancellables) private var cancellables
     @Environment(\.customTaskIdentifier) private var customTaskIdentifier
-    @Environment(\.errorContext) private var errorContext
+    @Environment(\.handleLocalizedError) private var handleLocalizedError
     @Environment(\.isEnabled) private var isEnabled
     @Environment(\.taskDisabled) private var taskDisabled
     @Environment(\.taskInterruptible) private var taskInterruptible
@@ -76,14 +76,14 @@ public struct TaskButton<Success, Error: Swift.Error, Label: View>: View {
     
     private func subscribe(to task: AnyTask<Success, Error>) {
         currentTask = task
-        
+
         task.objectWillChange.sink(
             in: taskPipeline?.cancellables ?? cancellables
-        ) { [weak errorContext] status in
+        ) { status in
             self.buttonStyle.receive(status: .init(description: TaskStatusDescription(status)))
             
             if case let .error(error) = status {
-                errorContext?.push(error)
+                handleLocalizedError(error as? LocalizedError ?? GenericTaskButtonError(base: error))
             }
         }
         
@@ -263,6 +263,10 @@ extension TaskButton: ActionLabelView where Error == Swift.Error, Success == Voi
 }
 
 // MARK: - Auxiliary Implementation -
+
+struct GenericTaskButtonError: LocalizedError {
+    let base: Swift.Error
+}
 
 extension EnvironmentValues {
     public var customTaskIdentifier: AnyHashable? {
