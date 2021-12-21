@@ -10,6 +10,42 @@ public protocol SingleOutputPublisher: Publisher {
     
 }
 
+// MARK: - API -
+
+extension SingleOutputPublisher {
+    public func output() async throws -> Output {
+        var cancellable: AnyCancellable?
+        var didReceiveValue = false
+
+        return try await withCheckedThrowingContinuation { continuation in
+            cancellable = sink(
+                receiveCompletion: { completion in
+                    switch completion {
+                        case .failure(let error):
+                            continuation.resume(throwing: error)
+                        case .finished:
+                            if !didReceiveValue {
+                                continuation.resume(
+                                    throwing: Publishers.MissingOutputError()
+                                )
+                            }
+                    }
+                },
+                receiveValue: { value in
+                    guard !didReceiveValue else {
+                        return
+                    }
+
+                    didReceiveValue = true
+
+                    cancellable?.cancel()
+                    continuation.resume(returning: value)
+                }
+            )
+        }
+    }
+}
+
 // MARK: - Conformances -
 
 extension Deferred: SingleOutputPublisher where DeferredPublisher: SingleOutputPublisher {
@@ -102,4 +138,13 @@ extension Result.Publisher: SingleOutputPublisher {
 
 extension URLSession.DataTaskPublisher: SingleOutputPublisher {
     
+}
+
+// MARK: - Auxiliary Implementation -
+
+
+extension Publishers {
+    fileprivate struct MissingOutputError: Error {
+
+    }
 }
