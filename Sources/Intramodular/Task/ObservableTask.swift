@@ -36,6 +36,16 @@ extension ObservableTask {
             try await resultPublisher.output()
         }
     }
+    
+    /// The successful result of a task, after it completes.
+    ///
+    /// - returns: The task's successful result.
+    /// - throws: An error indicating task failure or task cancellation.
+    public var successValue: Success {
+        get async throws {
+            try await successPublisher.output()
+        }
+    }
 }
 
 // MARK: - Implementation -
