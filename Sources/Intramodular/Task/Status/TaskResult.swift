@@ -80,12 +80,6 @@ extension TaskStatus {
     }
 }
 
-extension ObservableTask {
-    public var result: TaskResult<Success, Error>? {
-        TaskResult(status)
-    }
-}
-
 // MARK: - Auxiliary Implementation -
 
 extension TaskResult {

@@ -26,7 +26,7 @@ extension SingleOutputPublisher {
                         case .finished:
                             if !didReceiveValue {
                                 continuation.resume(
-                                    throwing: Publishers.MissingOutputError()
+                                    throwing: CancellationError()
                                 )
                             }
                     }
@@ -138,13 +138,4 @@ extension Result.Publisher: SingleOutputPublisher {
 
 extension URLSession.DataTaskPublisher: SingleOutputPublisher {
     
-}
-
-// MARK: - Auxiliary Implementation -
-
-
-extension Publishers {
-    fileprivate struct MissingOutputError: Error {
-
-    }
 }

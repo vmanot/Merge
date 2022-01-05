@@ -4,6 +4,7 @@
 
 import Swift
 
+/// A publisher that delivers the result of a task.
 public struct TaskSuccessPublisher<Upstream: ObservableTask>: SingleOutputPublisher {
     public typealias Output = Upstream.Success
     public typealias Failure = Upstream.Error
@@ -17,7 +18,7 @@ public struct TaskSuccessPublisher<Upstream: ObservableTask>: SingleOutputPublis
     public func receive<S: Subscriber>(
         subscriber: S
     ) where S.Input == Output, S.Failure == Failure {
-         upstream
+        upstream
             .prefixUntil(after: { $0.isTerminal })
             .mapResult({ TaskStatus($0) })
             .compactMap({ Result($0) })
@@ -29,6 +30,7 @@ public struct TaskSuccessPublisher<Upstream: ObservableTask>: SingleOutputPublis
 // MARK: - API -
 
 extension ObservableTask {
+    /// A publisher that delivers the result of a task.
     public var successPublisher: TaskSuccessPublisher<Self> {
         .init(upstream: self)
     }

@@ -76,18 +76,12 @@ open class PassthroughTask<Success, Error: Swift.Error>: TaskBase<Success, Error
         }
     }
     
-    open func willSend(status: Status) {
-        
-    }
-    
     open func didSend(status: Status) {
         
     }
     
     public func send(status: Status) {
         queue.sync {
-            willSend(status: status)
-            
             defer {
                 didSend(status: status)
             }

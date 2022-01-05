@@ -17,7 +17,7 @@ public struct TaskResultPublisher<Upstream: ObservableTask>: SingleOutputPublish
     public func receive<S: Subscriber>(
         subscriber: S
     ) where S.Input == Output, S.Failure == Failure {
-        if let result = upstream.result {
+        if let result = TaskResult(upstream.status) {
             _ = subscriber.receive(result)
             
             subscriber.receive(completion: .finished)

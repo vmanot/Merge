@@ -27,6 +27,17 @@ public protocol ObservableTask: _opaque_ObservableTask, Identifiable, Observable
     func cancel()
 }
 
+extension ObservableTask {
+    /// The result from a task, after it completes.
+    ///
+    /// - returns: The task's result.
+    public var result: TaskResult<Success, Error> {
+        get async throws {
+            try await resultPublisher.output()
+        }
+    }
+}
+
 // MARK: - Implementation -
 
 extension _opaque_ObservableTask where Self: ObservableTask {
