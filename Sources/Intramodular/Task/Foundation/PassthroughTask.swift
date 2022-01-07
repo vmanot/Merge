@@ -139,48 +139,6 @@ open class PassthroughTask<Success, Error: Swift.Error>: TaskBase<Success, Error
     }
 }
 
-// MARK: - Conformances -
-
-extension PassthroughTask: ConnectablePublisher {
-    public func connect() -> Cancellable {
-        start()
-        
-        return bodyCancellable
-    }
-}
-
-extension PassthroughTask: Subject {
-    /// Sends a value to the subscriber.
-    ///
-    /// - Parameter value: The value to send.
-    public func send(_ output: Output) {
-        send(status: .init(output))
-    }
-    
-    /// Sends a completion signal to the subscriber.
-    ///
-    /// - Parameter failure: The failure to send.
-    public func send(_ failure: Failure) {
-        send(status: .init(failure))
-    }
-    
-    /// Sends a completion signal to the subscriber.
-    ///
-    /// - Parameter completion: A `Completion` instance which indicates whether publishing has finished normally or failed with an error.
-    public func send(completion: Subscribers.Completion<Failure>) {
-        switch completion {
-            case .finished:
-                break
-            case .failure(let failure):
-                send(status: .init(failure))
-        }
-    }
-    
-    public func send(subscription: Subscription) {
-        subscription.request(.unlimited)
-    }
-}
-
 // MARK: - API -
 
 extension PassthroughTask where Success == Void {

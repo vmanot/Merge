@@ -60,42 +60,45 @@ open class TaskOperation<Base: ObservableTask>: Operation {
             return
         }
         
-        statusObservation = base.toResultPublisher().sink { status in
-            switch TaskStatus(status) {
-                case .idle:
-                    self._executing = false
-                    self._finished = false
-                case .active:
-                    self._executing = true
-                    self._finished = false
-                case .paused:
-                    self._executing = false
-                    self._finished = false
-                case .canceled:
-                    self._executing = false
-                    self._finished = false
-                case .success:
-                    self._executing = false
-                    self._finished = true
-                case .error:
-                    self._executing = false
-                    self._finished = true
+        statusObservation = base
+            .outputPublisher
+            .toResultPublisher()
+            .sink { status in
+                switch TaskStatus(status) {
+                    case .idle:
+                        self._executing = false
+                        self._finished = false
+                    case .active:
+                        self._executing = true
+                        self._finished = false
+                    case .paused:
+                        self._executing = false
+                        self._finished = false
+                    case .canceled:
+                        self._executing = false
+                        self._finished = false
+                    case .success:
+                        self._executing = false
+                        self._finished = true
+                    case .error:
+                        self._executing = false
+                        self._finished = true
+                }
             }
-        }
-        
+
         base.start()
     }
-    
+
     open override func cancel() {
         if base.status == .active {
             base.cancel()
         }
-        
+
         if !_isCancelled {
             _isCancelled = true
         }
     }
-    
+
     private func finish() {
         _executing = false
         _finished = true

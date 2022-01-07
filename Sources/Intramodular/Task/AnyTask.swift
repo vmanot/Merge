@@ -9,8 +9,6 @@ import Swallow
 /// A task that performs type erasure by wrapping another task.
 public final class AnyTask<Success, Error: Swift.Error>: ObservableTask {
     public typealias ID = AnyHashable
-    public typealias Output = TaskOutput<Success, Error>
-    public typealias Failure = TaskFailure<Error>
     public typealias Status = TaskStatus<Success, Error>
     public typealias ObjectWillChangePublisher = AnyPublisher<Status, Never>
 

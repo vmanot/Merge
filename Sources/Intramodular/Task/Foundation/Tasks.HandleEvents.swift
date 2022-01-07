@@ -36,7 +36,6 @@ extension Tasks {
             
             self.receiveStart = receiveStart
             self.receiveCancel = receiveCancel
-            
         }
         
         public func start() {
@@ -53,20 +52,6 @@ extension Tasks {
             }
             
             base.cancel()
-        }
-        
-        public func receive<S: Subscriber>(
-            subscriber: S
-        ) where S.Input == Output, S.Failure == Failure {
-            base.receive(subscriber: subscriber)
-        }
-        
-        public func request(_ demand: Subscribers.Demand) {
-            if demand != .none, status == .idle {
-                receiveStart?()
-            }
-            
-            base.request(demand)
         }
     }
 }

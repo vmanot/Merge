@@ -11,7 +11,7 @@ extension Operation {
         let result = PassthroughTask<Void, Never>()
         
         completionBlock = {
-            result.send(.success(()))
+            result.send(status: .success(()))
         }
         
         return result

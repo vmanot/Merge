@@ -11,7 +11,7 @@ extension OperationQueue {
         let result = PassthroughTask<Void, Never>()
         
         self.addBarrierBlock {
-            result.send(.success(()))
+            result.send(status: .success(()))
         }
         
         return result.eraseToAnyTask()

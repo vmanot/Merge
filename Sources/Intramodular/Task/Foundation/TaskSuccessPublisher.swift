@@ -19,6 +19,7 @@ public struct TaskSuccessPublisher<Upstream: ObservableTask>: SingleOutputPublis
         subscriber: S
     ) where S.Input == Output, S.Failure == Failure {
         upstream
+            .outputPublisher
             .prefixUntil(after: { $0.isTerminal })
             .mapResult({ TaskStatus($0) })
             .compactMap({ Result($0) })

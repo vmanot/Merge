@@ -7,17 +7,11 @@ import Foundation
 import Swallow
 
 /// A task is a token of activity with status-reporting.
-public protocol ObservableTask: _opaque_ObservableTask, Identifiable, ObservableObject, Publisher where
-    ObjectWillChangePublisher.Output == TaskStatus<Self.Success, Self.Error>,
-    Self.Output == TaskOutput<Self.Success, Self.Error>,
-    Self.Failure == TaskFailure<Self.Error>
-{
+public protocol ObservableTask: _opaque_ObservableTask, Identifiable, ObservableObject where
+    ObjectWillChangePublisher.Output == TaskStatus<Self.Success, Self.Error> {
     associatedtype Success
     associatedtype Error: Swift.Error
-    
-    associatedtype Output = TaskOutput<Success, Error>
-    associatedtype Failure = TaskFailure<Error>
-    
+
     var status: TaskStatus<Success, Error> { get }
     var progress: Progress { get }
     
@@ -77,47 +71,6 @@ extension _opaque_ObservableTask where Self: ObservableTask {
     
     public func resume() throws {
         throw Never.Reason.unsupported
-    }
-}
-
-extension Publisher where Self: ObservableTask {
-    public func receive<S: Subscriber>(
-        subscriber: S
-    ) where S.Input == Output, S.Failure == Failure {
-        guard !status.isTerminal else {
-            if let output = status.output {
-                return Just(output)
-                    .setFailureType(to: Failure.self)
-                    .receive(subscriber: subscriber)
-            } else if let failure = status.failure {
-                return Fail<Output, Failure>(error: failure)
-                    .receive(subscriber: subscriber)
-            } else {
-                return assertionFailure()
-            }
-        }
-        
-        start()
-        
-        objectWillChange
-            .filter({ $0 != .idle })
-            .setFailureType(to: Failure.self)
-            .flatMap({ status -> AnyPublisher<Output, Failure> in
-                if let output = status.output {
-                    return Just(output)
-                        .setFailureType(to: Failure.self)
-                        .eraseToAnyPublisher()
-                } else if let failure = status.failure {
-                    return Fail<Output, Failure>(error: failure)
-                        .eraseToAnyPublisher()
-                } else {
-                    assertionFailure()
-                    
-                    return Fail<Output, Failure>(error: .canceled)
-                        .eraseToAnyPublisher()
-                }
-            })
-            .receive(subscriber: subscriber)
     }
 }
 
