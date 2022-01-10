@@ -3,6 +3,7 @@
 //
 
 import Combine
+import Diagnostics
 import Foundation
 import Swallow
 
@@ -37,7 +38,9 @@ extension ObservableTask {
     /// - returns: The task's result.
     public var result: TaskResult<Success, Error> {
         get async throws {
-            try await resultPublisher.output()
+            RuntimeIssuesLogger.default.log(.default, message: "This code is unreliable")
+            
+            return try await resultPublisher.output()
         }
     }
     
@@ -45,7 +48,7 @@ extension ObservableTask {
     ///
     /// - returns: The task's successful result.
     /// - throws: An error indicating task failure or task cancellation.
-    public var successValue: Success {
+    public var value: Success {
         get async throws {
             try await successPublisher.output()
         }

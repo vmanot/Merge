@@ -2,6 +2,7 @@
 // Copyright (c) Vatsal Manot
 //
 
+import Dispatch
 import Swift
 
 extension Task {
@@ -26,3 +27,23 @@ extension Task {
             ._unsafe_eraseToAnySingleOutputPublisher()
     }
 }
+
+extension Task where Success == Never, Failure == Never {
+    public static func sleep(_ duration: DispatchTimeInterval) async throws {
+        switch duration {
+            case .seconds(let int):
+                try await sleep(nanoseconds: UInt64(int) * 1_000_000_000)
+            case .milliseconds(let int):
+                try await sleep(nanoseconds: UInt64(int) * 1_000_000)
+            case .microseconds(let int):
+                try await sleep(nanoseconds: UInt64(int) * 1_000)
+            case .nanoseconds(let int):
+                try await sleep(nanoseconds: UInt64(int))
+            case .never:
+                break
+            @unknown default:
+                fatalError()
+        }
+    }
+}
+

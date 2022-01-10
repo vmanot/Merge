@@ -10,7 +10,7 @@ public enum TaskResult<Success, Error: Swift.Error> {
     case success(Success)
     case error(Error)
     
-    public var successValue: Success? {
+    public var value: Success? {
         if case .success(let value) = self {
             return value
         } else {

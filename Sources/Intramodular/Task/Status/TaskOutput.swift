@@ -12,8 +12,8 @@ public enum TaskOutput<Success, Error: Swift.Error> {
 }
 
 extension TaskOutput {
-    public var successValue: Success? {
-        TaskStatus(self).successValue
+    public var value: Success? {
+        TaskStatus(self).value
     }
     
     public var isTerminal: Bool {

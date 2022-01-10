@@ -57,7 +57,9 @@ extension Future where Failure == Error {
         .init { attemptToFulfill in
             Task.detached(priority: priority) {
                 do {
-                    try await attemptToFulfill(.success(work()))
+                    let result = try await work()
+                    
+                    attemptToFulfill(.success(result))
                 } catch {
                     attemptToFulfill(.failure(error))
                 }
