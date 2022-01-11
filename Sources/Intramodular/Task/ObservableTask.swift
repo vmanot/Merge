@@ -38,7 +38,7 @@ extension ObservableTask {
     /// - returns: The task's result.
     public var result: TaskResult<Success, Error> {
         get async throws {
-            RuntimeIssuesLogger.default.log(.default, message: "This code is unreliable")
+            XcodeRuntimeIssueLogger.default.log(.default, message: "This code is unreliable")
             
             return try await resultPublisher.output()
         }
