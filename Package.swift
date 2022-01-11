@@ -17,6 +17,7 @@ let package = Package(
         )
     ],
     dependencies: [
+        .package(url: "https://github.com/vmanot/Diagnostics.git", .branch("master")),
         .package(url: "https://github.com/vmanot/FoundationX.git", .branch("master")),
         .package(url: "https://github.com/vmanot/Swallow.git", .branch("master")),
         .package(url: "https://github.com/SwiftUIX/SwiftUIX.git", .branch("master"))
@@ -25,6 +26,7 @@ let package = Package(
         .target(
             name: "Merge",
             dependencies: [
+                "Diagnostics",
                 "FoundationX",
                 "Swallow",
                 "SwiftUIX"
