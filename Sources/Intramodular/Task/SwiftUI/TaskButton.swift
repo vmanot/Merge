@@ -58,7 +58,7 @@ public struct TaskButton<Success, Error: Swift.Error, Label: View>: View {
     }
     
     private var taskStatusDescription: TaskStatusDescription {
-        return task?.statusDescription
+        task?.statusDescription
             ?? customTaskIdentifier.flatMap({ taskPipeline?.lastStatus(forCustomTaskIdentifier: $0) })
             ?? .idle
     }
