@@ -12,6 +12,7 @@ public struct TaskButton<Success, Error: Swift.Error, Label: View>: View {
     private let label: (TaskStatus<Success, Error>) -> Label
     
     @OptionalEnvironmentObject private var taskPipeline: TaskPipeline?
+    
     @OptionalObservedObject private var currentTask: AnyTask<Success, Error>?
     
     @Environment(\._taskButtonStyle) private var buttonStyle
@@ -76,16 +77,15 @@ public struct TaskButton<Success, Error: Swift.Error, Label: View>: View {
     
     private func subscribe(to task: AnyTask<Success, Error>) {
         currentTask = task
-
-        task.objectWillChange.sink(
-            in: taskPipeline?.cancellables ?? cancellables
-        ) { status in
-            self.buttonStyle.receive(status: .init(description: TaskStatusDescription(status)))
-            
-            if case let .error(error) = status {
-                handleLocalizedError(error as? LocalizedError ?? GenericTaskButtonError(base: error))
+        
+        task.objectWillChange
+            .sink(in: taskPipeline?.cancellables ?? cancellables) { status in
+                self.buttonStyle.receive(status: .init(description: TaskStatusDescription(status)))
+                
+                if case let .error(error) = status {
+                    handleLocalizedError(error as? LocalizedError ?? GenericTaskButtonError(base: error))
+                }
             }
-        }
         
         if task.status == .idle {
             task.start()
@@ -95,17 +95,17 @@ public struct TaskButton<Success, Error: Swift.Error, Label: View>: View {
     private func acquireTaskIfNecessary() {
         if taskInterruptible {
             if let task = action() {
-                return subscribe(to: task)
-            }
-        }
-        
-        if let customTaskIdentifier = customTaskIdentifier, let taskPipeline = taskPipeline, let task = taskPipeline[customTaskIdentifier: customTaskIdentifier] as? AnyTask<Success, Error> {
-            currentTask = task
-        } else {
-            if let task = action() {
                 subscribe(to: task)
+            }
+        } else {
+            if let customTaskIdentifier = customTaskIdentifier, let taskPipeline = taskPipeline, let task = taskPipeline[customTaskIdentifier: customTaskIdentifier] as? AnyTask<Success, Error> {
+                currentTask = task
             } else {
-                currentTask = nil
+                if let task = action() {
+                    subscribe(to: task)
+                } else {
+                    currentTask = nil
+                }
             }
         }
     }
@@ -130,6 +130,46 @@ extension TaskButton {
         
         self.action = { action() }
         self.label = { _ in _label }
+    }
+}
+
+extension TaskButton {
+    public init(
+        action: @escaping () async throws -> Success,
+        priority: TaskPriority? = nil,
+        @ViewBuilder label: @escaping (TaskStatus<Success, Error>) -> Label
+    ) where Error == Swift.Error {
+        self.init {
+            PassthroughTask<Success, Swift.Error>(
+                publisher: Deferred {
+                    Future.async(priority: priority) {
+                        try await action()
+                    }
+                }
+            )
+            .eraseToAnyTask()
+        } label: { status in
+            label(status)
+        }
+    }
+    
+    public init(
+        action: @escaping () async throws -> Success,
+        priority: TaskPriority? = nil,
+        @ViewBuilder label: @escaping () -> Label
+    ) where Error == Swift.Error {
+        self.init {
+            PassthroughTask<Success, Swift.Error>(
+                publisher: Deferred {
+                    Future.async(priority: priority) {
+                        try await action()
+                    }
+                }
+            )
+            .eraseToAnyTask()
+        } label: {
+            label()
+        }
     }
 }
 
