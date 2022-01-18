@@ -62,11 +62,11 @@ extension Process {
                 let terminationStatus = process.terminationStatus
                 
                 if terminationStatus == 0 {
-                    self.base.send(.success(()))
+                    self.base.send(status: .success(()))
                     
                     self.progress.completedUnitCount = 1
                 } else {
-                    self.base.send(.error(.exitFailure(.exit(status: terminationStatus))))
+                    self.base.send(status: .error(.exitFailure(.exit(status: terminationStatus))))
                 }
             }
             
@@ -75,9 +75,9 @@ extension Process {
                 
                 try process.run()
                 
-                base.send(.started)
+                base.send(status: .active)
             } catch {
-                base.send(.error(.unknown(error)))
+                base.send(status: .error(.unknown(error)))
                 
                 if let errorData = error.localizedDescription.data(using: .utf8) {
                     standardErrorData.send(errorData)
@@ -100,7 +100,7 @@ extension Process {
         public func cancel() {
             process.terminate()
             
-            base.send(.canceled)
+            base.send(status: .canceled)
         }
     }
 }
