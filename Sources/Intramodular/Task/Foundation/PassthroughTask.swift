@@ -2,6 +2,7 @@
 // Copyright (c) Vatsal Manot
 //
 
+import Combine
 import Dispatch
 import Swift
 
@@ -22,60 +23,7 @@ open class PassthroughTask<Success, Error: Swift.Error>: TaskBase<Success, Error
         
         super.init()
     }
-    
-    required convenience public init(action: @escaping () -> Success) {
-        self.init { (task: PassthroughTask<Success, Error>) in
-            task.start()
-            task.succeed(with: action())
-            
-            return .empty()
-        }
-    }
-    
-    required convenience public init(
-        _ attemptToFulfill: @escaping (@escaping (Result<Success, Error>) -> ()) -> Void
-    ) {
-        self.init { (task: PassthroughTask<Success, Error>) in
-            attemptToFulfill { [weak task] result in
-                switch result {
-                    case .success(let value):
-                        task?.succeed(with: value)
-                    case .failure(let value):
-                        task?.fail(with: value)
-                }
-            }
-            
-            return .init(EmptyCancellable())
-        }
-    }
-    
-    required convenience public init(
-        _ attemptToFulfill: @escaping (@escaping (Result<Success, Error>) -> ()) -> AnyCancellable
-    ) {
-        self.init { (task: PassthroughTask<Success, Error>) in
-            return attemptToFulfill { result in
-                switch result {
-                    case .success(let value):
-                        task.succeed(with: value)
-                    case .failure(let value):
-                        task.fail(with: value)
-                }
-            }
-        }
-    }
-    
-    required convenience public init(publisher: AnySingleOutputPublisher<Success, Error>) {
-        self.init { attemptToFulfill in
-            publisher.sinkResult(attemptToFulfill)
-        }
-    }
-    
-    required convenience public init<P: SingleOutputPublisher>(publisher: P) where P.Output == Success, P.Failure == Error {
-        self.init { attemptToFulfill in
-            publisher.sinkResult(attemptToFulfill)
-        }
-    }
-    
+        
     open func didSend(status: Status) {
         
     }
@@ -136,6 +84,75 @@ open class PassthroughTask<Success, Error: Swift.Error>: TaskBase<Success, Error
     /// Publishes a failure.
     final public func fail(with error: Error) {
         send(status: .error(error))
+    }
+    
+    // MARK: Initializers
+    
+    required convenience public init(action: @escaping () -> Success) {
+        self.init { (task: PassthroughTask<Success, Error>) in
+            task.start()
+            task.succeed(with: action())
+            
+            return .empty()
+        }
+    }
+    
+    required convenience public init(
+        priority: TaskPriority? = nil,
+        action: @escaping () async -> Success
+    ) where Error == Never {
+        self.init(publisher: Future.async(priority: priority, execute: action))
+    }
+    
+    required convenience public init(
+        priority: TaskPriority? = nil,
+        action: @escaping () async throws -> Success
+    ) where Error == Swift.Error {
+        self.init(publisher: Future.async(priority: priority, execute: action))
+    }
+    
+    required convenience public init(
+        _ attemptToFulfill: @escaping (@escaping (Result<Success, Error>) -> ()) -> Void
+    ) {
+        self.init { (task: PassthroughTask<Success, Error>) in
+            attemptToFulfill { [weak task] result in
+                switch result {
+                    case .success(let value):
+                        task?.succeed(with: value)
+                    case .failure(let value):
+                        task?.fail(with: value)
+                }
+            }
+            
+            return .init(EmptyCancellable())
+        }
+    }
+    
+    required convenience public init(
+        _ attemptToFulfill: @escaping (@escaping (Result<Success, Error>) -> ()) -> AnyCancellable
+    ) {
+        self.init { (task: PassthroughTask<Success, Error>) in
+            return attemptToFulfill { result in
+                switch result {
+                    case .success(let value):
+                        task.succeed(with: value)
+                    case .failure(let value):
+                        task.fail(with: value)
+                }
+            }
+        }
+    }
+    
+    required convenience public init(publisher: AnySingleOutputPublisher<Success, Error>) {
+        self.init { attemptToFulfill in
+            publisher.sinkResult(attemptToFulfill)
+        }
+    }
+    
+    required convenience public init<P: SingleOutputPublisher>(publisher: P) where P.Output == Success, P.Failure == Error {
+        self.init { attemptToFulfill in
+            publisher.sinkResult(attemptToFulfill)
+        }
     }
 }
 

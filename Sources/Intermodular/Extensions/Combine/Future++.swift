@@ -7,6 +7,38 @@ import Combine
 import Swift
 
 extension Future {
+    /// Creates a publisher that invokes an asynchronous closure.
+    public static func async(
+        priority: TaskPriority?,
+        execute work: @escaping () async -> Output
+    ) -> Future<Output, Failure> where Failure == Never {
+        .init { attemptToFulfill in
+            Task.detached(priority: priority) {
+                await attemptToFulfill(.success(work()))
+            }
+        }
+    }
+    
+    /// Creates a publisher that invokes an asynchronous closure.
+    public static func async(
+        priority: TaskPriority?,
+        execute work: @escaping () async throws -> Output
+    ) -> Future<Output, Failure> where Failure == Error {
+        .init { attemptToFulfill in
+            Task.detached(priority: priority) {
+                do {
+                    let result = try await work()
+                    
+                    attemptToFulfill(.success(result))
+                } catch {
+                    attemptToFulfill(.failure(error))
+                }
+            }
+        }
+    }
+}
+
+extension Future {
     public static func just(_ value: Result<Output, Failure>) -> Self {
         return .init { attemptToFulfill in
             attemptToFulfill(value)

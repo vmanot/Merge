@@ -136,7 +136,7 @@ extension TaskButton {
 extension TaskButton {
     public init(
         action: @escaping () async throws -> Success,
-        priority: TaskPriority? = nil,
+        priority: TaskPriority? = .userInitiated,
         @ViewBuilder label: @escaping (TaskStatus<Success, Error>) -> Label
     ) where Error == Swift.Error {
         self.init {
@@ -155,7 +155,7 @@ extension TaskButton {
     
     public init(
         action: @escaping () async throws -> Success,
-        priority: TaskPriority? = nil,
+        priority: TaskPriority? = .userInitiated,
         @ViewBuilder label: @escaping () -> Label
     ) where Error == Swift.Error {
         self.init {
