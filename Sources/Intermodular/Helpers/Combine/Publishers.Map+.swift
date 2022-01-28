@@ -12,7 +12,7 @@ extension Publisher {
     }
     
     /// Transforms all elements from an upstream publisher into an empty publisher.
-    public func mapToEmpty<T, U: Error>(
+    public func mapToEmpty<T, U>(
         completeImmediately: Bool = true,
         outputType: Output.Type = Output.self,
         failureType: Failure.Type = Failure.self
