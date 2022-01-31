@@ -39,6 +39,7 @@ public struct TaskButton<Success, Error: Swift.Error, Label: View>: View {
                 )
             )
         }
+        .buttonStyle(PlainButtonStyle())
         .disabled(
             false
                 || !isEnabled
