@@ -22,7 +22,9 @@ extension SingleOutputPublisher {
                     receiveCompletion: { completion in
                         switch completion {
                             case .finished:
-                                queue.async(execute: done)
+                                if result == nil {
+                                    queue.async(execute: done)
+                                }
                             case .failure(let error):
                                 result = .failure(error)
                                 queue.async(execute: done)
