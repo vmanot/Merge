@@ -6,8 +6,11 @@ import Dispatch
 import Swallow
 
 extension SingleOutputPublisher {
+    /// Synchronously subscribe to the publisher and wait on the current thread until it finishes.
+    ///
+    /// This function blocks the calling thread until the publisher emits a completion event.
     @discardableResult
-    public func subscribeAndWaitUntilDone() -> Result<Output, Failure> {
+    public func subscribeAndWaitUntilDone() -> Result<Output, Failure>? {
         var result: Result<Output, Failure>?
         let queue = DispatchQueue(qosClass: .current)
         let done = DispatchWorkItem(qos: .unspecified, flags: .inheritQoS, block: { })
@@ -19,7 +22,7 @@ extension SingleOutputPublisher {
                     receiveCompletion: { completion in
                         switch completion {
                             case .finished:
-                                break
+                                queue.async(execute: done)
                             case .failure(let error):
                                 result = .failure(error)
                                 queue.async(execute: done)
@@ -34,11 +37,18 @@ extension SingleOutputPublisher {
         
         done.wait()
         
-        return result!
+        return result
     }
     
-    public func subscribeAndWaitUntilDone() -> Output where Failure == Never {
-        guard case .success(let value) = (subscribeAndWaitUntilDone() as Result<Output, Never>) else {
+    /// Synchronously subscribe to the publisher and wait on the current thread until it finishes.
+    ///
+    /// This function blocks the calling thread until the publisher emits a completion event.
+    public func subscribeAndWaitUntilDone() -> Output? where Failure == Never {
+        guard let result = (subscribeAndWaitUntilDone() as Result<Output, Never>?) else {
+            return nil
+        }
+        
+        guard case .success(let value) = (result as Result<Output, Never>) else {
             fatalError(reason: .irrational)
         }
         

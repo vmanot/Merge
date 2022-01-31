@@ -21,7 +21,7 @@ extension Future {
     
     /// Creates a publisher that invokes an asynchronous closure.
     public static func async(
-        priority: TaskPriority?,
+        priority: TaskPriority? = nil,
         execute work: @escaping () async throws -> Output
     ) -> Future<Output, Failure> where Failure == Error {
         .init { attemptToFulfill in

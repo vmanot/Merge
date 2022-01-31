@@ -26,6 +26,16 @@ extension Task {
             .handleEvents(receiveCancel: task.cancel)
             ._unsafe_eraseToAnySingleOutputPublisher()
     }
+
+    /// Block the current thread and wait for the value.
+    public func blockAndWaitForValue() throws -> Success {
+        try Future.async {
+            try await value
+        }
+        .subscribeAndWaitUntilDone()
+        .unwrap()
+        .get()
+    }
 }
 
 extension Task where Success == Never, Failure == Never {

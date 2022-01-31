@@ -100,6 +100,6 @@ extension Subscription where Self: ObservableTask {
 extension ObservableTask {
     @discardableResult
     public func blockAndUnwrap() throws -> Success {
-        try successPublisher.subscribeAndWaitUntilDone().get()
+        try successPublisher.subscribeAndWaitUntilDone().unwrap().get()
     }
 }

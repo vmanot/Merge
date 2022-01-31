@@ -8,7 +8,7 @@ import Swallow
 import SwiftUI
 
 /// A thread-safe collection suitable for storing instances of `AnyCancellable`.
-public final class Cancellables: Cancellable {
+public final class Cancellables: @unchecked Sendable, Cancellable {
     private var queue = DispatchQueue(label: "com.vmanot.Merge.Cancellables")
     private var cancellables: Set<AnyCancellable> = []
     
