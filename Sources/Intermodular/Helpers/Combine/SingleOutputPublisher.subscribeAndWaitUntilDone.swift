@@ -27,11 +27,13 @@ extension SingleOutputPublisher {
                                 }
                             case .failure(let error):
                                 result = .failure(error)
+                                
                                 queue.async(execute: done)
                         }
                     },
                     receiveValue: { value in
                         result = .success(value)
+                        
                         queue.async(execute: done)
                     }
                 )
