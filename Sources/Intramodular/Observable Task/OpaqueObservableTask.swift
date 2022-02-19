@@ -22,7 +22,7 @@ public protocol _opaque_ObservableTask: _opaque_Identifiable, CancellablesHolder
     func cancel()
 }
 
-public final class OpaqueTask: CustomStringConvertible, ObservableTask {
+public final class OpaqueObservableTask: CustomStringConvertible, ObservableTask {
     public typealias Success = Any
     public typealias Error = Swift.Error
     
@@ -78,7 +78,7 @@ public final class OpaqueTask: CustomStringConvertible, ObservableTask {
 }
 
 extension ObservableTask {
-    public func eraseToOpaqueTask() -> OpaqueTask {
+    public func eraseToOpaqueObservableTask() -> OpaqueObservableTask {
         .init(self)
     }
 }

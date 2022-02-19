@@ -4,7 +4,7 @@
 
 import Swallow
 
-public protocol Mutex: ThreadSafe {
+public protocol Mutex {
     
 }
 

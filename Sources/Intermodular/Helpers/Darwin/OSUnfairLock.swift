@@ -6,7 +6,7 @@ import Darwin
 import Swallow
 
 /// An `os_unfair_lock` wrapper.
-public final class OSUnfairLock: Initiable, TestableLock {
+public final class OSUnfairLock: Initiable, Sendable, TestableLock {
     private let base: os_unfair_lock_t
     
     public init() {

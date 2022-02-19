@@ -211,8 +211,8 @@ extension SingleOutputPublisher {
     }
     
     @_disfavoredOverload
-    public func convertToTask() -> OpaqueTask {
-        convertToTask().eraseToOpaqueTask()
+    public func convertToTask() -> OpaqueObservableTask {
+        convertToTask().eraseToOpaqueObservableTask()
     }
 }
 
@@ -222,7 +222,7 @@ extension Publisher {
     }
     
     @_disfavoredOverload
-    public func convertToTask() -> OpaqueTask {
-        convertToTask().eraseToOpaqueTask()
+    public func convertToTask() -> OpaqueObservableTask {
+        convertToTask().eraseToOpaqueObservableTask()
     }
 }

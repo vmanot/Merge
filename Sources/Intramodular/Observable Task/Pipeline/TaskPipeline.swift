@@ -15,11 +15,11 @@ public final class TaskPipeline: CancellablesHolder, ObservableObject {
     
     private weak var parent: TaskPipeline?
     
-    public var tasks: [OpaqueTask]  {
+    public var tasks: [OpaqueObservableTask]  {
         .init(idToTaskMap.values)
     }
     
-    @Published var idToTaskMap: [AnyHashable: OpaqueTask] = [:]
+    @Published var idToTaskMap: [AnyHashable: OpaqueObservableTask] = [:]
     @Published var idToStatusHistoryMap: [AnyHashable: [TaskStatusDescription]] = [:]
     
     @Published var idToCustomTaskIdentifierMap: [AnyHashable: AnyHashable] = [:]

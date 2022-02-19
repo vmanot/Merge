@@ -81,7 +81,13 @@ extension DispatchQueue {
 }
 
 extension DispatchQueue {
-    public func execute(style: DispatchWorkExecutionStyle, group: DispatchGroup? = nil, qos: DispatchQoS = .default, flags: DispatchWorkItemFlags = [], _ work: (@escaping @convention(block) () -> ())) {
+    public func execute(
+        style: DispatchWorkExecutionStyle,
+        group: DispatchGroup? = nil,
+        qos: DispatchQoS = .default,
+        flags: DispatchWorkItemFlags = [],
+        _ work: (@escaping @convention(block) () -> ())
+    ) {
         switch style  {
             case .asynchronous:
                 async(group: group, qos: qos, flags: flags, execute: work)
@@ -92,7 +98,10 @@ extension DispatchQueue {
         }
     }
     
-    public func execute(style: DispatchWorkExecutionStyle, workItem: DispatchWorkItem) {
+    public func execute(
+        style: DispatchWorkExecutionStyle,
+        workItem: DispatchWorkItem
+    ) {
         switch style  {
             case .asynchronous:
                 async(execute: workItem)
@@ -101,7 +110,14 @@ extension DispatchQueue {
         }
     }
     
-    public func executeAfter(deadline: DispatchTime, style: DispatchWorkExecutionStyle, group: DispatchGroup? = nil, qos: DispatchQoS = .default, flags: DispatchWorkItemFlags = [], _ work: (@escaping @convention(block) () -> ())) {
+    public func executeAfter(
+        deadline: DispatchTime,
+        style: DispatchWorkExecutionStyle,
+        group: DispatchGroup? = nil,
+        qos: DispatchQoS = .default,
+        flags: DispatchWorkItemFlags = [],
+        _ work: (@escaping @convention(block) () -> ())
+    ) {
         switch style  {
             case .asynchronous:
                 group?.enter()
@@ -117,7 +133,11 @@ extension DispatchQueue {
         }
     }
     
-    public func executeAfter(deadline: DispatchTime, style: DispatchWorkExecutionStyle, workItem: DispatchWorkItem) {
+    public func executeAfter(
+        deadline: DispatchTime,
+        style: DispatchWorkExecutionStyle,
+        workItem: DispatchWorkItem
+    ) {
         switch style  {
             case .asynchronous:
                 asyncAfter(deadline: deadline, execute: workItem)
@@ -127,7 +147,14 @@ extension DispatchQueue {
         }
     }
     
-    public func executeAfter(wallDeadline: DispatchWallTime, style: DispatchWorkExecutionStyle, group: DispatchGroup? = nil, qos: DispatchQoS = .default, flags: DispatchWorkItemFlags = [], _ work: (@escaping @convention(block) () -> ())) {
+    public func executeAfter(
+        wallDeadline: DispatchWallTime,
+        style: DispatchWorkExecutionStyle,
+        group: DispatchGroup? = nil,
+        qos: DispatchQoS = .default,
+        flags: DispatchWorkItemFlags = [],
+        _ work: (@escaping @convention(block) () -> ())
+    ) {
         switch style  {
             case .asynchronous:
                 group?.enter()
@@ -143,7 +170,11 @@ extension DispatchQueue {
         }
     }
     
-    public func executeAfter(wallDeadline: DispatchWallTime, style: DispatchWorkExecutionStyle, workItem: DispatchWorkItem) {
+    public func executeAfter(
+        wallDeadline: DispatchWallTime,
+        style: DispatchWorkExecutionStyle,
+        workItem: DispatchWorkItem
+    ) {
         switch style  {
             case .asynchronous:
                 asyncAfter(wallDeadline: wallDeadline, execute: workItem)
@@ -153,7 +184,14 @@ extension DispatchQueue {
         }
     }
     
-    public func execute(delay: DispatchWorkExecutionDelay, style: DispatchWorkExecutionStyle, group: DispatchGroup? = nil, qos: DispatchQoS = .default, flags: DispatchWorkItemFlags = [], _ work: (@escaping @convention(block) () -> ())) {
+    public func execute(
+        delay: DispatchWorkExecutionDelay,
+        style: DispatchWorkExecutionStyle,
+        group: DispatchGroup? = nil,
+        qos: DispatchQoS = .default,
+        flags: DispatchWorkItemFlags = [], _
+        work: (@escaping @convention(block) () -> ())
+    ) {
         switch delay {
             case .none:
                 execute(style: style, group: group, qos: qos, flags: flags, work)
@@ -164,7 +202,11 @@ extension DispatchQueue {
         }
     }
     
-    public func execute(delay: DispatchWorkExecutionDelay, style: DispatchWorkExecutionStyle, workItem: DispatchWorkItem) {
+    public func execute(
+        delay: DispatchWorkExecutionDelay,
+        style: DispatchWorkExecutionStyle,
+        workItem: DispatchWorkItem
+    ) {
         switch delay {
             case .none:
                 execute(style: style, workItem: workItem)

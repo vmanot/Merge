@@ -37,7 +37,7 @@ extension MutexProtected {
     }
 }
 
-public protocol MutexProtected: _opaque_MutexProtected, ThreadSafe {
+public protocol MutexProtected: _opaque_MutexProtected {
     associatedtype Mutex: Merge.Mutex
     
     var mutex: Mutex { get }
