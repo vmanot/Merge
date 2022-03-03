@@ -50,4 +50,14 @@ public actor AsyncTaskQueue: Sendable {
             newTask.cancel()
         }
     }
+    
+    nonisolated public func queue<T: Sendable>(
+        _ action: @Sendable @escaping () async throws -> T
+    ) {
+        Task {
+            try await perform {
+                try await action()
+            }
+        }
+    }
 }
