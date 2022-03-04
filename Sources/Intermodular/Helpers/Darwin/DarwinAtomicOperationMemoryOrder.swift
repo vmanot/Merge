@@ -67,7 +67,7 @@ extension DarwinAtomicOperationMemoryOrder: RawRepresentable {
     }
 }
 
-// MARK: - Ancillary Protocol Conformances -
+// MARK: - Ancillary Conformances -
 
 extension memory_order: Codable {
     public init(from decoder: Decoder) throws {
