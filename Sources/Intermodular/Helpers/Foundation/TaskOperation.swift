@@ -85,20 +85,20 @@ open class TaskOperation<Base: ObservableTask>: Operation {
                         self._finished = true
                 }
             }
-
+        
         base.start()
     }
-
+    
     open override func cancel() {
         if base.status == .active {
             base.cancel()
         }
-
+        
         if !_isCancelled {
             _isCancelled = true
         }
     }
-
+    
     private func finish() {
         _executing = false
         _finished = true
@@ -116,17 +116,5 @@ extension ObservableTask {
 extension SingleOutputPublisher {
     public func convertToOperation() -> TaskOperation<AnyTask<Output, Failure>> {
         convertToTask().convertToOperation()
-    }
-}
-
-extension AnyProtocol where Self == Operation {
-    public init<T: ObservableTask>(task: T) {
-        self = task.convertToOperation()
-    }
-}
-
-extension AnyProtocol where Self == Operation {
-    public init<P: SingleOutputPublisher>(publisher: P) {
-        self = publisher.convertToOperation()
     }
 }
