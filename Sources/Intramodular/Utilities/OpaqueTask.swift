@@ -31,3 +31,10 @@ public struct OpaqueTask: Sendable {
         _cancel()
     }
 }
+
+extension Task {
+    /// Returns a type-erased version of self.
+    public func eraseToOpaqueTask() -> OpaqueTask {
+        .init(erasing: self)
+    }
+}
