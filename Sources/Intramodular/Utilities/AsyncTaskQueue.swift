@@ -20,13 +20,10 @@ public actor AsyncTaskQueue: Sendable {
     
     /// Performs an action right after the previous action has been finished.
     ///
-    /// This ensures that  one action after the other can be executed on ``AsyncTaskQueue``.
-    /// If `policy` is set to `.cancelPreviousAction`, then the previous action will be cancelled before the new action is started.
-    ///
-    /// - parameters:
-    ///   - action: Asynchronous function that should be executed. The function may throw and return a value.
-    /// - throws: The error thrown by `action`. Especially throws `CancellationError` if the parent task has been cancelled.
-    /// - returns: The return value of `action`
+    /// - Parameters:
+    ///   - action: An async function to execute. The function may throw and return a value.
+    /// - Throws: The error thrown by `action`. Especially throws `CancellationError` if the parent task has been cancelled.
+    /// - Returns: The return value of `action`
     public func perform<T: Sendable>(
         action: @Sendable @escaping () async throws -> T
     ) async throws -> T {
@@ -51,7 +48,13 @@ public actor AsyncTaskQueue: Sendable {
         }
     }
     
-    nonisolated public func queue<T: Sendable>(
+    /// Spawns a task to add an action to perform.
+    ///
+    /// This method can be called from a synchronous context.
+    ///
+    /// - Parameters:
+    ///   - action: An async function to execute.
+    nonisolated public func add<T: Sendable>(
         _ action: @Sendable @escaping () async throws -> T
     ) {
         Task {
