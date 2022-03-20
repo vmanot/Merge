@@ -106,7 +106,7 @@ extension Cancellables {
 // MARK: - API -
 
 extension Cancellables {
-    public func store(@ArrayBuilder<Cancellable> cancellables: () -> [Cancellable]) {
+    public func store(@ArrayBuilder cancellables: () -> [Cancellable]) {
         cancellables().forEach({ $0.store(in: self) })
     }
 }

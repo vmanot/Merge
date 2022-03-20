@@ -22,7 +22,7 @@ open class AnyMutexProtectedValue<Value> {
 }
 
 @propertyWrapper
-public final class MutexProtectedValue<Value, Mutex: ScopedMutex>: AnyMutexProtectedValue<Value> {
+public final class MutexProtectedValue<Value, Mutex: ScopedMutex>: AnyMutexProtectedValue<Value>, @unchecked Sendable {
     public private(set) var mutex: Mutex
     
     override public var wrappedValue: Value {
