@@ -7,7 +7,9 @@ import Swift
 
 extension Task {
     /// The result of this task expressed as a publisher.
-    public func publisher(priority: TaskPriority? = nil) -> AnySingleOutputPublisher<Success, Failure> {
+    public func publisher(
+        priority: TaskPriority? = nil
+    ) -> AnySingleOutputPublisher<Success, Failure> {
         let subject = PassthroughSubject<Success, Failure>()
 
         let task = Task<Void, Never>.detached(priority: priority) {

@@ -23,7 +23,7 @@ open class PassthroughTask<Success, Error: Swift.Error>: TaskBase<Success, Error
         
         super.init()
     }
-        
+    
     open func didSend(status: Status) {
         
     }
@@ -98,23 +98,24 @@ open class PassthroughTask<Success, Error: Swift.Error>: TaskBase<Success, Error
     }
     
     required convenience public init(
-        priority: TaskPriority? = nil,
-        action: @escaping () async -> Success
-    ) where Error == Never {
-        self.init(publisher: Future.async(priority: priority, execute: action))
-    }
-    
-    required convenience public init(
-        priority: TaskPriority? = nil,
-        action: @escaping () async throws -> Success
-    ) where Error == Swift.Error {
-        self.init(publisher: Future.async(priority: priority, execute: action))
-    }
-    
-    required convenience public init(
-        _ attemptToFulfill: @escaping (@escaping (Result<Success, Error>) -> ()) -> Void
+        _ attemptToFulfill: @escaping (@escaping (Result<Success, Error>) -> Void) -> AnyCancellable
     ) {
-        self.init { (task: PassthroughTask<Success, Error>) in
+        self.init { (task: PassthroughTask<Success, Error>) -> AnyCancellable in
+            return attemptToFulfill { result in
+                switch result {
+                    case .success(let value):
+                        task.succeed(with: value)
+                    case .failure(let value):
+                        task.fail(with: value)
+                }
+            }
+        }
+    }
+    
+    required convenience public init(
+        _ attemptToFulfill: @escaping (@escaping (Result<Success, Error>) -> Void) -> Void
+    ) {
+        self.init { (task: PassthroughTask<Success, Error>) -> AnyCancellable in
             attemptToFulfill { [weak task] result in
                 switch result {
                     case .success(let value):
@@ -127,32 +128,33 @@ open class PassthroughTask<Success, Error: Swift.Error>: TaskBase<Success, Error
             return .init(EmptyCancellable())
         }
     }
-    
-    required convenience public init(
-        _ attemptToFulfill: @escaping (@escaping (Result<Success, Error>) -> ()) -> AnyCancellable
-    ) {
-        self.init { (task: PassthroughTask<Success, Error>) in
-            return attemptToFulfill { result in
-                switch result {
-                    case .success(let value):
-                        task.succeed(with: value)
-                    case .failure(let value):
-                        task.fail(with: value)
-                }
-            }
-        }
-    }
-    
-    required convenience public init(publisher: AnySingleOutputPublisher<Success, Error>) {
-        self.init { attemptToFulfill in
+}
+
+extension PassthroughTask {
+    convenience public init(publisher: AnySingleOutputPublisher<Success, Error>) {
+        self.init { attemptToFulfill -> AnyCancellable in
             publisher.sinkResult(attemptToFulfill)
         }
     }
     
-    required convenience public init<P: SingleOutputPublisher>(publisher: P) where P.Output == Success, P.Failure == Error {
-        self.init { attemptToFulfill in
-            publisher.sinkResult(attemptToFulfill)
-        }
+    convenience public init<P: SingleOutputPublisher>(
+        publisher: P
+    ) where P.Output == Success, P.Failure == Error {
+        self.init(publisher: AnySingleOutputPublisher(publisher))
+    }
+    
+    convenience public init(
+        priority: TaskPriority? = nil,
+        action: @escaping () async -> Success
+    ) where Error == Never {
+        self.init(publisher: Future.async(priority: priority, execute: action))
+    }
+    
+    convenience public init(
+        priority: TaskPriority? = nil,
+        action: @escaping () async throws -> Success
+    ) where Error == Swift.Error {
+        self.init(publisher: Future.async(priority: priority, execute: action))
     }
 }
 
@@ -224,5 +226,14 @@ extension Publisher {
     @_disfavoredOverload
     public func convertToTask() -> OpaqueObservableTask {
         convertToTask().eraseToOpaqueObservableTask()
+    }
+}
+
+extension Task {
+    /// Convert this `Task` into an observable task.
+    public func convertToObservableTask(
+        priority: TaskPriority? = nil
+    ) -> AnyTask<Success, Failure> {
+        publisher(priority: priority).convertToTask()
     }
 }

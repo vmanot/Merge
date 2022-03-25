@@ -28,9 +28,13 @@ public struct TaskButton<Success, Error: Swift.Error, Label: View>: View {
     
     public var body: some View {
         Button(action: trigger) {
+            label(task?.status ?? .idle)
+        }
+        .buttonStyle(AnyButtonStyle { configuration in
             buttonStyle._opaque_makeBody(
                 configuration: TaskButtonConfiguration(
-                    label: label(task?.status ?? .idle).eraseToAnyView(),
+                    label: configuration.label.eraseToAnyView(),
+                    isPressed: configuration.isPressed,
                     isDisabled: taskDisabled,
                     isInterruptible: taskInterruptible,
                     isRestartable: taskRestartable,
@@ -38,8 +42,7 @@ public struct TaskButton<Success, Error: Swift.Error, Label: View>: View {
                     lastStatus: lastTaskStatusDescription
                 )
             )
-        }
-        .buttonStyle(PlainButtonStyle())
+        })
         .disabled(
             false
                 || !isEnabled
@@ -136,19 +139,45 @@ extension TaskButton {
 
 extension TaskButton {
     public init(
+        action: @escaping () async -> Success,
+        priority: TaskPriority? = .userInitiated,
+        @ViewBuilder label: @escaping (TaskStatus<Success, Error>) -> Label
+    ) where Error == Never {
+        self.init {
+            Task(priority: priority) {
+                await action()
+            }
+            .convertToObservableTask()
+        } label: { status in
+            label(status)
+        }
+    }
+    
+    public init(
+        action: @escaping () async -> Success,
+        priority: TaskPriority? = .userInitiated,
+        @ViewBuilder label: @escaping () -> Label
+    ) where Error == Never {
+        self.init {
+            Task(priority: priority) {
+                await action()
+            }
+            .convertToObservableTask()
+        } label: {
+            label()
+        }
+    }
+
+    public init(
         action: @escaping () async throws -> Success,
         priority: TaskPriority? = .userInitiated,
         @ViewBuilder label: @escaping (TaskStatus<Success, Error>) -> Label
     ) where Error == Swift.Error {
         self.init {
-            PassthroughTask<Success, Swift.Error>(
-                publisher: Deferred {
-                    Future.async(priority: priority) {
-                        try await action()
-                    }
-                }
-            )
-            .eraseToAnyTask()
+            Task(priority: priority) {
+                try await action()
+            }
+            .convertToObservableTask()
         } label: { status in
             label(status)
         }
@@ -160,14 +189,10 @@ extension TaskButton {
         @ViewBuilder label: @escaping () -> Label
     ) where Error == Swift.Error {
         self.init {
-            PassthroughTask<Success, Swift.Error>(
-                publisher: Deferred {
-                    Future.async(priority: priority) {
-                        try await action()
-                    }
-                }
-            )
-            .eraseToAnyTask()
+            Task(priority: priority) {
+                try await action()
+            }
+            .convertToObservableTask()
         } label: {
             label()
         }
@@ -259,6 +284,24 @@ extension TaskButton where Label == Text {
         _ title: S,
         action: @escaping () throws -> P
     ) where P.Output == Success, Error == Swift.Error {
+        self.init(action: action) {
+            Text(title)
+        }
+    }
+    
+    public init<S: StringProtocol>(
+        _ title: S,
+        action: @escaping () async -> Success
+    ) where Error == Never {
+        self.init(action: action) {
+            Text(title)
+        }
+    }
+
+    public init<S: StringProtocol>(
+        _ title: S,
+        action: @escaping () async throws -> Success
+    ) where Error == Swift.Error {
         self.init(action: action) {
             Text(title)
         }

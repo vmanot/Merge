@@ -5,7 +5,7 @@
 import Swift
 import SwiftUIX
 
-public protocol _opaque_ObservableTaskButtonStyle {
+public protocol _opaque_ObservableTaskButtonStyle: DynamicProperty {
     func _opaque_makeBody(configuration: TaskButtonConfiguration) -> AnyView
     
     func receive(status: TaskButtonStatus)
@@ -78,13 +78,13 @@ public struct ActivityIndicatorTaskButtonStyle: TaskButtonStyle {
     public func makeBody(configuration: TaskButtonConfiguration) -> some View {
         PassthroughView {
             if configuration.status == .active {
-                #if os(macOS)
+#if os(macOS)
                 ActivityIndicator()
                     .style(.small)
-                #else
+#else
                 ActivityIndicator()
                     .style(.regular)
-                #endif
+#endif
             } else if configuration.status == .failure {
                 Image(systemName: .exclamationmarkTriangleFill)
                     .foregroundColor(.yellow)
@@ -101,8 +101,18 @@ public struct ActivityIndicatorTaskButtonStyle: TaskButtonStyle {
 // MARK: - API -
 
 extension View {
-    @inlinable
+    /// Sets the style for task buttons within this view to a task button style with a custom appearance and custom interaction behavior.
     public func taskButtonStyle<Style: TaskButtonStyle>(_ style: Style) -> some View {
-        environment(\._taskButtonStyle, style)
+        modifier(_AttachTaskButtonStyle(style: style))
+    }
+}
+
+// MARK: - Auxiliary Implementation -
+
+private struct _AttachTaskButtonStyle<Style: TaskButtonStyle>: ViewModifier {
+    let style: Style
+    
+    func body(content: Content) -> some View {
+        content.environment(\._taskButtonStyle, style)
     }
 }
