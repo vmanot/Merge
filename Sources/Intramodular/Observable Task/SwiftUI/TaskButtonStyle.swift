@@ -78,13 +78,13 @@ public struct ActivityIndicatorTaskButtonStyle: TaskButtonStyle {
     public func makeBody(configuration: TaskButtonConfiguration) -> some View {
         PassthroughView {
             if configuration.status == .active {
-#if os(macOS)
-                ActivityIndicator()
-                    .style(.small)
-#else
-                ActivityIndicator()
-                    .style(.regular)
-#endif
+                #if os(macOS)
+                    ActivityIndicator()
+                        .style(.small)
+                #else
+                    ActivityIndicator()
+                        .style(.regular)
+                #endif
             } else if configuration.status == .failure {
                 Image(systemName: .exclamationmarkTriangleFill)
                     .foregroundColor(.yellow)

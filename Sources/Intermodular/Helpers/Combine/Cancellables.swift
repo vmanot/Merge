@@ -157,6 +157,16 @@ extension Publisher {
         handleOutput(receiveValue)
             .subscribe(in: cancellables)
     }
+    
+    public func sink(
+        in cancellables: Cancellables,
+        receiveValue: @escaping (Output) -> Void,
+        receiveCompletion: @escaping (Subscribers.Completion<Failure>) -> ()
+    ) where Failure == Never {
+        handleOutput(receiveValue)
+            .handleCompletion(receiveCompletion)
+            .subscribe(in: cancellables)
+    }
 }
 
 // MARK: - Conformances -

@@ -7,7 +7,7 @@ import Dispatch
 import Swift
 
 /// A mutable task.
-open class PassthroughTask<Success, Error: Swift.Error>: TaskBase<Success, Error> {
+open class PassthroughTask<Success, Error: Swift.Error>: ObservableTaskBase<Success, Error> {
     public typealias Body = (PassthroughTask) -> AnyCancellable
     
     private let queue = DispatchQueue(label: "com.vmanot.PassthroughTask")

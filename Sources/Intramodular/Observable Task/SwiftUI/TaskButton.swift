@@ -25,7 +25,7 @@ public struct TaskButton<Success, Error: Swift.Error, Label: View>: View {
     @Environment(\.taskRestartable) private var taskRestartable
     
     @State private var taskRenewalSubscription: AnyCancellable?
-    
+
     public var body: some View {
         Button(action: trigger) {
             label(task?.status ?? .idle)
@@ -82,14 +82,15 @@ public struct TaskButton<Success, Error: Swift.Error, Label: View>: View {
     private func subscribe(to task: AnyTask<Success, Error>) {
         currentTask = task
         
-        task.objectWillChange
-            .sink(in: taskPipeline?.cancellables ?? cancellables) { status in
-                self.buttonStyle.receive(status: .init(description: TaskStatusDescription(status)))
-                
-                if case let .error(error) = status {
-                    handleLocalizedError(error as? LocalizedError ?? GenericTaskButtonError(base: error))
-                }
+        task.objectWillChange.sink(in: taskPipeline?.cancellables ?? cancellables) { status in
+            self.buttonStyle.receive(status: .init(description: TaskStatusDescription(status)))
+            
+            if case let .error(error) = status {
+                handleLocalizedError(error as? LocalizedError ?? GenericTaskButtonError(base: error))
             }
+        } receiveCompletion: { completion in
+            currentTask = nil
+        }
         
         if task.status == .idle {
             task.start()

@@ -2,15 +2,16 @@
 // Copyright (c) Vatsal Manot
 //
 
+import Combine
 import Foundation
 import Swift
 
-open class TaskBase<Success, Error: Swift.Error>: ObservableTask {
+/// A base class to subclass when building observable tasks.
+open class ObservableTaskBase<Success, Error: Swift.Error>: ObservableTask {
     public typealias Status = TaskStatus<Success, Error>
     
-    @usableFromInline
-    internal let statusValueSubject = CurrentValueSubject<Status, Never>(.idle)
-        
+    let statusValueSubject = CurrentValueSubject<Status, Never>(.idle)
+    
     public var objectWillChange: AnyPublisher<Status, Never> {
         statusValueSubject.eraseToAnyPublisher()
     }
