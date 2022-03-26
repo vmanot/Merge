@@ -5,8 +5,9 @@
 import Combine
 import Swallow
 
+/// A type that forwards updates published from the `ObservableObject` annotated with this wrapper.
 @propertyWrapper
-public struct Observed<Value: ObservableObject>: PropertyWrapper {
+public struct PublishedObject<Value: ObservableObject>: PropertyWrapper {
     @MutableValueBox
     public var wrappedValue: Value
     
@@ -19,11 +20,11 @@ public struct Observed<Value: ObservableObject>: PropertyWrapper {
     public init<P: PropertyWrapper>(wrappedValue: P) where P.WrappedValue == Value {
         self._wrappedValue = .init(AnyMutablePropertyWrapper(unsafelyAdapting: wrappedValue))
     }
-
+    
     public init<P: MutablePropertyWrapper>(wrappedValue: P) where P.WrappedValue == Value {
         self._wrappedValue = .init(wrappedValue)
     }
-        
+    
     public static subscript<EnclosingSelf: ObservableObject>(
         _enclosingInstance object: EnclosingSelf,
         wrapped wrappedKeyPath: ReferenceWritableKeyPath<EnclosingSelf, Value>,
@@ -41,7 +42,7 @@ public struct Observed<Value: ObservableObject>: PropertyWrapper {
         }
     }
     
-    mutating func subscribe<EnclosingSelf: ObservableObject>(
+    private mutating func subscribe<EnclosingSelf: ObservableObject>(
         _enclosingInstance: EnclosingSelf
     ) where EnclosingSelf.ObjectWillChangePublisher: _opaque_VoidSender {
         subscription = wrappedValue
@@ -50,3 +51,6 @@ public struct Observed<Value: ObservableObject>: PropertyWrapper {
             .sink()
     }
 }
+
+@available(*, deprecated, renamed: "PublishedObject")
+public typealias Observed<Value: ObservableObject> = PublishedObject<Value>

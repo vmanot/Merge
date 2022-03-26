@@ -4,6 +4,7 @@
 
 import Dispatch
 import Swift
+import SwiftUI
 
 extension Task {
     /// The result of this task expressed as a publisher.
@@ -11,7 +12,7 @@ extension Task {
         priority: TaskPriority? = nil
     ) -> AnySingleOutputPublisher<Success, Failure> {
         let subject = PassthroughSubject<Success, Failure>()
-
+        
         let task = Task<Void, Never>.detached(priority: priority) {
             switch await result {
                 case _ where Task<Never, Never>.isCancelled:
@@ -23,12 +24,12 @@ extension Task {
                     subject.send(completion: .failure(error))
             }
         }
-
+        
         return subject
             .handleEvents(receiveCancel: task.cancel)
             ._unsafe_eraseToAnySingleOutputPublisher()
     }
-
+    
     /// Block the current thread and wait for the value.
     public func blockAndWaitForValue() throws -> Success {
         try Future.async {
@@ -41,6 +42,7 @@ extension Task {
 }
 
 extension Task where Success == Never, Failure == Never {
+    /// Suspends the current task for at least the given duration.
     public static func sleep(_ duration: DispatchTimeInterval) async throws {
         switch duration {
             case .seconds(let int):
@@ -59,3 +61,22 @@ extension Task where Success == Never, Failure == Never {
     }
 }
 
+// MARK: - SwiftUI -
+
+extension Task {
+    /// Bind this task to a `Binding`.
+    ///
+    /// - Parameters:
+    ///   - taskBinding: The `Binding` to set when this task starts, and clear when this task ends/errors out.
+    public func bind(to taskBinding: Binding<OpaqueTask?>) {
+        let erasedTask = OpaqueTask(erasing: self)
+        
+        _Concurrency.Task { @MainActor in
+            taskBinding.wrappedValue = erasedTask
+            
+            _ = try await self.value
+            
+            taskBinding.wrappedValue = nil
+        }
+    }
+}
