@@ -128,29 +128,27 @@ open class PassthroughTask<Success, Error: Swift.Error>: ObservableTaskBase<Succ
             return .init(EmptyCancellable())
         }
     }
-}
 
-extension PassthroughTask {
-    convenience public init(publisher: AnySingleOutputPublisher<Success, Error>) {
+    required convenience public init(publisher: AnySingleOutputPublisher<Success, Error>) {
         self.init { attemptToFulfill -> AnyCancellable in
             publisher.sinkResult(attemptToFulfill)
         }
     }
     
-    convenience public init<P: SingleOutputPublisher>(
+    required convenience public init<P: SingleOutputPublisher>(
         publisher: P
     ) where P.Output == Success, P.Failure == Error {
         self.init(publisher: AnySingleOutputPublisher(publisher))
     }
     
-    convenience public init(
+    required convenience public init(
         priority: TaskPriority? = nil,
         action: @escaping () async -> Success
     ) where Error == Never {
         self.init(publisher: Future.async(priority: priority, execute: action))
     }
     
-    convenience public init(
+    required convenience public init(
         priority: TaskPriority? = nil,
         action: @escaping () async throws -> Success
     ) where Error == Swift.Error {
@@ -176,31 +174,28 @@ extension PassthroughTask where Success == Void {
 }
 
 extension PassthroughTask where Success == Void, Error == Swift.Error {
-    final public class func action(_ action: @escaping (PassthroughTask<Success, Error>) throws -> Void) -> Self {
-        .init { (task: PassthroughTask<Success, Error>) in
-            task.start()
-            
-            do {
-                task.succeed(with: try action(task))
-            } catch {
-                task.fail(with: error)
-            }
-            
-            return .empty()
-        }
+    final public class func action(
+        @_implicitSelfCapture _ action: @escaping () -> Void
+    ) -> Self {
+        self.init(action: action)
     }
-    
-    final public class func action(_ action: @escaping () -> Void) -> Self {
-        .init { (task: PassthroughTask<Success, Error>) in
-            task.start()
-            task.succeed(with: action())
-            
-            return .empty()
-        }
+
+    final public class func action(
+        @_implicitSelfCapture _ action: @escaping () throws -> Void
+    ) -> Self {
+        self.init(action: action)
     }
-    
-    final public class func action(_ action: @escaping () throws -> Void) -> Self {
-        .action({ _ in try action() })
+
+    final public class func action(
+        @_implicitSelfCapture _ action: @escaping @MainActor () async -> Void
+    ) -> Self {
+        self.init(priority: nil, action: action)
+    }
+
+    final public class func action(
+        @_implicitSelfCapture _ action: @escaping @MainActor () async throws -> Void
+    ) -> Self {
+        self.init(priority: nil, action: action)
     }
 }
 
