@@ -48,9 +48,10 @@ public struct TaskButton<Success, Error: Swift.Error, Label: View>: View {
                 || !isEnabled
                 || taskDisabled
                 || (currentTask?.status == .finished && !taskRestartable)
+                || (currentTask?.status == .active && !taskInterruptible)
         )
     }
-    
+
     private var task: AnyTask<Success, Error>? {
         if let currentTask = currentTask {
             return currentTask
