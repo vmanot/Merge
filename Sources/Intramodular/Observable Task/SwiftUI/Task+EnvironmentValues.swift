@@ -54,7 +54,7 @@ extension View {
     /// Sets whether tasks controlled by this view are interruptible or not.
     ///
     /// - Parameters:
-    ///   - interruptible: If `false`, then the view is responsible for disabling user-interaction while its managed task is active.
+    ///   - interruptible: If `false`, then the view is responsible for disabling user-interaction while its managed task is active. For e.g. if passed as `false` for a `TaskButton`, the button will be disabled while the task is running.
     public func taskInterruptible(_ interruptible: Bool) -> some View {
         environment(\.taskInterruptible, interruptible)
     }
