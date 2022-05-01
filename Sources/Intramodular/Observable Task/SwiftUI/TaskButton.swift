@@ -12,8 +12,10 @@ public struct TaskButton<Success, Error: Swift.Error, Label: View>: View {
     private let label: (TaskStatus<Success, Error>) -> Label
     
     @OptionalEnvironmentObject private var taskPipeline: TaskPipeline?
+
+    @State private var currentTask: AnyTask<Success, Error>?
     
-    @OptionalObservedObject private var currentTask: AnyTask<Success, Error>?
+    @PersistentObject private var observedTask = OpaqueObservableTask(AnyTask<Void, Never>.just(.success(())))
     
     @Environment(\._taskButtonStyle) private var buttonStyle
     @Environment(\.cancellables) private var cancellables
@@ -81,8 +83,8 @@ public struct TaskButton<Success, Error: Swift.Error, Label: View>: View {
     }
     
     private func subscribe(to task: AnyTask<Success, Error>) {
-        currentTask = task
-        
+        setCurrentTask(task)
+
         task.objectWillChange.sink(in: taskPipeline?.cancellables ?? cancellables) { status in
             self.buttonStyle.receive(status: .init(description: TaskStatusDescription(status)))
             
@@ -90,7 +92,7 @@ public struct TaskButton<Success, Error: Swift.Error, Label: View>: View {
                 handleLocalizedError(error as? LocalizedError ?? GenericTaskButtonError(base: error))
             }
         } receiveCompletion: { completion in
-            currentTask = nil
+            setCurrentTask(nil)
         }
         
         if task.status == .idle {
@@ -105,14 +107,24 @@ public struct TaskButton<Success, Error: Swift.Error, Label: View>: View {
             }
         } else {
             if let customTaskIdentifier = customTaskIdentifier, let taskPipeline = taskPipeline, let task = taskPipeline[customTaskIdentifier: customTaskIdentifier] as? AnyTask<Success, Error> {
-                currentTask = task
+                setCurrentTask(task)
             } else {
                 if let task = action() {
                     subscribe(to: task)
                 } else {
-                    currentTask = nil
+                    setCurrentTask(nil)
                 }
             }
+        }
+    }
+
+    private func setCurrentTask(_ task: AnyTask<Success, Error>?) {
+        if let task = task {
+            currentTask = task
+            observedTask = .init(task)
+        } else {
+            currentTask = nil
+            observedTask = .init(EmptyObservableTask())
         }
     }
 }
