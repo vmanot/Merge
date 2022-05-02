@@ -9,7 +9,7 @@ import Swift
 extension Future {
     /// Creates a publisher that invokes an asynchronous closure.
     public static func async(
-        priority: TaskPriority?,
+        priority: TaskPriority? = nil,
         @_implicitSelfCapture execute work: @escaping @Sendable () async -> Output
     ) -> Future<Output, Failure> where Failure == Never {
         .init { attemptToFulfill in
