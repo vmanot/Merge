@@ -128,7 +128,7 @@ open class PassthroughTask<Success, Error: Swift.Error>: ObservableTaskBase<Succ
             return .init(EmptyCancellable())
         }
     }
-
+    
     required convenience public init(publisher: AnySingleOutputPublisher<Success, Error>) {
         self.init { attemptToFulfill -> AnyCancellable in
             publisher.sinkResult(attemptToFulfill)
@@ -143,14 +143,14 @@ open class PassthroughTask<Success, Error: Swift.Error>: ObservableTaskBase<Succ
     
     required convenience public init(
         priority: TaskPriority? = nil,
-        action: @escaping () async -> Success
+        action: @escaping @Sendable () async -> Success
     ) where Error == Never {
         self.init(publisher: Future.async(priority: priority, execute: action))
     }
     
     required convenience public init(
         priority: TaskPriority? = nil,
-        action: @escaping () async throws -> Success
+        action: @escaping @Sendable () async throws -> Success
     ) where Error == Swift.Error {
         self.init(publisher: Future.async(priority: priority, execute: action))
     }
@@ -175,25 +175,25 @@ extension PassthroughTask where Success == Void {
 
 extension PassthroughTask where Success == Void, Error == Swift.Error {
     final public class func action(
-        @_implicitSelfCapture _ action: @escaping () -> Void
+        @_implicitSelfCapture _ action: @escaping @Sendable () -> Void
     ) -> Self {
         self.init(action: action)
     }
-
+    
     final public class func action(
-        @_implicitSelfCapture _ action: @escaping () throws -> Void
+        @_implicitSelfCapture _ action: @escaping @Sendable () throws -> Void
     ) -> Self {
         self.init(action: action)
     }
-
+    
     final public class func action(
-        @_implicitSelfCapture _ action: @escaping @MainActor () async -> Void
+        @_implicitSelfCapture _ action: @escaping @MainActor @Sendable () async -> Void
     ) -> Self {
         self.init(priority: nil, action: action)
     }
-
+    
     final public class func action(
-        @_implicitSelfCapture _ action: @escaping @MainActor () async throws -> Void
+        @_implicitSelfCapture _ action: @escaping @MainActor @Sendable () async throws -> Void
     ) -> Self {
         self.init(priority: nil, action: action)
     }

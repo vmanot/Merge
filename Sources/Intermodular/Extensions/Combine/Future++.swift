@@ -10,7 +10,7 @@ extension Future {
     /// Creates a publisher that invokes an asynchronous closure.
     public static func async(
         priority: TaskPriority?,
-        execute work: @escaping () async -> Output
+        @_implicitSelfCapture execute work: @escaping @Sendable () async -> Output
     ) -> Future<Output, Failure> where Failure == Never {
         .init { attemptToFulfill in
             Task.detached(priority: priority) {
@@ -22,7 +22,7 @@ extension Future {
     /// Creates a publisher that invokes an asynchronous closure.
     public static func async(
         priority: TaskPriority? = nil,
-        execute work: @escaping () async throws -> Output
+        @_implicitSelfCapture execute work: @escaping @Sendable () async throws -> Output
     ) -> Future<Output, Failure> where Failure == Error {
         .init { attemptToFulfill in
             Task.detached(priority: priority) {
