@@ -153,12 +153,12 @@ extension TaskButton {
 
 extension TaskButton {
     public init(
-        action: @escaping () async -> Success,
+        action: @escaping @MainActor @Sendable () async -> Success,
         priority: TaskPriority? = .userInitiated,
         @ViewBuilder label: @escaping (TaskStatus<Success, Error>) -> Label
     ) where Error == Never {
         self.init {
-            Task(priority: priority) {
+            Task(priority: priority) { @MainActor in
                 await action()
             }
             .convertToObservableTask()
@@ -168,12 +168,12 @@ extension TaskButton {
     }
     
     public init(
-        action: @escaping () async -> Success,
+        action: @escaping @MainActor @Sendable () async -> Success,
         priority: TaskPriority? = .userInitiated,
         @ViewBuilder label: @escaping () -> Label
     ) where Error == Never {
         self.init {
-            Task(priority: priority) {
+            Task(priority: priority) { @MainActor in
                 await action()
             }
             .convertToObservableTask()
@@ -183,12 +183,12 @@ extension TaskButton {
     }
 
     public init(
-        action: @escaping () async throws -> Success,
+        action: @escaping @MainActor @Sendable () async throws -> Success,
         priority: TaskPriority? = .userInitiated,
         @ViewBuilder label: @escaping (TaskStatus<Success, Error>) -> Label
     ) where Error == Swift.Error {
         self.init {
-            Task(priority: priority) {
+            Task(priority: priority) { @MainActor in
                 try await action()
             }
             .convertToObservableTask()
@@ -198,12 +198,12 @@ extension TaskButton {
     }
     
     public init(
-        action: @escaping () async throws -> Success,
+        action: @escaping @MainActor @Sendable () async throws -> Success,
         priority: TaskPriority? = .userInitiated,
         @ViewBuilder label: @escaping () -> Label
     ) where Error == Swift.Error {
         self.init {
-            Task(priority: priority) {
+            Task(priority: priority) { @MainActor in
                 try await action()
             }
             .convertToObservableTask()
@@ -305,7 +305,7 @@ extension TaskButton where Label == Text {
     
     public init<S: StringProtocol>(
         _ title: S,
-        action: @escaping () async -> Success
+        action: @escaping @MainActor @Sendable () async -> Success
     ) where Error == Never {
         self.init(action: action) {
             Text(title)
@@ -314,7 +314,7 @@ extension TaskButton where Label == Text {
 
     public init<S: StringProtocol>(
         _ title: S,
-        action: @escaping () async throws -> Success
+        action: @escaping @MainActor @Sendable () async throws -> Success
     ) where Error == Swift.Error {
         self.init(action: action) {
             Text(title)
