@@ -6,6 +6,9 @@ import Combine
 import Foundation
 import Swift
 
+/// A `Publisher` guaranteed to publish no more than one element.
+///
+/// Single-output publishers can also complete without emitting any elements.
 public protocol SingleOutputPublisher: Publisher {
     
 }
@@ -13,10 +16,11 @@ public protocol SingleOutputPublisher: Publisher {
 // MARK: - API -
 
 extension SingleOutputPublisher {
+    /// Asynchronously runs this publisher and awaits its output.
     public func output() async throws -> Output {
         var cancellable: AnyCancellable?
         var didReceiveValue = false
-
+        
         return try await withCheckedThrowingContinuation { continuation in
             cancellable = sink(
                 receiveCompletion: { completion in
@@ -35,9 +39,9 @@ extension SingleOutputPublisher {
                     guard !didReceiveValue else {
                         return
                     }
-
+                    
                     didReceiveValue = true
-
+                    
                     cancellable?.cancel()
                     continuation.resume(returning: value)
                 }
@@ -84,6 +88,10 @@ extension Publishers.First: SingleOutputPublisher {
     
 }
 
+extension Publishers.FirstWhere: SingleOutputPublisher {
+    
+}
+
 extension Publishers.FlatMap: SingleOutputPublisher where Upstream: SingleOutputPublisher, NewPublisher: SingleOutputPublisher {
     
 }
@@ -125,6 +133,10 @@ extension Publishers.SubscribeOn: SingleOutputPublisher where Upstream: SingleOu
 }
 
 extension Publishers.Timeout: SingleOutputPublisher where Upstream: SingleOutputPublisher {
+    
+}
+
+extension Publishers.TryFirstWhere: SingleOutputPublisher {
     
 }
 
