@@ -30,8 +30,6 @@ public struct ObservableTaskOutputPublisher<Base: ObservableTask>: Publisher {
             }
         }
 
-        base.start()
-
         base.objectWillChange
             .filter({ $0 != .idle })
             .setFailureType(to: Failure.self)
@@ -51,6 +49,8 @@ public struct ObservableTaskOutputPublisher<Base: ObservableTask>: Publisher {
                 }
             })
             .receive(subscriber: subscriber)
+        
+        base.start()
     }
 }
 

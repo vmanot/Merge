@@ -13,7 +13,7 @@ open class ObservableTaskBase<Success, Error: Swift.Error>: ObservableTask {
     let statusValueSubject = CurrentValueSubject<Status, Never>(.idle)
     
     public var objectWillChange: AnyPublisher<Status, Never> {
-        statusValueSubject.receiveOnMainQueue().eraseToAnyPublisher()
+        statusValueSubject.receiveOnMainThread().eraseToAnyPublisher()
     }
     
     public var status: Status {

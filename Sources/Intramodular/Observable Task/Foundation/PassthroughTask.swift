@@ -7,23 +7,36 @@ import Dispatch
 import Swift
 
 /// A mutable task.
-open class PassthroughTask<Success, Error: Swift.Error>: ObservableTaskBase<Success, Error> {
+open class PassthroughTask<Success, Error: Swift.Error>: ObservableTask {
     public typealias Body = (PassthroughTask) -> AnyCancellable
+    public typealias Status = TaskStatus<Success, Error>
     
     private let queue = DispatchQueue(label: "com.vmanot.PassthroughTask")
     private let body: Body
     private var bodyCancellable: AnyCancellable = .empty()
     
-    public convenience override init() {
-        self.init(body: { _ in .empty() })
+    private let statusValueSubject = CurrentValueSubject<Status, Never>(.idle)
+
+    public var status: Status {
+        statusValueSubject.value
     }
     
+    public var objectWillChange: AnyPublisher<Status, Never> {
+        statusValueSubject
+            .receive(on: MainThreadScheduler.shared)
+            .eraseToAnyPublisher()
+    }
+    
+    public let progress = Progress()
+
     public required init(body: @escaping Body) {
         self.body = body
-        
-        super.init()
     }
     
+    public convenience init() {
+        self.init(body: { _ in .empty() })
+    }
+
     open func didSend(status: Status) {
         
     }
@@ -57,7 +70,7 @@ open class PassthroughTask<Success, Error: Swift.Error>: ObservableTaskBase<Succ
     }
     
     /// Start the task.
-    final override public func start() {
+    final public func start() {
         func _start() {
             send(status: .active)
             
@@ -77,7 +90,7 @@ open class PassthroughTask<Success, Error: Swift.Error>: ObservableTaskBase<Succ
     }
     
     /// Cancel the task.
-    final override public func cancel() {
+    final public func cancel() {
         send(status: .canceled)
     }
     

@@ -15,7 +15,8 @@ extension SingleOutputPublisher {
         let queue = DispatchQueue(qosClass: .current)
         let done = DispatchWorkItem(qos: .unspecified, flags: .inheritQoS, block: { })
         
-        self.handleEvents(receiveCancel: { queue.async(execute: done) })
+        self
+            .handleEvents(receiveCancel: { queue.async(execute: done) })
             .receive(on: queue)
             .receive(
                 subscriber: Subscribers.Sink(
