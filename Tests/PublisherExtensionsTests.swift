@@ -7,7 +7,7 @@
 import Swallow
 import XCTest
 
-final class MergeTests: XCTestCase {
+final class PublisherExtensionsTests: XCTestCase {
     func testSubscribeAndWait() {
         let f1 = Future.async(qos: .unspecified) { () -> Int in
             sleep(1)

@@ -7,11 +7,11 @@
 import Swallow
 import XCTest
 
-final class TaskTests: XCTestCase {
+final class ObservableTaskTests: XCTestCase {
     func testTaskSuccessCompletion() {
         let task = PassthroughTask<Int, EmptyError>()
         
-        task.send(.success(0))
+        task.send(status: .success(0))
         
         XCTAssert(task.successPublisher.subscribeAndWaitUntilDone() == .success(0))
     }
@@ -19,7 +19,7 @@ final class TaskTests: XCTestCase {
     func testTaskFailureCompletion() {
         let task = PassthroughTask<Void, Error>()
         
-        task.send(.canceled)
+        task.send(status: .canceled)
         
         _ = task.successPublisher.reduceAndMapTo(()).subscribeAndWaitUntilDone()
     }
@@ -27,7 +27,7 @@ final class TaskTests: XCTestCase {
     func testTaskMap() {
         let task = PassthroughTask<Int, Never>()
         
-        task.send(.success(0))
+        task.send(status: .success(0))
         
         XCTAssert(task.map({ $0 + 1 }).successPublisher.subscribeAndWaitUntilDone() == .success(1))
     }
