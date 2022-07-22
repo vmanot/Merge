@@ -10,13 +10,16 @@ extension SingleOutputPublisher {
     ///
     /// This function blocks the calling thread until the publisher emits a completion event.
     @discardableResult
-    public func subscribeAndWaitUntilDone() -> Result<Output, Failure>? {
+    public func subscribeAndWaitUntilDone(
+        on queue: DispatchQueue? = nil
+    ) -> Result<Output, Failure>? {
         var result: Result<Output, Failure>?
-        let queue = DispatchQueue(qosClass: .current)
+        let queue = queue ?? DispatchQueue(qosClass: .current)
         let done = DispatchWorkItem(qos: .unspecified, flags: .inheritQoS, block: { })
         
         self
             .handleEvents(receiveCancel: { queue.async(execute: done) })
+            .subscribe(on: queue)
             .receive(on: queue)
             .receive(
                 subscriber: Subscribers.Sink(
