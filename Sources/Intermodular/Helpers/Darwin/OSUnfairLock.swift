@@ -20,9 +20,18 @@ public final class OSUnfairLock: Initiable, Sendable, TestableLock {
         os_unfair_lock_lock(base)
     }
 
+    @usableFromInline
+    enum AcquisitionError: Error {
+        case failedToAcquireLock
+    }
+    
     @inlinable
     public func acquireOrFail() throws {
-        try os_unfair_lock_trylock(base).throw(if: ==false)
+        let didAcquire = os_unfair_lock_trylock(base)
+        
+        if !didAcquire {
+            throw AcquisitionError.failedToAcquireLock
+        }
     }
 
     @inlinable

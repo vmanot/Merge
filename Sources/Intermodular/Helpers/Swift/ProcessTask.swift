@@ -32,7 +32,7 @@ extension Process {
         public var id: some Hashable {
             process.processIdentifier
         }
-
+        
         public var status: TaskStatus<Success, Error> {
             base.status
         }
@@ -49,7 +49,7 @@ extension Process {
             guard status == .idle else {
                 return
             }
-
+            
             setupPipes()
             
             process.terminationHandler = { [weak self] process in
@@ -84,16 +84,6 @@ extension Process {
                 }
                 
                 teardownPipes()
-            }
-        }
-        
-        public func waitUntilExit() throws {
-            start()
-            
-            process.waitUntilExit()
-            
-            if let failure = TaskFailure(base.status) {
-                throw failure
             }
         }
         

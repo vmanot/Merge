@@ -245,3 +245,12 @@ extension Task {
         publisher(priority: priority).convertToTask()
     }
 }
+
+extension Task {
+    /// Convert this `Task` into an observable task.
+    public func convertToObservableTask<T, U>(
+        priority: TaskPriority? = nil
+    ) -> AnyTask<T, U> where Success == Result<T, U>, Failure == Never  {
+        publisher(priority: priority).flatMap({ $0.publisher }).convertToTask()
+    }
+}
