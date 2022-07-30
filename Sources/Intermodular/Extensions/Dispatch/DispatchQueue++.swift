@@ -14,9 +14,16 @@ extension DispatchQueue {
         autoreleaseFrequency: DispatchQueue.AutoreleaseFrequency = .inherit,
         target: DispatchQueue? = nil
     ) {
-        self.init(label: UUID().uuidString, qos: qos, attributes: attributes, autoreleaseFrequency: autoreleaseFrequency, target: target)
+        self.init(
+            label: UUID().uuidString,
+            qos: qos,
+            attributes: attributes,
+            autoreleaseFrequency: autoreleaseFrequency,
+            target: target
+        )
     }
     
+    @_disfavoredOverload
     public convenience init(
         qosClass: DispatchQoS.QoSClass = .unspecified,
         attributes: DispatchQueue.Attributes = [],
