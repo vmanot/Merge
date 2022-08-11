@@ -54,3 +54,17 @@ public struct PublishedObject<Value: ObservableObject>: PropertyWrapper {
 
 @available(*, deprecated, renamed: "PublishedObject")
 public typealias Observed<Value: ObservableObject> = PublishedObject<Value>
+
+// MARK: - Conditional Conformances -
+
+extension PublishedObject: Decodable where Value: Decodable {
+    public init(from decoder: Decoder) throws {
+        try self.init(wrappedValue: WrappedValue(from: decoder))
+    }
+}
+
+extension PublishedObject: Encodable where Value: Encodable {
+    public func encode(to encoder: Encoder) throws {
+        try wrappedValue.encode(to: encoder)
+    }
+}

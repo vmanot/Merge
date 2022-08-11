@@ -20,7 +20,7 @@ public struct AnyObjectWillChangePublisher: Publisher {
     }
     
     public init<Object: ObservableObject>(from object: Object) {
-        self.init(base: object.objectWillChange.map({ _ in () }).eraseToAnyPublisher())
+        self.init(base: object.objectWillChange.mapTo(()).eraseToAnyPublisher())
     }
     
     public func receive<S: Subscriber>(subscriber: S) where S.Input == Output, S.Failure == Failure {
