@@ -43,7 +43,9 @@ extension Publisher {
         _cancellable.set(
             handleCancelOrCompletion { _ in
                 cancellable.cancel()
-            }.sink()
+            }
+            .handleOutput(receiveValue)
+            .sink()
         )
         
         return cancellable
