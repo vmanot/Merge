@@ -58,6 +58,32 @@ extension Task where Success == Never, Failure == Never {
     }
 }
 
+extension Task where Failure == Error {
+    @discardableResult
+    public static func retrying(
+        priority: TaskPriority? = nil,
+        maxRetryCount: Int = 3,
+        retryDelay: DispatchTimeInterval,
+        operation: @escaping () async throws -> Success
+    ) -> Task {
+        Task(priority: priority) {
+            for _ in 0..<maxRetryCount {
+                do {
+                    return try await operation()
+                } catch {
+                    try await Task<Never, Never>.sleep(retryDelay)
+                    
+                    continue
+                }
+            }
+            
+            try Task<Never, Never>.checkCancellation()
+            
+            return try await operation()
+        }
+    }
+}
+
 // MARK: - SwiftUI -
 
 extension Task {

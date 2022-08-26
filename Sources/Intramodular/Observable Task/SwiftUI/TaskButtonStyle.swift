@@ -7,8 +7,6 @@ import SwiftUIX
 
 public protocol _opaque_ObservableTaskButtonStyle: DynamicProperty {
     func _opaque_makeBody(configuration: TaskButtonConfiguration) -> AnyView
-    
-    func receive(status: TaskButtonStatus)
 }
 
 public protocol TaskButtonStyle: _opaque_ObservableTaskButtonStyle {
@@ -17,14 +15,6 @@ public protocol TaskButtonStyle: _opaque_ObservableTaskButtonStyle {
     typealias Configuration = TaskButtonConfiguration
     
     func makeBody(configuration: TaskButtonConfiguration) -> Body
-    func receive(status: TaskButtonStatus)
-}
-
-extension TaskButtonStyle {
-    @inlinable
-    public func receive(status: TaskButtonStatus) {
-        
-    }
 }
 
 // MARK: - Implementation -
@@ -38,12 +28,12 @@ extension _opaque_ObservableTaskButtonStyle where Self: TaskButtonStyle {
 // MARK: - Auxiliary Implementation -
 
 fileprivate struct TaskButtonStyleEnvironmentKey: EnvironmentKey {
-    static let defaultValue: _opaque_ObservableTaskButtonStyle = DefaultTaskButtonStyle()
+    static let defaultValue: _opaque_ObservableTaskButtonStyle? = nil
 }
 
 extension EnvironmentValues {
     @usableFromInline
-    var _taskButtonStyle: _opaque_ObservableTaskButtonStyle {
+    var _taskButtonStyle: _opaque_ObservableTaskButtonStyle? {
         get {
             self[TaskButtonStyleEnvironmentKey.self]
         } set {

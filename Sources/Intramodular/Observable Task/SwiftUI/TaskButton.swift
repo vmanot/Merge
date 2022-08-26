@@ -32,19 +32,21 @@ public struct TaskButton<Success, Error: Swift.Error, Label: View>: View {
         Button(action: trigger) {
             label(task?.status ?? .idle)
         }
-        .buttonStyle(AnyButtonStyle { configuration in
-            buttonStyle._opaque_makeBody(
-                configuration: TaskButtonConfiguration(
-                    label: configuration.label.eraseToAnyView(),
-                    isPressed: configuration.isPressed,
-                    isDisabled: taskDisabled,
-                    isInterruptible: taskInterruptible,
-                    isRestartable: taskRestartable,
-                    status: taskStatusDescription,
-                    lastStatus: lastTaskStatusDescription
+        .modify(if: buttonStyle != nil) {
+            $0.buttonStyle(AnyButtonStyle { configuration in
+                buttonStyle?._opaque_makeBody(
+                    configuration: TaskButtonConfiguration(
+                        label: configuration.label.eraseToAnyView(),
+                        isPressed: configuration.isPressed,
+                        isDisabled: taskDisabled,
+                        isInterruptible: taskInterruptible,
+                        isRestartable: taskRestartable,
+                        status: taskStatusDescription,
+                        lastStatus: lastTaskStatusDescription
+                    )
                 )
-            )
-        })
+            })
+        }
         .disabled(
             false
                 || !isEnabled
@@ -86,18 +88,16 @@ public struct TaskButton<Success, Error: Swift.Error, Label: View>: View {
         setCurrentTask(task)
 
         task.objectWillChange.sink(in: taskPipeline?.cancellables ?? cancellables) { status in
-            self.buttonStyle.receive(status: .init(description: TaskStatusDescription(status)))
-            
             if case let .error(error) = status {
                 handleLocalizedError(error as? LocalizedError ?? GenericTaskButtonError(base: error))
             }
-        } receiveCompletion: { completion in
-            setCurrentTask(nil)
+            
+            if status.isTerminal {
+                setCurrentTask(nil)
+            }
         }
         
-        if task.status == .idle {
-            task.start()
-        }
+        task.start()
     }
     
     private func acquireTaskIfNecessary() {
