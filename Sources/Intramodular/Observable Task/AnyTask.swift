@@ -11,7 +11,7 @@ public final class AnyTask<Success, Error: Swift.Error>: ObservableTask {
     public typealias ID = AnyHashable
     public typealias Status = TaskStatus<Success, Error>
     public typealias ObjectWillChangePublisher = AnyPublisher<Status, Never>
-
+    
     public let base: _opaque_ObservableTask
     
     private let getStatusImpl: () -> Status
@@ -36,7 +36,7 @@ public final class AnyTask<Success, Error: Swift.Error>: ObservableTask {
     public var cancellables: Cancellables {
         base.cancellables
     }
-        
+    
     private init(
         base: _opaque_ObservableTask,
         getStatusImpl: @escaping () -> Status,
