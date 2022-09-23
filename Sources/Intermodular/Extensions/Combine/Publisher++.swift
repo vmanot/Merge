@@ -42,3 +42,9 @@ extension Publisher {
         map({ transform(Result<Output, Failure>.success($0)) }).catch({ Just(transform(.failure($0))) })
     }
 }
+
+extension Publisher {
+    public func _eraseToAnyPublisherAnyOutputAnyError() -> AnyPublisher<Any, Swift.Error> {
+        map({ $0 as Any }).mapError({ $0 as Swift.Error }).eraseToAnyPublisher()
+    }
+}
