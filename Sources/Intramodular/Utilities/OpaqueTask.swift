@@ -3,6 +3,7 @@
 //
 
 import Swift
+import SwiftUI
 
 /// A type-erased Task.
 public struct OpaqueTask: Sendable {
@@ -36,5 +37,25 @@ extension Task {
     /// Returns a type-erased version of self.
     public func eraseToOpaqueTask() -> OpaqueTask {
         .init(erasing: self)
+    }
+}
+
+// MARK: - SwiftUI -
+
+extension Task {
+    /// Bind this task to a `Binding`.
+    ///
+    /// - Parameters:
+    ///   - taskBinding: The `Binding` to set when this task starts, and clear when this task ends/errors out.
+    public func bind(to taskBinding: Binding<OpaqueTask?>) {
+        let erasedTask = OpaqueTask(erasing: self)
+        
+        _Concurrency.Task { @MainActor in
+            taskBinding.wrappedValue = erasedTask
+            
+            _ = try await self.value
+            
+            taskBinding.wrappedValue = nil
+        }
     }
 }

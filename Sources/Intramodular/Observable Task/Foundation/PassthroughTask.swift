@@ -16,7 +16,7 @@ open class PassthroughTask<Success, Error: Swift.Error>: ObservableTask {
     private var bodyCancellable: AnyCancellable = .empty()
     
     private let statusValueSubject = CurrentValueSubject<Status, Never>(.idle)
-
+    
     public var status: Status {
         statusValueSubject.value
     }
@@ -28,7 +28,7 @@ open class PassthroughTask<Success, Error: Swift.Error>: ObservableTask {
     }
     
     public let progress = Progress()
-
+    
     public required init(body: @escaping Body) {
         self.body = body
     }
@@ -36,7 +36,7 @@ open class PassthroughTask<Success, Error: Swift.Error>: ObservableTask {
     public convenience init() {
         self.init(body: { _ in .empty() })
     }
-
+    
     open func didSend(status: Status) {
         
     }

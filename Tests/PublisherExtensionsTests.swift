@@ -60,7 +60,9 @@ final class PublisherExtensionsTests: XCTestCase {
         var count = 0
         
         Publishers.While(count < 100) {
-            Just(()).then({ count += 1 })
+            Just(()).then {
+                count += 1
+            }
         }
         .reduceAndMapTo(())
         .subscribeAndWaitUntilDone()

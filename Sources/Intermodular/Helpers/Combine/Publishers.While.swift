@@ -2,13 +2,16 @@
 // Copyright (c) Vatsal Manot
 //
 
+import Dispatch
 import Combine
-import Swift
+import Swallow
 
 extension Publishers {
     public struct While<DeferredPublisher: Publisher>: Publisher {
         public typealias Output = DeferredPublisher.Output
         public typealias Failure = DeferredPublisher.Failure
+        
+        private let queue = DispatchQueue(label: Self.self)
         
         public let condition: () -> Bool
         public let createPublisher: () -> DeferredPublisher
@@ -33,7 +36,7 @@ extension Publishers {
         ) where S.Input == Output, S.Failure == Failure {
             if condition() {
                 createPublisher()
-                    .append(Publishers.While(condition: condition, createPublisher: createPublisher))
+                    .append(Publishers.While(condition: condition, createPublisher: createPublisher).subscribe(on: queue))
                     .receive(subscriber: subscriber)
             } else {
                 Empty(completeImmediately: true)
