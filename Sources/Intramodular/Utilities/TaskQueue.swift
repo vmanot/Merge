@@ -47,7 +47,7 @@ public final class TaskQueue: Sendable {
         guard TaskQueue.queueID != queue.id else {
             return try await operation()
         }
-
+        
         let semaphore = AsyncSemaphore()
         
         let resultBox = ReferenceBox<Result<T, Error>?>(nil)
@@ -87,7 +87,7 @@ extension TaskQueue {
             guard TaskQueue.queueID != id else {
                 fatalError()
             }
-
+            
             let policy = self.policy
             let previousTask = self.previousTask
             
@@ -101,7 +101,7 @@ extension TaskQueue {
                 }
                 
                 try Task.checkCancellation()
-                                
+                
                 return try await TaskQueue.$queueID.withValue(id) {
                     try await action()
                 }
