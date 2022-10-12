@@ -7,13 +7,17 @@ import Swallow
 
 /// A type that forwards updates published from the `ObservableObject` annotated with this wrapper.
 @propertyWrapper
-public struct PublishedObject<Value: ObservableObject>: PropertyWrapper {
+public struct PublishedObject<Value>: PropertyWrapper {
     @MutableValueBox
     public var wrappedValue: Value
     
     private var subscription: AnyCancellable?
     
-    public init(wrappedValue: Value) {
+    public init(wrappedValue: Value) where Value: ObservableObject {
+        self.wrappedValue = wrappedValue
+    }
+    
+    public init<WrappedValue: ObservableObject>(wrappedValue: WrappedValue?) where Optional<WrappedValue> == Value  {
         self.wrappedValue = wrappedValue
     }
     
@@ -45,8 +49,8 @@ public struct PublishedObject<Value: ObservableObject>: PropertyWrapper {
     private mutating func subscribe<EnclosingSelf: ObservableObject>(
         _enclosingInstance: EnclosingSelf
     ) where EnclosingSelf.ObjectWillChangePublisher: _opaque_VoidSender {
-        subscription = wrappedValue
-            .objectWillChange
+        subscription = (wrappedValue as? (any ObservableObject))?
+            .eraseObjectWillChangePublisher()
             .publish(to: _enclosingInstance.objectWillChange)
             .sink()
     }
@@ -57,7 +61,7 @@ public typealias Observed<Value: ObservableObject> = PublishedObject<Value>
 
 // MARK: - Conditional Conformances -
 
-extension PublishedObject: Decodable where Value: Decodable {
+extension PublishedObject: Decodable where Value: Decodable & ObservableObject {
     public init(from decoder: Decoder) throws {
         try self.init(wrappedValue: WrappedValue(from: decoder))
     }
