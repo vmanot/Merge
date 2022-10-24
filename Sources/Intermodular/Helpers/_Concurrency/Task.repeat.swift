@@ -8,6 +8,7 @@ import Swift
 
 extension Task where Success == Void, Failure == Error {
     /// Runs the given asynchronous operation repeatedly while a given predicate evaluates to `true`.
+    @discardableResult
     public static func `repeat`(
         while predicate: @escaping () throws -> Bool,
         maxRepetitions: Int = Int.maximum,
@@ -28,6 +29,7 @@ extension Task where Success == Void, Failure == Error {
 @available(macOS 12.0, iOS 15.0, tvOS 15.0, watchOS 8.0, *)
 extension Task where Success == Void, Failure == Error {
     /// Runs the given asynchronous operation repeatedly on the given interval on behalf of the current actor.
+    @discardableResult
     public static func `repeat`(
         every interval: DispatchTimeInterval,
         on runLoop: RunLoop = .main,
