@@ -11,6 +11,7 @@ extension Publisher {
         self.catch({ _ in Combine.Empty().setFailureType(to: Never.self) })
     }
     
+    /// Handles errors from an upstream publisher by stopping the execution of the program.
     public func stopExecutionOnError() -> Publishers.Catch<Self, Publishers.SetFailureType<Combine.Empty<Self.Output, Never>, Never>> {
         self.catch { error -> Publishers.SetFailureType<Combine.Empty<Self.Output, Never>, Never> in
             fatalError(error)

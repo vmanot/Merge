@@ -41,7 +41,7 @@ public final class TaskQueue: Sendable {
         operation: @Sendable @escaping () async throws -> T
     ) async throws -> T {
         if queue.policy == .cancelPreviousAction {
-            TODO.unimplemented
+            await queue.cancelAllTasks()
         }
         
         guard TaskQueue.queueID != queue.id else {
@@ -79,6 +79,11 @@ extension TaskQueue {
         
         init(policy: Policy) {
             self.policy = policy
+        }
+        
+        func cancelAllTasks() {
+            previousTask?.cancel()
+            previousTask = nil
         }
         
         func add<T: Sendable>(
