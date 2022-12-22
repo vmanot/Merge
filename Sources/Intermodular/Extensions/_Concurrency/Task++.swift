@@ -68,7 +68,11 @@ extension Task where Failure == Error {
         Task(priority: priority) {
             for _ in 0..<maxRetryCount {
                 do {
-                    return try await operation()
+                    try Task<Never, Never>.checkCancellation()
+
+                    let result = try await operation()
+                    
+                    return result
                 } catch {
                     if let retryDelay = retryDelay {
                         try await Task<Never, Never>.sleep(retryDelay)
@@ -80,7 +84,9 @@ extension Task where Failure == Error {
             
             try Task<Never, Never>.checkCancellation()
             
-            return try await operation()
+            let result = try await operation()
+            
+            return result
         }
     }
 }

@@ -16,10 +16,10 @@ extension Task where Failure == Error {
         operation: @escaping @Sendable () async throws -> Success
     ) {
         self = Task(priority: priority) {
-            try await withThrowingTaskGroup(of: Success.self) { group -> Success in
-                group.addTask(operation: operation)
+            let result = try await withThrowingTaskGroup(of: Success.self) { group -> Success in
+                group.addTask(priority: priority, operation: operation)
                 
-                group.addTask {
+                group.addTask(priority: priority) {
                     try await _Concurrency.Task.sleep(nanoseconds: UInt64(timeout * 1_000_000_000))
                     
                     throw TimeoutError()
@@ -33,6 +33,8 @@ extension Task where Failure == Error {
                 
                 return success
             }
+            
+            return result
         }
     }
     
