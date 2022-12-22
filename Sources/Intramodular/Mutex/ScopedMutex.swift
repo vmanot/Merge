@@ -4,6 +4,7 @@
 
 import Swallow
 
+/// A mutual exclusion device capable of scoping the execution of a function.
 public protocol ScopedMutex: Mutex {
     @discardableResult
     func withCriticalScope<T>(_: (() throws -> T)) rethrows -> T
@@ -14,6 +15,11 @@ public protocol ScopedMutex: Mutex {
     func _withCriticalScopeForWriting<T>(_: (() throws -> T)) rethrows -> T
 }
 
+/// An asynchronous mutual exclusion device capable of scoping the execution of a function.
+public protocol AsyncScopedMutex {
+    @discardableResult
+    func withCriticalScope<T>(_: (() async throws -> T)) async rethrows -> T
+}
 
 public protocol ScopedReadWriteMutex: ScopedMutex {
     @discardableResult

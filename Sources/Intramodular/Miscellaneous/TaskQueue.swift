@@ -24,7 +24,7 @@ public final class TaskQueue: Sendable {
     /// - Parameters:
     ///   - action: An async function to execute.
     public func add<T: Sendable>(
-        _ action: @Sendable @escaping () async throws -> T
+        @_implicitSelfCapture _ action: @Sendable @escaping () async throws -> T
     ) {
         Task {
             await queue.add(action)
@@ -38,7 +38,7 @@ public final class TaskQueue: Sendable {
     /// - Throws: The error thrown by `action`. Especially throws `CancellationError` if the parent task has been cancelled.
     /// - Returns: The return value of `action`
     public func perform<T: Sendable>(
-        operation: @Sendable @escaping () async throws -> T
+        @_implicitSelfCapture operation: @Sendable @escaping () async throws -> T
     ) async throws -> T {
         if queue.policy == .cancelPreviousAction {
             await queue.cancelAllTasks()
@@ -66,6 +66,16 @@ public final class TaskQueue: Sendable {
         
         return try await semaphore.withCriticalScope {
             return try resultBox.wrappedValue!.get()
+        }
+    }
+    
+    public func cancelAll() async {
+        await queue.cancelAllTasks()
+    }
+    
+    public func cancelAll() {
+        Task {
+            await self.cancelAll()
         }
     }
 }

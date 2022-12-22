@@ -179,7 +179,7 @@ extension Cancellables: ExpressibleByArrayLiteral {
     }
 }
 
-// MARK: - Auxiliary Implementation -
+// MARK: - Auxiliary -
 
 extension Cancellables {
     fileprivate struct EnvironmentKey: SwiftUI.EnvironmentKey {

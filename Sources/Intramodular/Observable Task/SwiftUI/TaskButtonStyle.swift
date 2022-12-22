@@ -25,7 +25,7 @@ extension _opaque_ObservableTaskButtonStyle where Self: TaskButtonStyle {
     }
 }
 
-// MARK: - Auxiliary Implementation -
+// MARK: - Auxiliary -
 
 fileprivate struct TaskButtonStyleEnvironmentKey: EnvironmentKey {
     static let defaultValue: _opaque_ObservableTaskButtonStyle? = nil
@@ -97,7 +97,7 @@ extension View {
     }
 }
 
-// MARK: - Auxiliary Implementation -
+// MARK: - Auxiliary -
 
 private struct _AttachTaskButtonStyle<Style: TaskButtonStyle>: ViewModifier {
     let style: Style

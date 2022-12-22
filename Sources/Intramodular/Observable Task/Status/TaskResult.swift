@@ -80,7 +80,7 @@ extension TaskStatus {
     }
 }
 
-// MARK: - Auxiliary Implementation -
+// MARK: - Auxiliary -
 
 extension TaskResult {
     public enum Comparison {

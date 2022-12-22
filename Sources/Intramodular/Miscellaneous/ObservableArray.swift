@@ -133,7 +133,7 @@ extension ObservableArray: RangeReplaceableCollection {
     }
 }
 
-// MARK: - Auxiliary Implementation -
+// MARK: - Auxiliary -
 
 extension Array where Element: ObservableObject {
     public init(_ array: ObservableArray<Element>) {

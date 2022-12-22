@@ -7,9 +7,13 @@ import Swift
 
 @propertyWrapper
 public struct UncheckedSendable<Value>: @unchecked Sendable {
-    public var wrappedValue: Value
+    public let wrappedValue: Value
     
     public init(wrappedValue: Value) {
         self.wrappedValue = wrappedValue
+    }
+    
+    public init(_ value: Value) {
+        self.init(wrappedValue: value)
     }
 }

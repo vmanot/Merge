@@ -4,12 +4,12 @@
 
 import Swallow
 
-public actor AsyncSemaphore {
+public actor AsyncSemaphore: Sendable {
     private let limit: Int
     private var count = 0
     private var queue = [UnsafeContinuation<Void, Never>]() // [lines: 5]
     
-    init(_ limit: Int = 1) {
+    public init(limit: Int = 1) {
         precondition(limit > 0)
         
         self.limit = limit

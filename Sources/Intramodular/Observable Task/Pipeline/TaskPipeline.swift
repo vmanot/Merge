@@ -74,7 +74,7 @@ extension TaskPipeline {
     public subscript(customTaskIdentifier identifier: AnyHashable) -> AnyTask<Any, Swift.Error>? {
         customTaskIdentifierToIDMap[identifier]
             .flatMap({ idToTaskMap[$0] })
-            .map(AnyTask.init(_opaque:))
+            .map(AnyTask.init(erasing:))
     }
     
     public func lastStatus(forCustomTaskIdentifier identifier: AnyHashable) -> TaskStatusDescription? {

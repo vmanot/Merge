@@ -146,7 +146,7 @@ extension TaskStatus: Hashable where Success: Hashable, Error: Hashable {
     
 }
 
-// MARK: - Auxiliary Implementation -
+// MARK: - Auxiliary -
 
 extension AnyTask {
     public enum _GeneralStatusComparison {

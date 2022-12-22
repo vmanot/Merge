@@ -12,13 +12,13 @@ public final class AnyTask<Success, Error: Swift.Error>: ObservableTask {
     public typealias Status = TaskStatus<Success, Error>
     public typealias ObjectWillChangePublisher = AnyPublisher<Status, Never>
     
-    public let base: _opaque_ObservableTask
+    public let base: any ObservableTask
     
     private let getStatusImpl: () -> Status
     private let getObjectWillChangeImpl: () -> AnyPublisher<Status, Never>
     
     public var id: ID {
-        base._opaque_id
+        base.id.eraseToAnyHashable()
     }
     
     public var status: Status {
@@ -38,7 +38,7 @@ public final class AnyTask<Success, Error: Swift.Error>: ObservableTask {
     }
     
     private init(
-        base: _opaque_ObservableTask,
+        base: any ObservableTask,
         getStatusImpl: @escaping () -> Status,
         getObjectWillChangeImpl: @escaping () -> AnyPublisher<Status, Never>
     ) {
@@ -67,7 +67,7 @@ extension AnyTask {
 }
 
 extension AnyTask where Success == Any, Error == Swift.Error {
-    public convenience init(_opaque base: _opaque_ObservableTask) {
+    public convenience init(erasing base: any ObservableTask) {
         self.init(
             base: base,
             getStatusImpl: { base._opaque_status },

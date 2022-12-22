@@ -360,7 +360,7 @@ extension TaskButton: ActionLabelView where Error == Swift.Error, Success == Voi
     }
 }
 
-// MARK: - Auxiliary Implementation -
+// MARK: - Auxiliary -
 
 struct GenericTaskButtonError: LocalizedError {
     let base: Swift.Error

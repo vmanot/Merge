@@ -61,8 +61,8 @@ extension Task where Failure == Error {
     @discardableResult
     public static func retrying(
         priority: TaskPriority? = nil,
-        maxRetryCount: Int = 3,
-        retryDelay: DispatchTimeInterval,
+        maxRetryCount: Int,
+        retryDelay: DispatchTimeInterval? = nil,
         operation: @escaping () async throws -> Success
     ) -> Task {
         Task(priority: priority) {
@@ -70,7 +70,9 @@ extension Task where Failure == Error {
                 do {
                     return try await operation()
                 } catch {
-                    try await Task<Never, Never>.sleep(retryDelay)
+                    if let retryDelay = retryDelay {
+                        try await Task<Never, Never>.sleep(retryDelay)
+                    }
                     
                     continue
                 }
