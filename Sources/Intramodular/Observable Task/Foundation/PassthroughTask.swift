@@ -21,16 +21,15 @@ open class PassthroughTask<Success, Error: Swift.Error>: ObservableTask {
         statusValueSubject.value
     }
     
-    public var objectWillChange: AnyPublisher<Status, Never> {
-        statusValueSubject
-            .receive(on: MainThreadScheduler.shared)
-            .eraseToAnyPublisher()
-    }
+    public let objectWillChange: AnyPublisher<Status, Never>
     
     public let progress = Progress()
     
     public required init(body: @escaping Body) {
         self.body = body
+        self.objectWillChange = statusValueSubject
+            .receive(on: MainThreadScheduler.shared)
+            .eraseToAnyPublisher()
     }
     
     public convenience init() {
@@ -114,13 +113,19 @@ open class PassthroughTask<Success, Error: Swift.Error>: ObservableTask {
         _ attemptToFulfill: @escaping (@escaping (Result<Success, Error>) -> Void) -> AnyCancellable
     ) {
         self.init { (task: PassthroughTask<Success, Error>) -> AnyCancellable in
+            var capturedTask: PassthroughTask? = task
+
             return attemptToFulfill { result in
+                assert(capturedTask != nil)
+
                 switch result {
                     case .success(let value):
-                        task.succeed(with: value)
+                        capturedTask?.succeed(with: value)
                     case .failure(let value):
-                        task.fail(with: value)
+                        capturedTask?.fail(with: value)
                 }
+                
+                capturedTask = nil
             }
         }
     }
@@ -129,13 +134,19 @@ open class PassthroughTask<Success, Error: Swift.Error>: ObservableTask {
         _ attemptToFulfill: @escaping (@escaping (Result<Success, Error>) -> Void) -> Void
     ) {
         self.init { (task: PassthroughTask<Success, Error>) -> AnyCancellable in
-            attemptToFulfill { [weak task] result in
+            var capturedTask: PassthroughTask? = task
+            
+            attemptToFulfill { result in
+                assert(capturedTask != nil)
+                
                 switch result {
                     case .success(let value):
-                        task?.succeed(with: value)
+                        capturedTask?.succeed(with: value)
                     case .failure(let value):
-                        task?.fail(with: value)
+                        capturedTask?.fail(with: value)
                 }
+                
+                capturedTask = nil
             }
             
             return .init(EmptyCancellable())
@@ -156,16 +167,16 @@ open class PassthroughTask<Success, Error: Swift.Error>: ObservableTask {
     
     required convenience public init(
         priority: TaskPriority? = nil,
-        action: @escaping @Sendable () async -> Success
+        operation: @escaping @Sendable () async -> Success
     ) where Error == Never {
-        self.init(publisher: Future.async(priority: priority, execute: action))
+        self.init(publisher: Future.async(priority: priority, execute: operation))
     }
     
     required convenience public init(
         priority: TaskPriority? = nil,
-        action: @escaping @Sendable () async throws -> Success
+        operation: @escaping @Sendable () async throws -> Success
     ) where Error == Swift.Error {
-        self.init(publisher: Future.async(priority: priority, execute: action))
+        self.init(publisher: Future.async(priority: priority, execute: operation))
     }
 }
 
@@ -183,32 +194,6 @@ extension PassthroughTask where Success == Void {
     
     final public class func action(_ action: @escaping () -> Void) -> Self {
         .action({ _ in action() })
-    }
-}
-
-extension PassthroughTask where Success == Void, Error == Swift.Error {
-    final public class func action(
-        @_implicitSelfCapture _ action: @escaping @Sendable () -> Void
-    ) -> Self {
-        self.init(action: action)
-    }
-    
-    final public class func action(
-        @_implicitSelfCapture _ action: @escaping @Sendable () throws -> Void
-    ) -> Self {
-        self.init(action: action)
-    }
-    
-    final public class func action(
-        @_implicitSelfCapture _ action: @escaping @MainActor @Sendable () async -> Void
-    ) -> Self {
-        self.init(priority: nil, action: action)
-    }
-    
-    final public class func action(
-        @_implicitSelfCapture _ action: @escaping @MainActor @Sendable () async throws -> Void
-    ) -> Self {
-        self.init(priority: nil, action: action)
     }
 }
 

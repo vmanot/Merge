@@ -76,6 +76,22 @@ extension AnyTask where Success == Any, Error == Swift.Error {
     }
 }
 
+extension AnyTask {
+    convenience public init(
+        priority: TaskPriority? = nil,
+        operation: @escaping @Sendable () async -> Success
+    ) where Error == Never {
+        self.init(PassthroughTask(priority: priority, operation: operation))
+    }
+    
+    convenience public init(
+        priority: TaskPriority? = nil,
+        operation: @escaping @Sendable () async throws -> Success
+    ) where Error == Swift.Error {
+        self.init(PassthroughTask(priority: priority, operation: operation))
+    }
+}
+
 // MARK: - API -
 
 extension AnyTask {

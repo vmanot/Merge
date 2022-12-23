@@ -50,7 +50,9 @@ public struct ObservableTaskOutputPublisher<Base: ObservableTask>: Publisher {
             })
             .receive(subscriber: subscriber)
         
-        base.start()
+        if base.status != .active {
+            base.start()
+        }
     }
 }
 
