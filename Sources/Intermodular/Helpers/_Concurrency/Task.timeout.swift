@@ -16,25 +16,7 @@ extension Task where Failure == Error {
         operation: @escaping @Sendable () async throws -> Success
     ) {
         self = Task(priority: priority) {
-            let result = try await withThrowingTaskGroup(of: Success.self) { group -> Success in
-                group.addTask(priority: priority, operation: operation)
-                
-                group.addTask(priority: priority) {
-                    try await _Concurrency.Task.sleep(nanoseconds: UInt64(timeout * 1_000_000_000))
-                    
-                    throw TimeoutError()
-                }
-                
-                guard let success = try await group.next() else {
-                    throw _Concurrency.CancellationError()
-                }
-                
-                group.cancelAll()
-                
-                return success
-            }
-            
-            return result
+            try await _runOperationWithTimeout(operation, timeout: timeout)
         }
     }
         
@@ -78,10 +60,16 @@ private func _runOperationWithTimeout<Success>(
     timeout: TimeInterval
 ) async throws -> Success {
     try await withThrowingTaskGroup(of: Success.self) { group -> Success in
-        group.addTask(operation: { try await operation() })
+        await withUnsafeContinuation { continuation in
+            group.addTask {
+                continuation.resume()
+
+                return try await operation()
+            }
+        }
         
         group.addTask {
-            try await _Concurrency.Task.sleep(nanoseconds: UInt64(timeout * 1_000_000_000))
+            try await Task.sleep(nanoseconds: UInt64(timeout * 1_000_000_000))
             
             throw Task<Success, Error>.TimeoutError()
         }

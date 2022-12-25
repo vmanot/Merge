@@ -9,13 +9,13 @@ import Swallow
 public struct ObservableTaskOutputPublisher<Base: ObservableTask>: Publisher {
     public typealias Output = TaskOutput<Base.Success, Base.Error>
     public typealias Failure = TaskFailure<Base.Error>
-
+    
     private let base: Base
-
+    
     public init(_ base: Base) {
         self.base = base
     }
-
+    
     public func receive<S: Subscriber>(subscriber: S) where S.Input == Output, S.Failure == Failure {
         guard !base.status.isTerminal else {
             if let output = base.status.output {
@@ -29,7 +29,7 @@ public struct ObservableTaskOutputPublisher<Base: ObservableTask>: Publisher {
                 return assertionFailure()
             }
         }
-
+        
         base.objectWillChange
             .filter({ $0 != .idle })
             .setFailureType(to: Failure.self)
@@ -43,7 +43,7 @@ public struct ObservableTaskOutputPublisher<Base: ObservableTask>: Publisher {
                         .eraseToAnyPublisher()
                 } else {
                     assertionFailure()
-
+                    
                     return Fail<Output, Failure>(error: .canceled)
                         .eraseToAnyPublisher()
                 }
