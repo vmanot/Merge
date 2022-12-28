@@ -9,41 +9,30 @@ import Swallow
 
 /// An observable task is a token of activity with status-reporting.
 public protocol ObservableTask: _opaque_ObservableTask, Identifiable, ObservableObject where
-    ObjectWillChangePublisher.Output == TaskStatus<Self.Success, Self.Error> {
+ObjectWillChangePublisher.Output == TaskStatus<Self.Success, Self.Error> {
     associatedtype Success
     associatedtype Error: Swift.Error
-
+    
     /// The status of this task.
     var status: TaskStatus<Success, Error> { get }
-        
+    
     /// The progress of the this task.
     var progress: Progress { get }
     
     /// Start the task.
     func start()
-        
+    
     /// Pause the task.
     func pause() throws
-        
+    
     /// Resume the task.
     func resume() throws
-        
+    
     /// Cancel the task.
     func cancel()
 }
 
 extension ObservableTask {
-    /// The result from a task, after it completes.
-    ///
-    /// - returns: The task's result.
-    public var result: TaskResult<Success, Error> {
-        get async throws {
-            XcodeRuntimeIssueLogger.default.log(.default, message: "This code is unreliable")
-            
-            return try await resultPublisher.output()
-        }
-    }
-    
     /// The successful result of a task, after it completes.
     ///
     /// - returns: The task's successful result.

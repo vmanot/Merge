@@ -29,10 +29,3 @@ public struct TaskResultPublisher<Upstream: ObservableTask>: SingleOutputPublish
     }
 }
 
-// MARK: - API -
-
-extension ObservableTask {
-    public var resultPublisher: TaskResultPublisher<Self> {
-        .init(upstream: self)
-    }
-}

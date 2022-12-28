@@ -35,6 +35,24 @@ public enum TaskResult<Success, Error: Swift.Error> {
         }
     }
     
+    public init?(from result: Result<TaskOutput<Success, Error>, TaskFailure<Error>>) {
+        switch result {
+            case .success(let output):
+                guard let success = output.value else {
+                    return nil
+                }
+                
+                self = .success(success)
+            case .failure(let failure):
+                switch failure {
+                    case .canceled:
+                        self = .canceled
+                    case .error(let error):
+                        self = .error(error)
+                }
+        }
+    }
+    
     /// Returns the success value as a throwing expression.
     public func get() throws -> Success {
         try Result(from: self).unwrap().get()

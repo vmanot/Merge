@@ -81,7 +81,7 @@ public struct PublishedBinding<Value> {
             )
         )
     }
-
+    
     public static func unsafelyUnwrapping(_ binding: @escaping () -> Binding<Value?>) -> Self {
         Self(unsafelyUnwrapping: _Binding(get: { binding().wrappedValue }, set: { binding().wrappedValue = $0 }))
     }
