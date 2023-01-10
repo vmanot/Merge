@@ -28,6 +28,7 @@ public actor TaskGraph<Key: Hashable> {
     
     private func insertTask<T>(
         withKey key: Key,
+        priority: TaskPriority? = nil,
         insertionPolicy: InsertPolicy,
         @_implicitSelfCapture operation: @escaping () async throws -> T
     ) -> Task<T, Error> {
@@ -38,7 +39,7 @@ public actor TaskGraph<Key: Hashable> {
         switch insertionPolicy {
             case .discardPrevious:
                 existingTask?.cancel()
-                result = Task.detached {
+                result = Task.detached(priority: priority) {
                     let result = try await operation()
                     
                     await self.pruneTask(withKey: key)
@@ -47,11 +48,11 @@ public actor TaskGraph<Key: Hashable> {
                 }
             case .useExisting:
                 if let existingTask = existingTask {
-                    result = Task.detached {
+                    result = Task.detached(priority: priority) {
                         try await cast(existingTask.value, to: T.self)
                     }
                 } else {
-                    result = Task.detached {
+                    result = Task.detached(priority: priority) {
                         let result = try await operation()
                         
                         await self.pruneTask(withKey: key)
@@ -68,9 +69,32 @@ public actor TaskGraph<Key: Hashable> {
     
     public func insert<T>(
         _ key: Key,
+        priority: TaskPriority? = nil,
         policy: InsertPolicy,
         @_implicitSelfCapture operation: @escaping () async throws -> T
     ) async throws -> T {
-        try await insertTask(withKey: key, insertionPolicy: policy, operation: operation).value
+        try await insertTask(
+            withKey: key,
+            priority: priority,
+            insertionPolicy: policy,
+            operation: operation
+        ).value
+    }
+    
+    @_disfavoredOverload
+    public nonisolated func insert<T>(
+        _ key: Key,
+        priority: TaskPriority? = nil,
+        policy: InsertPolicy,
+        @_implicitSelfCapture operation: @escaping () async throws -> T
+    ) {
+        Task.detached { [weak self] in
+            try await self?.insert(
+                key,
+                priority: priority,
+                policy: policy,
+                operation: operation
+            )
+        }
     }
 }
