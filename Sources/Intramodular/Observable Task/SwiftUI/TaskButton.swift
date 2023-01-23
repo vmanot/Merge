@@ -32,20 +32,25 @@ public struct TaskButton<Success, Error: Swift.Error, Label: View>: View {
         Button(action: trigger) {
             label(task?.status ?? .idle)
         }
-        .modify(if: buttonStyle != nil) {
-            $0.buttonStyle(AnyButtonStyle { configuration in
-                buttonStyle?._opaque_makeBody(
-                    configuration: TaskButtonConfiguration(
-                        label: configuration.label.eraseToAnyView(),
-                        isPressed: configuration.isPressed,
-                        isDisabled: taskDisabled,
-                        isInterruptible: taskInterruptible,
-                        isRestartable: taskRestartable,
-                        status: taskStatusDescription,
-                        lastStatus: lastTaskStatusDescription
+        .modify {
+            if let buttonStyle {
+                $0.buttonStyle { configuration in
+                    buttonStyle.makeBody(
+                        configuration: TaskButtonConfiguration(
+                            label: configuration.label.eraseToAnyView(),
+                            isPressed: configuration.isPressed,
+                            isDisabled: taskDisabled,
+                            isInterruptible: taskInterruptible,
+                            isRestartable: taskRestartable,
+                            status: taskStatusDescription,
+                            lastStatus: lastTaskStatusDescription
+                        )
                     )
-                )
-            })
+                    .eraseToAnyView()
+                }
+            } else {
+                $0
+            }
         }
         .disabled(
             false

@@ -5,11 +5,7 @@
 import Swift
 import SwiftUIX
 
-public protocol _opaque_ObservableTaskButtonStyle: DynamicProperty {
-    func _opaque_makeBody(configuration: TaskButtonConfiguration) -> AnyView
-}
-
-public protocol TaskButtonStyle: _opaque_ObservableTaskButtonStyle {
+public protocol TaskButtonStyle {
     associatedtype Body: View
     
     typealias Configuration = TaskButtonConfiguration
@@ -19,21 +15,15 @@ public protocol TaskButtonStyle: _opaque_ObservableTaskButtonStyle {
 
 // MARK: - Implementation -
 
-extension _opaque_ObservableTaskButtonStyle where Self: TaskButtonStyle {
-    public func _opaque_makeBody(configuration: TaskButtonConfiguration) -> AnyView {
-        .init(makeBody(configuration: configuration))
-    }
-}
-
 // MARK: - Auxiliary -
 
 fileprivate struct TaskButtonStyleEnvironmentKey: EnvironmentKey {
-    static let defaultValue: _opaque_ObservableTaskButtonStyle? = nil
+    static let defaultValue: (any TaskButtonStyle)? = nil
 }
 
 extension EnvironmentValues {
     @usableFromInline
-    var _taskButtonStyle: _opaque_ObservableTaskButtonStyle? {
+    var _taskButtonStyle: (any TaskButtonStyle)? {
         get {
             self[TaskButtonStyleEnvironmentKey.self]
         } set {
