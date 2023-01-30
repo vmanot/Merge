@@ -40,7 +40,9 @@ public struct PublishedObject<Value>: PropertyWrapper {
             }
             
             return object[keyPath: storageKeyPath].wrappedValue
-        } set {
+        } set {            
+            object.objectWillChange.send()
+            
             object[keyPath: storageKeyPath].wrappedValue = newValue
             object[keyPath: storageKeyPath].subscribe(_enclosingInstance: object)
         }
@@ -49,10 +51,29 @@ public struct PublishedObject<Value>: PropertyWrapper {
     private mutating func subscribe<EnclosingSelf: ObservableObject>(
         _enclosingInstance: EnclosingSelf
     ) where EnclosingSelf.ObjectWillChangePublisher: _opaque_VoidSender {
-        subscription = (wrappedValue as? (any ObservableObject))?
-            .eraseObjectWillChangePublisher()
-            .publish(to: _enclosingInstance.objectWillChange)
-            .sink()
+        do {
+            let object: (any ObservableObject)?
+
+            if let wrappedValue = wrappedValue as? (any OptionalProtocol) {
+                if let _wrappedValue = wrappedValue._wrapped {
+                    object = try! cast(_wrappedValue, to: (any ObservableObject).self)
+                } else {
+                    object = nil
+                }
+            } else {
+                object = try cast(wrappedValue, to: (any ObservableObject).self)
+            }
+            
+            if let object {
+                subscription = object
+                    .eraseObjectWillChangePublisher()
+                    .publish(to: _enclosingInstance.objectWillChange)
+                    .print()
+                    .sink()
+            }
+        } catch {
+            assertionFailure(error)
+        }
     }
 }
 
