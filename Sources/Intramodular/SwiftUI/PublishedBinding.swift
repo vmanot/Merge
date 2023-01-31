@@ -73,19 +73,6 @@ public struct PublishedBinding<Value> {
         self.lastNonNilValue = binding.wrappedValue
     }
     
-    public static func unsafelyUnwrapping<T>(_ root: T, _ keyPath: ReferenceWritableKeyPath<T, Value?>) -> Self {
-        Self(
-            unsafelyUnwrapping: _Binding(
-                get: { root[keyPath: keyPath] },
-                set: { root[keyPath: keyPath] = $0 }
-            )
-        )
-    }
-    
-    public static func unsafelyUnwrapping(_ binding: @escaping () -> Binding<Value?>) -> Self {
-        Self(unsafelyUnwrapping: _Binding(get: { binding().wrappedValue }, set: { binding().wrappedValue = $0 }))
-    }
-    
     public static subscript<EnclosingSelf: ObservableObject>(
         _enclosingInstance object: EnclosingSelf,
         wrapped wrappedKeyPath: ReferenceWritableKeyPath<EnclosingSelf, Value>,
@@ -100,5 +87,25 @@ public struct PublishedBinding<Value> {
             
             object[keyPath: storageKeyPath].wrappedValue = newValue
         }
+    }
+}
+
+extension PublishedBinding {
+    public static func unsafelyUnwrapping<T>(
+        _ root: T,
+        _ keyPath: ReferenceWritableKeyPath<T, Value?>
+    ) -> Self {
+        Self(
+            unsafelyUnwrapping: _Binding(
+                get: { root[keyPath: keyPath] },
+                set: { root[keyPath: keyPath] = $0 }
+            )
+        )
+    }
+    
+    public static func unsafelyUnwrapping(
+        _ binding: @escaping () -> Binding<Value?>
+    ) -> Self {
+        Self(unsafelyUnwrapping: _Binding(get: { binding().wrappedValue }, set: { binding().wrappedValue = $0 }))
     }
 }
