@@ -6,7 +6,7 @@ import Combine
 import Swallow
 
 /// The status of a task.
-public enum TaskStatus<Success, Error: Swift.Error>: AnyProtocol {
+public enum TaskStatus<Success, Error: Swift.Error> {
     case idle
     case active
     case paused
