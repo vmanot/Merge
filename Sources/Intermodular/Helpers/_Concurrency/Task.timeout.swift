@@ -55,8 +55,8 @@ extension Task where Failure == Error {
     }
 }
 
-private func _runOperationWithTimeout<Success>(
-    _ operation: @escaping () async throws -> Success,
+private func _runOperationWithTimeout<Success: Sendable>(
+    _ operation: @escaping @Sendable () async throws -> Success,
     timeout: TimeInterval
 ) async throws -> Success {
     try await withThrowingTaskGroup(of: Success.self) { group -> Success in

@@ -6,8 +6,8 @@ import Combine
 import Swallow
 
 /// An actor that can manage a graph of running tasks.
-public actor TaskGraph<Key: Hashable> {
-    public enum InsertPolicy {
+public actor TaskGraph<Key: Hashable & Sendable> {
+    public enum InsertPolicy: Hashable & Sendable {
         case discardPrevious
         case useExisting
     }
@@ -26,11 +26,11 @@ public actor TaskGraph<Key: Hashable> {
         tasks.removeValue(forKey: key)
     }
     
-    private func insertTask<T>(
+    private func insertTask<T: Sendable>(
         withKey key: Key,
         priority: TaskPriority? = nil,
         insertionPolicy: InsertPolicy,
-        @_implicitSelfCapture operation: @escaping () async throws -> T
+        @_implicitSelfCapture operation: @escaping @Sendable () async throws -> T
     ) -> Task<T, Error> {
         let existingTask = tasks[key]
         
@@ -67,11 +67,11 @@ public actor TaskGraph<Key: Hashable> {
         return result
     }
     
-    public func insert<T>(
+    public func insert<T: Sendable>(
         _ key: Key,
         priority: TaskPriority? = nil,
         policy: InsertPolicy,
-        @_implicitSelfCapture operation: @escaping () async throws -> T
+        @_implicitSelfCapture operation: @escaping @Sendable () async throws -> T
     ) async throws -> T {
         try await insertTask(
             withKey: key,
@@ -82,11 +82,11 @@ public actor TaskGraph<Key: Hashable> {
     }
     
     @_disfavoredOverload
-    public nonisolated func insert<T>(
+    public nonisolated func insert<T: Sendable>(
         _ key: Key,
         priority: TaskPriority? = nil,
         policy: InsertPolicy,
-        @_implicitSelfCapture operation: @escaping () async throws -> T
+        @_implicitSelfCapture operation: @escaping @Sendable () async throws -> T
     ) {
         Task.detached { [weak self] in
             try await self?.insert(

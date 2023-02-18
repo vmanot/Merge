@@ -28,7 +28,7 @@ public final class RetainUntilCancel<Child: Cancellable>: Cancellable {
     }
 }
 
-// MARK: - API -
+// MARK: - API
 
 extension Publisher {
     @discardableResult

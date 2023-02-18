@@ -55,7 +55,7 @@ extension Tasks {
     }
 }
 
-// MARK: - API -
+// MARK: - API
 
 extension ObservableTask {
     public func map<T>(_ transform: @escaping (Success) -> T) -> Tasks.Map<Self, T> {

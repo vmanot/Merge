@@ -13,9 +13,9 @@ public protocol TaskButtonStyle {
     func makeBody(configuration: TaskButtonConfiguration) -> Body
 }
 
-// MARK: - Implementation -
+// MARK: - Implementation
 
-// MARK: - Auxiliary -
+// MARK: - Auxiliary
 
 fileprivate struct TaskButtonStyleEnvironmentKey: EnvironmentKey {
     static let defaultValue: (any TaskButtonStyle)? = nil
@@ -32,7 +32,7 @@ extension EnvironmentValues {
     }
 }
 
-// MARK: - Conformances -
+// MARK: - Conformances
 
 public struct DefaultTaskButtonStyle: TaskButtonStyle {
     @inlinable
@@ -78,7 +78,7 @@ public struct ActivityIndicatorTaskButtonStyle: TaskButtonStyle {
 
 #endif
 
-// MARK: - API -
+// MARK: - API
 
 extension View {
     /// Sets the style for task buttons within this view to a task button style with a custom appearance and custom interaction behavior.
@@ -87,7 +87,7 @@ extension View {
     }
 }
 
-// MARK: - Auxiliary -
+// MARK: - Auxiliary
 
 private struct _AttachTaskButtonStyle<Style: TaskButtonStyle>: ViewModifier {
     let style: Style

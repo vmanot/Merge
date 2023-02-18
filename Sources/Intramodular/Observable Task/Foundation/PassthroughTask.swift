@@ -180,7 +180,7 @@ open class PassthroughTask<Success, Error: Swift.Error>: ObservableTask {
     }
 }
 
-// MARK: - API -
+// MARK: - API
 
 extension PassthroughTask where Success == Void {
     final public class func action(_ action: @escaping (PassthroughTask<Success, Error>) -> Void) -> Self {
@@ -197,7 +197,7 @@ extension PassthroughTask where Success == Void {
     }
 }
 
-// MARK: - Helpers -
+// MARK: - Helpers
 
 extension SingleOutputPublisher {
     public func convertToTask() -> AnyTask<Output, Failure> {

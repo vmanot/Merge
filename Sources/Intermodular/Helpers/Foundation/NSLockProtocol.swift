@@ -11,7 +11,7 @@ import Swallow
     func unlock()
 }
 
-// MARK: - Conformances -
+// MARK: - Conformances
 
 extension NSLockProtocol where Self: TestableLock {
     public func acquireOrBlock() {
@@ -27,7 +27,7 @@ extension NSLockProtocol where Self: TestableLock {
     }
 }
 
-// MARK: - Conformances -
+// MARK: - Conformances
 
 extension NSLock: NSLockProtocol {
 

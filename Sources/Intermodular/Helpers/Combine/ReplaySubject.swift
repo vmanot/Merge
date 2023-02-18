@@ -119,7 +119,7 @@ public final class ReplaySubject<Output, Failure: Error>: Subject {
     }
 }
 
-// MARK: - API -
+// MARK: - API
 
 extension Publisher {
     /// Provides a subject that shares a single subscription to the upstream publisher and replays at most `bufferSize` items emitted by that publisher
@@ -130,7 +130,7 @@ extension Publisher {
     }
 }
 
-// MARK: - Auxiliary -
+// MARK: - Auxiliary
 
 extension ReplaySubject {
     private final class Subscription<Downstream: Subscriber>: Combine.Subscription where Output == Downstream.Input, Failure == Downstream.Failure {

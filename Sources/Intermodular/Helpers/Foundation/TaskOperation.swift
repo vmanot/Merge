@@ -105,7 +105,7 @@ open class TaskOperation<Base: ObservableTask>: Operation {
     }
 }
 
-// MARK: - API -
+// MARK: - API
 
 extension ObservableTask {
     public func convertToOperation() -> TaskOperation<Self> {

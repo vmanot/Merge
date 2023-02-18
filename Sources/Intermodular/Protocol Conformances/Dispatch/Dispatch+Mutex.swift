@@ -74,7 +74,7 @@ public struct DispatchReentrantMutexDevice: ReentrantMutex, ScopedMutex {
     }
 }
 
-// MARK: - Conformances -
+// MARK: - Conformances
 
 extension DispatchMutexDevice: Initiable {
     public init() {

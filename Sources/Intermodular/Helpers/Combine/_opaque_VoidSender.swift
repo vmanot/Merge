@@ -9,7 +9,7 @@ public protocol _opaque_VoidSender: AnyObject {
     func send()
 }
 
-// MARK: - Conformances -
+// MARK: - Conformances
 
 extension CurrentValueSubject: _opaque_VoidSender where Output == Void {
     
@@ -23,7 +23,7 @@ extension PassthroughSubject: _opaque_VoidSender where Output == Void {
     
 }
 
-// MARK: - Helpers -
+// MARK: - Helpers
 
 extension Publisher where Failure == Never {
     @inlinable

@@ -27,7 +27,7 @@ extension AnyObservableObject where Output == Void, Failure == Never {
     }
 }
 
-// MARK: - Auxiliary -
+// MARK: - Auxiliary
 
 private final class _EmptyObservableObject: ObservableObject {
     

@@ -44,7 +44,7 @@ public final class AnySubject<Output, Failure: Error>: Subject {
     }
 }
 
-// MARK: - Auxiliary -
+// MARK: - Auxiliary
 
 extension Subject {
     public func eraseToAnySubject() -> AnySubject<Output, Failure> {

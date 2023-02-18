@@ -78,7 +78,7 @@ extension TaskStatusDescription {
     }
 }
 
-// MARK: - Auxiliary -
+// MARK: - Auxiliary
 
 extension TaskStatusDescription {
     public struct OpaqueError: Hashable {

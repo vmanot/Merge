@@ -56,7 +56,7 @@ public struct ObservableTaskOutputPublisher<Base: ObservableTask>: Publisher {
     }
 }
 
-// MARK: - API -
+// MARK: - API
 
 extension ObservableTask {
     public var outputPublisher: ObservableTaskOutputPublisher<Self> {

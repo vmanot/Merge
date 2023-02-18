@@ -31,7 +31,7 @@ extension Subscriptions {
     }
 }
 
-// MARK: - API -
+// MARK: - API
  
 extension Subscription {
     public func add(_ cancellable: Cancellable) -> Subscription {

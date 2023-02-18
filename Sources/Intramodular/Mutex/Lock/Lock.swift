@@ -19,7 +19,7 @@ public protocol ReentrantLock: Lock, ReentrantMutex {
     
 }
 
-// MARK: - Implementation -
+// MARK: - Implementation
 
 extension Lock {
     @discardableResult
@@ -55,7 +55,7 @@ extension TestableLock {
     }
 }
 
-// MARK: - Conformances -
+// MARK: - Conformances
 
 public final class AnyLock: Lock {
     public let base: Lock

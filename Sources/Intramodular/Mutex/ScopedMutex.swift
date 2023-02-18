@@ -49,7 +49,7 @@ public protocol MutexProtected: _opaque_MutexProtected {
     var mutex: Mutex { get }
 }
 
-// MARK: - Implementation -
+// MARK: - Implementation
 
 extension ScopedMutex {
     @discardableResult
@@ -80,7 +80,7 @@ extension ScopedReadWriteMutex {
     }
 }
 
-// MARK: - Extensions -
+// MARK: - Extensions
 
 extension ScopedMutex {
     @discardableResult
@@ -153,7 +153,7 @@ extension MutexProtected where Mutex: ScopedReadWriteMutex {
     }
 }
 
-// MARK: - Helpers -
+// MARK: - Helpers
 
 public final class MutexProtectedClosure<Mutex: ScopedMutex, Result>: MutexProtected {
     public let mutex: Mutex

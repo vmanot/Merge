@@ -14,7 +14,7 @@ public enum DarwinAtomicOperationMemoryOrder: Hashable {
     case sequentiallyConsistent
 }
 
-// MARK: - Conformances -
+// MARK: - Conformances
 
 extension DarwinAtomicOperationMemoryOrder: Codable {
     public init(from decoder: Decoder) throws {

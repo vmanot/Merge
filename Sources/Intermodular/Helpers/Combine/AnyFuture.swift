@@ -14,7 +14,7 @@ public struct AnySingleOutputPublisher<Output, Failure: Error>: SingleOutputPubl
     }
 }
 
-// MARK: - API -
+// MARK: - API
 
 extension AnySingleOutputPublisher {
     public init<P: Publisher>(_unsafe publisher: P) where P.Output == Output, P.Failure == Failure {

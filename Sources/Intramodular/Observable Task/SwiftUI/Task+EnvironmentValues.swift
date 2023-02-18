@@ -44,7 +44,7 @@ extension EnvironmentValues {
     }
 }
 
-// MARK: - API -
+// MARK: - API
 
 extension View {
     public func taskDisabled(_ disabled: Bool) -> some View {

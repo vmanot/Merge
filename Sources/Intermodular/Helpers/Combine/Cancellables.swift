@@ -103,7 +103,7 @@ extension Cancellables {
     }
 }
 
-// MARK: - API -
+// MARK: - API
 
 extension Cancellables {
     public func store(@ArrayBuilder cancellables: () -> [Cancellable]) {
@@ -169,7 +169,7 @@ extension Publisher {
     }
 }
 
-// MARK: - Conformances -
+// MARK: - Conformances
 
 extension Cancellables: ExpressibleByArrayLiteral {
     public convenience init(arrayLiteral elements: AnyCancellable...) {
@@ -179,7 +179,7 @@ extension Cancellables: ExpressibleByArrayLiteral {
     }
 }
 
-// MARK: - Auxiliary -
+// MARK: - Auxiliary
 
 extension Cancellables {
     fileprivate struct EnvironmentKey: SwiftUI.EnvironmentKey {

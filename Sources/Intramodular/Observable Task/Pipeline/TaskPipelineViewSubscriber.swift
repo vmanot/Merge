@@ -21,7 +21,7 @@ struct TaskPipelineViewSubscriber: ViewModifier {
     }
 }
 
-// MARK: - API -
+// MARK: - API
 
 extension View {
     public func onStatusChange(

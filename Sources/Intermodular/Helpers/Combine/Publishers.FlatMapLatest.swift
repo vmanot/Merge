@@ -27,7 +27,7 @@ extension Publishers {
     }
 }
 
-// MARK: - Helpers -
+// MARK: - Helpers
 
 extension Publisher {
     public func flatMapLatest<NewPublisher: Publisher>(

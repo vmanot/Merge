@@ -134,7 +134,7 @@ extension Process.Task {
     }
 }
 
-// MARK: - Initializers -
+// MARK: - Initializers
 
 extension Process.Task {
     public convenience init(
@@ -186,7 +186,7 @@ extension Process.Task {
     }
 }
 
-// MARK: - API -
+// MARK: - API
 
 extension Process.Task {
     public var terminationStatus: Int32 {

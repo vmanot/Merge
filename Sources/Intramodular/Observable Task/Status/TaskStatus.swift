@@ -15,7 +15,7 @@ public enum TaskStatus<Success, Error: Swift.Error> {
     case error(Error)
 }
 
-// MARK: - Extensions -
+// MARK: - Extensions
 
 extension TaskStatus {
     public var isTerminal: Bool {
@@ -136,7 +136,7 @@ extension TaskStatus {
     }
 }
 
-// MARK: - Conformances -
+// MARK: - Conformances
 
 extension TaskStatus: Equatable where Success: Equatable, Error: Equatable {
     
@@ -146,7 +146,11 @@ extension TaskStatus: Hashable where Success: Hashable, Error: Hashable {
     
 }
 
-// MARK: - Auxiliary -
+extension TaskStatus: Sendable where Success: Sendable {
+    
+}
+
+// MARK: - Auxiliary
 
 extension AnyTask {
     public enum _GeneralStatusComparison {
@@ -249,7 +253,7 @@ extension AnyTask {
     }
 }
 
-// MARK: - Helpers -
+// MARK: - Helpers
 
 extension ObservableTask {    
     public var hasSucceeded: Bool {

@@ -28,7 +28,7 @@ public struct TaskSuccessPublisher<Upstream: ObservableTask>: SingleOutputPublis
     }
 }
 
-// MARK: - API -
+// MARK: - API
 
 extension ObservableTask {
     /// A publisher that delivers the result of a task.

@@ -7,11 +7,11 @@ import SwiftUI
 
 /// A type-erased Task.
 public struct OpaqueTask: Sendable {
-    private let _completion: @Sendable () async throws -> Any
+    private let _completion: @Sendable () async throws -> any Sendable
     private let _cancel: @Sendable () -> Void
     
     /// Wait for the task to complete, returning (or throwing) its result.
-    public var value: Any {
+    public var value: any Sendable {
         get async throws {
             try await _completion()
         }

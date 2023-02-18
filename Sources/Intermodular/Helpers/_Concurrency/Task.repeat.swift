@@ -10,8 +10,8 @@ extension Task where Success == Void, Failure == Error {
     /// Runs the given asynchronous operation repeatedly while a given predicate evaluates to `true`.
     @discardableResult
     public static func `repeat`(
-        while predicate: @escaping () throws -> Bool,
-        maxRepetitions: Int = Int.maximum,
+        while predicate: @escaping @Sendable () throws -> Bool,
+        maxRepetitions: Int = Int.max,
         _ operation: @escaping () async throws -> Void
     ) -> Task<Success, Failure> {
         Task {

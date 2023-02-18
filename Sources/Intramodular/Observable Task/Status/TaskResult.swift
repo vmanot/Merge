@@ -83,7 +83,13 @@ extension TaskResult {
     }
 }
 
-// MARK: - API -
+// MARK: - Conformances
+
+extension TaskResult: Sendable where Success: Sendable {
+    
+}
+
+// MARK: - Supplementary API
 
 extension TaskStatus {
     public init(_ result: TaskResult<Success, Error>) {
@@ -98,7 +104,7 @@ extension TaskStatus {
     }
 }
 
-// MARK: - Auxiliary -
+// MARK: - Auxiliary
 
 extension TaskResult {
     public enum Comparison {

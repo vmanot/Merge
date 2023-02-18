@@ -44,7 +44,7 @@ extension ObservableTask {
     }
 }
 
-// MARK: - Implementation -
+// MARK: - Implementation
 
 extension _opaque_ObservableTask where Self: ObservableTask {
     public var _opaque_status: TaskStatus<Any, Swift.Error> {

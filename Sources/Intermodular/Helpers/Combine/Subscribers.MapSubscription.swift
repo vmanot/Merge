@@ -33,7 +33,7 @@ extension Subscribers {
     }
 }
 
-// MARK: - API -
+// MARK: - API
 
 extension Subscriber {
     public func mapSubscription(

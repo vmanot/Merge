@@ -13,7 +13,7 @@ public protocol SingleOutputPublisher: Publisher {
     
 }
 
-// MARK: - API -
+// MARK: - API
 
 extension SingleOutputPublisher {
     /// Asynchronously runs this publisher and awaits its output.
@@ -50,7 +50,7 @@ extension SingleOutputPublisher {
     }
 }
 
-// MARK: - Conformances -
+// MARK: - Conformances
 
 extension Deferred: SingleOutputPublisher where DeferredPublisher: SingleOutputPublisher {
     

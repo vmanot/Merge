@@ -20,7 +20,7 @@ extension TaskFailure {
     }
 }
 
-// MARK: - Conformances -
+// MARK: - Conformances
 
 extension TaskFailure: Equatable where Error: Equatable {
     
@@ -30,7 +30,7 @@ extension TaskFailure: Hashable where Error: Hashable {
     
 }
 
-// MARK: - Helpers -
+// MARK: - Helpers
 
 extension Subscribers.Completion {
     public static func failure<Error>(

@@ -134,7 +134,7 @@ public struct TaskButton<Success, Error: Swift.Error, Label: View>: View {
     }
 }
 
-// MARK: - Initializers -
+// MARK: - Initializers
 
 extension TaskButton {
     public init(
@@ -357,7 +357,7 @@ extension TaskButton where Success == Void, Error == Swift.Error {
     }
 }
 
-// MARK: - Conformances -
+// MARK: - Conformances
 
 extension TaskButton: ActionLabelView where Error == Swift.Error, Success == Void {
     public init(action: Action, label: () -> Label) {
@@ -365,7 +365,7 @@ extension TaskButton: ActionLabelView where Error == Swift.Error, Success == Voi
     }
 }
 
-// MARK: - Auxiliary -
+// MARK: - Auxiliary
 
 struct GenericTaskButtonError: LocalizedError {
     let base: Swift.Error
@@ -381,7 +381,7 @@ extension EnvironmentValues {
     }
 }
 
-// MARK: - API -
+// MARK: - API
 
 extension View {
     public func customTaskIdentifier(_ name: AnyHashable) -> some View {

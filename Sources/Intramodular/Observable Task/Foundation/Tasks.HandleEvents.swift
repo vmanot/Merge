@@ -56,7 +56,7 @@ extension Tasks {
     }
 }
 
-// MARK: - API -
+// MARK: - API
 
 extension ObservableTask {
     public func handleEvents(

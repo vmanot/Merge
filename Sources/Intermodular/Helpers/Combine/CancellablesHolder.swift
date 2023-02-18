@@ -10,7 +10,7 @@ public protocol CancellablesHolder {
     var cancellables: Cancellables { get }
 }
 
-// MARK: - Implementation -
+// MARK: - Implementation
 
 private var cancellables_objcAssociationKey: UInt = 0
 

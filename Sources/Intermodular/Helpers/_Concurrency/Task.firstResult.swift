@@ -7,7 +7,9 @@ import Dispatch
 import Swift
 
 extension Task {
-    public static func firstResult<R>(from tasks: [(() async throws -> R)]) async throws -> R? {
+    public static func firstResult<R: Sendable>(
+        from tasks: [(@Sendable () async throws -> R)]
+    ) async throws -> R? {
         return try await withThrowingTaskGroup(of: R.self) { group in
             for task in tasks {
                 group.addTask {
@@ -23,7 +25,9 @@ extension Task {
         }
     }
     
-    public static func firstResult<R>(from tasks: [Task<R, Error>]) async throws -> R? {
+    public static func firstResult<R: Sendable>(
+        from tasks: [Task<R, Error>]
+    ) async throws -> R? {
         return try await withThrowingTaskGroup(of: R.self) { group in
             for task in tasks {
                 group.addTask {

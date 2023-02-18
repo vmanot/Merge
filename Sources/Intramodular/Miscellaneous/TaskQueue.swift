@@ -44,28 +44,28 @@ public final class TaskQueue: Sendable {
             await queue.cancelAllTasks()
         }
         
-        guard TaskQueue.queueID != queue.id else {
+        guard TaskQueue.queueID?.erasedAsAnyHashable != queue.id.erasedAsAnyHashable else {
             return try await operation()
         }
         
         let semaphore = AsyncSemaphore()
         
-        let resultBox = ReferenceBox<Result<T, Error>?>(nil)
+        let resultBox = UncheckedSendable(ReferenceBox<Result<T, AnyError>?>(nil))
         
         await semaphore.wait()
         
         add {
             do {
-                resultBox.wrappedValue = try await .success(operation())
+                resultBox.wrappedValue.wrappedValue = try await .success(operation())
             } catch {
-                resultBox.wrappedValue = .failure(error)
+                resultBox.wrappedValue.wrappedValue = .failure(.init(error))
             }
             
             await semaphore.signal()
         }
         
         return try await semaphore.withCriticalScope {
-            return try resultBox.wrappedValue!.get()
+            return try resultBox.wrappedValue.wrappedValue!.get()
         }
     }
     
@@ -82,7 +82,7 @@ public final class TaskQueue: Sendable {
 
 extension TaskQueue {
     private actor _Queue: Sendable {
-        let id: AnyHashable = UUID()
+        let id: (any Hashable & Sendable) = UUID()
         
         let policy: Policy
         var previousTask: OpaqueTask? = nil
@@ -99,7 +99,7 @@ extension TaskQueue {
         func add<T: Sendable>(
             _ action: @Sendable @escaping () async throws -> T
         ) -> Task<T, Error> {
-            guard TaskQueue.queueID != id else {
+            guard TaskQueue.queueID?.erasedAsAnyHashable != id.erasedAsAnyHashable else {
                 fatalError()
             }
             
@@ -131,5 +131,5 @@ extension TaskQueue {
 
 extension TaskQueue {
     @TaskLocal
-    private static var queueID: AnyHashable?
+    private static var queueID: (any Hashable & Sendable)?
 }

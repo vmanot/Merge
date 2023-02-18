@@ -42,7 +42,7 @@ public final class ObservableArray<Element: ObservableObject>: Sequence, Observa
     }
 }
 
-// MARK: - Conformances -
+// MARK: - Conformances
 
 extension ObservableArray: Decodable where Element: Decodable {
     public convenience init(from decoder: Decoder) throws {
@@ -133,7 +133,7 @@ extension ObservableArray: RangeReplaceableCollection {
     }
 }
 
-// MARK: - Auxiliary -
+// MARK: - Auxiliary
 
 extension Array where Element: ObservableObject {
     public init(_ array: ObservableArray<Element>) {

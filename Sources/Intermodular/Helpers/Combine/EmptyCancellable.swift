@@ -15,7 +15,7 @@ public final class EmptyCancellable: Cancellable {
     }
 }
 
-// MARK: - API -
+// MARK: - API
 
 extension AnyCancellable {
     public static func empty() -> Self {

@@ -14,7 +14,7 @@ public protocol Semaphore: Mutex {
     func wait() -> WaitResult
 }
 
-// MARK: - Extensions -
+// MARK: - Extensions
 
 extension Semaphore {
     public func wait(while predicate: @autoclosure () throws -> Bool) rethrows {

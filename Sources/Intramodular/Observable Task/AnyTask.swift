@@ -92,7 +92,7 @@ extension AnyTask {
     }
 }
 
-// MARK: - API -
+// MARK: - API
 
 extension AnyTask {
     public static func failure(_ error: Error) -> AnyTask {

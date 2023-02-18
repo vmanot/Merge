@@ -13,6 +13,10 @@ public struct UncheckedSendable<Value>: @unchecked Sendable {
         self.wrappedValue = wrappedValue
     }
     
+    public init(initialValue: Value) {
+        self.wrappedValue = initialValue
+    }
+    
     public init(_ value: Value) {
         self.init(wrappedValue: value)
     }

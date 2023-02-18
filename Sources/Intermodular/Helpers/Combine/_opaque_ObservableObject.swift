@@ -11,7 +11,7 @@ public protocol _opaque_ObservableObject {
     func _opaque_objectWillChange_send() throws
 }
 
-// MARK: - Implementation -
+// MARK: - Implementation
 
 extension _opaque_ObservableObject where Self: ObservableObject {
     public var _opaque_objectWillChange: AnyObjectWillChangePublisher {
@@ -23,7 +23,7 @@ extension _opaque_ObservableObject where Self: ObservableObject {
     }
 }
 
-// MARK: - Conformances -
+// MARK: - Conformances
 
 #if canImport(CoreData)
 

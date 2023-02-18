@@ -80,7 +80,7 @@ public struct PublishedObject<Value>: PropertyWrapper {
 @available(*, deprecated, renamed: "PublishedObject")
 public typealias Observed<Value: ObservableObject> = PublishedObject<Value>
 
-// MARK: - Conditional Conformances -
+// MARK: - Conditional Conformances
 
 extension PublishedObject: Decodable where Value: Decodable & ObservableObject {
     public init(from decoder: Decoder) throws {
