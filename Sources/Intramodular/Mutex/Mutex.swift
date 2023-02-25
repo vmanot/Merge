@@ -11,4 +11,3 @@ public protocol Mutex {
 public protocol ReentrantMutex: Mutex {
     
 }
-

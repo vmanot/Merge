@@ -37,7 +37,7 @@ extension Task where Success == Void, Failure == Error {
     ) throws -> Task {
         let interval = try interval.toTimeInterval()
         
-        let _runLoop = UncheckedSendable(wrappedValue: runLoop)
+        let _runLoop = _UncheckedSendable(wrappedValue: runLoop)
         
         return _Concurrency.Task {
             try _Concurrency.Task.checkCancellation()

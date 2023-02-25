@@ -26,7 +26,7 @@ extension Publishers {
         }
         
         private final class Subscription: Combine.Subscription {
-            private let state: MutexProtectedValue<Value, OSUnfairLock>
+            private let state: MutexProtected<Value, OSUnfairLock>
             private let mutation: (Inout<Value>) -> Mutation
             private var subscriber: AnySubscriber<Output, Failure>?
             

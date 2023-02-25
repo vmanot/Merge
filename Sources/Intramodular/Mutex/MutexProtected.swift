@@ -5,7 +5,7 @@
 import Foundation
 import Swallow
 
-open class AnyMutexProtectedValue<Value> {
+open class AnyMutexProtected<Value> {
     open var unsafelyAccessedValue: Value
     
     fileprivate init(unsafelyAccessedValue: Value) {
@@ -21,8 +21,12 @@ open class AnyMutexProtectedValue<Value> {
     }
 }
 
+/// A property wrapper that guards access to a stored value using a mutex.
+///
+/// Notes:
+/// - `MutexProtected` checks whether its enclosing self is a `_MutexProtectedType` and if so, uses the enclosing self's mutex to protect the stored value.
 @propertyWrapper
-public final class MutexProtectedValue<Value, Mutex: ScopedMutex>: AnyMutexProtectedValue<Value>, @unchecked Sendable {
+public final class MutexProtected<Value, Mutex: ScopedMutex>: AnyMutexProtected<Value>, @unchecked Sendable {
     public private(set) var mutex: Mutex
     
     override public var wrappedValue: Value {
@@ -42,10 +46,18 @@ public final class MutexProtectedValue<Value, Mutex: ScopedMutex>: AnyMutexProte
     public static subscript<EnclosingSelf>(
         _enclosingInstance instance: EnclosingSelf,
         wrapped wrappedKeyPath: KeyPath<EnclosingSelf, Value>,
-        storage storageKeyPath: KeyPath<EnclosingSelf, MutexProtectedValue>
+        storage storageKeyPath: KeyPath<EnclosingSelf, MutexProtected>
     ) -> Value {
         get {
-            if let _instance = instance as? _opaque_MutexProtected, let mutex = _instance._opaque_mutex as? Mutex {
+            if let _instance = instance as? any _MutexProtectedType {
+                assert(Mutex.self == AnyLock.self) // using the enclosing instance's mutex is only supported when `Mutex` is a type-erased lock.
+                
+                guard let mutex = _instance.mutex as? Mutex else {
+                    assertionFailure()
+                    
+                    return instance[keyPath: storageKeyPath].wrappedValue
+                }
+                
                 instance[keyPath: storageKeyPath].mutex = mutex
             }
             
@@ -53,7 +65,7 @@ public final class MutexProtectedValue<Value, Mutex: ScopedMutex>: AnyMutexProte
         }
     }
     
-    public var projectedValue: MutexProtectedValue {
+    public var projectedValue: MutexProtected {
         self
     }
     
@@ -82,14 +94,14 @@ public final class MutexProtectedValue<Value, Mutex: ScopedMutex>: AnyMutexProte
     }
 }
 
-extension MutexProtectedValue {
+extension MutexProtected {
     public func map<T>(_ transform: ((Value) throws -> T)) rethrows -> T {
         return try mutex._withCriticalScopeForReading {
             return try transform(unsafelyAccessedValue)
         }
     }
     
-    public func map<Other, OtherMutex, T>(with other: MutexProtectedValue<Other, OtherMutex>, _ transform: ((Value, Other) throws -> T)) rethrows -> T {
+    public func map<Other, OtherMutex, T>(with other: MutexProtected<Other, OtherMutex>, _ transform: ((Value, Other) throws -> T)) rethrows -> T {
         return try map { value in
             try other.map { otherValue in
                 try transform(value, otherValue)
@@ -97,7 +109,7 @@ extension MutexProtectedValue {
         }
     }
     
-    public func mutate<Other, OtherMutex, T>(with other: MutexProtectedValue<Other, OtherMutex>, _ mutate: ((inout Value, inout Other) throws -> T)) rethrows -> T {
+    public func mutate<Other, OtherMutex, T>(with other: MutexProtected<Other, OtherMutex>, _ mutate: ((inout Value, inout Other) throws -> T)) rethrows -> T {
         return try self.mutate { value in
             try other.mutate { otherValue in
                 try mutate(&value, &otherValue)

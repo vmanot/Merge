@@ -6,7 +6,7 @@ import Combine
 import Swallow
 
 /// An actor that can manage a graph of running tasks.
-public actor TaskGraph<Key: Hashable & Sendable> {
+public actor TaskGraph<Key: Hashable & Sendable>: Sendable {
     public enum InsertPolicy: Hashable & Sendable {
         case discardPrevious
         case useExisting

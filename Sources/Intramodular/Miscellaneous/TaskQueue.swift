@@ -50,7 +50,7 @@ public final class TaskQueue: Sendable {
         
         let semaphore = AsyncSemaphore()
         
-        let resultBox = UncheckedSendable(ReferenceBox<Result<T, AnyError>?>(nil))
+        let resultBox = _UncheckedSendable(ReferenceBox<Result<T, AnyError>?>(nil))
         
         await semaphore.wait()
         

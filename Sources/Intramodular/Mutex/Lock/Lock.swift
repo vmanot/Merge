@@ -4,7 +4,7 @@
 
 import Swallow
 
-public protocol Lock: ScopedMutex {
+public protocol Lock: ScopedMutex, Sendable {
     func acquireOrBlock()
     func relinquish()
 }
