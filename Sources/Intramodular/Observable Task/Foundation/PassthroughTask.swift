@@ -114,10 +114,10 @@ open class PassthroughTask<Success, Error: Swift.Error>: ObservableTask {
     ) {
         self.init { (task: PassthroughTask<Success, Error>) -> AnyCancellable in
             var capturedTask: PassthroughTask? = task
-
+            
             return attemptToFulfill { result in
                 assert(capturedTask != nil)
-
+                
                 switch result {
                     case .success(let value):
                         capturedTask?.succeed(with: value)
@@ -183,7 +183,9 @@ open class PassthroughTask<Success, Error: Swift.Error>: ObservableTask {
 // MARK: - API
 
 extension PassthroughTask where Success == Void {
-    final public class func action(_ action: @escaping (PassthroughTask<Success, Error>) -> Void) -> Self {
+    final public class func action(
+        _ action: @escaping (PassthroughTask<Success, Error>) -> Void
+    ) -> Self {
         .init { (task: PassthroughTask<Success, Error>) in
             task.start()
             task.succeed(with: action(task))
@@ -192,8 +194,18 @@ extension PassthroughTask where Success == Void {
         }
     }
     
-    final public class func action(_ action: @escaping () -> Void) -> Self {
+    final public class func action(
+        _ action: @escaping () -> Void
+    ) -> Self {
         .action({ _ in action() })
+    }
+    
+    final public class func action(
+        _ action: @escaping () async -> Void
+    ) -> Self where Error == Swift.Error {
+        return Self(priority: .userInitiated) { () -> Void in
+            await action()
+        }
     }
 }
 

@@ -68,7 +68,6 @@ public struct PublishedObject<Value>: PropertyWrapper {
                 subscription = object
                     .eraseObjectWillChangePublisher()
                     .publish(to: _enclosingInstance.objectWillChange)
-                    .print()
                     .sink()
             }
         } catch {
