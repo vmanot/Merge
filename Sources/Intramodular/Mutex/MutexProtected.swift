@@ -16,6 +16,10 @@ open class AnyMutexProtected<Value> {
         fatalError()
     }
     
+    open func withCriticalScope<T>(_ read: ((Value) throws -> T)) rethrows -> T {
+        Never.materialize(reason: .abstract)
+    }
+    
     open func mutate<T>(_ mutate: ((inout Value) throws -> T)) rethrows -> T {
         Never.materialize(reason: .abstract)
     }
@@ -87,9 +91,15 @@ public final class MutexProtected<Value, Mutex: ScopedMutex>: AnyMutexProtected<
         super.init(unsafelyAccessedValue: wrappedValue)
     }
     
+    override public func withCriticalScope<T>(_ read: ((Value) throws -> T)) rethrows -> T {
+        try mutex._withCriticalScopeForReading {
+            try read(unsafelyAccessedValue)
+        }
+    }
+
     override public func mutate<T>(_ mutate: ((inout Value) throws -> T)) rethrows -> T {
-        return try mutex._withCriticalScopeForWriting {
-            return try mutate(&unsafelyAccessedValue)
+        try mutex._withCriticalScopeForWriting {
+            try mutate(&unsafelyAccessedValue)
         }
     }
 }
