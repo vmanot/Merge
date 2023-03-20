@@ -2,75 +2,25 @@
 // Copyright (c) Vatsal Manot
 //
 
-import Swift
+import Swallow
 
 public protocol _TaskExecutionDiagnostic {
     associatedtype DiagnosticResult
     
     func scope<T>(
         _ operation: () async -> T
-    ) async -> (result: T, diagnosis: AsyncValue<DiagnosticResult>)
+    ) async -> (result: T, diagnosis: _AsyncPromise<DiagnosticResult, Never>)
     
     func scope<T>(
         _ operation: () async throws -> T
-    ) async -> (result: Result<T, Error>, diagnosis: AsyncValue<DiagnosticResult>)
+    ) async -> (result: Result<T, Error>, diagnosis: _AsyncPromise<DiagnosticResult, Never>)
 }
 
-public actor AsyncValue<Value> {
-    private enum Error: Swift.Error {
-        case attemptedToSetValueMoreThanOnce
-    }
-    
-    private let semaphore = AsyncSemaphore()
-    private var receivedValue: Value?
-    private var didReceiveValue: Task<Void, Never>?
-    
-    public init() {
-        
-    }
-    
-    public init(_ value: Value) {
-        self.receivedValue = value
-    }
-    
-    public func set(_ value: Value) async throws {
-        guard self.receivedValue == nil else {
-            throw Error.attemptedToSetValueMoreThanOnce
-        }
-        
-        self.receivedValue = value
-        
-        if didReceiveValue != nil {
-            await semaphore.signal()
-        }
-    }
-    
-    public func get() async -> Value {
-        if let receivedValue = receivedValue {
-            return receivedValue
-        }
-        
-        if let didReceiveValue = didReceiveValue {
-            await didReceiveValue.value
-        } else {
-            let task = Task.detached {
-                await self.semaphore.wait()
-            }
-            
-            didReceiveValue = task
-            
-            await task.value
-        }
-        
-        return receivedValue!
-    }
-}
-
-public enum TaskDiagnostics {
+public enum _TaskDiagnostics {
     
 }
 
-extension TaskDiagnostics {
+extension _TaskDiagnostics {
     public struct Log: _TaskExecutionDiagnostic {
         public typealias DiagnosticResult = Void
         
@@ -80,7 +30,7 @@ extension TaskDiagnostics {
         
         public func scope<T>(
             _ operation: () async -> T
-        ) async -> (result: T, diagnosis: AsyncValue<DiagnosticResult>) {
+        ) async -> (result: T, diagnosis: _AsyncPromise<DiagnosticResult, Never>) {
             let result = await operation()
             
             return (result, .init(()))
@@ -88,19 +38,10 @@ extension TaskDiagnostics {
         
         public func scope<T>(
             _ operation: () async throws -> T
-        ) async -> (result: Result<T, Error>, diagnosis: AsyncValue<DiagnosticResult>) {
+        ) async -> (result: Result<T, Error>, diagnosis: _AsyncPromise<DiagnosticResult, Never>) {
             let result = await Result(catching: { try await operation() })
             
             return (result, .init(()))
         }
     }
-}
-
-private func wrapTask<T>(
-    operation: () async -> T,
-    with diagnostic: some _TaskExecutionDiagnostic
-) async -> T {
-    let (result, _) = await diagnostic.scope(operation)
-    
-    return result
 }

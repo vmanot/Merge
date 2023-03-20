@@ -11,8 +11,8 @@ public struct TaskButton<Success, Error: Swift.Error, Label: View>: View {
     private let action: () -> AnyTask<Success, Error>?
     private let label: (TaskStatus<Success, Error>) -> Label
     
-    @OptionalEnvironmentObject private var taskPipeline: TaskPipeline?
-
+    @EnvironmentObject.Optional private var taskPipeline: TaskPipeline?
+    
     @State private var currentTask: AnyTask<Success, Error>?
     
     @PersistentObject private var observedTask = OpaqueObservableTask(AnyTask<Void, Never>.just(.success(())))
@@ -27,7 +27,7 @@ public struct TaskButton<Success, Error: Swift.Error, Label: View>: View {
     @Environment(\.taskRestartable) private var taskRestartable
     
     @State private var taskRenewalSubscription: AnyCancellable?
-
+    
     public var body: some View {
         Button(action: trigger) {
             label(task?.status ?? .idle)
@@ -54,13 +54,13 @@ public struct TaskButton<Success, Error: Swift.Error, Label: View>: View {
         }
         .disabled(
             false
-                || !isEnabled
-                || taskDisabled
-                || (currentTask?.status == .finished && !taskRestartable)
-                || (currentTask?.status == .active && !taskInterruptible)
+            || !isEnabled
+            || taskDisabled
+            || (currentTask?.status == .finished && !taskRestartable)
+            || (currentTask?.status == .active && !taskInterruptible)
         )
     }
-
+    
     private var task: AnyTask<Success, Error>? {
         if let currentTask = currentTask {
             return currentTask
@@ -73,8 +73,8 @@ public struct TaskButton<Success, Error: Swift.Error, Label: View>: View {
     
     private var taskStatusDescription: TaskStatusDescription {
         task?.statusDescription
-            ?? customTaskIdentifier.flatMap({ taskPipeline?.lastStatus(forCustomTaskIdentifier: $0) })
-            ?? .idle
+        ?? customTaskIdentifier.flatMap({ taskPipeline?.lastStatus(forCustomTaskIdentifier: $0) })
+        ?? .idle
     }
     
     private var lastTaskStatusDescription: TaskStatusDescription? {
@@ -91,7 +91,7 @@ public struct TaskButton<Success, Error: Swift.Error, Label: View>: View {
     
     private func subscribe(to task: AnyTask<Success, Error>) {
         setCurrentTask(task)
-
+        
         task.objectWillChange.sink(in: taskPipeline?.cancellables ?? cancellables) { status in
             if case let .error(error) = status {
                 handleLocalizedError(error as? LocalizedError ?? GenericTaskButtonError(base: error))
@@ -122,7 +122,7 @@ public struct TaskButton<Success, Error: Swift.Error, Label: View>: View {
             }
         }
     }
-
+    
     private func setCurrentTask(_ task: AnyTask<Success, Error>?) {
         if let task = task {
             currentTask = task
@@ -186,7 +186,7 @@ extension TaskButton {
             label()
         }
     }
-
+    
     public init(
         action: @escaping @MainActor @Sendable () async throws -> Success,
         priority: TaskPriority? = .userInitiated,
@@ -316,7 +316,7 @@ extension TaskButton where Label == Text {
             Text(title)
         }
     }
-
+    
     public init<S: StringProtocol>(
         _ title: S,
         action: @escaping @MainActor @Sendable () async throws -> Success

@@ -11,7 +11,7 @@ open class PassthroughTask<Success, Error: Swift.Error>: ObservableTask {
     public typealias Body = (PassthroughTask) -> AnyCancellable
     public typealias Status = TaskStatus<Success, Error>
     
-    private let queue = DispatchQueue(label: "com.vmanot.PassthroughTask")
+    private let mutex = OSUnfairLock()
     private let body: Body
     private var bodyCancellable: AnyCancellable = .empty()
     
@@ -41,7 +41,7 @@ open class PassthroughTask<Success, Error: Swift.Error>: ObservableTask {
     }
     
     public func send(status: Status) {
-        queue.sync {
+        mutex.withCriticalScope {
             defer {
                 didSend(status: status)
             }

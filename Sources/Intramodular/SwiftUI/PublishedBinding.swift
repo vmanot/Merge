@@ -6,8 +6,9 @@ import Combine
 import Swift
 import SwiftUI
 
+@dynamicMemberLookup
 @propertyWrapper
-public struct PublishedBinding<Value> {
+public final class PublishedBinding<Value>: ObservableObject {
     struct _Binding<T> {
         let get: () -> T
         let set: (T) -> Void
@@ -37,6 +38,8 @@ public struct PublishedBinding<Value> {
             
             return base.wrappedValue ?? lastNonNilValue!
         } set {
+            objectWillChange.send()
+            
             guard !baseWasDestroyed else {
                 assert(base.wrappedValue == nil)
                 
@@ -59,38 +62,78 @@ public struct PublishedBinding<Value> {
         }
     }
     
-    private init(_ binding: _Binding<Value>) {
-        self.base = .init(
-            get: { binding.wrappedValue },
-            set: { binding.wrappedValue = $0! }
+    public var projectedValue: Binding<Value> {
+        Binding(
+            get: { self.wrappedValue },
+            set: { self.wrappedValue = $0 }
         )
-        self.cacheLastNonNilValue = false
     }
     
-    private init(unsafelyUnwrapping binding: _Binding<Value?>) {
+    private init(
+        binding: _Binding<Value?>,
+        cacheLastNonNilValue: Bool
+    ) {
         self.base = binding
-        self.cacheLastNonNilValue = true
+        self.cacheLastNonNilValue = cacheLastNonNilValue
+    }
+    
+    private convenience init(
+        unsafelyUnwrapping binding: _Binding<Value?>
+    ) {
+        self.init(binding: binding, cacheLastNonNilValue: true)
+
         self.lastNonNilValue = binding.wrappedValue
     }
     
-    public static subscript<EnclosingSelf: ObservableObject>(
+    public static subscript<EnclosingSelf>(
         _enclosingInstance object: EnclosingSelf,
         wrapped wrappedKeyPath: ReferenceWritableKeyPath<EnclosingSelf, Value>,
-        storage storageKeyPath: ReferenceWritableKeyPath<EnclosingSelf, Self>
-    ) -> Value where EnclosingSelf.ObjectWillChangePublisher == ObservableObjectPublisher {
+        storage storageKeyPath: ReferenceWritableKeyPath<EnclosingSelf, PublishedBinding<Value>>
+    ) -> Value {
         get {
             let result = object[keyPath: storageKeyPath].wrappedValue
             
             return result
         } set {
-            object.objectWillChange.send()
+            if let object = (object as? (any ObservableObject)) {
+                if let objectWillChange = ((object.objectWillChange as any Publisher) as? _opaque_VoidSender) {
+                    objectWillChange.send()
+                }
+            }
             
             object[keyPath: storageKeyPath].wrappedValue = newValue
+        }
+    }
+    
+    public subscript<Subject>(
+        dynamicMember keyPath: WritableKeyPath<Value, Subject>
+    ) -> PublishedBinding<Subject> {
+        get {
+            PublishedBinding<Subject>(
+                unsafelyUnwrapping: PublishedBinding<Subject>._Binding(
+                    get: {
+                        self.wrappedValue[keyPath: keyPath]
+                    },
+                    set: {
+                        self.base.wrappedValue?[keyPath: keyPath] = $0!
+                    }
+                )
+            )
         }
     }
 }
 
 extension PublishedBinding {
+    public convenience init(
+        get: @escaping @Sendable () -> Value,
+        set: @escaping @Sendable (Value) -> Void
+    ) {
+        self.init(
+            binding: .init(get: { get() }, set: { set($0!) }),
+            cacheLastNonNilValue: false
+        )
+    }
+    
     public static func unsafelyUnwrapping<T>(
         _ root: T,
         _ keyPath: ReferenceWritableKeyPath<T, Value?>
@@ -106,6 +149,32 @@ extension PublishedBinding {
     public static func unsafelyUnwrapping(
         _ binding: @escaping () -> Binding<Value?>
     ) -> Self {
-        Self(unsafelyUnwrapping: _Binding(get: { binding().wrappedValue }, set: { binding().wrappedValue = $0 }))
+        Self(
+            unsafelyUnwrapping: _Binding(
+                get: { binding().wrappedValue },
+                set: { binding().wrappedValue = $0 }
+            )
+        )
+    }
+    
+    @_disfavoredOverload
+    public static func unsafelyUnwrapping(
+        _ binding: @autoclosure @escaping () -> Binding<Value?>
+    ) -> Self {
+        Self(
+            unsafelyUnwrapping: _Binding(
+                get: { binding().wrappedValue },
+                set: { binding().wrappedValue = $0 }
+            )
+        )
+    }
+}
+
+extension Binding {
+    public init(_ binding: PublishedBinding<Value>) {
+        self.init(
+            get: { binding.wrappedValue },
+            set: { binding.wrappedValue = $0 }
+        )
     }
 }

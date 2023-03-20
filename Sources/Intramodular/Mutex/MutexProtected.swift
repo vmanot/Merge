@@ -20,8 +20,12 @@ open class AnyMutexProtected<Value> {
         Never.materialize(reason: .abstract)
     }
     
-    open func mutate<T>(_ mutate: ((inout Value) throws -> T)) rethrows -> T {
+    open func withCriticalRegion<T>(_ mutate: ((inout Value) throws -> T)) rethrows -> T {
         Never.materialize(reason: .abstract)
+    }
+
+    public final func mutate<T>(_ mutate: ((inout Value) throws -> T)) rethrows -> T {
+        try withCriticalRegion(mutate)
     }
 }
 
@@ -85,6 +89,10 @@ public final class MutexProtected<Value, Mutex: ScopedMutex>: AnyMutexProtected<
         super.init(unsafelyAccessedValue: wrappedValue)
     }
     
+    public convenience init<T>() where Mutex: Initiable, Value == Optional<T> {
+        self.init(wrappedValue: nil)
+    }
+    
     public init(wrappedValue: Value) where Mutex == AnyLock {
         self.mutex = .init(OSUnfairLock())
         
@@ -97,7 +105,7 @@ public final class MutexProtected<Value, Mutex: ScopedMutex>: AnyMutexProtected<
         }
     }
 
-    override public func mutate<T>(_ mutate: ((inout Value) throws -> T)) rethrows -> T {
+    override public func withCriticalRegion<T>(_ mutate: ((inout Value) throws -> T)) rethrows -> T {
         try mutex._withCriticalScopeForWriting {
             try mutate(&unsafelyAccessedValue)
         }
@@ -121,7 +129,7 @@ extension MutexProtected {
     
     public func mutate<Other, OtherMutex, T>(with other: MutexProtected<Other, OtherMutex>, _ mutate: ((inout Value, inout Other) throws -> T)) rethrows -> T {
         return try self.mutate { value in
-            try other.mutate { otherValue in
+            try other.withCriticalRegion { otherValue in
                 try mutate(&value, &otherValue)
             }
         }

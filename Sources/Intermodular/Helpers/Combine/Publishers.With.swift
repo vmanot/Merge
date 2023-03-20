@@ -42,7 +42,7 @@ extension Publishers {
                 self.mutation = mutation
                 self.subscriber = subscriber
                 
-                self.stateAccessor = Inout(getter: { self.state.assignedValue }, setter: { self.state.assignedValue = $0 })
+                self.stateAccessor = Inout(get: { self.state.assignedValue }, set: { self.state.assignedValue = $0 })
             }
             
             public func request(_ demand: Subscribers.Demand) {

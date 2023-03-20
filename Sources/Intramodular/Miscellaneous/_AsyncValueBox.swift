@@ -4,14 +4,16 @@
 
 import Swift
 
-public actor _AsyncValueBox<Value>: Sendable {
+public actor _AsyncPromiseBox<Value>: Sendable {
     public var value: Value
     
-    public init(value: Value) {
+    public init(_ value: Value) {
         self.value = value
     }
     
-    public func mutate(_ body: (inout Value) -> Void) {
+    public func withCriticalRegion<T>(
+        _ body: (inout Value) -> T
+    ) -> T {
         body(&value)
     }
 }
