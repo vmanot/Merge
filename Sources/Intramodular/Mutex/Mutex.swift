@@ -4,7 +4,7 @@
 
 import Swallow
 
-public protocol Mutex {
+public protocol Mutex: Sendable {
     
 }
 

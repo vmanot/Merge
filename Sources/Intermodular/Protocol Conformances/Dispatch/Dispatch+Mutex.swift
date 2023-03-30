@@ -5,16 +5,6 @@
 import Dispatch
 import Swallow
 
-extension DispatchGroup: ScopedMutex {
-    public func withCriticalScope<T>(_ f: (() throws -> T)) rethrows -> T {
-        enter()
-        defer {
-            leave()
-        }
-        return try f()
-    }
-}
-
 public struct DispatchMutexDevice: ScopedReadWriteMutex, @unchecked Sendable {
     @MutexProtected<DispatchQueue, OSUnfairLock>
     private var queue: DispatchQueue

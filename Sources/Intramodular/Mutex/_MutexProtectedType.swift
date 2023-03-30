@@ -14,6 +14,10 @@ public protocol _MutexProtectedType: Sendable {
     var mutex: Mutex { get }
 }
 
+extension _MutexProtectedType where Mutex: ScopedMutex {
+    public typealias _MutexProtected<Value> = Merge.MutexProtected<Value, Mutex>
+}
+
 // MARK: - Extensions
 
 extension _MutexProtectedType where Mutex: ScopedMutex {

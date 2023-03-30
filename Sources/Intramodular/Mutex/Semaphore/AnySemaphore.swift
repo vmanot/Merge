@@ -4,11 +4,11 @@
 
 import Swallow
 
-public class AnySemaphore: Semaphore {
-    public let base: Any
+public final class AnySemaphore: Semaphore {
+    public let base: any Sendable
     
-    private let signalImpl: ((Any) -> (() -> Any))
-    private let waitImpl: ((Any) -> (() -> Any))
+    private let signalImpl: @Sendable (Any) -> (() -> Any)
+    private let waitImpl: @Sendable (Any) -> (() -> Any)
     
     public init<S: Semaphore>(_ semaphore: S) {
         self.base = semaphore
