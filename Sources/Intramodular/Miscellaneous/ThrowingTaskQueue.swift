@@ -5,7 +5,7 @@
 import Combine
 import Swallow
 
-public final class TaskQueue: Sendable {
+public final class ThrowingTaskQueue: Sendable {
     public enum Policy: Sendable {
         case cancelPreviousAction
         case waitOnPreviousAction
@@ -24,7 +24,7 @@ public final class TaskQueue: Sendable {
     /// - Parameters:
     ///   - action: An async function to execute.
     public func add<T: Sendable>(
-        @_implicitSelfCapture _ action: @Sendable @escaping () async -> T
+        @_implicitSelfCapture _ action: @Sendable @escaping () async throws -> T
     ) {
         Task {
             await queue.add(action)
@@ -35,32 +35,37 @@ public final class TaskQueue: Sendable {
     ///
     /// - Parameters:
     ///   - action: An async function to execute. The function may throw and return a value.
+    /// - Throws: The error thrown by `action`. Especially throws `CancellationError` if the parent task has been cancelled.
     /// - Returns: The return value of `action`
     public func perform<T: Sendable>(
-        @_implicitSelfCapture operation: @Sendable @escaping () async -> T
-    ) async -> T {
+        @_implicitSelfCapture operation: @Sendable @escaping () async throws -> T
+    ) async throws -> T {
         if queue.policy == .cancelPreviousAction {
             await queue.cancelAllTasks()
         }
         
         guard _Queue.queueID?.erasedAsAnyHashable != queue.id.erasedAsAnyHashable else {
-            return await operation()
+            return try await operation()
         }
         
         let semaphore = _AsyncActorSemaphore()
         
-        let resultBox = _UncheckedSendable(ReferenceBox<T?>(nil))
+        let resultBox = _UncheckedSendable(ReferenceBox<Result<T, AnyError>?>(nil))
         
         await semaphore.wait()
         
         add {
-            resultBox.wrappedValue.wrappedValue = await operation()
-
+            do {
+                resultBox.wrappedValue.wrappedValue = try await .success(operation())
+            } catch {
+                resultBox.wrappedValue.wrappedValue = .failure(.init(error))
+            }
+            
             await semaphore.signal()
         }
         
-        return await semaphore.withCriticalScope {
-            return resultBox.wrappedValue.wrappedValue!
+        return try await semaphore.withCriticalScope {
+            return try resultBox.wrappedValue.wrappedValue!.get()
         }
     }
     
@@ -75,7 +80,7 @@ public final class TaskQueue: Sendable {
     }
 }
 
-extension TaskQueue {
+extension ThrowingTaskQueue {
     fileprivate actor _Queue: Sendable {
         let id: (any Hashable & Sendable) = UUID()
         
@@ -92,8 +97,8 @@ extension TaskQueue {
         }
         
         func add<T: Sendable>(
-            _ action: @Sendable @escaping () async -> T
-        ) -> Task<T, Never> {
+            _ action: @Sendable @escaping () async throws -> T
+        ) -> Task<T, Error> {
             guard Self.queueID?.erasedAsAnyHashable != id.erasedAsAnyHashable else {
                 fatalError()
             }
@@ -101,7 +106,7 @@ extension TaskQueue {
             let policy = self.policy
             let previousTask = self.previousTask
             
-            let newTask = Task { () async -> T in
+            let newTask = Task { () async throws -> T in
                 if let previousTask = previousTask {
                     if policy == .cancelPreviousAction {
                         previousTask.cancel()
@@ -110,10 +115,10 @@ extension TaskQueue {
                     _ = try? await previousTask.value
                 }
                 
-                try! Task.checkCancellation()
+                try Task.checkCancellation()
                 
-                return await Self.$queueID.withValue(id) {
-                    await action()
+                return try await Self.$queueID.withValue(id) {
+                    try await action()
                 }
             }
             
@@ -124,7 +129,7 @@ extension TaskQueue {
     }
 }
 
-extension TaskQueue._Queue {
+extension ThrowingTaskQueue._Queue {
     @TaskLocal
     fileprivate static var queueID: (any Hashable & Sendable)?
 }

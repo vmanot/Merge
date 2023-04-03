@@ -44,6 +44,19 @@ public actor _AsyncActorSemaphore: Sendable {
     }
     
     public func withCriticalScope<T>(
+        _ block: @Sendable () async -> T
+    ) async -> T {
+        await wait()
+        
+        defer {
+            signal()
+        }
+        
+        return await block()
+    }
+    
+    @_disfavoredOverload
+    public func withCriticalScope<T>(
         _ block: @Sendable () async throws -> T
     ) async rethrows -> T {
         await wait()
