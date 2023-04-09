@@ -30,7 +30,7 @@ public protocol ScopedReadWriteMutex: ScopedMutex {
 
 public protocol TestableScopedMutex: ScopedMutex {
     @discardableResult
-    func withCriticalScope<T>(attempt _: (() throws -> T)) rethrows -> T?
+    func attemptWithCriticalScope<T>(_: (() throws -> T)) rethrows -> T?
 }
 
 // MARK: - Implementation

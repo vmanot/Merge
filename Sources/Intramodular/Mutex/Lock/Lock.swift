@@ -28,7 +28,9 @@ extension Lock {
         defer {
             relinquish()
         }
+        
         acquireOrBlock()
+        
         return try f()
     }
 }
@@ -44,14 +46,18 @@ extension TestableLock {
     }
     
     @discardableResult
-    public func withCriticalScope<T>(attempt f: (() throws -> T)) rethrows -> T? {
-        guard let _ = try? acquireOrFail() else {
+    public func attemptWithCriticalScope<T>(_ f: (() throws -> T)) rethrows -> T? {
+        do {
+            try acquireOrFail()
+            
+            let result = Result(catching: { try f() })
+            
+            relinquish()
+            
+            return try result.get()
+        } catch {
             return nil
         }
-        defer {
-            relinquish()
-        }
-        return try f()
     }
 }
 

@@ -40,7 +40,20 @@ extension Task {
     }
 }
 
-// MARK: - SwiftUI -
+// MARK: - Auxiliary
+
+public protocol TaskProtocol<Success, Failure>: Sendable {
+    associatedtype Success
+    associatedtype Failure
+    
+    func cancel()
+}
+
+extension Task: TaskProtocol {
+    
+}
+
+// MARK: - SwiftUI Additions
 
 extension Task {
     /// Bind this task to a `Binding`.

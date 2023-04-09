@@ -11,13 +11,13 @@ final class TaskGraphTests: XCTestCase {
     func testUseExistingPolicy() async throws {
         let graph = TaskGraph<TestTasks>()
         
-        try await graph.insert(.foo) {
+        try graph.insert(.foo) {
             try await Task.sleep(.milliseconds(200))
             
             return 1
         }
         
-        let existingResult =  try await graph.insertAndWait(.foo, policy: .useExisting) {
+        let existingResult =  try await graph.perform(.foo, policy: .useExisting) {
             try await Task.sleep(.milliseconds(200))
             
             return 2
@@ -25,7 +25,7 @@ final class TaskGraphTests: XCTestCase {
         
         XCTAssertEqual(existingResult, 1)
         
-        let freshResult = try await graph.insertAndWait(.foo, policy: .useExisting) {
+        let freshResult = try await graph.perform(.foo, policy: .useExisting) {
             try await Task.sleep(.milliseconds(200))
             
             return 3
@@ -38,7 +38,7 @@ final class TaskGraphTests: XCTestCase {
         let graph = TaskGraph<TestTasks>()
         
         func insertLongFoo() async throws {
-            try await graph.insert(.foo) {
+            try graph.insert(.foo) {
                 try await Task.sleep(.seconds(10))
             }
         }

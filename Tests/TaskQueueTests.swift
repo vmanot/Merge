@@ -9,7 +9,7 @@ import XCTest
 
 final class TaskQueueTests: XCTestCase {
     func testReentrancy() {
-        let queue = TaskQueue()
+        let queue = ThrowingTaskQueue()
         
         queue.add {
             try await queue.perform {
@@ -19,8 +19,8 @@ final class TaskQueueTests: XCTestCase {
     }
     
     func testComplexReentrancy() {
-        let queue = TaskQueue()
-        let queue2 = TaskQueue()
+        let queue = ThrowingTaskQueue()
+        let queue2 = ThrowingTaskQueue()
 
         queue.add {
             try await queue2.perform {
