@@ -36,16 +36,8 @@ open class PassthroughTask<Success, Error: Swift.Error>: ObservableTask {
         self.init(body: { _ in .empty() })
     }
     
-    open func didSend(status: Status) {
-        
-    }
-    
     public func send(status: Status) {
-        mutex.withCriticalScope {
-            defer {
-                didSend(status: status)
-            }
-            
+        mutex.withCriticalScope {            
             switch status {
                 case .idle:
                     assertionFailure()
