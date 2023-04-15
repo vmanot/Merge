@@ -2,6 +2,7 @@
 // Copyright (c) Vatsal Manot
 //
 
+import Foundation
 import Swallow
 
 /// A type-erased shadow protocol for `Task`.

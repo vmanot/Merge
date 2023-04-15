@@ -2,6 +2,7 @@
 // Copyright (c) Vatsal Manot
 //
 
+import Foundation
 import Swallow
 
 public final class AsyncPassthroughStream<Element>: AsyncSequence, @unchecked Sendable {

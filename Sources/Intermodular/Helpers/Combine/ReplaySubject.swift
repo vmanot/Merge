@@ -3,6 +3,7 @@
 //
 
 import Combine
+import Foundation
 import Swift
 
 /// A `ReplaySubject` is a subject that can buffer one or more values.

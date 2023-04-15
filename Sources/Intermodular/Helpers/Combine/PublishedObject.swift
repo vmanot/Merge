@@ -11,6 +11,10 @@ public struct PublishedObject<Value>: PropertyWrapper {
     @MutableValueBox
     public var wrappedValue: Value
     
+    public var projectedValue: AnyPublisher<Value, Never> {
+        (wrappedValue as? any ObservableObject)?.eraseObjectWillChangePublisher().map({ _ in wrappedValue }).eraseToAnyPublisher() ?? Just(wrappedValue).eraseToAnyPublisher()
+    }
+    
     private var subscription: AnyCancellable?
     
     public init(wrappedValue: Value) where Value: ObservableObject {

@@ -3,6 +3,7 @@
 //
 
 import Combine
+import Foundation
 import Swift
 
 /// An ordered, random access collection of observable objects.

@@ -29,7 +29,7 @@ public final class _AsyncGenerationBox<Success, Failure: Error>: @unchecked Send
             _lastGeneration.flatMap({ _promises[$0] })?.fulfilledResult
         }
     }
-
+    
     public init() {
         self._generationIterator = MonotonicallyIncreasingID()
         self._lastGeneration = nil
@@ -47,7 +47,9 @@ public final class _AsyncGenerationBox<Success, Failure: Error>: @unchecked Send
             
             promise.fulfill(with: result)
             
-            _promises.removeValue(forKey: _currentGeneration)
+            if let _lastGeneration {
+                _promises.removeValue(forKey: _lastGeneration)
+            }
             
             _incrementGeneration()
         }

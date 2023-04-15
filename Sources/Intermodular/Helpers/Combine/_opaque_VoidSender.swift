@@ -27,11 +27,6 @@ extension PassthroughSubject: _opaque_VoidSender where Output == Void {
 
 extension Publisher where Failure == Never {
     @inlinable
-    public func publish(to publisher: _opaque_VoidSender) -> Publishers.HandleEvents<Self> {
-        handleEvents(receiveOutput: { [weak publisher] _ in publisher?.send() })
-    }
-    
-    @inlinable
     public func publish(to object: _opaque_ObservableObject) -> Publishers.HandleEvents<Self> {
         if let object = object as? (_opaque_ObservableObject & AnyObject) {
             return handleEvents(receiveOutput: { [weak object] _ in try! object?._opaque_objectWillChange_send() })
@@ -48,9 +43,11 @@ extension Publisher where Failure == Never {
     }
 }
 
-extension ObservableObjectPublisher {
+extension Publisher where Output == Void, Failure == Never {
     @inlinable
-    public func publish(to publisher: _opaque_VoidSender) -> Publishers.HandleEvents<ObservableObjectPublisher> {
+    public func publish(
+        to publisher: _opaque_VoidSender
+    ) -> Publishers.HandleEvents<Self> {
         handleEvents(receiveOutput: { [weak publisher] _ in publisher?.send() })
     }
 }

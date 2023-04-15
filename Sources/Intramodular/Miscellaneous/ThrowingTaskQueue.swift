@@ -3,6 +3,7 @@
 //
 
 import Combine
+import Foundation
 import Swallow
 
 public final class ThrowingTaskQueue: Sendable {

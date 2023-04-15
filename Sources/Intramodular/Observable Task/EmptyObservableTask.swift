@@ -3,6 +3,7 @@
 //
 
 import Combine
+import Foundation
 
 public final class EmptyObservableTask<Success, Error: Swift.Error>: ObservableTask {
     public var status: TaskStatus<Success, Error> {

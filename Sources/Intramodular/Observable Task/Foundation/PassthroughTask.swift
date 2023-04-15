@@ -4,6 +4,7 @@
 
 import Combine
 import Dispatch
+import Foundation
 import Swift
 
 /// A mutable task.
