@@ -7,36 +7,26 @@ import Swallow
 
 /// A type that forwards updates published from the `ObservableObject` annotated with this wrapper.
 @propertyWrapper
-public struct PublishedObject<Value>: PropertyWrapper {
+public final class PublishedObject<Value>: PropertyWrapper {
+    public let _publisher = PassthroughSubject<Void, Never>()
+    
     @MutableValueBox
     public var wrappedValue: Value
     
     public var projectedValue: AnyPublisher<Value, Never> {
-        (wrappedValue as? any ObservableObject)?.eraseObjectWillChangePublisher().map({ _ in wrappedValue }).eraseToAnyPublisher() ?? Just(wrappedValue).eraseToAnyPublisher()
+        _publisher
+            .compactMap { [weak self] in
+                self?.wrappedValue
+            }
+            .eraseToAnyPublisher()
     }
     
     private var subscription: AnyCancellable?
     
-    public init(wrappedValue: Value) where Value: ObservableObject {
-        self.wrappedValue = wrappedValue
-    }
-    
-    public init<WrappedValue: ObservableObject>(wrappedValue: WrappedValue?) where Optional<WrappedValue> == Value  {
-        self.wrappedValue = wrappedValue
-    }
-    
-    public init<P: PropertyWrapper>(wrappedValue: P) where P.WrappedValue == Value {
-        self._wrappedValue = .init(AnyMutablePropertyWrapper(unsafelyAdapting: wrappedValue))
-    }
-    
-    public init<P: MutablePropertyWrapper>(wrappedValue: P) where P.WrappedValue == Value {
-        self._wrappedValue = .init(wrappedValue)
-    }
-    
     public static subscript<EnclosingSelf: ObservableObject>(
         _enclosingInstance object: EnclosingSelf,
         wrapped wrappedKeyPath: ReferenceWritableKeyPath<EnclosingSelf, Value>,
-        storage storageKeyPath: ReferenceWritableKeyPath<EnclosingSelf, Self>
+        storage storageKeyPath: ReferenceWritableKeyPath<EnclosingSelf, PublishedObject>
     ) -> Value where EnclosingSelf.ObjectWillChangePublisher: _opaque_VoidSender {
         get {
             if object[keyPath: storageKeyPath].subscription == nil {
@@ -44,7 +34,7 @@ public struct PublishedObject<Value>: PropertyWrapper {
             }
             
             return object[keyPath: storageKeyPath].wrappedValue
-        } set {            
+        } set {
             object.objectWillChange.send()
             
             object[keyPath: storageKeyPath].wrappedValue = newValue
@@ -52,12 +42,15 @@ public struct PublishedObject<Value>: PropertyWrapper {
         }
     }
     
-    private mutating func subscribe<EnclosingSelf: ObservableObject>(
+    private func subscribe<EnclosingSelf: ObservableObject>(
         _enclosingInstance: EnclosingSelf
     ) where EnclosingSelf.ObjectWillChangePublisher: _opaque_VoidSender {
         do {
+            subscription?.cancel()
+            subscription = nil
+            
             let object: (any ObservableObject)?
-
+            
             if let wrappedValue = wrappedValue as? (any OptionalProtocol) {
                 if let _wrappedValue = wrappedValue._wrapped {
                     object = try! cast(_wrappedValue, to: (any ObservableObject).self)
@@ -68,15 +61,42 @@ public struct PublishedObject<Value>: PropertyWrapper {
                 object = try cast(wrappedValue, to: (any ObservableObject).self)
             }
             
-            if let object {
-                subscription = object
-                    .eraseObjectWillChangePublisher()
-                    .publish(to: _enclosingInstance.objectWillChange)
-                    .sink()
+            guard let object else {
+                return 
             }
+           
+            subscription = object
+                .eraseObjectWillChangePublisher()
+                .publish(to: _enclosingInstance.objectWillChange)
+                .publish(to: _publisher)
+                .sink()
         } catch {
             assertionFailure(error)
         }
+    }
+    
+    public init(
+        wrappedValue: Value
+    ) where Value: ObservableObject {
+        self.wrappedValue = wrappedValue
+    }
+    
+    public init<WrappedValue: ObservableObject>(
+        wrappedValue: WrappedValue?
+    ) where Optional<WrappedValue> == Value  {
+        self.wrappedValue = wrappedValue
+    }
+    
+    public init<P: PropertyWrapper>(
+        wrappedValue: P
+    ) where P.WrappedValue == Value {
+        self._wrappedValue = .init(AnyMutablePropertyWrapper(unsafelyAdapting: wrappedValue))
+    }
+    
+    public init<P: MutablePropertyWrapper>(
+        wrappedValue: P
+    ) where P.WrappedValue == Value {
+        self._wrappedValue = .init(wrappedValue)
     }
 }
 
@@ -86,7 +106,7 @@ public typealias Observed<Value: ObservableObject> = PublishedObject<Value>
 // MARK: - Conditional Conformances
 
 extension PublishedObject: Decodable where Value: Decodable & ObservableObject {
-    public init(from decoder: Decoder) throws {
+    public convenience init(from decoder: Decoder) throws {
         try self.init(wrappedValue: WrappedValue(from: decoder))
     }
 }

@@ -3,7 +3,7 @@
 //
 
 import Combine
-import Swift
+import Swallow
 
 public struct AnyObjectWillChangePublisher: Publisher {
     public typealias Output = Void
@@ -25,6 +25,26 @@ public struct AnyObjectWillChangePublisher: Publisher {
         
     public func receive<S: Subscriber>(subscriber: S) where S.Input == Output, S.Failure == Failure {
         base.receive(subscriber: subscriber)
+    }
+    
+    public init?(from object: AnyObject) {
+        let observableObject: (any ObservableObject)?
+        
+        if let wrappedValue = object as? (any OptionalProtocol) {
+            if let _wrappedValue = wrappedValue._wrapped {
+                observableObject = try! cast(_wrappedValue, to: (any ObservableObject).self)
+            } else {
+                observableObject = nil
+            }
+        } else {
+            observableObject = try? cast(object, to: (any ObservableObject).self)
+        }
+        
+        guard let observableObject = observableObject else {
+            return nil
+        }
+        
+        self.init(from: observableObject)
     }
 }
 

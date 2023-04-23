@@ -4,7 +4,7 @@
 
 import Swallow
 
-public final class _AsyncPromise<Success, Failure: Error>: @unchecked Sendable {
+public final class _AsyncPromise<Success, Failure: Error>: ObservableObject, @unchecked Sendable {
     public typealias FulfilledValue = Result<Success, Failure>
     
     private let lock = OSUnfairLock()
@@ -51,6 +51,8 @@ public final class _AsyncPromise<Success, Failure: Error>: @unchecked Sendable {
                 return
             }
             
+            objectWillChange.send()
+
             _fulfilledValue = result
             
             _suspensions.forEach({ $0.resume(with: .success(result)) })
