@@ -10,11 +10,11 @@ public func withDependencies<Result>(
     _ updateValuesForOperation: (inout Dependencies) throws -> Void,
     operation: () throws -> Result
 ) rethrows -> Result {
-    var dependencies = Dependencies.current
+    var dependencies = Dependencies._current
     
     try updateValuesForOperation(&dependencies)
     
-    return try Dependencies.$current.withValue(dependencies) {
+    return try Dependencies.$_current.withValue(dependencies) {
         let result = try operation()
         
         return result
@@ -27,11 +27,11 @@ public func withDependencies<Result>(
     _ updateValuesForOperation: (inout Dependencies) async throws -> Void,
     operation: () async throws -> Result
 ) async rethrows -> Result {
-    var dependencies = Dependencies.current
+    var dependencies = Dependencies._current
     
     try await updateValuesForOperation(&dependencies)
     
-    return try await Dependencies.$current.withValue(dependencies) {
+    return try await Dependencies.$_current.withValue(dependencies) {
         let result = try await operation()
         
         return result

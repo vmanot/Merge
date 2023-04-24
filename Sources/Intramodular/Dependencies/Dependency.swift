@@ -17,12 +17,12 @@ public struct Dependency<Value>: _DependencyPropertyWrapperType, @unchecked Send
     
     public init<T>() where Value == Optional<T> {
         self.resolveValue = { try $0.resolve(.unkeyed(T.self)) }
-        self.initialDependencies = Dependencies.current
+        self.initialDependencies = Dependencies._current
     }
     
     public init() {
         self.resolveValue = { try $0.resolve(.unkeyed(Value.self)).unwrap() }
-        self.initialDependencies = Dependencies.current
+        self.initialDependencies = Dependencies._current
     }
         
     public var wrappedValue: Value {
@@ -40,9 +40,9 @@ public struct Dependency<Value>: _DependencyPropertyWrapperType, @unchecked Send
     }
     
     public func get() throws -> Value {
-        let dependencies = Dependencies.current.merging(with: self.initialDependencies)
+        let dependencies = Dependencies._current.merging(with: self.initialDependencies)
         
-        return try Dependencies.$current.withValue(dependencies) {
+        return try Dependencies.$_current.withValue(dependencies) {
             try resolveValue(dependencies)
         }
     }

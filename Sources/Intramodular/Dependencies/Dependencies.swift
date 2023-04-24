@@ -83,6 +83,14 @@ public struct Dependencies: @unchecked Sendable {
     }
 }
 
+extension Dependencies {
+    public static subscript<T>(unkeyed type: T.Type) -> T? {
+        get {
+            Dependencies._current[unkeyed: type]
+        }
+    }
+}
+
 // MARK: - Auxiliary
 
 public protocol DependencyKey<Value> {
@@ -92,5 +100,5 @@ public protocol DependencyKey<Value> {
 }
 
 extension Dependencies {
-    @TaskLocal internal static var current = Dependencies()
+    @TaskLocal internal static var _current = Dependencies()
 }
