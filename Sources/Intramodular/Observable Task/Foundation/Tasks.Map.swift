@@ -32,11 +32,7 @@ extension Tasks {
         public var status: TaskStatus<Success, Error> {
             upstream.status.map(transform)
         }
-        
-        public var progress: Progress {
-            upstream.progress
-        }
-        
+                
         public func start() {
             upstream.start()
         }

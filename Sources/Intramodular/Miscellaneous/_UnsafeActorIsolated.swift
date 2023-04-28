@@ -5,7 +5,7 @@
 import Combine
 import Swallow
 
-public actor _AsyncVolleyball<Value>: Sendable {
+public actor _UnsafeActorIsolated<Value>: Sendable {
     private let mutex = _AsyncActorSemaphore.Lock()
     private var stream = AsyncPassthroughStream<Value>()
     
@@ -44,7 +44,7 @@ public actor _AsyncVolleyball<Value>: Sendable {
     }
 }
 
-extension _AsyncVolleyball {
+extension _UnsafeActorIsolated {
     public func changesUntilRelinquished() async throws -> AsyncThrowingStream<Value, Error> {
         try await mutex.acquireOrFail()
         

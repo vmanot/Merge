@@ -8,13 +8,13 @@ import Swallow
 
 public final class ThrowingTaskQueue: Sendable {
     public enum Policy: Sendable {
-        case cancelPreviousAction
-        case waitOnPreviousAction
+        case cancelPrevious
+        case waitOnPrevious
     }
     
     private let queue: _Queue
     
-    public init(policy: Policy = .waitOnPreviousAction) {
+    public init(policy: Policy = .waitOnPrevious) {
         self.queue = .init(policy: policy)
     }
     
@@ -41,7 +41,7 @@ public final class ThrowingTaskQueue: Sendable {
     public func perform<T: Sendable>(
         @_implicitSelfCapture operation: @Sendable @escaping () async throws -> T
     ) async throws -> T {
-        if queue.policy == .cancelPreviousAction {
+        if queue.policy == .cancelPrevious {
             await queue.cancelAllTasks()
         }
         
@@ -109,7 +109,7 @@ extension ThrowingTaskQueue {
             
             let newTask = Task { () async throws -> T in
                 if let previousTask = previousTask {
-                    if policy == .cancelPreviousAction {
+                    if policy == .cancelPrevious {
                         previousTask.cancel()
                     }
                     

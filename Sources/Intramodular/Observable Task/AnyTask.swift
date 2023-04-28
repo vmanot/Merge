@@ -24,11 +24,7 @@ public final class AnyTask<Success, Error: Swift.Error>: ObservableTask {
     public var status: Status {
         getStatusImpl()
     }
-    
-    public var progress: Progress {
-        base.progress
-    }
-    
+        
     public var objectWillChange: ObjectWillChangePublisher {
         getObjectWillChangeImpl()
     }

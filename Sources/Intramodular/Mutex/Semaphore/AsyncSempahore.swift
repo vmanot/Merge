@@ -43,6 +43,14 @@ public actor _AsyncActorSemaphore: Sendable {
         }
     }
     
+    public func signalOrFail() throws {
+        guard count > 0 else {
+            throw EmptyError()
+        }
+        
+        signal()
+    }
+    
     public func withCriticalScope<T>(
         _ block: @Sendable () async -> T
     ) async -> T {

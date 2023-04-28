@@ -14,6 +14,7 @@ public struct Dependency<Value>: _DependencyPropertyWrapperType, @unchecked Send
     private let resolveValue: @Sendable (Dependencies) throws -> Value
     
     let initialDependencies: Dependencies
+    var assignedValue: Value?
     
     public init<T>() where Value == Optional<T> {
         self.resolveValue = { try $0.resolve(.unkeyed(T.self)) }
@@ -26,12 +27,20 @@ public struct Dependency<Value>: _DependencyPropertyWrapperType, @unchecked Send
     }
         
     public var wrappedValue: Value {
-        do {
-            return try get()
-        } catch {
-            assertionFailure(error)
+        get {
+            if let assignedValue, !_isValueNil(assignedValue) {
+                return assignedValue
+            }
             
-            return try! _unsafeDummyValue(forType: Value.self)
+            do {
+                return try get()
+            } catch {
+                assertionFailure(error)
+                
+                return try! _unsafeDummyValue(forType: Value.self)
+            }
+        } set {
+            assignedValue = newValue
         }
     }
     
@@ -40,6 +49,10 @@ public struct Dependency<Value>: _DependencyPropertyWrapperType, @unchecked Send
     }
     
     public func get() throws -> Value {
+        if let assignedValue, !_isValueNil(assignedValue) {
+            return assignedValue
+        }
+        
         let dependencies = Dependencies._current.merging(with: self.initialDependencies)
         
         return try Dependencies.$_current.withValue(dependencies) {

@@ -8,13 +8,13 @@ import Swallow
 
 public final class TaskQueue: Sendable {
     public enum Policy: Sendable {
-        case cancelPreviousAction
-        case waitOnPreviousAction
+        case cancelPrevious
+        case waitOnPrevious
     }
     
     private let queue: _Queue
     
-    public init(policy: Policy = .waitOnPreviousAction) {
+    public init(policy: Policy = .waitOnPrevious) {
         self.queue = .init(policy: policy)
     }
     
@@ -39,29 +39,55 @@ public final class TaskQueue: Sendable {
     /// - Returns: The return value of `action`
     public func perform<T: Sendable>(
         @_implicitSelfCapture operation: @Sendable @escaping () async -> T
-    ) async -> T {
-        if queue.policy == .cancelPreviousAction {
+    ) async -> Result<T, CancellationError> {
+        if queue.policy == .cancelPrevious {
             await queue.cancelAllTasks()
         }
         
         guard _Queue.queueID?.erasedAsAnyHashable != queue.id.erasedAsAnyHashable else {
-            return await operation()
+            return await .success(operation())
         }
         
         let semaphore = _AsyncActorSemaphore()
         
-        let resultBox = _UncheckedSendable(ReferenceBox<T?>(nil))
+        let resultBox = _UncheckedSendable(ReferenceBox<Result<T, CancellationError>?>(nil))
         
         await semaphore.wait()
         
         add {
-            resultBox.wrappedValue.wrappedValue = await operation()
+            guard resultBox.wrappedValue.wrappedValue == nil else {
+                assert(resultBox.wrappedValue.wrappedValue?.rightValue != nil)
+                
+                return
+            }
+            
+            do {
+                try Task.checkCancellation()
+                
+                resultBox.wrappedValue.wrappedValue = .success(await operation())
+            } catch {
+                resultBox.wrappedValue.wrappedValue = .failure(CancellationError())
+            }
 
             await semaphore.signal()
         }
         
         return await semaphore.withCriticalScope {
             return resultBox.wrappedValue.wrappedValue!
+        }
+    }
+    
+    public func perform(
+        @_implicitSelfCapture operation: @Sendable @escaping () async -> Void,
+        onCancel: @Sendable () -> Void
+    ) async {
+        let result = await perform(operation: operation)
+        
+        switch result {
+            case .success:
+                return
+            case .failure:
+                onCancel()
         }
     }
     
@@ -94,7 +120,7 @@ extension TaskQueue {
         
         func add<T: Sendable>(
             _ action: @Sendable @escaping () async -> T
-        ) -> Task<T, Never> {
+        ) -> Task<Result<T, CancellationError>, Never> {
             guard Self.queueID?.erasedAsAnyHashable != id.erasedAsAnyHashable else {
                 fatalError()
             }
@@ -102,19 +128,27 @@ extension TaskQueue {
             let policy = self.policy
             let previousTask = self.previousTask
             
-            let newTask = Task { () async -> T in
+            let newTask = Task { () async -> Result<T, CancellationError> in
                 if let previousTask = previousTask {
-                    if policy == .cancelPreviousAction {
+                    if policy == .cancelPrevious {
                         previousTask.cancel()
                     }
                     
-                    _ = try? await previousTask.value
+                    do {
+                        _ = try await previousTask.value
+                    } catch {
+                        return .failure(CancellationError()) // this assumes error is a cancellation error
+                    }
                 }
                 
-                try! Task.checkCancellation()
+                do {
+                    try Task.checkCancellation()
+                } catch {
+                    return .failure(CancellationError())
+                }
                 
                 return await Self.$queueID.withValue(id) {
-                    await action()
+                    await .success(action())
                 }
             }
             

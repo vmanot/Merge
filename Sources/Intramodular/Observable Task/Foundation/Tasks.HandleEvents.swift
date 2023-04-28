@@ -22,11 +22,7 @@ extension Tasks {
         public var status: TaskStatus<Success, Error> {
             base.status
         }
-        
-        public var progress: Progress {
-            base.progress
-        }
-        
+                
         public init(
             base: Base,
             receiveStart: (() -> Void)? = nil,

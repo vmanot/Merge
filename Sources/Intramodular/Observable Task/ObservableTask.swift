@@ -15,10 +15,7 @@ ObjectWillChangePublisher.Output == TaskStatus<Self.Success, Self.Error> {
     
     /// The status of this task.
     var status: TaskStatus<Success, Error> { get }
-    
-    /// The progress of the this task.
-    var progress: Progress { get }
-    
+        
     /// Start the task.
     func start()
     
