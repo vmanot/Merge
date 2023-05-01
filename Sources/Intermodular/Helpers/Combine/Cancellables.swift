@@ -109,6 +109,12 @@ extension Cancellables {
     public func store(@ArrayBuilder cancellables: () -> [Cancellable]) {
         cancellables().forEach({ $0.store(in: self) })
     }
+    
+    public func store<T: Cancellable>(
+        _ cancellable: () -> T
+    ) {
+        cancellable().store(in: self)
+    }
 }
 
 extension AnyCancellable {

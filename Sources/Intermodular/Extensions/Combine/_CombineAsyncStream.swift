@@ -53,18 +53,19 @@ extension _CombineAsyncStream: AsyncIteratorProtocol {
     }
 }
 
-extension Publisher where Failure == Never {
-    public var stream: AsyncStream<Output> {
+extension Publisher {
+    public func toAsyncStream() -> AsyncStream<Output> where Failure == Never {
         if #available(macOS 12.0, iOS 15.0, tvOS 15.0, watchOS 8.0, *) {
-            return values.eraseToStream()
+            return self
+                .buffer(size: 1, prefetch: .byRequest, whenFull: .dropOldest)
+                .values
+                .eraseToStream()
         } else {
             return _CombineAsyncStream(self).eraseToStream()
         }
     }
-}
-
-extension Publisher where Failure == Error {
-    public var stream: AsyncThrowingStream<Output, Failure> {
+    
+    public func toAsyncThrowingStream() -> AsyncThrowingStream<Output, Failure> where Failure == Error {
         _CombineAsyncStream(self).eraseToThrowingStream()
     }
 }

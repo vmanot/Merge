@@ -24,6 +24,13 @@ public func withDependencies<Result>(
     }
 }
 
+@discardableResult
+public func withDependencies<Result>(
+    operation: () throws -> Result
+) rethrows -> Result {
+    try withDependencies({ _ in }, operation: operation)
+}
+
 @_unsafeInheritExecutor
 @discardableResult
 public func withDependencies<Result>(
@@ -41,6 +48,14 @@ public func withDependencies<Result>(
         
         return result
     }
+}
+
+@_unsafeInheritExecutor
+@discardableResult
+public func withDependencies<Result>(
+    operation: () async throws -> Result
+) async rethrows -> Result {
+    try await withDependencies({ _ in }, operation: operation)
 }
 
 @discardableResult
@@ -106,7 +121,7 @@ extension Dependencies {
         } else if let dependencies = _DependenciesStasher(from: subject)?.dependencies {
             self = dependencies
         } else {
-            runtimeIssue("Failed to extract any dependencies from \(subject).")
+            // runtimeIssue("Failed to extract any dependencies from \(subject).")
             
             self.init()
         }

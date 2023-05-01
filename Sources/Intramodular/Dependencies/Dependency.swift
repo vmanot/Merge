@@ -25,7 +25,7 @@ public struct Dependency<Value>: _DependencyPropertyWrapperType, @unchecked Send
         self.resolveValue = { try $0.resolve(.unkeyed(Value.self)).unwrap() }
         self.initialDependencies = Dependencies._current
     }
-        
+    
     public var wrappedValue: Value {
         get {
             if let assignedValue, !_isValueNil(assignedValue) {
@@ -48,7 +48,7 @@ public struct Dependency<Value>: _DependencyPropertyWrapperType, @unchecked Send
         self
     }
     
-    public func get() throws -> Value {
+    public func _get() throws -> Value {
         if let assignedValue, !_isValueNil(assignedValue) {
             return assignedValue
         }
@@ -58,5 +58,23 @@ public struct Dependency<Value>: _DependencyPropertyWrapperType, @unchecked Send
         return try Dependencies.$_current.withValue(dependencies) {
             try resolveValue(dependencies)
         }
+    }
+}
+
+extension Dependency {
+    public func get() throws -> Value {
+        try _get()
+    }
+}
+
+extension Dependency where Value: OptionalProtocol {
+    @_disfavoredOverload
+    @available(*, unavailable)
+    public func get() throws -> Value {
+        try _get()
+    }
+    
+    public func get() throws -> Value.Wrapped {
+        try _get()._wrapped.unwrap()
     }
 }

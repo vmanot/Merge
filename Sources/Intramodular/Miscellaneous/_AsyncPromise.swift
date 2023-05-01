@@ -93,6 +93,10 @@ extension _AsyncPromise {
         fulfill(with: .success(success))
     }
     
+    public func fulfill() where Success == Void, Failure == Never {
+        fulfill(with: ())
+    }
+
     public func fulfill(with failure: Failure) {
         fulfill(with: .failure(failure))
     }

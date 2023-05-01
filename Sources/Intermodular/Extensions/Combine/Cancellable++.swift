@@ -10,3 +10,7 @@ extension Cancellable {
         AnyCancellable(self)
     }
 }
+
+extension Task: Cancellable {
+    
+}

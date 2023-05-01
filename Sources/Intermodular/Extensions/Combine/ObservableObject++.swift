@@ -15,3 +15,15 @@ extension ObservableObject {
         try cast(objectWillChange, to: (any _opaque_VoidSender).self).send()
     }
 }
+
+extension ObservableObject {
+    // FIXME: HACK!!!
+    public var _practical_objectDidChange: AnyPublisher<Void, Never> {
+        objectWillChange.delay(
+            for: .milliseconds(50),
+            scheduler: MainThreadScheduler.shared
+        )
+        .mapTo(())
+        .eraseToAnyPublisher()
+    }
+}
