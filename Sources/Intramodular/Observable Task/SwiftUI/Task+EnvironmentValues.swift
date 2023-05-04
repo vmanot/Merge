@@ -7,26 +7,14 @@ import Swift
 import SwiftUI
 
 extension EnvironmentValues {
-    struct TaskDisabledEnvironmentKey: EnvironmentKey {
-        static let defaultValue: Bool = false
-    }
-
     struct TaskInterruptibleEnvironmentKey: EnvironmentKey {
         static let defaultValue: Bool = true
     }
-
+    
     struct TaskRestartableEnvironmentKey: EnvironmentKey {
         static let defaultValue: Bool = true
     }
-
-    var taskDisabled: Bool {
-        get {
-            self[TaskDisabledEnvironmentKey.self]
-        } set {
-            self[TaskDisabledEnvironmentKey.self] = newValue
-        }
-    }
-
+        
     var taskInterruptible: Bool {
         get {
             self[TaskInterruptibleEnvironmentKey.self]
@@ -34,7 +22,7 @@ extension EnvironmentValues {
             self[TaskInterruptibleEnvironmentKey.self] = newValue
         }
     }
-
+    
     var taskRestartable: Bool {
         get {
             self[TaskRestartableEnvironmentKey.self]
@@ -47,10 +35,6 @@ extension EnvironmentValues {
 // MARK: - API
 
 extension View {
-    public func taskDisabled(_ disabled: Bool) -> some View {
-        environment(\.taskDisabled, disabled)
-    }
-
     /// Sets whether tasks controlled by this view are interruptible or not.
     ///
     /// - Parameters:
@@ -58,7 +42,7 @@ extension View {
     public func taskInterruptible(_ interruptible: Bool) -> some View {
         environment(\.taskInterruptible, interruptible)
     }
-
+    
     public func taskRestartable(_ restartable: Bool) -> some View {
         environment(\.taskRestartable, restartable)
     }

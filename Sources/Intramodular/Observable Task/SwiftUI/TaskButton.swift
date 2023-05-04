@@ -22,7 +22,6 @@ public struct TaskButton<Success, Error: Swift.Error, Label: View>: View {
     @Environment(\.customTaskIdentifier) private var customTaskIdentifier
     @Environment(\.handleLocalizedError) private var handleLocalizedError
     @Environment(\.isEnabled) private var isEnabled
-    @Environment(\.taskDisabled) private var taskDisabled
     @Environment(\.taskInterruptible) private var taskInterruptible
     @Environment(\.taskRestartable) private var taskRestartable
     
@@ -39,7 +38,6 @@ public struct TaskButton<Success, Error: Swift.Error, Label: View>: View {
                         configuration: TaskButtonConfiguration(
                             label: configuration.label.eraseToAnyView(),
                             isPressed: configuration.isPressed,
-                            isDisabled: taskDisabled,
                             isInterruptible: taskInterruptible,
                             isRestartable: taskRestartable,
                             status: taskStatusDescription,
@@ -54,10 +52,9 @@ public struct TaskButton<Success, Error: Swift.Error, Label: View>: View {
         }
         .disabled(
             false
-            || !isEnabled
-            || taskDisabled
-            || (currentTask?.status == .finished && !taskRestartable)
-            || (currentTask?.status == .active && !taskInterruptible)
+                || !isEnabled
+                || (currentTask?.status == .finished && !taskRestartable)
+                || (currentTask?.status == .active && !taskInterruptible)
         )
     }
     

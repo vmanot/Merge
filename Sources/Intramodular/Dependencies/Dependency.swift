@@ -3,6 +3,7 @@
 //
 
 import Combine
+import Diagnostics
 import Swallow
 
 protocol _DependencyPropertyWrapperType: PropertyWrapper {
@@ -10,8 +11,10 @@ protocol _DependencyPropertyWrapperType: PropertyWrapper {
 }
 
 @propertyWrapper
-public struct Dependency<Value>: _DependencyPropertyWrapperType, @unchecked Sendable {
+public struct Dependency<Value>: _DependencyPropertyWrapperType, Logging, @unchecked Sendable {
     private let resolveValue: @Sendable (Dependencies) throws -> Value
+    
+    public let logger = PassthroughLogger()
     
     let initialDependencies: Dependencies
     var assignedValue: Value?
@@ -49,14 +52,20 @@ public struct Dependency<Value>: _DependencyPropertyWrapperType, @unchecked Send
     }
     
     public func _get() throws -> Value {
-        if let assignedValue, !_isValueNil(assignedValue) {
-            return assignedValue
-        }
-        
-        let dependencies = Dependencies._current.merging(with: self.initialDependencies)
-        
-        return try Dependencies.$_current.withValue(dependencies) {
-            try resolveValue(dependencies)
+        do {
+            if let assignedValue, !_isValueNil(assignedValue) {
+                return assignedValue
+            }
+            
+            let dependencies = Dependencies._current.merging(with: self.initialDependencies)
+            
+            return try Dependencies.$_current.withValue(dependencies) {
+                try resolveValue(dependencies)
+            }
+        } catch {
+            logger.error(error)
+            
+            throw error
         }
     }
 }
