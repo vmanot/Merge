@@ -188,9 +188,13 @@ extension PassthroughTask where Success == Void {
     }
     
     final public class func action(
-        _ action: @escaping () -> Void
+        _ action: @MainActor @escaping () -> Void
     ) -> Self {
-        .action({ _ in action() })
+        .action { _ in
+            Task { @MainActor in
+                action()
+            }
+        }
     }
     
     final public class func action(
