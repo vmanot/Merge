@@ -89,6 +89,12 @@ extension Dependencies {
             Dependencies._current[unkeyed: type]
         }
     }
+    
+    public static func resolve<T>(
+        _ dependency: Dependency<T>
+    ) throws -> T {
+        try dependency.get()
+    }
 }
 
 // MARK: - Auxiliary

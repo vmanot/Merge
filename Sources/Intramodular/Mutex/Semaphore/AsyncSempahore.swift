@@ -29,7 +29,7 @@ public actor _AsyncActorSemaphore: Sendable {
         if count < limit {
             count += 1
         } else {
-            throw EmptyError()
+            throw _PlaceholderError()
         }
     }
     
@@ -45,7 +45,7 @@ public actor _AsyncActorSemaphore: Sendable {
     
     public func signalOrFail() throws {
         guard count > 0 else {
-            throw EmptyError()
+            throw _PlaceholderError()
         }
         
         signal()
