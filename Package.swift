@@ -18,7 +18,6 @@ let package = Package(
     ],
     dependencies: [
         .package(url: "https://github.com/apple/swift-async-algorithms", branch: "main"),
-        .package(url: "https://github.com/vmanot/Diagnostics.git", branch: "master"),
         .package(url: "https://github.com/vmanot/FoundationX.git", branch: "master"),
         .package(url: "https://github.com/vmanot/Swallow.git", branch: "master"),
         .package(url: "https://github.com/SwiftUIX/SwiftUIX.git", branch: "master")
@@ -28,7 +27,6 @@ let package = Package(
             name: "Merge",
             dependencies: [
                 .product(name: "AsyncAlgorithms", package: "swift-async-algorithms"),
-                "Diagnostics",
                 "FoundationX",
                 "Swallow",
                 "SwiftUIX"
