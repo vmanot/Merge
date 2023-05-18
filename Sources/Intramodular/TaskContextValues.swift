@@ -20,7 +20,7 @@ public struct TaskContextValues {
     }
 }
 
-public protocol TaskContextKey: HeterogeneousDictionaryKey<TaskContextValues> {
+public protocol TaskContextKey<Value>: HeterogeneousDictionaryKey<TaskContextValues, Self.Value> {
     static var defaultValue: Value { get }
 }
 
