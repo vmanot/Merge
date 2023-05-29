@@ -52,6 +52,20 @@ public func withDependencies<Result>(
 
 @_unsafeInheritExecutor
 @discardableResult
+public func withDependency<Dependency, Result>(
+    _ dependencyKey: WritableKeyPath<DependencyValues, Dependency>,
+    _ dependency: Dependency,
+    operation: () async throws -> Result
+) async rethrows -> Result {
+    try await withDependencies {
+        $0[dependencyKey] = dependency
+    } operation: {
+        try await operation()
+    }
+}
+
+@_unsafeInheritExecutor
+@discardableResult
 public func withDependencies<Result>(
     operation: () async throws -> Result
 ) async rethrows -> Result {
@@ -70,6 +84,19 @@ public func withDependencies<Subject, Result>(
         $0 = Dependencies.merge(lhs: dependencies, rhs: $0)
         
         try updateValuesForOperation(&$0)
+    } operation: {
+        try operation()
+    }
+}
+
+@discardableResult
+public func withDependency<Dependency, Result>(
+    _ dependencyKey: WritableKeyPath<DependencyValues, Dependency>,
+    _ dependency: Dependency,
+    operation: () throws -> Result
+) rethrows -> Result {
+    try withDependencies {
+        $0[dependencyKey] = dependency
     } operation: {
         try operation()
     }

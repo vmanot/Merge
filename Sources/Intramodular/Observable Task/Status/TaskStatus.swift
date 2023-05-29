@@ -156,7 +156,7 @@ extension AnyTask {
     public enum _GeneralStatusComparison {
         case inactive
         case finished
-
+        
         public static func == (lhs: Self, rhs: Status) -> Bool {
             switch (lhs, rhs) {
                 case (.inactive, .idle):
@@ -255,7 +255,7 @@ extension AnyTask {
 
 // MARK: - Helpers
 
-extension ObservableTask {    
+extension ObservableTask {
     public var hasSucceeded: Bool {
         if case .success = statusDescription {
             return true

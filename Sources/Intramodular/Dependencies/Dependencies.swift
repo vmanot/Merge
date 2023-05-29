@@ -125,6 +125,12 @@ extension Dependencies {
     ) throws -> T {
         try dependency.get()
     }
+    
+    public static func resolve<T>(
+        _ keyPath: KeyPath<DependencyValues, Optional<T>>
+    ) throws -> T {
+        try Self.current[unwrapping: keyPath]
+    }
 }
 
 // MARK: - Auxiliary

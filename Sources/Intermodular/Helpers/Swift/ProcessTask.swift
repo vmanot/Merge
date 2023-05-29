@@ -20,7 +20,6 @@ extension Process {
         }
         
         public let process: Process
-        public let progress = Progress() // FIXME!!!
         
         private let base = PassthroughTask<Void, Error>()
         
@@ -63,16 +62,12 @@ extension Process {
                 
                 if terminationStatus == 0 {
                     self.base.send(status: .success(()))
-                    
-                    self.progress.completedUnitCount = 1
                 } else {
                     self.base.send(status: .error(.exitFailure(.exit(status: terminationStatus))))
                 }
             }
             
-            do {
-                progress.totalUnitCount = 1
-                
+            do {                
                 try process.run()
                 
                 base.send(status: .active)

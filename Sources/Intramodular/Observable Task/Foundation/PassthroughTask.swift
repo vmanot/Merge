@@ -177,7 +177,7 @@ open class PassthroughTask<Success, Error: Swift.Error>: ObservableTask {
 
 extension PassthroughTask where Success == Void {
     final public class func action(
-        _ action: @escaping (PassthroughTask<Success, Error>) -> Void
+        @_implicitSelfCapture _ action: @escaping (PassthroughTask<Success, Error>) -> Void
     ) -> Self {
         .init { (task: PassthroughTask<Success, Error>) in
             task.start()
@@ -188,7 +188,7 @@ extension PassthroughTask where Success == Void {
     }
     
     final public class func action(
-        _ action: @MainActor @escaping () -> Void
+        @_implicitSelfCapture _ action: @MainActor @escaping () -> Void
     ) -> Self {
         .action { _ in
             Task { @MainActor in
@@ -198,7 +198,7 @@ extension PassthroughTask where Success == Void {
     }
     
     final public class func action(
-        _ action: @escaping () async -> Void
+        @_implicitSelfCapture _ action: @escaping () async -> Void
     ) -> Self where Error == Swift.Error {
         return Self(priority: .userInitiated) { () -> Void in
             await action()
@@ -208,18 +208,6 @@ extension PassthroughTask where Success == Void {
 
 // MARK: - Helpers
 
-extension SingleOutputPublisher {
-    public func convertToTask() -> AnyTask<Output, Failure> {
-        PassthroughTask(publisher: self)
-            .eraseToAnyTask()
-    }
-    
-    @_disfavoredOverload
-    public func convertToTask() -> OpaqueObservableTask {
-        convertToTask().eraseToOpaqueObservableTask()
-    }
-}
-
 extension Publisher {
     public func convertToTask() -> AnyTask<Void, Failure> {
         reduceAndMapTo(()).convertToTask()
@@ -227,6 +215,16 @@ extension Publisher {
     
     @_disfavoredOverload
     public func convertToTask() -> OpaqueObservableTask {
+        convertToTask().eraseToOpaqueObservableTask()
+    }
+    
+    public func convertToTask() -> AnyTask<Output, Failure> where Self: SingleOutputPublisher {
+        PassthroughTask(publisher: self)
+            .eraseToAnyTask()
+    }
+    
+    @_disfavoredOverload
+    public func convertToTask() -> OpaqueObservableTask where Self: SingleOutputPublisher {
         convertToTask().eraseToOpaqueObservableTask()
     }
 }
@@ -238,9 +236,7 @@ extension Task {
     ) -> AnyTask<Success, Failure> {
         publisher(priority: priority).convertToTask()
     }
-}
 
-extension Task {
     /// Convert this `Task` into an observable task.
     public func convertToObservableTask<T, U>(
         priority: TaskPriority? = nil

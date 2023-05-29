@@ -83,6 +83,50 @@ extension Task where Success == Never, Failure == Never {
     }
 }
 
+@available(macOS 13.0, iOS 16.0, watchOS 9.0, tvOS 16.0, *)
+extension Task where Failure == Never, Success == Void {
+    @discardableResult
+    public static func delayed(
+        by duration: Duration,
+        priority: TaskPriority? = nil,
+        perform fn: @escaping () async -> Success
+    ) -> Task<Success, Failure> {
+        self.init(priority: priority, operation: {
+            do {
+                try await Task<Never, Never>.sleep(for: duration)
+            } catch {
+                assertionFailure()
+            }
+            
+            return await fn()
+        })
+    }
+}
+
+#if canImport(SwiftUI)
+import SwiftUI
+
+@available(macOS 13.0, iOS 16.0, watchOS 9.0, tvOS 16.0, *)
+extension Task where Failure == Never, Success == Void {
+    @discardableResult
+    public static func delayed(
+        by duration: Duration,
+        animation: Animation,
+        perform fn: @escaping @MainActor () async -> Success
+    ) -> Task<Success, Failure> {
+        self.init(priority: .userInitiated, operation: { @MainActor in
+            do {
+                try await Task<Never, Never>.sleep(for: duration)
+            } catch {
+                assertionFailure()
+            }
+            
+            return await fn()
+        })
+    }
+}
+#endif
+
 extension Task where Failure == Error {
     @discardableResult
     public static func retrying(
