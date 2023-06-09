@@ -18,6 +18,7 @@ extension ObservableObject {
 
 extension ObservableObject {
     // FIXME: HACK!!!
+    @_spi(Private)
     public var _practical_objectDidChange: AnyPublisher<Void, Never> {
         objectWillChange.delay(
             for: .milliseconds(50),

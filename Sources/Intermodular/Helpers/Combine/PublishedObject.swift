@@ -8,9 +8,11 @@ import Swallow
 /// A type that forwards updates published from the `ObservableObject` annotated with this wrapper.
 @propertyWrapper
 public final class PublishedObject<Value>: PropertyWrapper {
-    private let _publisher = PassthroughSubject<Void, Never>()
+    public typealias _SelfType = PublishedObject<Value>
+    
+    private let _assignmentPublisher = PassthroughSubject<Void, Never>()
     private let objectWillChangeRelay = ObjectWillChangePublisherRelay()
-
+    
     @MutableValueBox
     public var _wrappedValue: Value
     
@@ -21,9 +23,13 @@ public final class PublishedObject<Value>: PropertyWrapper {
             _wrappedValue = newValue
         }
     }
+        
+    public var projectedValue: _SelfType {
+        self
+    }
     
-    public var projectedValue: AnyPublisher<Value, Never> {
-        _publisher
+    public var assignmentPublisher: AnyPublisher<Value, Never> {
+        _assignmentPublisher
             .compactMap { [weak self] in
                 self?.wrappedValue
             }
@@ -48,9 +54,11 @@ public final class PublishedObject<Value>: PropertyWrapper {
             let propertyWrapper = enclosingInstance[keyPath: storageKeyPath]
 
             enclosingInstance.objectWillChange.send()
-            
+                        
             propertyWrapper.wrappedValue = newValue
             
+            propertyWrapper._assignmentPublisher.send()
+
             propertyWrapper.objectWillChangeRelay.source = propertyWrapper.wrappedValue
             propertyWrapper.objectWillChangeRelay.destination = enclosingInstance
         }
@@ -95,9 +103,15 @@ extension PublishedObject: Encodable where Value: Encodable {
     }
 }
 
+extension PublishedObject: ObservableObject {
+    public var objectWillChange: ObservableObjectPublisher {
+        objectWillChangeRelay.objectWillChange
+    }
+}
+
 // MARK: - Auxiliary
 
-public final class ObjectWillChangePublisherRelay {
+public final class ObjectWillChangePublisherRelay: ObservableObject {
     @Weak
     public var source: Any? {
         didSet {
@@ -141,6 +155,7 @@ public final class ObjectWillChangePublisherRelay {
         
         subscription = source
             .eraseObjectWillChangePublisher()
+            .publish(to: objectWillChange)
             .publish(to: destinationObjectWillChange)
             .sink()
     }

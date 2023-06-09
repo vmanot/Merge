@@ -60,15 +60,17 @@ extension Task {
     ///
     /// - Parameters:
     ///   - taskBinding: The `Binding` to set when this task starts, and clear when this task ends/errors out.
-    public func bind(to taskBinding: Binding<OpaqueTask?>) {
+    public func bind(
+        @_UncheckedSendable to taskBinding: Binding<OpaqueTask?>
+    ) {
         let erasedTask = OpaqueTask(erasing: self)
         
         _Concurrency.Task { @MainActor in
-            taskBinding.wrappedValue = erasedTask
+            _taskBinding.wrappedValue.wrappedValue = erasedTask
             
             _ = try await self.value
             
-            taskBinding.wrappedValue = nil
+            _taskBinding.wrappedValue.wrappedValue = nil
         }
     }
 }
