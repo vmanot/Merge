@@ -4,37 +4,79 @@
 
 import Combine
 import Foundation
-import Swift
+import Swallow
 
 /// An ordered, random access collection of observable objects.
 ///
 /// `ObservableObject` subscribes to the `objectWillChange` publishers of all elements contained within it and forwards them to its own `objectWillChange` publisher.
-public final class ObservableArray<Element: ObservableObject>: Sequence, ObservableObject {
+@propertyWrapper
+public final class ObservableArray<Element: ObservableObject>: MutablePropertyWrapper, Sequence, ObservableObject {
     public let objectWillChange = ObservableObjectPublisher()
     
     private var cancellables: [ObjectIdentifier: AnyCancellable] = [:]
-
-    fileprivate var elements = [Element]() {
+    
+    fileprivate var storage: [Element] {
         willSet {
             objectWillChange.send()
-        }
-    }
-        
-    public init(_ elements: [Element]) {
-        self.elements = elements
-        
-        for element in elements {
-            subscribe(to: element)
+        } didSet {
+            resubscribeToAll()
         }
     }
     
-    public init() {
+    public var wrappedValue: [Element] {
+        get {
+            storage
+        } set {
+            storage = newValue
+        }
+    }
+    
+    private init(storage: [Element]) {
+        self.storage = storage
         
+        resubscribeToAll()
+    }
+    
+    public convenience init() {
+        self.init(storage: [])
+    }
+    
+    public convenience init(wrappedValue: [Element]) {
+        self.init(storage: wrappedValue)
+    }
+    
+    public convenience init(_ elements: [Element]) {
+        self.init(storage: elements)
+    }
+    
+    private func resubscribeToAll() {
+        let oldCancellables = self.cancellables
+        var newCancellables = [ObjectIdentifier: AnyCancellable](minimumCapacity: storage.count)
+        
+        for element in storage {
+            let id = ObjectIdentifier(element)
+            
+            if let cancellable = oldCancellables[id] {
+                newCancellables[id] = cancellable
+            } else {
+                newCancellables[id] = element.objectWillChange.sink { [weak self] _ in
+                    self?.objectWillChange.send()
+                }
+            }
+        }
+        
+        self.cancellables = newCancellables
     }
     
     private func subscribe(to element: Element) {
-        cancellables[ObjectIdentifier(element)] = element.objectWillChange.sink { [unowned self] _ in
-            self.objectWillChange.send()
+        let id = ObjectIdentifier(element)
+        
+        guard cancellables[id] == nil else {
+            return
+        }
+        
+        cancellables[id] = element.objectWillChange.sink { [weak self] _ in
+            self?.objectWillChange.send()
         }
     }
     
@@ -53,13 +95,13 @@ extension ObservableArray: Decodable where Element: Decodable {
 
 extension ObservableArray: Equatable where Element: Equatable {
     public static func == (lhs: ObservableArray, rhs: ObservableArray) -> Bool {
-        lhs.elements == rhs.elements
+        lhs.storage == rhs.storage
     }
 }
 
 extension ObservableArray: Encodable where Element: Encodable {
     public func encode(to encoder: Encoder) throws {
-        try elements.encode(to: encoder)
+        try storage.encode(to: encoder)
     }
 }
 
@@ -73,7 +115,7 @@ extension ObservableArray: ExpressibleByArrayLiteral {
 
 extension ObservableArray: Hashable where Element: Hashable {
     public func hash(into hasher: inout Hasher) {
-        hasher.combine(elements)
+        hasher.combine(storage)
     }
 }
 
@@ -82,55 +124,42 @@ extension ObservableArray: MutableCollection, RandomAccessCollection {
     public typealias Element = Array<Element>.Element
     
     public var startIndex: Index {
-        return elements.startIndex
+        storage.startIndex
     }
     
     public var endIndex: Index {
-        return elements.endIndex
+        storage.endIndex
     }
     
     public subscript(index: Index) -> Element {
         get {
-            elements[index]
+            storage[index]
         } set {
-            elements[index] = newValue
+            storage[index] = newValue
         }
     }
     
     public func index(after i: Index) -> Index {
-        elements.index(after: i)
+        storage.index(after: i)
     }
 }
 
 extension ObservableArray: RangeReplaceableCollection {
     public func append(_ element: Element) {
-        elements.append(element)
+        storage.append(element)
         
         subscribe(to: element)
     }
     
-    public func replaceSubrange<C>(
-        _ subrange: Range<Array<Element>.Index>,
+    public func replaceSubrange<C: Collection<Element>>(
+        _ subrange: Range<Index>,
         with newElements: C
-    ) where C : Collection, Array<Element>.Element == C.Element {
-        let newElementsMap = Dictionary(newElements.map({ (ObjectIdentifier($0), $0) }), uniquingKeysWith: { lhs, rhs in lhs })
-        
-        let difference = newElements.map({ ObjectIdentifier($0) }).difference(from: subrange.map({ ObjectIdentifier(self[$0]) }))
-        
-        for insertion in difference.insertions + difference.removals {
-            switch insertion {
-                case .insert(_, let element, _):
-                    subscribe(to: newElementsMap[element]!)
-                case .remove(_, let element, _):
-                    unsubscribe(from: element)
-            }
-        }
-        
-        elements.replaceSubrange(subrange, with: newElements)
+    ) {
+        storage.replaceSubrange(subrange, with: newElements)
     }
     
     public func remove(atOffsets offsets: IndexSet) {
-        elements.remove(at: offsets)
+        storage.remove(at: offsets)
     }
 }
 
@@ -138,6 +167,6 @@ extension ObservableArray: RangeReplaceableCollection {
 
 extension Array where Element: ObservableObject {
     public init(_ array: ObservableArray<Element>) {
-        self = array.elements
+        self = array.storage
     }
 }

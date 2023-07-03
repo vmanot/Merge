@@ -16,6 +16,10 @@ open class ObservableTaskBase<Success, Error: Swift.Error>: ObservableTask {
         statusValueSubject.receiveOnMainThread().eraseToAnyPublisher()
     }
     
+    public var objectDidChange: AnyPublisher<Status, Never> {
+        statusValueSubject.eraseToAnyPublisher()
+    }
+
     public var status: Status {
         statusValueSubject.value
     }

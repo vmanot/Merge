@@ -8,70 +8,32 @@ import Foundation
 import Swallow
 
 /// An observable task is a token of activity with status-reporting.
-public protocol ObservableTask: _opaque_ObservableTask, Identifiable, ObservableObject where
-ObjectWillChangePublisher.Output == TaskStatus<Self.Success, Self.Error> {
+public protocol ObservableTask<Success, Error>: Cancellable, Identifiable, ObservableObject where
+ObjectWillChangePublisher.Failure == Never, ObjectDidChangePublisher.Failure == Never {
     associatedtype Success
     associatedtype Error: Swift.Error
-    
+    associatedtype ObjectDidChangePublisher: Publisher<TaskStatus<Self.Success, Self.Error>, Never>
+
     /// The status of this task.
     var status: TaskStatus<Success, Error> { get }
+    
+    /// A publisher that emits after the object has changed.
+    var objectDidChange: ObjectDidChangePublisher { get }
         
     /// Start the task.
     func start()
-    
-    /// Pause the task.
-    func pause() throws
-    
-    /// Resume the task.
-    func resume() throws
-    
+        
     /// Cancel the task.
     func cancel()
 }
 
 extension ObservableTask {
-    /// The successful result of a task, after it completes.
-    ///
-    /// - returns: The task's successful result.
-    /// - throws: An error indicating task failure or task cancellation.
-    public var value: Success {
-        get async throws {
-            try await successPublisher.output()
-        }
+    public var statusDescription: TaskStatusDescription {
+        .init(status)
     }
 }
 
 // MARK: - Implementation
-
-extension _opaque_ObservableTask where Self: ObservableTask {
-    public var _opaque_status: TaskStatus<Any, Swift.Error> {
-        status.map({ $0 as Any }).mapError({ $0 as Swift.Error })
-    }
-    
-    public var _opaque_statusWillChange: AnyPublisher<TaskStatus<Any, Swift.Error>, Never> {
-        objectWillChange
-            .map({ $0.map({ $0 as Any }).mapError({ $0 as Swift.Error }) })
-            .eraseToAnyPublisher()
-    }
-    
-    public var statusDescription: StatusDescription {
-        .init(status)
-    }
-    
-    public var statusDescriptionWillChange: AnyPublisher<StatusDescription, Never> {
-        objectWillChange
-            .map({ StatusDescription($0) })
-            .eraseToAnyPublisher()
-    }
-    
-    public func pause() throws {
-        throw Never.Reason.unsupported
-    }
-    
-    public func resume() throws {
-        throw Never.Reason.unsupported
-    }
-}
 
 extension Subscription where Self: ObservableTask {
     public func request(_ demand: Subscribers.Demand) {

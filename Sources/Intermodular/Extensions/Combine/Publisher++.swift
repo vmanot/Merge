@@ -44,6 +44,10 @@ extension Publisher {
 }
 
 extension Publisher {
+    public func _opaque_eraseToAnyPublisher() -> any Publisher {
+        eraseToAnyPublisher()
+    }
+    
     public func _eraseToAnyPublisherAnyOutputAnyError() -> AnyPublisher<Any, Swift.Error> {
         map({ $0 as Any }).mapError({ $0 as Swift.Error }).eraseToAnyPublisher()
     }

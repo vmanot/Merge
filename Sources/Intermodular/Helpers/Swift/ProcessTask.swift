@@ -36,8 +36,12 @@ extension Process {
             base.status
         }
         
-        public var objectWillChange: AnyPublisher<TaskStatus<Success, Error>, Never> {
-            base.objectWillChange
+        public var objectWillChange: AnyObjectWillChangePublisher {
+            .init(from: base)
+        }
+        
+        public var objectDidChange: AnyPublisher<TaskStatus<Success, Error>, Never> {
+            base.objectDidChange
         }
         
         public init(process: Process) {

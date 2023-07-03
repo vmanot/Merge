@@ -16,7 +16,13 @@ public struct ObservableTaskOutputPublisher<Base: ObservableTask>: Publisher {
         self.base = base
     }
     
-    public func receive<S: Subscriber>(subscriber: S) where S.Input == Output, S.Failure == Failure {
+    public func receive(
+        subscriber: some Subscriber<Output, Failure>
+    ) {
+        defer {
+            base.start()
+        }
+        
         guard !base.status.isTerminal else {
             if let output = base.status.output {
                 return Just(output)
@@ -30,7 +36,7 @@ public struct ObservableTaskOutputPublisher<Base: ObservableTask>: Publisher {
             }
         }
         
-        base.objectWillChange
+        base.objectDidChange
             .filter({ $0 != .idle })
             .setFailureType(to: Failure.self)
             .flatMap({ status -> AnyPublisher<Output, Failure> in
@@ -48,11 +54,12 @@ public struct ObservableTaskOutputPublisher<Base: ObservableTask>: Publisher {
                         .eraseToAnyPublisher()
                 }
             })
+            .handleCancel {
+                runtimeIssue(CancellationError())
+                
+                base.cancel()
+            }
             .receive(subscriber: subscriber)
-        
-        if base.status != .active {
-            base.start()
-        }
     }
 }
 

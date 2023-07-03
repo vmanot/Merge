@@ -41,7 +41,7 @@ extension TaskStatus {
 }
 
 extension TaskStatus {
-    public var value: Success? {
+    public var successValue: Success? {
         if case let .success(success) = self {
             return success
         } else {

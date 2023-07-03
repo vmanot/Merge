@@ -6,8 +6,12 @@ import Swift
 import SwiftUI
 
 extension Task where Failure == Error {
-    fileprivate struct TimeoutError: LocalizedError {
-        var errorDescription: String? = "Task timed out before completion."
+    public struct TimeoutError: LocalizedError {
+        public let errorDescription: String? = "Task timed out before completion."
+        
+        fileprivate init() {
+            
+        }
     }
     
     public init(
@@ -25,7 +29,11 @@ extension Task where Failure == Error {
         timeout: DispatchTimeInterval,
         operation: @escaping @Sendable () async throws -> Success
     ) {
-        self.init(priority: priority, timeout: try! timeout.toTimeInterval(), operation: operation)
+        self.init(
+            priority: priority,
+            timeout: try! timeout.toTimeInterval(),
+            operation: operation
+        )
     }
     
     public static func detached(
@@ -43,7 +51,11 @@ extension Task where Failure == Error {
         timeout: DispatchTimeInterval,
         operation: @escaping @Sendable () async throws -> Success
     ) -> Task {
-        detached(priority: priority, timeout: try! timeout.toTimeInterval(), operation: operation)
+        detached(
+            priority: priority,
+            timeout: try! timeout.toTimeInterval(),
+            operation: operation
+        )
     }
 
     public func value(timeout: TimeInterval) async throws -> Success {

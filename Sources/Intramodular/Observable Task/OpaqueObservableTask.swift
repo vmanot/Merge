@@ -5,23 +5,9 @@
 import Foundation
 import Swallow
 
-/// A type-erased shadow protocol for `Task`.
-public protocol _opaque_ObservableTask: CancellablesHolder, Subscription {
-    typealias StatusDescription = TaskStatusDescription
-    
-    var _opaque_status: TaskStatus<Any, Swift.Error> { get }
-    var _opaque_statusWillChange: AnyPublisher<TaskStatus<Any, Swift.Error>, Never> { get }
-    
-    var statusDescription: StatusDescription { get }
-    var statusDescriptionWillChange: AnyPublisher<StatusDescription, Never> { get }
-    
-    func start()
-    func pause() throws
-    func resume() throws
-    func cancel()
-}
-
 public final class OpaqueObservableTask: CustomStringConvertible, ObservableTask {
+    public typealias StatusDescription = TaskStatusDescription
+
     public typealias Success = Any
     public typealias Error = Swift.Error
     
@@ -35,10 +21,14 @@ public final class OpaqueObservableTask: CustomStringConvertible, ObservableTask
         base._opaque_status
     }
     
-    public var objectWillChange: AnyPublisher<TaskStatus<Success, Error>, Never>  {
-        base._opaque_statusWillChange
+    public var objectWillChange: AnyObjectWillChangePublisher  {
+        .init(from: base)
     }
     
+    public var objectDidChange: AnyPublisher<TaskStatus<Success, Error>, Never>  {
+        base._opaque_objectDidChange
+    }
+
     public var id: some Hashable {
         base.id.eraseToAnyHashable()
     }
@@ -46,25 +36,18 @@ public final class OpaqueObservableTask: CustomStringConvertible, ObservableTask
     public var statusDescription: StatusDescription {
         base.statusDescription
     }
-    
-    public var statusDescriptionWillChange: AnyPublisher<StatusDescription, Never>{
-        base.statusDescriptionWillChange
+        
+    public init<T: ObservableTask>(erasing base: T) {
+        self.base = base
     }
     
-    public init<T: ObservableTask>(_ base: T) {
-        self.base = base
+    @available(*, deprecated, renamed: "OpaqueObservableTask.init(erasing:)")
+    public convenience init<T: ObservableTask>(_ base: T) {
+        self.init(erasing: base)
     }
     
     public func start() {
         base.start()
-    }
-    
-    public func pause() throws {
-        try base.pause()
-    }
-    
-    public func resume() throws {
-        try base.resume()
     }
     
     public func cancel() {
@@ -74,6 +57,20 @@ public final class OpaqueObservableTask: CustomStringConvertible, ObservableTask
 
 extension ObservableTask {
     public func eraseToOpaqueObservableTask() -> OpaqueObservableTask {
-        .init(self)
+        .init(erasing: self)
+    }
+}
+
+// MARK: - Auxiliary
+
+extension ObservableTask {
+    fileprivate var _opaque_status: TaskStatus<Any, Swift.Error> {
+        status.map({ $0 as Any }).mapError({ $0 as Swift.Error })
+    }
+            
+    fileprivate var _opaque_objectDidChange: AnyPublisher<TaskStatus<Any, Swift.Error>, Never> {
+        objectDidChange
+            .map({ $0.map({ $0 as Any }).mapError({ $0 as Swift.Error }) })
+            .eraseToAnyPublisher()
     }
 }

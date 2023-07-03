@@ -3,6 +3,7 @@
 //
 
 import Combine
+import Diagnostics
 import Dispatch
 import Foundation
 import Swift
@@ -12,25 +13,30 @@ open class PassthroughTask<Success, Error: Swift.Error>: ObservableTask {
     public typealias Body = (PassthroughTask) -> AnyCancellable
     public typealias Status = TaskStatus<Success, Error>
     
-    private let mutex = OSUnfairLock()
-    private let body: Body
-    private var bodyCancellable: AnyCancellable = .empty()
+    private let lock = OSUnfairLock()
     
-    private let statusValueSubject = CurrentValueSubject<Status, Never>(.idle)
+    private let _objectWillChange = _AsyncObjectWillChangePublisher()
+    private let _objectDidChange = PassthroughSubject<Status, Never>()
+    
+    private var body: Body?
+    private var isEvaluatingBody: Bool = false
+    private var bodyCancellable: AnyCancellable?
+    private var _status: Status = .idle
     
     public var status: Status {
-        statusValueSubject.value
+        lock.withCriticalScope {
+            _status
+        }
     }
     
-    public let objectWillChange: AnyPublisher<Status, Never>
-    
-    public let progress = Progress()
+    public let objectWillChange: AnyPublisher<Void, Never>
+    public let objectDidChange: AnyPublisher<Status, Never>
     
     public required init(body: @escaping Body) {
         self.body = body
-        self.objectWillChange = statusValueSubject
-            .receive(on: MainThreadScheduler.shared)
-            .eraseToAnyPublisher()
+        
+        self.objectWillChange = _objectWillChange.eraseToAnyPublisher()
+        self.objectDidChange = _objectDidChange.eraseToAnyPublisher()
     }
     
     public convenience init() {
@@ -38,42 +44,96 @@ open class PassthroughTask<Success, Error: Swift.Error>: ObservableTask {
     }
     
     public func send(status: Status) {
-        mutex.withCriticalScope {            
-            switch status {
-                case .idle:
-                    assertionFailure()
-                case .active:
-                    statusValueSubject.send(.active)
-                case .paused:
-                    statusValueSubject.send(.paused)
-                case .canceled: do {
-                    statusValueSubject.send(.canceled)
-                    bodyCancellable.cancel()
-                    cancellables.cancel()
+        _objectWillChange.withCriticalScope { _objectWillChange in
+            self._send(status: status, _objectWillChange: _objectWillChange)
+        }
+    }
+    
+    private func _send(
+        status: Status,
+        _objectWillChange: ObservableObjectPublisher
+    ) {
+        func _unsafeCommitStatus() {
+            _objectWillChange.send()
+            self._status = status
+            self._objectDidChange.send(status)
+        }
+                
+        let exitEarly = lock.withCriticalScope {
+            guard !isEvaluatingBody else {
+                isEvaluatingBody = false
+            
+                _unsafeCommitStatus()
+                                                
+                return true
+            }
+            
+            return false
+        }
+        
+        guard !exitEarly else {
+            return
+        }
+        
+        // Check whether `body` needs to be run.
+        if status == .active && bodyCancellable == nil {
+            lock.acquireOrBlock()
+            
+            if let body = self.body {
+                self.isEvaluatingBody = true
+
+                _unsafeCommitStatus()
+                
+                lock.relinquish() // relinquish before running `body`
+                
+                let bodyCancellable = body(self as! Self)
+                
+                lock.withCriticalScope {
+                    self.bodyCancellable = bodyCancellable
+                    self.body = nil
+                    
+                    /// Body already exited and called .send(status:).
+                    guard isEvaluatingBody else {
+                        return
+                    }
+                    
+                    isEvaluatingBody = false
                 }
-                case .success(let success): do {
-                    statusValueSubject.send(.success(success))
+            } else {
+                lock.relinquish()
+                
+                assertionFailure()
+            }
+        } else {
+            var cancellable: AnyCancellable?
+
+            lock.withCriticalScope {
+                cancellable = self.bodyCancellable
+                
+                if status == .canceled {
+                    self.bodyCancellable = nil
                 }
-                case .error(let error): do {
-                    statusValueSubject.send(.error(error))
-                }
+                
+                _unsafeCommitStatus()
+            }
+                
+            if status == .canceled {
+                cancellable?.cancel()
             }
         }
     }
     
     /// Start the task.
     final public func start() {
-        func _start() {
-            send(status: .active)
-            
-            bodyCancellable = body(self as! Self)
-        }
-        
-        guard statusDescription == .idle else {
+        guard status == .idle else {
             return
         }
         
-        _start()
+        send(status: .active)
+        
+        if Thread.isMainThread {
+            assert(status != .idle)
+        }
     }
     
     /// Publishes a success.
@@ -198,10 +258,12 @@ extension PassthroughTask where Success == Void {
     }
     
     final public class func action(
-        @_implicitSelfCapture _ action: @escaping () async -> Void
+        @_implicitSelfCapture _ action: @MainActor @escaping () async throws -> Void
     ) -> Self where Error == Swift.Error {
         return Self(priority: .userInitiated) { () -> Void in
-            await action()
+            try await _runtimeIssueOnError {
+                try await action()
+            }
         }
     }
 }
@@ -210,12 +272,14 @@ extension PassthroughTask where Success == Void {
 
 extension Publisher {
     public func convertToTask() -> AnyTask<Void, Failure> {
-        reduceAndMapTo(()).convertToTask()
+        reduceAndMapTo(())
+            .convertToTask()
     }
     
     @_disfavoredOverload
     public func convertToTask() -> OpaqueObservableTask {
-        convertToTask().eraseToOpaqueObservableTask()
+        convertToTask()
+            .eraseToOpaqueObservableTask()
     }
     
     public func convertToTask() -> AnyTask<Output, Failure> where Self: SingleOutputPublisher {
@@ -224,8 +288,15 @@ extension Publisher {
     }
     
     @_disfavoredOverload
+    public func convertToTask() -> AnyTask<Output, Swift.Error> where Self: SingleOutputPublisher {
+        PassthroughTask(publisher: mapError({ $0 as (any Swift.Error) }))
+            .eraseToAnyTask()
+    }
+    
+    @_disfavoredOverload
     public func convertToTask() -> OpaqueObservableTask where Self: SingleOutputPublisher {
-        convertToTask().eraseToOpaqueObservableTask()
+        convertToTask()
+            .eraseToOpaqueObservableTask()
     }
 }
 
@@ -236,7 +307,7 @@ extension Task {
     ) -> AnyTask<Success, Failure> {
         publisher(priority: priority).convertToTask()
     }
-
+    
     /// Convert this `Task` into an observable task.
     public func convertToObservableTask<T, U>(
         priority: TaskPriority? = nil

@@ -15,10 +15,14 @@ extension Tasks {
         private let upstream: Upstream
         private let transform: (Upstream.Success) -> Success
         
-        public var objectWillChange: AnyPublisher<Status, Never> {
-            let tranform = self.transform
+        public var objectWillChange: AnyObjectWillChangePublisher {
+            .init(from: upstream)
+        }
+        
+        public var objectDidChange: AnyPublisher<Status, Never> {
+            let transform = self.transform
             
-            return upstream.objectWillChange.map({ $0.map(tranform) }).eraseToAnyPublisher()
+            return upstream.objectDidChange.map({ $0.map(transform) }).eraseToAnyPublisher()
         }
         
         public init(
@@ -37,17 +41,10 @@ extension Tasks {
             upstream.start()
         }
         
-        public func pause() throws {
-            try upstream.pause()
-        }
-        
-        public func resume() throws {
-            try upstream.resume()
-        }
-        
         public func cancel() {
             upstream.cancel()
         }
+        
     }
 }
 

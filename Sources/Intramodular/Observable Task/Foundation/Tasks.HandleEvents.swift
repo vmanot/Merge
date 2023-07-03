@@ -11,18 +11,21 @@ extension Tasks {
         public typealias Error = Base.Error
         
         private let base: Base
-        
         private let receiveStart: (() -> Void)?
         private let receiveCancel: (() -> Void)?
+                
+        public var status: TaskStatus<Success, Error> {
+            base.status
+        }
         
         public var objectWillChange: Base.ObjectWillChangePublisher {
             base.objectWillChange
         }
         
-        public var status: TaskStatus<Success, Error> {
-            base.status
+        public var objectDidChange: Base.ObjectDidChangePublisher {
+            base.objectDidChange
         }
-                
+
         public init(
             base: Base,
             receiveStart: (() -> Void)? = nil,

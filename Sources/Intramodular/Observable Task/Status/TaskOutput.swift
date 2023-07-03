@@ -13,7 +13,7 @@ public enum TaskOutput<Success, Error: Swift.Error> {
 
 extension TaskOutput {
     public var value: Success? {
-        TaskStatus(self).value
+        TaskStatus(self).successValue
     }
     
     public var isTerminal: Bool {

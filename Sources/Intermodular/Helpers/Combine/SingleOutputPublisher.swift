@@ -18,7 +18,6 @@ public protocol SingleOutputPublisher: Publisher {
 extension SingleOutputPublisher {
     /// Asynchronously runs this publisher and awaits its output.
     public func output() async throws -> Output {
-        var cancellable: AnyCancellable?
         var didReceiveValue = false
         
         return try await withCheckedThrowingContinuation { continuation in
@@ -37,12 +36,13 @@ extension SingleOutputPublisher {
                 },
                 receiveValue: { value in
                     guard !didReceiveValue else {
+                        assertionFailure("received more than one element")
+                        
                         return
                     }
                     
                     didReceiveValue = true
                     
-                    cancellable?.cancel()
                     continuation.resume(returning: value)
                 }
             )

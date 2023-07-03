@@ -7,40 +7,30 @@ import Foundation
 import Swallow
 
 /// A task that performs type erasure by wrapping another task.
-public final class AnyTask<Success, Error: Swift.Error>: ObservableTask {
+public final class AnyTask<Success, Error: Swift.Error>: ObservableObject, ObservableTask {
     public typealias ID = AnyHashable
     public typealias Status = TaskStatus<Success, Error>
-    public typealias ObjectWillChangePublisher = AnyPublisher<Status, Never>
     
-    public let base: any ObservableTask
-    
-    private let getStatusImpl: () -> Status
-    private let getObjectWillChangeImpl: () -> AnyPublisher<Status, Never>
+    public let base: any ObservableTask<Success, Error>
+    public let objectDidChange: AnyPublisher<Status, Never>
     
     public var id: ID {
         base.id.eraseToAnyHashable()
     }
     
     public var status: Status {
-        getStatusImpl()
-    }
-        
-    public var objectWillChange: ObjectWillChangePublisher {
-        getObjectWillChangeImpl()
+        base.status
     }
     
-    public var cancellables: Cancellables {
-        base.cancellables
+    public var objectWillChange: AnyObjectWillChangePublisher {
+        .init(from: base)
     }
     
-    private init(
-        base: any ObservableTask,
-        getStatusImpl: @escaping () -> Status,
-        getObjectWillChangeImpl: @escaping () -> AnyPublisher<Status, Never>
+    private init<T: ObservableTask<Success, Error>>(
+        _erasing base: T
     ) {
         self.base = base
-        self.getStatusImpl = getStatusImpl
-        self.getObjectWillChangeImpl = getObjectWillChangeImpl
+        self.objectDidChange = base.objectDidChange.eraseToAnyPublisher()
     }
     
     public func start() {
@@ -52,43 +42,33 @@ public final class AnyTask<Success, Error: Swift.Error>: ObservableTask {
     }
 }
 
-extension AnyTask {
-    public convenience init<T: ObservableTask>(_ base: T) where T.Success == Success, T.Error == Error {
-        self.init(
-            base: base,
-            getStatusImpl: { base.status },
-            getObjectWillChangeImpl: { base.objectWillChange.eraseToAnyPublisher() }
-        )
-    }
-}
-
-extension AnyTask where Success == Any, Error == Swift.Error {
-    public convenience init(erasing base: any ObservableTask) {
-        self.init(
-            base: base,
-            getStatusImpl: { base._opaque_status },
-            getObjectWillChangeImpl: { base._opaque_statusWillChange }
-        )
-    }
-}
+// MARK: - Initializers
 
 extension AnyTask {
+    public convenience init<T: ObservableTask>(
+        erasing base: T
+    ) where T.Success == Success, T.Error == Error {
+        self.init(_erasing: base)
+    }
+    
+    public convenience init(erasing base: OpaqueObservableTask) where Success == Any, Error == Swift.Error {
+        self.init(_erasing: base)
+    }
+    
     convenience public init(
         priority: TaskPriority? = nil,
         operation: @escaping @Sendable () async -> Success
     ) where Error == Never {
-        self.init(PassthroughTask(priority: priority, operation: operation))
+        self.init(erasing: PassthroughTask(priority: priority, operation: operation))
     }
     
     convenience public init(
         priority: TaskPriority? = nil,
         operation: @escaping @Sendable () async throws -> Success
     ) where Error == Swift.Error {
-        self.init(PassthroughTask(priority: priority, operation: operation))
+        self.init(erasing: PassthroughTask(priority: priority, operation: operation))
     }
 }
-
-// MARK: - API
 
 extension AnyTask {
     public static func failure(_ error: Error) -> AnyTask {
@@ -117,8 +97,10 @@ extension AnyTask {
     }
 }
 
+// MARK: - API
+
 extension ObservableTask {
     public func eraseToAnyTask() -> AnyTask<Success, Error> {
-        .init(self)
+        .init(erasing: self)
     }
 }

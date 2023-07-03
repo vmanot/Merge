@@ -5,7 +5,7 @@
 import Swift
 import SwiftUIX
 
-public protocol TaskButtonStyle {
+public protocol TaskButtonStyle: DynamicProperty {
     associatedtype Body: View
     
     typealias Configuration = TaskButtonConfiguration

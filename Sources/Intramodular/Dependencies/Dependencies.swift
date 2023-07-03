@@ -18,13 +18,18 @@ public enum DependencyResolutionRequest<Value>: _opaque_DependencyResolutionRequ
     }
 }
 
+public enum DependenciesError: Error {
+    case failedToResolveDependency
+    case failedToUseDependencies(Error)
+}
+
 public struct Dependencies: @unchecked Sendable {
     var unkeyedValues: _BagOfExistentials<any Sendable>
     var unkeyedValueTypes: Set<Metatype<Any.Type>> = []
     var keyedValues = HeterogeneousDictionary<Dependencies>()
 
     var isEmpty: Bool {
-        unkeyedValues.isEmpty
+        unkeyedValues.isEmpty && keyedValues.isEmpty
     }
     
     internal init(
@@ -53,27 +58,7 @@ public struct Dependencies: @unchecked Sendable {
                 return self[key]
         }
     }
-    
-    func merging(with other: Self) -> Self {
-        Self.merge(lhs: self, rhs: other)
-    }
-    
-    static func merge(lhs: Self, rhs: Self) -> Self {
-        var rhsUnkeyedValues = rhs.unkeyedValues
         
-        rhsUnkeyedValues.removeAll(where: { element -> Bool in
-            lhs.unkeyedValueTypes.contains(where: {
-                _isValueOfGivenType(element, type: $0.value)
-            })
-        })
-        
-        return Self(
-            unkeyedValues: lhs.unkeyedValues.merge(with: rhsUnkeyedValues),
-            unkeyedValueTypes: lhs.unkeyedValueTypes.union(rhs.unkeyedValueTypes),
-            keyedValues: lhs.keyedValues.merging(rhs.keyedValues, uniquingKeysWith: { lhs, rhs in lhs })
-        )
-    }
-    
     public subscript<T>(unkeyed type: T.Type) -> T? {
         get {
             unkeyedValues.first(ofType: type)
@@ -115,6 +100,35 @@ public struct Dependencies: @unchecked Sendable {
     }
 }
 
+extension Dependencies: MergeOperatable {
+    public mutating func mergeInPlace(with other: Self) {
+        self = Self.merge(lhs: self, rhs: other)
+    }
+    
+    private static func merge(
+        lhs: Self,
+        rhs: Self
+    ) -> Self {
+        if lhs.isEmpty && rhs.isEmpty {
+            return lhs
+        }
+        
+        var rhsUnkeyedValues = rhs.unkeyedValues
+        
+        rhsUnkeyedValues.removeAll(where: { element -> Bool in
+            lhs.unkeyedValueTypes.contains(where: {
+                _isValueOfGivenType(element, type: $0.value)
+            })
+        })
+        
+        return Self(
+            unkeyedValues: lhs.unkeyedValues.merge(with: rhsUnkeyedValues),
+            unkeyedValueTypes: lhs.unkeyedValueTypes.union(rhs.unkeyedValueTypes),
+            keyedValues: lhs.keyedValues.merging(rhs.keyedValues, uniquingKeysWith: { lhs, rhs in rhs })
+        )
+    }
+}
+
 extension Dependencies {
     public static var current: Dependencies {
         Dependencies._current
@@ -135,8 +149,20 @@ extension Dependencies {
 
 // MARK: - Auxiliary
 
+public enum DependencyAttribute {
+    case unstashable
+}
+
 public protocol DependencyKey<Value>: HeterogeneousDictionaryKey<Dependencies, Self.Value> {
+    static var attributes: Set<DependencyAttribute> { get }
+    
     static var defaultValue: Value { get }
+}
+
+extension DependencyKey {
+    public static var attributes: Set<DependencyAttribute> {
+        []
+    }
 }
 
 public struct _OptionalDependencyKey<T>: DependencyKey {

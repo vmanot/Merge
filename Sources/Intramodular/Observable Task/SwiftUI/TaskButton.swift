@@ -3,7 +3,7 @@
 //
 
 import Combine
-import Swift
+import Swallow
 import SwiftUIX
 
 /// An button that represents a `Task`.
@@ -15,7 +15,7 @@ public struct TaskButton<Success, Error: Swift.Error, Label: View>: View {
     
     @State private var currentTask: AnyTask<Success, Error>?
     
-    @PersistentObject private var observedTask = OpaqueObservableTask(AnyTask<Void, Never>.just(.success(())))
+    @PersistentObject private var observedTask = OpaqueObservableTask(erasing: AnyTask<Void, Never>.just(.success(())))
     
     @Environment(\._taskButtonStyle) private var buttonStyle
     @Environment(\.cancellables) private var cancellables
@@ -52,9 +52,9 @@ public struct TaskButton<Success, Error: Swift.Error, Label: View>: View {
         }
         .disabled(
             false
-                || !isEnabled
-                || (currentTask?.status == .finished && !taskRestartable)
-                || (currentTask?.status == .active && !taskInterruptible)
+            || !isEnabled
+            || (currentTask?.status == .finished && !taskRestartable)
+            || (currentTask?.status == .active && !taskInterruptible)
         )
     }
     
@@ -89,8 +89,10 @@ public struct TaskButton<Success, Error: Swift.Error, Label: View>: View {
     private func subscribe(to task: AnyTask<Success, Error>) {
         setCurrentTask(task)
         
-        task.objectWillChange.sink(in: taskPipeline?.cancellables ?? cancellables) { status in
+        task.objectDidChange.sink(in: taskPipeline?.cancellables ?? cancellables) { status in
             if case let .error(error) = status {
+                runtimeIssue(error)
+                
                 handleLocalizedError(error as? LocalizedError ?? GenericTaskButtonError(base: error))
             }
             
@@ -123,10 +125,10 @@ public struct TaskButton<Success, Error: Swift.Error, Label: View>: View {
     private func setCurrentTask(_ task: AnyTask<Success, Error>?) {
         if let task = task {
             currentTask = task
-            observedTask = .init(task)
+            observedTask = .init(erasing: task)
         } else {
             currentTask = nil
-            observedTask = .init(EmptyObservableTask())
+            observedTask = .init(erasing: EmptyObservableTask())
         }
     }
 }
@@ -364,8 +366,16 @@ extension TaskButton: ActionLabelView where Error == Swift.Error, Success == Voi
 
 // MARK: - Auxiliary
 
-struct GenericTaskButtonError: LocalizedError {
+struct GenericTaskButtonError: CustomStringConvertible, LocalizedError {
     let base: Swift.Error
+    
+    public var description: String {
+        String(describing: base)
+    }
+    
+    public var errorDescription: String? {
+        (base as? LocalizedError)?.errorDescription
+    }
 }
 
 extension EnvironmentValues {

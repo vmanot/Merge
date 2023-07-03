@@ -13,15 +13,9 @@ public final class EmptyObservableTask<Success, Error: Swift.Error>: ObservableT
     public var objectWillChange: AnyPublisher<TaskStatus<Success, Error>, Never>  {
         Empty().eraseToAnyPublisher()
     }
-
-    public let progress = Progress()
-
-    public var statusDescription: StatusDescription {
-        .init(status)
-    }
-
-    public var statusDescriptionWillChange: AnyPublisher<StatusDescription, Never>{
-        .just(.idle)
+    
+    public var objectDidChange: AnyPublisher<TaskStatus<Success, Error>, Never>  {
+        Empty().eraseToAnyPublisher()
     }
 
     public init() {
@@ -33,14 +27,6 @@ public final class EmptyObservableTask<Success, Error: Swift.Error>: ObservableT
     }
 
     public func start() {
-
-    }
-
-    public func pause() throws {
-
-    }
-
-    public func resume() throws {
 
     }
 

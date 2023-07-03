@@ -40,40 +40,26 @@ public final class TaskQueue: Sendable {
     public func perform<T: Sendable>(
         @_implicitSelfCapture operation: @Sendable @escaping () async -> T
     ) async -> Result<T, CancellationError> {
-        if queue.policy == .cancelPrevious {
-            await queue.cancelAllTasks()
-        }
-        
         guard _Queue.queueID?.erasedAsAnyHashable != queue.id.erasedAsAnyHashable else {
-            return await .success(operation())
-        }
-        
-        let semaphore = _AsyncActorSemaphore()
-        
-        let resultBox = _UncheckedSendable(ReferenceBox<Result<T, CancellationError>?>(nil))
-        
-        await semaphore.wait()
-        
-        add {
-            guard resultBox.wrappedValue.wrappedValue == nil else {
-                assert(resultBox.wrappedValue.wrappedValue?.rightValue != nil)
-                
-                return
-            }
-            
-            do {
-                try Task.checkCancellation()
-                
-                resultBox.wrappedValue.wrappedValue = .success(await operation())
-            } catch {
-                resultBox.wrappedValue.wrappedValue = .failure(CancellationError())
+            if queue.policy == .cancelPrevious {
+                await queue.cancelAll()
             }
 
-            await semaphore.signal()
+            return await .success(operation())
         }
-        
-        return await semaphore.withCriticalScope {
-            return resultBox.wrappedValue.wrappedValue!
+                
+        return await withUnsafeContinuation { continuation in
+            add {
+                do {
+                    try Task.checkCancellation()
+                    
+                    continuation.resume(returning: Result<T, CancellationError>.success(await operation()))
+                    
+                    try Task.checkCancellation()
+                } catch {
+                    continuation.resume(returning: Result<T, CancellationError>.failure(CancellationError()))
+                }
+            }
         }
     }
     
@@ -90,14 +76,10 @@ public final class TaskQueue: Sendable {
                 onCancel()
         }
     }
-    
-    public func cancelAll() async {
-        await queue.cancelAllTasks()
-    }
-    
+        
     public func cancelAll() {
         Task {
-            await self.cancelAll()
+            await queue.cancelAll() // FIXME?
         }
     }
 }
@@ -113,7 +95,7 @@ extension TaskQueue {
             self.policy = policy
         }
         
-        func cancelAllTasks() {
+        func cancelAll() {
             previousTask?.cancel()
             previousTask = nil
         }
@@ -123,6 +105,10 @@ extension TaskQueue {
         ) -> Task<Result<T, CancellationError>, Never> {
             guard Self.queueID?.erasedAsAnyHashable != id.erasedAsAnyHashable else {
                 fatalError()
+            }
+            
+            if policy == .cancelPrevious {
+                cancelAll()
             }
             
             let policy = self.policy

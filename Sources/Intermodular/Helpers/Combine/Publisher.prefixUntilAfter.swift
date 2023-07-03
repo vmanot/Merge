@@ -27,7 +27,9 @@ private enum PrefixUntilAfterOutput<Output> {
 }
 
 extension Publisher {
-    public func prefixUntil(after predicate: @escaping (Output) -> Bool) -> AnyPublisher<Output, Failure> {
+    public func prefixUntil(
+        after predicate: @escaping (Output) -> Bool
+    ) -> AnyPublisher<Output, Failure> {
         flatMap { output -> AnyPublisher<PrefixUntilAfterOutput<Output>, Failure> in
             if predicate(output) {
                 return Publishers.Concatenate(

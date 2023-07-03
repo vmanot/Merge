@@ -81,7 +81,7 @@ extension TaskStatusDescription {
 // MARK: - Auxiliary
 
 extension TaskStatusDescription {
-    public struct OpaqueError: Hashable {
+    public struct OpaqueError: Error, Hashable {
         public let localizedDescription: String
         
         fileprivate init(_ error: Error) {

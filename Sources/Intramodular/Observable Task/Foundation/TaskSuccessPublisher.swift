@@ -7,7 +7,7 @@ import Swift
 /// A publisher that delivers the result of a task.
 public struct TaskSuccessPublisher<Upstream: ObservableTask>: SingleOutputPublisher {
     public typealias Output = Upstream.Success
-    public typealias Failure = Upstream.Error
+    public typealias Failure = TaskFailure<Upstream.Error>
     
     private let upstream: Upstream
     
@@ -20,10 +20,7 @@ public struct TaskSuccessPublisher<Upstream: ObservableTask>: SingleOutputPublis
     ) where S.Input == Output, S.Failure == Failure {
         upstream
             .outputPublisher
-            .prefixUntil(after: { $0.isTerminal })
-            .mapResult({ TaskStatus($0) })
-            .compactMap({ Result($0) })
-            .flatMap({ $0.publisher })
+            .compactMap({ $0.value })
             .receive(subscriber: subscriber)
     }
 }
@@ -34,5 +31,15 @@ extension ObservableTask {
     /// A publisher that delivers the result of a task.
     public var successPublisher: TaskSuccessPublisher<Self> {
         .init(upstream: self)
+    }
+    
+    /// The successful result of a task, after it completes.
+    ///
+    /// - returns: The task's successful result.
+    /// - throws: An error indicating task failure or task cancellation.
+    public var value: Success {
+        get async throws {
+            try await successPublisher.output()
+        }
     }
 }

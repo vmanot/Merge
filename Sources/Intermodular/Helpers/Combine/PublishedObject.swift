@@ -10,7 +10,10 @@ import Swallow
 public final class PublishedObject<Value>: PropertyWrapper {
     public typealias _SelfType = PublishedObject<Value>
     
+    /// In case `_wrappedValue` is backed by an `ObservableArray` or some shit.
+    private let _wrappedValueBoxWillChangeRelay: ObjectWillChangePublisherRelay?
     private let _assignmentPublisher = PassthroughSubject<Void, Never>()
+    
     private let objectWillChangeRelay = ObjectWillChangePublisherRelay()
     
     @MutableValueBox
@@ -20,6 +23,8 @@ public final class PublishedObject<Value>: PropertyWrapper {
         get {
             _wrappedValue
         } set {
+            objectWillChange.send()
+            
             _wrappedValue = newValue
         }
     }
@@ -45,8 +50,16 @@ public final class PublishedObject<Value>: PropertyWrapper {
             let propertyWrapper = enclosingInstance[keyPath: storageKeyPath]
             
             if propertyWrapper.objectWillChangeRelay.source == nil {
+                Task { @MainActor in
+                    enclosingInstance.objectWillChange.send()
+                }
+                
                 propertyWrapper.objectWillChangeRelay.source = propertyWrapper.wrappedValue
                 propertyWrapper.objectWillChangeRelay.destination = enclosingInstance
+            }
+            
+            if let wrappedValueBoxRelay = propertyWrapper._wrappedValueBoxWillChangeRelay, wrappedValueBoxRelay.destination == nil {
+                wrappedValueBoxRelay.destination = enclosingInstance
             }
             
             return propertyWrapper.wrappedValue
@@ -61,6 +74,7 @@ public final class PublishedObject<Value>: PropertyWrapper {
 
             propertyWrapper.objectWillChangeRelay.source = propertyWrapper.wrappedValue
             propertyWrapper.objectWillChangeRelay.destination = enclosingInstance
+            propertyWrapper._wrappedValueBoxWillChangeRelay?.destination = enclosingInstance
         }
     }
     
@@ -68,24 +82,39 @@ public final class PublishedObject<Value>: PropertyWrapper {
         wrappedValue: Value
     ) where Value: ObservableObject {
         self._wrappedValue = wrappedValue
+        self._wrappedValueBoxWillChangeRelay = nil
+    }
+    
+    public init<Element: ObservableObject>(
+        wrappedValue: [Element]
+    ) where Value == [Element] {
+        let array = ObservableArray(wrappedValue)
+    
+        self.__wrappedValue = .init(array)
+
+        _wrappedValueBoxWillChangeRelay = ObjectWillChangePublisherRelay()
+        _wrappedValueBoxWillChangeRelay?.source = array
     }
     
     public init<WrappedValue: ObservableObject>(
         wrappedValue: WrappedValue?
     ) where Optional<WrappedValue> == Value  {
         self._wrappedValue = wrappedValue
+        self._wrappedValueBoxWillChangeRelay = nil
     }
     
     public init<P: PropertyWrapper>(
         wrappedValue: P
     ) where P.WrappedValue == Value {
         self.__wrappedValue = .init(AnyMutablePropertyWrapper(unsafelyAdapting: wrappedValue))
+        self._wrappedValueBoxWillChangeRelay = nil
     }
     
     public init<P: MutablePropertyWrapper>(
         wrappedValue: P
     ) where P.WrappedValue == Value {
         self.__wrappedValue = .init(wrappedValue)
+        self._wrappedValueBoxWillChangeRelay = nil
     }
 }
 

@@ -5,6 +5,7 @@
 import Combine
 import ObjectiveC
 import Swallow
+import SwiftUI
 
 @discardableResult
 public func withDependencies<Result>(
@@ -18,7 +19,7 @@ public func withDependencies<Result>(
     return try Dependencies.$_current.withValue(dependencies) {
         let result = try operation()
         
-        dependencies.stashIfPossible(in: result)
+        dependencies._stashInOrProvideTo(result)
         
         return result
     }
@@ -44,7 +45,7 @@ public func withDependencies<Result>(
     return try await Dependencies.$_current.withValue(dependencies) {
         let result = try await operation()
         
-        dependencies.stashIfPossible(in: result)
+        dependencies._stashInOrProvideTo(result)
         
         return result
     }
@@ -73,23 +74,6 @@ public func withDependencies<Result>(
 }
 
 @discardableResult
-public func withDependencies<Subject, Result>(
-    from subject: Subject,
-    _ updateValuesForOperation: (inout Dependencies) throws -> Void,
-    operation: () throws -> Result
-) rethrows -> Result {
-    let dependencies = Dependencies(from: subject)
-    
-    return try withDependencies {
-        $0 = Dependencies.merge(lhs: dependencies, rhs: $0)
-        
-        try updateValuesForOperation(&$0)
-    } operation: {
-        try operation()
-    }
-}
-
-@discardableResult
 public func withDependency<Dependency, Result>(
     _ dependencyKey: WritableKeyPath<DependencyValues, Dependency>,
     _ dependency: Dependency,
@@ -105,13 +89,30 @@ public func withDependency<Dependency, Result>(
 @discardableResult
 public func withDependencies<Subject, Result>(
     from subject: Subject,
+    _ updateValuesForOperation: (inout Dependencies) throws -> Void,
+    operation: () throws -> Result
+) rethrows -> Result {
+    let dependencies = Dependencies(from: subject)
+    
+    return try withDependencies {
+        $0 = dependencies.merge(with: $0)
+        
+        try updateValuesForOperation(&$0)
+    } operation: {
+        try operation()
+    }
+}
+
+@discardableResult
+public func withDependencies<Subject, Result>(
+    from subject: Subject,
     _ updateValuesForOperation: (inout Dependencies) async throws -> Void,
     operation: () async throws -> Result
 ) async rethrows -> Result {
     let dependencies = Dependencies(from: subject)
     
     return try await withDependencies {
-        $0 = Dependencies.merge(lhs: dependencies, rhs: $0)
+        $0 = dependencies.merge(with: $0)
         
         try await updateValuesForOperation(&$0)
     } operation: {
@@ -137,29 +138,63 @@ public func withDependencies<Subject, Result>(
 
 extension Dependencies {
     fileprivate init<T>(from subject: T) {
-        let reflectedDependencies = Mirror(reflecting: subject).children
+        TODO.here(.optimize)
+        
+        self.init()
+        
+        if let reflected = Mirror(reflecting: subject).children
             .lazy
             .compactMap({ $1 as? (any _DependencyPropertyWrapperType) })
             .first?
-            .initialDependencies
+            .initialDependencies {
+            mergeInPlace(with: reflected)
+        }
         
-        if let reflectedDependencies {
-            self = reflectedDependencies
-        } else if let dependencies = _DependenciesStasher(from: subject)?.dependencies {
-            self = dependencies
-        } else {
-            // runtimeIssue("Failed to extract any dependencies from \(subject).")
-            
-            self.init()
+        if let stashed = _DependenciesStasher(from: subject)?.fetch() {
+            mergeInPlace(with: stashed)
+        }
+        
+        if let subject = subject as? _DependenciesProviding {
+            mergeInPlace(with: subject._providedDependencies)
         }
     }
     
-    func stashIfPossible<T>(in subject: T) {
-        guard let stasher = _DependenciesStasher(from: subject) else {
-            return
+    func stashable() -> Dependencies {
+        .init(
+            unkeyedValues: unkeyedValues,
+            unkeyedValueTypes: unkeyedValueTypes,
+            keyedValues: .init(_unsafeUniqueKeysAndValues: keyedValues.filter {
+                !($0.key as! any DependencyKey.Type).attributes.contains(.unstashable)
+            })
+        )
+    }
+    
+    /// Stash the dependencies in the given subject if its an object.
+    ///
+    /// Provide the subject with dependencies if it conforms to `_DependenciesUsing`.
+    func _stashInOrProvideTo<T>(_ subject: T) {
+        let subject = _unwrapPossiblyTypeErasedValue(subject)
+        
+        if let stasher = _DependenciesStasher(from: subject) {
+            stasher.stash(self.stashable())
         }
         
-        stasher.dependencies = self
+        do {
+            do {
+                try (subject as? _DependenciesUsing)?._useDependencies(self)
+                
+                try Mirror(reflecting: subject).children
+                    .lazy
+                    .compactMap({ $1 as? (any _DependenciesUsing) })
+                    .forEach {
+                        try $0._useDependencies(self)
+                    }
+            } catch {
+                throw DependenciesError.failedToUseDependencies(error)
+            }
+        } catch {
+            assertionFailure(error)
+        }
     }
 }
 
@@ -176,23 +211,28 @@ fileprivate struct _DependenciesStasher {
         self.subject = try! cast(subject, to: AnyObject.self)
     }
     
-    public var dependencies: Dependencies? {
-        get {
-            guard let value = objc_getAssociatedObject(
-                subject,
-                &Self.objc_dependenciesKey
-            ) else {
-                return nil
-            }
-            
-            return (value as! Dependencies)
-        } nonmutating set {
-            objc_setAssociatedObject(
-                subject,
-                &Self.objc_dependenciesKey,
-                newValue,
-                .OBJC_ASSOCIATION_RETAIN
-            )
+    func fetch() -> Dependencies? {
+        guard let value = objc_getAssociatedObject(
+            subject,
+            &Self.objc_dependenciesKey
+        ) else {
+            return nil
         }
+        
+        return (value as! Dependencies)
+    }
+    
+    func stash(_ dependencies: Dependencies) {
+        objc_setAssociatedObject(
+            subject,
+            &Self.objc_dependenciesKey,
+            dependencies,
+            .OBJC_ASSOCIATION_RETAIN
+        )
     }
 }
+
+public protocol _DependenciesProviding {
+    var _providedDependencies: Dependencies { get }
+}
+

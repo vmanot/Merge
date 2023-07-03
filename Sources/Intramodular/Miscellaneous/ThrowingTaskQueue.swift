@@ -59,7 +59,7 @@ public final class ThrowingTaskQueue: Sendable {
             do {
                 resultBox.wrappedValue.wrappedValue = try await .success(operation())
             } catch {
-                resultBox.wrappedValue.wrappedValue = .failure(.init(error))
+                resultBox.wrappedValue.wrappedValue = .failure(.init(erasing: error))
             }
             
             await semaphore.signal()

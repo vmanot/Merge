@@ -39,7 +39,7 @@ extension TaskPipeline {
             return
         }
         
-        idToTaskMap[task.id] = .init(task)
+        idToTaskMap[task.id] = .init(erasing: task)
         idToCustomTaskIdentifierMap[task.id] = customTaskIdentifier
         
         if let customTaskIdentifier = customTaskIdentifier {
@@ -47,7 +47,8 @@ extension TaskPipeline {
             customTaskIdentifierToIDMap[customTaskIdentifier] = task.id
         }
         
-        task.statusDescriptionWillChange
+        task.objectDidChange
+            .map({ TaskStatusDescription($0) })
             .then({ [weak task] in task.map(self.updateState) })
             .subscribe(in: cancellables)
     }
@@ -64,7 +65,7 @@ extension TaskPipeline {
                     self.customTaskIdentifierToIDMap.removeValue(forKey: customTaskIdentifier)
                 }
             } else {
-                self.idToTaskMap[task.id] = .init(task)
+                self.idToTaskMap[task.id] = .init(erasing: task)
             }
             
             self.objectWillChange.send()

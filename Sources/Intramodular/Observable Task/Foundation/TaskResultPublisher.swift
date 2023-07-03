@@ -22,7 +22,8 @@ public struct TaskResultPublisher<Upstream: ObservableTask>: SingleOutputPublish
             
             subscriber.receive(completion: .finished)
         } else {
-            upstream.objectWillChange
+            upstream
+                .objectDidChange
                 .compactMap(TaskResult.init)
                 .receive(subscriber: subscriber)
         }

@@ -29,6 +29,14 @@ public struct MainThreadScheduler: Scheduler {
         base.minimumTolerance
     }
     
+    public func schedule(_ action: @escaping () -> Void) {
+        if Thread.isMainThread {
+            action()
+        } else {
+            base.schedule(options: nil, action)
+        }
+    }
+    
     public func schedule(options: SchedulerOptions?, _ action: @escaping () -> Void) {
         if Thread.isMainThread {
             action()
@@ -66,6 +74,12 @@ public struct MainThreadScheduler: Scheduler {
             options: options,
             action
         )
+    }
+}
+
+extension Scheduler where Self == MainThreadScheduler {
+    public static var mainThread: Self {
+        .shared
     }
 }
 
