@@ -95,7 +95,7 @@ public func withDependencies<Subject, Result>(
     let dependencies = Dependencies(from: subject)
     
     return try withDependencies {
-        $0 = dependencies.merge(with: $0)
+        $0 = dependencies.merging($0)
         
         try updateValuesForOperation(&$0)
     } operation: {
@@ -112,7 +112,7 @@ public func withDependencies<Subject, Result>(
     let dependencies = Dependencies(from: subject)
     
     return try await withDependencies {
-        $0 = dependencies.merge(with: $0)
+        $0 = dependencies.merging($0)
         
         try await updateValuesForOperation(&$0)
     } operation: {
