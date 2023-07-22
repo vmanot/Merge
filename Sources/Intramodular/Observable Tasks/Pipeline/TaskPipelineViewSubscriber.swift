@@ -6,8 +6,8 @@ import Combine
 import Swift
 import SwiftUI
 
-struct TaskPipelineViewSubscriber: ViewModifier {
-    @Environment(\.taskPipeline) var pipeline
+struct _ObservableTaskGraphViewSubscriber: ViewModifier {
+    @Environment(\._taskGraph) var pipeline
     
     let filter: AnyHashable
     let action: (TaskStatusDescription) -> ()
@@ -28,7 +28,7 @@ extension View {
         of name: AnyHashable,
         perform action: @escaping (TaskStatusDescription) -> Void
     ) -> some View {
-        modifier(TaskPipelineViewSubscriber(filter: name) {
+        modifier(_ObservableTaskGraphViewSubscriber(filter: name) {
             action($0)
         })
     }

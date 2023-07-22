@@ -38,6 +38,14 @@ extension Task {
     public func eraseToOpaqueTask() -> OpaqueTask {
         .init(erasing: self)
     }
+    
+    /// Returns a type-erased version of self.
+    public func eraseToAnyTask() -> AnyTask<Success, Error> {
+        .init(erasing: PassthroughTask {
+            try await value
+        })
+    }
+
 }
 
 // MARK: - Auxiliary

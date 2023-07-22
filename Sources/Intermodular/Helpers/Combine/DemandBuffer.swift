@@ -19,7 +19,6 @@ final class DemandBuffer<S: Subscriber> {
     init(subscriber: S) {
         self.subscriber = subscriber
     }
-
 }
 
 extension DemandBuffer {

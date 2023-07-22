@@ -37,8 +37,9 @@ extension TaskQueue: TaskSinkProtocol {
     }
 }
 
+/// A property wrapper that represents a property that is the latest output in a stream of tasks.
 @propertyWrapper
-public final class TaskSunk<Success, Failure: Error> {
+public final class TaskGenerated<Success, Failure: Error> {
     private let sink: any TaskSinkProtocol<Failure>
     
     public var _outputPublisher = PassthroughSubject<Result<Success, Error>, Never>()
@@ -56,7 +57,7 @@ public final class TaskSunk<Success, Failure: Error> {
         self.sink = TaskQueue(policy: queuePolicy)
     }
     
-    public var projectedValue: TaskSunk {
+    public var projectedValue: TaskGenerated {
         self
     }
     
@@ -69,7 +70,7 @@ public final class TaskSunk<Success, Failure: Error> {
     }
 }
 
-extension TaskSunk where Failure == Never {
+extension TaskGenerated where Failure == Never {
     public var publisher: AnyPublisher<Success, Never> {
         _outputPublisher.tryMap({ try $0.get() }).discardError().eraseToAnyPublisher()
     }

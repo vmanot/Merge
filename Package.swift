@@ -29,7 +29,8 @@ let package = Package(
                 "Swallow",
                 "SwiftUIX"
             ],
-            path: "Sources"
+            path: "Sources",
+            swiftSettings: []
         ),
         .testTarget(
             name: "MergeTests",

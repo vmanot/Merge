@@ -25,10 +25,11 @@ public final class ThrowingTaskQueue: Sendable {
     /// - Parameters:
     ///   - action: An async function to execute.
     public func add<T: Sendable>(
+        priority: TaskPriority? = nil,
         @_implicitSelfCapture _ action: @Sendable @escaping () async throws -> T
     ) {
-        Task {
-            await queue.add(action)
+        Task(priority: .userInitiated) {
+            await queue.add(priority: priority, action)
         }
     }
     
@@ -39,6 +40,7 @@ public final class ThrowingTaskQueue: Sendable {
     /// - Throws: The error thrown by `action`. Especially throws `CancellationError` if the parent task has been cancelled.
     /// - Returns: The return value of `action`
     public func perform<T: Sendable>(
+        priority: TaskPriority? = nil,
         @_implicitSelfCapture operation: @Sendable @escaping () async throws -> T
     ) async throws -> T {
         if queue.policy == .cancelPrevious {
@@ -98,6 +100,7 @@ extension ThrowingTaskQueue {
         }
         
         func add<T: Sendable>(
+            priority: TaskPriority?,
             _ action: @Sendable @escaping () async throws -> T
         ) -> Task<T, Error> {
             guard Self.queueID?.erasedAsAnyHashable != id.erasedAsAnyHashable else {
@@ -107,7 +110,7 @@ extension ThrowingTaskQueue {
             let policy = self.policy
             let previousTask = self.previousTask
             
-            let newTask = Task { () async throws -> T in
+            let newTask = Task(priority: priority) { () async throws -> T in
                 if let previousTask = previousTask {
                     if policy == .cancelPrevious {
                         previousTask.cancel()

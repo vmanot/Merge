@@ -6,6 +6,43 @@ import Combine
 import Dispatch
 import Swallow
 
+extension DispatchQueue {
+    public final class _DebounceView {
+        private let lock = OSUnfairLock()
+        private let debounceInterval: DispatchTimeInterval
+        private let queue: DispatchQueue
+        
+        private var workItem: DispatchWorkItem?
+        
+        fileprivate init(queue: DispatchQueue, debounceInterval: DispatchTimeInterval) {
+            self.debounceInterval = debounceInterval
+            self.queue = queue
+        }
+        
+        public func schedule(_ action: @escaping () -> Void) {
+            lock.withCriticalScope {
+                workItem?.cancel()
+                
+                let newWorkItem = DispatchWorkItem { [weak self] in
+                    action()
+                    
+                    self?.workItem = nil
+                }
+                
+                workItem = newWorkItem
+                
+                queue.asyncAfter(deadline: .now() + debounceInterval, execute: newWorkItem)
+            }
+        }
+    }
+    
+    public func _debounce(
+        for debounceInterval: DispatchTimeInterval
+    ) -> _DebounceView {
+        .init(queue: self, debounceInterval: debounceInterval)
+    }
+}
+
 extension DispatchTime: CustomStringConvertible {
     public var description: String {
         "(.now() + \(Double(Int(uptimeNanoseconds) - Int(DispatchTime.now().uptimeNanoseconds)) / Double(NSEC_PER_SEC)) seconds)"

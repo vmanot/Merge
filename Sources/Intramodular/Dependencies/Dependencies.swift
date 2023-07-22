@@ -19,7 +19,7 @@ public enum DependencyResolutionRequest<Value>: _opaque_DependencyResolutionRequ
 }
 
 public enum DependenciesError: Error {
-    case failedToResolveDependency
+    case failedToResolveDependency(Any.Type)
     case failedToUseDependencies(Error)
 }
 

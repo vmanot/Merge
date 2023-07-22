@@ -6,7 +6,7 @@ import Diagnostics
 import Combine
 import Swallow
 
-/// The failure of a task.
+/// An enumeration that represents the source of task failure.
 public enum TaskFailure<Error: Swift.Error>: _ErrorX, HashEquatable {
     case canceled
     case error(Error)
@@ -23,7 +23,7 @@ public enum TaskFailure<Error: Swift.Error>: _ErrorX, HashEquatable {
     }
     
     public init?(_catchAll error: AnyError) throws {
-        guard let _error = try cast(Error.self, to: any _ErrorX.Type.self).init(_catchAll: error) else {
+        guard let _error = try cast(Error.self, to: (any _ErrorX.Type).self).init(_catchAll: error) else {
             return nil
         }
         
@@ -40,6 +40,8 @@ public enum TaskFailure<Error: Swift.Error>: _ErrorX, HashEquatable {
     }
 }
 
+// MARK: - Initializers
+
 extension TaskFailure {
     public init?<Success>(_ status: TaskStatus<Success, Error>) {
         if let failure = status.failure {
@@ -49,6 +51,8 @@ extension TaskFailure {
         }
     }
 }
+
+// MARK: - Supplementary
 
 extension AnyError {
     public init(from failure: TaskFailure<Error>) {
@@ -60,8 +64,6 @@ extension AnyError {
         }
     }
 }
-
-// MARK: - Helpers
 
 extension Subscribers.Completion {
     public static func failure<Error>(

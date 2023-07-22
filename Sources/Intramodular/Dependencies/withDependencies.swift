@@ -142,6 +142,8 @@ extension Dependencies {
         
         self.init()
         
+        let subject = _unwrapPossiblyTypeErasedValue(subject)
+        
         if let reflected = Mirror(reflecting: subject).children
             .lazy
             .compactMap({ $1 as? (any _DependencyPropertyWrapperType) })

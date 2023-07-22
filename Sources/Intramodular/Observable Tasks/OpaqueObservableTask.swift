@@ -11,7 +11,7 @@ public final class OpaqueObservableTask: CustomStringConvertible, ObservableTask
     public typealias Success = Any
     public typealias Error = Swift.Error
     
-    private let base: any ObservableTask
+    public let base: any ObservableTask
     
     public var description: String {
         (base as? CustomStringConvertible)?.description ?? "(Task)"
@@ -38,6 +38,10 @@ public final class OpaqueObservableTask: CustomStringConvertible, ObservableTask
     }
         
     public init<T: ObservableTask>(erasing base: T) {
+        if base is OpaqueObservableTask {
+            assertionFailure()
+        }
+        
         self.base = base
     }
     
@@ -58,6 +62,14 @@ public final class OpaqueObservableTask: CustomStringConvertible, ObservableTask
 extension ObservableTask {
     public func eraseToOpaqueObservableTask() -> OpaqueObservableTask {
         .init(erasing: self)
+    }
+}
+
+// MARK: - Conformances
+
+extension OpaqueObservableTask: Equatable {
+    public static func == (lhs: OpaqueObservableTask, rhs: OpaqueObservableTask) -> Bool {
+        lhs.base === rhs.base
     }
 }
 

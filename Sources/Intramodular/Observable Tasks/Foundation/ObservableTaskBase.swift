@@ -23,9 +23,7 @@ open class ObservableTaskBase<Success, Error: Swift.Error>: ObservableTask {
     public var status: Status {
         statusValueSubject.value
     }
-    
-    public let progress = Progress()
-    
+        
     public init() {
         
     }

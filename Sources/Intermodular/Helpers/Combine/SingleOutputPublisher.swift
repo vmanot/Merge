@@ -21,7 +21,7 @@ extension SingleOutputPublisher {
         var cancellable: AnyCancellable?
         var didReceiveValue = false
         
-        return try await withCheckedThrowingContinuation { continuation in
+        let result: Output = try await withCheckedThrowingContinuation { continuation in
             cancellable = sink(
                 receiveCompletion: { completion in
                     switch completion {
@@ -45,13 +45,13 @@ extension SingleOutputPublisher {
                     didReceiveValue = true
                     
                     continuation.resume(returning: value)
-                    
-                    if cancellable != nil {
-                        cancellable = nil
-                    }
                 }
             )
         }
+        
+        cancellable?.cancel()
+        
+        return result
     }
 }
 
@@ -78,6 +78,10 @@ extension Publishers.Autoconnect: SingleOutputPublisher where Upstream: SingleOu
 }
 
 extension Publishers.Catch: SingleOutputPublisher where Upstream: SingleOutputPublisher {
+    
+}
+
+extension Publishers.Collect: SingleOutputPublisher {
     
 }
 

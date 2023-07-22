@@ -30,6 +30,16 @@ public final class _AsyncPromise<Success, Failure: Error>: ObservableObject, @un
         self._fulfilledValue = .success(value)
     }
     
+    public convenience init(
+        _ value: @escaping () async throws -> Success
+    ) where Failure == Error {
+        self.init()
+        
+        Task {
+            await self.fulfill(with: Result(catching: { try await value() }))
+        }
+    }
+    
     public func fulfill(with result: Result<Success, Failure>) {
         lock.withCriticalScope {
             guard _fulfilledValue == nil else {
@@ -119,6 +129,14 @@ extension _AsyncPromise {
 extension _AsyncPromise where Failure == Never {
     public var fulfilledValue: Success? {
         fulfilledResult?.get()
+    }
+}
+
+extension _AsyncPromise where Failure == Error {
+    public var fulfilledValue: Success? {
+        get throws {
+            try fulfilledResult?.get()
+        }
     }
 }
 

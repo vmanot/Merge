@@ -20,7 +20,7 @@ open class PassthroughTask<Success, Error: Swift.Error>: ObservableTask {
     
     private var body: Body?
     private var isEvaluatingBody: Bool = false
-    private var bodyCancellable: AnyCancellable?
+    private var bodyCancellable: Cancellable?
     private var _status: Status = .idle
     
     public var status: Status {
@@ -53,6 +53,16 @@ open class PassthroughTask<Success, Error: Swift.Error>: ObservableTask {
         status: Status,
         _objectWillChange: ObservableObjectPublisher
     ) {
+        guard TaskStatusDescription(status) != TaskStatusDescription(_status) else {
+            return
+        }
+        
+        if status == .canceled {
+            guard _status != .success || _status == .error else {
+                return
+            }
+        }
+        
         func _unsafeCommitStatus() {
             _objectWillChange.send()
             self._status = status
@@ -86,10 +96,22 @@ open class PassthroughTask<Success, Error: Swift.Error>: ObservableTask {
                 
                 lock.relinquish() // relinquish before running `body`
                 
-                let bodyCancellable = body(self as! Self)
+                let cancellable = SingleAssignmentAnyCancellable()
                 
                 lock.withCriticalScope {
-                    self.bodyCancellable = bodyCancellable
+                    Task.detached { @_NotMainActor in
+                        await withTaskCancellationHandler {
+                            withDependencies(from: self) {
+                                assert(!Thread.isMainThread)
+                                
+                                cancellable.set(body(self as! Self))
+                            }
+                        } onCancel: {
+                            cancellable.cancel()
+                        }
+                    }
+                    
+                    self.bodyCancellable = cancellable
                     self.body = nil
                     
                     /// Body already exited and called .send(status:).
@@ -105,7 +127,7 @@ open class PassthroughTask<Success, Error: Swift.Error>: ObservableTask {
                 assertionFailure()
             }
         } else {
-            var cancellable: AnyCancellable?
+            var cancellable: Cancellable?
 
             lock.withCriticalScope {
                 cancellable = self.bodyCancellable
@@ -222,14 +244,34 @@ open class PassthroughTask<Success, Error: Swift.Error>: ObservableTask {
         priority: TaskPriority? = nil,
         operation: @escaping @Sendable () async -> Success
     ) where Error == Never {
-        self.init(publisher: Future.async(priority: priority, execute: operation))
+        let dependencies = Dependencies.current
+        
+        self.init(publisher: Deferred {
+            Future.async(priority: priority, execute: {
+                await withDependencies {
+                    $0.mergeInPlace(with: dependencies)
+                } operation: {
+                    await operation()
+                }
+            })
+        })
     }
     
     required convenience public init(
         priority: TaskPriority? = nil,
         operation: @escaping @Sendable () async throws -> Success
     ) where Error == Swift.Error {
-        self.init(publisher: Future.async(priority: priority, execute: operation))
+        let dependencies = Dependencies.current
+
+        self.init(publisher: Deferred {
+            Future.async(priority: priority, execute: {
+                try await withDependencies {
+                    $0.mergeInPlace(with: dependencies)
+                } operation: {
+                    try await operation()
+                }
+            })
+        })
     }
 }
 
@@ -248,19 +290,21 @@ extension PassthroughTask where Success == Void {
     }
     
     final public class func action(
+        priority: TaskPriority? = nil,
         @_implicitSelfCapture _ action: @MainActor @escaping () -> Void
     ) -> Self {
         .action { _ in
-            Task { @MainActor in
+            Task(priority: priority) { @MainActor in
                 action()
             }
         }
     }
     
     final public class func action(
+        priority: TaskPriority? = nil,
         @_implicitSelfCapture _ action: @MainActor @escaping () async throws -> Void
     ) -> Self where Error == Swift.Error {
-        return Self(priority: .userInitiated) { () -> Void in
+        Self(priority: priority) { () -> Void in
             try await _runtimeIssueOnError {
                 try await action()
             }

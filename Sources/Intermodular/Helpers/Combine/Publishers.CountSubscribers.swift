@@ -13,7 +13,7 @@ extension Publishers {
         private let mutex = NSRecursiveLock()
         
         private var numberOfSubscribers = 0
-                
+        
         public let upstream: Upstream
         
         public init(upstream: Upstream) {
@@ -71,7 +71,7 @@ extension Publishers.CountSubscribers {
         
         func receive(subscription: Subscription) {
             subscriber.receive(
-                subscription: ManagedSubscription<Upstream>(
+                subscription: ManagedSubscription(
                     parent: parent,
                     subscription: subscription
                 )
@@ -87,7 +87,7 @@ extension Publishers.CountSubscribers {
         }
     }
     
-    private class ManagedSubscription<Upstream>: Subscription where Upstream: Publisher {
+    private class ManagedSubscription: Subscription where Upstream: Publisher {
         let lock = OSUnfairLock()
         let parent: Publishers.CountSubscribers<Upstream>
         let base: Subscription

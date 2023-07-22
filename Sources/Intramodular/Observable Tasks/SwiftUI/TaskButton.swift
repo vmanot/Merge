@@ -8,15 +8,6 @@ import SwiftUIX
 
 /// An button that represents a `Task`.
 public struct TaskButton<Success, Error: Swift.Error, Label: View>: View {
-    private let action: () -> AnyTask<Success, Error>?
-    private let label: (TaskStatus<Success, Error>) -> Label
-    
-    @EnvironmentObject.Optional private var taskPipeline: TaskPipeline?
-    
-    @State private var currentTask: AnyTask<Success, Error>?
-    
-    @PersistentObject private var observedTask = OpaqueObservableTask(erasing: AnyTask<Void, Never>.just(.success(())))
-    
     @Environment(\._taskButtonStyle) private var buttonStyle
     @Environment(\.cancellables) private var cancellables
     @Environment(\.customTaskIdentifier) private var customTaskIdentifier
@@ -25,8 +16,63 @@ public struct TaskButton<Success, Error: Swift.Error, Label: View>: View {
     @Environment(\.taskInterruptible) private var taskInterruptible
     @Environment(\.taskRestartable) private var taskRestartable
     
-    @State private var taskRenewalSubscription: AnyCancellable?
+    private let action: () -> AnyTask<Success, Error>
+    private let label: (TaskStatus<Success, Error>) -> Label
     
+    @EnvironmentObject.Optional private var _taskGraph: _ObservableTaskGraph?
+    
+    var existingTask: (any ObservableTask<Success, Error>)?
+        
+    @State private var lastTask: AnyTask<Success, Error>?
+    
+    @PersistentObject private var currentTask: AnyTask<Success, Error>?
+    
+    @State private var taskRenewalSubscription: AnyCancellable?
+    @State private var wantsToDisplayLastTaskStatus: Bool = false
+    
+    private var animation: MaybeKnown<Animation?> = .known(.default)
+    
+    private var task: AnyTask<Success, Error>? {
+        if let currentTask = currentTask {
+            return currentTask
+        } else if let customTaskIdentifier = customTaskIdentifier, let task = _taskGraph?[customTaskIdentifier: customTaskIdentifier] as? AnyTask<Success, Error> {
+            return task
+        } else if let existingTask {
+            let task = existingTask._opaque_eraseToAnyTask() as! AnyTask<Success, Error>
+            
+            if lastTask == task, currentTask == nil {
+                return nil
+            } else {
+                return task
+            }
+        } else {
+            return nil
+        }
+    }
+    
+    private var displayTaskStatus: TaskStatusDescription {
+        if let status = task?.statusDescription {
+            return status
+        } else if let status = customTaskIdentifier.flatMap({ _taskGraph?.lastStatus(forCustomTaskIdentifier: $0) }) {
+            if status == .failure {
+                return status
+            } else {
+                assert(status.isTerminal)
+                
+                return .idle
+            }
+        } else {
+            return .idle
+        }
+    }
+    
+    private var isDisabled: Bool {
+        false
+            || !isEnabled
+            || (currentTask?.status == .finished && !taskRestartable)
+            || (currentTask?.status == .active && !taskInterruptible)
+    }
+        
     public var body: some View {
         Button(action: trigger) {
             label(task?.status ?? .idle)
@@ -40,8 +86,7 @@ public struct TaskButton<Success, Error: Swift.Error, Label: View>: View {
                             isPressed: configuration.isPressed,
                             isInterruptible: taskInterruptible,
                             isRestartable: taskRestartable,
-                            status: taskStatusDescription,
-                            lastStatus: lastTaskStatusDescription
+                            status: displayTaskStatus
                         )
                     )
                     .eraseToAnyView()
@@ -50,85 +95,54 @@ public struct TaskButton<Success, Error: Swift.Error, Label: View>: View {
                 $0
             }
         }
-        .disabled(
-            false
-            || !isEnabled
-            || (currentTask?.status == .finished && !taskRestartable)
-            || (currentTask?.status == .active && !taskInterruptible)
-        )
-    }
-    
-    private var task: AnyTask<Success, Error>? {
-        if let currentTask = currentTask {
-            return currentTask
-        } else if let customTaskIdentifier = customTaskIdentifier, let task = taskPipeline?[customTaskIdentifier: customTaskIdentifier] as? AnyTask<Success, Error> {
-            return task
-        } else {
-            return nil
+        .disabled(isDisabled)
+        .modify(if: animation == .known) {
+            $0.animation(animation.knownValue ?? nil, value: displayTaskStatus)
         }
-    }
-    
-    private var taskStatusDescription: TaskStatusDescription {
-        task?.statusDescription
-        ?? customTaskIdentifier.flatMap({ taskPipeline?.lastStatus(forCustomTaskIdentifier: $0) })
-        ?? .idle
-    }
-    
-    private var lastTaskStatusDescription: TaskStatusDescription? {
-        customTaskIdentifier.flatMap({ taskPipeline?.lastStatus(forCustomTaskIdentifier: $0) })
+        .onChange(of: task) { task in
+            setCurrentTask(task)
+        }
     }
     
     private func trigger() {
-        if !taskRestartable && currentTask != nil {
+        if currentTask != nil {
+            guard taskRestartable else {
+                return
+            }
+        }
+        
+        let task = action()
+        
+        setCurrentTask(task)
+
+        task.start()
+
+        wantsToDisplayLastTaskStatus = true
+    }
+        
+    private func setCurrentTask(_ task: AnyTask<Success, Error>?) {
+        guard task != currentTask else {
             return
         }
-        
-        acquireTaskIfNecessary()
-    }
-    
-    private func subscribe(to task: AnyTask<Success, Error>) {
-        setCurrentTask(task)
-        
-        task.objectDidChange.sink(in: taskPipeline?.cancellables ?? cancellables) { status in
-            if case let .error(error) = status {
-                runtimeIssue(error)
                 
-                handleLocalizedError(error as? LocalizedError ?? GenericTaskButtonError(base: error))
-            }
+        if let task {
+            lastTask = currentTask
+            currentTask = task
             
-            if status.isTerminal {
-                setCurrentTask(nil)
-            }
-        }
-        
-        task.start()
-    }
-    
-    private func acquireTaskIfNecessary() {
-        if taskInterruptible {
-            if let task = action() {
-                subscribe(to: task)
-            }
-        } else {
-            if let customTaskIdentifier = customTaskIdentifier, let taskPipeline = taskPipeline, let task = taskPipeline[customTaskIdentifier: customTaskIdentifier] as? AnyTask<Success, Error> {
-                setCurrentTask(task)
-            } else {
-                if let task = action() {
-                    subscribe(to: task)
-                } else {
+            task.objectDidChange.sink(in: _taskGraph?.cancellables ?? cancellables) { status in
+                if case let .error(error) = status {
+                    runtimeIssue(error)
+                    
+                    handleLocalizedError(error as? LocalizedError ?? GenericTaskButtonError(base: error))
+                }
+                
+                if status.isTerminal {
                     setCurrentTask(nil)
                 }
             }
-        }
-    }
-    
-    private func setCurrentTask(_ task: AnyTask<Success, Error>?) {
-        if let task = task {
-            currentTask = task
-            observedTask = .init(erasing: task)
         } else {
+            lastTask = currentTask
             currentTask = nil
-            observedTask = .init(erasing: EmptyObservableTask())
         }
     }
 }
@@ -353,6 +367,23 @@ extension TaskButton where Success == Void, Error == Swift.Error {
         let label = label()
         
         self.init(action: action, label: { _ in label })
+    }
+}
+
+// MARK: - Supplementary
+
+extension TaskButton {
+    public func animation(_ animation: Animation?) -> Self {
+        then {
+            $0.animation = .known(animation)
+        }
+    }
+    
+    @available(iOS 16.0, macOS 13.0, tvOS 16.0, watchOS 9.0, *)
+    public func _existingTask(_ task: (any ObservableTask<Success, Error>)?) -> Self {
+        then {
+            $0.existingTask = task
+        }
     }
 }
 

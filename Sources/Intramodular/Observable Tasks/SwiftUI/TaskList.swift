@@ -5,8 +5,8 @@
 import Swift
 import SwiftUI
 
-public struct TaskPipelineView: View {
-    public let pipeline: TaskPipeline
+public struct _ObservableTaskGraphView: View {
+    public let pipeline: _ObservableTaskGraph
     
     public var body: some View {
         List {

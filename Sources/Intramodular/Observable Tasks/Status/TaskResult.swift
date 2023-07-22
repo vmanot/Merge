@@ -89,7 +89,7 @@ extension TaskResult: Sendable where Success: Sendable {
     
 }
 
-// MARK: - Supplementary API
+// MARK: - Supplementary
 
 extension TaskStatus {
     public init(_ result: TaskResult<Success, Error>) {

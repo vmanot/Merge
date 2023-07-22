@@ -50,10 +50,6 @@ public final class PublishedObject<Value>: PropertyWrapper {
             let propertyWrapper = enclosingInstance[keyPath: storageKeyPath]
             
             if propertyWrapper.objectWillChangeRelay.source == nil {
-                Task { @MainActor in
-                    enclosingInstance.objectWillChange.send()
-                }
-                
                 propertyWrapper.objectWillChangeRelay.source = propertyWrapper.wrappedValue
                 propertyWrapper.objectWillChangeRelay.destination = enclosingInstance
             }
@@ -65,16 +61,14 @@ public final class PublishedObject<Value>: PropertyWrapper {
             return propertyWrapper.wrappedValue
         } set {
             let propertyWrapper = enclosingInstance[keyPath: storageKeyPath]
-
-            enclosingInstance.objectWillChange.send()
                         
-            propertyWrapper.wrappedValue = newValue
-            
-            propertyWrapper._assignmentPublisher.send()
-
             propertyWrapper.objectWillChangeRelay.source = propertyWrapper.wrappedValue
             propertyWrapper.objectWillChangeRelay.destination = enclosingInstance
             propertyWrapper._wrappedValueBoxWillChangeRelay?.destination = enclosingInstance
+            
+            propertyWrapper.wrappedValue = newValue
+            
+            propertyWrapper._assignmentPublisher.send()
         }
     }
     

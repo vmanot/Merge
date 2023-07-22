@@ -29,7 +29,12 @@ public final class AnyTask<Success, Error: Swift.Error>: ObservableObject, Obser
     private init<T: ObservableTask<Success, Error>>(
         _erasing base: T
     ) {
-        self.base = base
+        if let base = base as? AnyTask<Success, Error> {
+            self.base = base.base
+        } else {
+            self.base = base
+        }
+        
         self.objectDidChange = base.objectDidChange.eraseToAnyPublisher()
     }
     
@@ -51,7 +56,15 @@ extension AnyTask {
         self.init(_erasing: base)
     }
     
-    public convenience init(erasing base: OpaqueObservableTask) where Success == Any, Error == Swift.Error {
+    public convenience init(
+        erasing base: any ObservableTask<Success, Error>
+    ) {
+        self.init(_erasing: base)
+    }
+    
+    public convenience init(
+        erasing base: OpaqueObservableTask
+    ) where Success == Any, Error == Swift.Error {
         self.init(_erasing: base)
     }
     
@@ -97,10 +110,26 @@ extension AnyTask {
     }
 }
 
+// MARK: - Conformances
+
+extension AnyTask: Equatable {
+    public static func == (lhs: AnyTask, rhs: AnyTask) -> Bool {
+        lhs.base.eraseToOpaqueObservableTask() == rhs.base.eraseToOpaqueObservableTask()
+    }
+    
+    public static func == (lhs: AnyTask, rhs: OpaqueObservableTask) -> Bool {
+        lhs.base.eraseToOpaqueObservableTask() == rhs
+    }
+}
+
 // MARK: - API
 
 extension ObservableTask {
     public func eraseToAnyTask() -> AnyTask<Success, Error> {
         .init(erasing: self)
+    }
+    
+    public func _opaque_eraseToAnyTask() -> any ObservableTask {
+        eraseToAnyTask()
     }
 }

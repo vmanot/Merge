@@ -17,7 +17,6 @@ protocol _DependencyPropertyWrapperType: PropertyWrapper {
 
 @propertyWrapper
 public struct Dependency<Value>: _DependenciesUsing, _DependencyPropertyWrapperType, DynamicProperty, Logging, @unchecked Sendable {
-    
     public let logger = PassthroughLogger()
     
     @Environment(\._dependencies) var _SwiftUI_dependencies
@@ -88,7 +87,7 @@ public struct Dependency<Value>: _DependenciesUsing, _DependencyPropertyWrapperT
             
             return try resolveValue(dependenciesAvailable()).unwrap()
         } catch {
-            throw runtimeIssue(DependenciesError.failedToResolveDependency)
+            throw runtimeIssue(DependenciesError.failedToResolveDependency(Value.self))
         }
     }
     
@@ -114,9 +113,9 @@ public struct Dependency<Value>: _DependenciesUsing, _DependencyPropertyWrapperT
         )
     }
     
-    public init<T>(
-        _ keyPath: KeyPath<DependencyValues, T>
-    ) where Value == Optional<T> {
+    public init(
+        _ keyPath: KeyPath<DependencyValues, Value>
+    ) {
         self.init(
             initialDependencies: Dependencies.current,
             resolveValue: { $0[keyPath] }
@@ -180,7 +179,18 @@ extension Dependency where Value: OptionalProtocol {
         try _get()
     }
     
+}
+
+#if DEBUG
+extension Dependency where Value: OptionalProtocol {
+    public func get(file: StaticString = #fileID, line: UInt = #line) throws -> Value.Wrapped {
+        try _get()._wrapped.unwrap(file: file, line: line)
+    }
+}
+#else
+extension Dependency where Value: OptionalProtocol {
     public func get() throws -> Value.Wrapped {
         try _get()._wrapped.unwrap()
     }
 }
+#endif

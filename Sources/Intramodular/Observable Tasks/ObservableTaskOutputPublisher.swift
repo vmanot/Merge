@@ -37,7 +37,7 @@ public struct ObservableTaskOutputPublisher<Base: ObservableTask>: Publisher {
         }
         
         base.objectDidChange
-            .filter({ $0 != .idle })
+            .filter({ $0.isTerminal })
             .setFailureType(to: Failure.self)
             .flatMap({ status -> AnyPublisher<Output, Failure> in
                 if let output = status.output {
@@ -55,9 +55,11 @@ public struct ObservableTaskOutputPublisher<Base: ObservableTask>: Publisher {
                 }
             })
             .handleCancel {
-                runtimeIssue(CancellationError())
-                
-                base.cancel()
+                guard base.status.isTerminal else {
+                    runtimeIssue(CancellationError())
+                    
+                    return
+                }
             }
             .receive(subscriber: subscriber)
     }

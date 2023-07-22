@@ -14,5 +14,4 @@ public struct TaskButtonConfiguration {
     public let isRestartable: Bool
     
     public let status: TaskStatusDescription
-    public let lastStatus: TaskStatusDescription?
 }
