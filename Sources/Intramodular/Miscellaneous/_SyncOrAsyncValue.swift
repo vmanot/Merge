@@ -34,7 +34,7 @@ public struct _NonAsyncAndAsyncAccessor<Root, Value> {
             }
         }
     }
-
+    
     public struct _AsyncBase {
         let get: (Root) async throws -> Value
         let set: (Root, Value) async throws -> Void
@@ -59,7 +59,7 @@ public struct _NonAsyncAndAsyncAccessor<Root, Value> {
             }
         }
     }
-        
+    
     public init(
         nonAsync: _NonAsyncBase,
         async: _AsyncBase
@@ -85,7 +85,7 @@ extension _NonAsyncAndAsyncAccessor where Root == Void {
     }
     
     public func setValue(_ newValue: Value) async throws {
-       try await self._setAsync((), newValue)
+        try await self._setAsync((), newValue)
     }
     
     public func synchronouslySetValue(_ newValue: Value) throws {
@@ -94,14 +94,24 @@ extension _NonAsyncAndAsyncAccessor where Root == Void {
 }
 
 public enum _SyncOrAsyncValue<Value> {
-    case synchronous(Value)
+    case synchronous(Result<Value, Error>)
     case asynchronous(_AsyncPromise<Value, Error>)
+    
+    public init(_ value: Value) {
+        self = .synchronous(value)
+    }
+    
+    public static func synchronous(
+        _ value: @autoclosure () throws -> Value
+    ) -> Self {
+        .synchronous(Result(catching: { try value() }))
+    }
     
     public var value: Value {
         get async throws {
             switch self {
                 case .synchronous(let value):
-                    return value
+                    return try value.get()
                 case .asynchronous(let value):
                     return try await value.get()
             }
@@ -112,7 +122,7 @@ public enum _SyncOrAsyncValue<Value> {
         get throws {
             switch self {
                 case .synchronous(let value):
-                    return value
+                    return try value.get()
                 case .asynchronous(let value):
                     return try value.fulfilledValue
             }
@@ -130,7 +140,14 @@ extension _SyncOrAsyncValue where Value: Equatable {
     }
 }
 
-public enum _SyncOrAsyncFunction<Input, Output> {
+public protocol _SyncOrAsyncFunction_Type {
+    associatedtype Input
+    associatedtype Output
+    
+    func callAsFunction(_ input: Input) throws -> _SyncOrAsyncValue<Output>
+}
+
+public enum _SyncOrAsyncFunction<Input, Output>: _SyncOrAsyncFunction_Type {
     case synchronous((Input) throws -> Output)
     case asynchronous((Input) async throws -> Output)
     
@@ -152,7 +169,7 @@ public enum _SyncOrAsyncFunction<Input, Output> {
         self = .asynchronous(fn)
     }
     
-    public func callAsFunction(_ input: Input) throws -> _SyncOrAsyncValue<Output> {
+    public func callAsFunction(_ input: Input) -> _SyncOrAsyncValue<Output> {
         switch self {
             case .synchronous(let fn):
                 return .synchronous(try fn(input))

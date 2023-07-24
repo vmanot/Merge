@@ -99,11 +99,9 @@ open class PassthroughTask<Success, Error: Swift.Error>: ObservableTask {
                 let cancellable = SingleAssignmentAnyCancellable()
                 
                 lock.withCriticalScope {
-                    Task.detached { @_NotMainActor in
+                    Task._offTheMainThread {
                         await withTaskCancellationHandler {
                             withDependencies(from: self) {
-                                assert(!Thread.isMainThread)
-                                
                                 cancellable.set(body(self as! Self))
                             }
                         } onCancel: {

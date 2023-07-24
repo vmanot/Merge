@@ -10,7 +10,6 @@ import SwiftUIX
 public struct TaskButton<Success, Error: Swift.Error, Label: View>: View {
     @Environment(\._taskButtonStyle) private var buttonStyle
     @Environment(\.cancellables) private var cancellables
-    @Environment(\.customTaskIdentifier) private var customTaskIdentifier
     @Environment(\.handleLocalizedError) private var handleLocalizedError
     @Environment(\.isEnabled) private var isEnabled
     @Environment(\.taskInterruptible) private var taskInterruptible
@@ -19,7 +18,7 @@ public struct TaskButton<Success, Error: Swift.Error, Label: View>: View {
     private let action: () -> AnyTask<Success, Error>
     private let label: (TaskStatus<Success, Error>) -> Label
     
-    @EnvironmentObject.Optional private var _taskGraph: _ObservableTaskGraph?
+    @EnvironmentObject.Optional private var _taskGraph: _AnyObservableTaskGraph?
     
     var existingTask: (any ObservableTask<Success, Error>)?
         
@@ -35,8 +34,6 @@ public struct TaskButton<Success, Error: Swift.Error, Label: View>: View {
     private var task: AnyTask<Success, Error>? {
         if let currentTask = currentTask {
             return currentTask
-        } else if let customTaskIdentifier = customTaskIdentifier, let task = _taskGraph?[customTaskIdentifier: customTaskIdentifier] as? AnyTask<Success, Error> {
-            return task
         } else if let existingTask {
             let task = existingTask._opaque_eraseToAnyTask() as! AnyTask<Success, Error>
             
@@ -53,14 +50,6 @@ public struct TaskButton<Success, Error: Swift.Error, Label: View>: View {
     private var displayTaskStatus: TaskStatusDescription {
         if let status = task?.statusDescription {
             return status
-        } else if let status = customTaskIdentifier.flatMap({ _taskGraph?.lastStatus(forCustomTaskIdentifier: $0) }) {
-            if status == .failure {
-                return status
-            } else {
-                assert(status.isTerminal)
-                
-                return .idle
-            }
         } else {
             return .idle
         }
@@ -129,7 +118,7 @@ public struct TaskButton<Success, Error: Swift.Error, Label: View>: View {
             lastTask = currentTask
             currentTask = task
             
-            task.objectDidChange.sink(in: _taskGraph?.cancellables ?? cancellables) { status in
+            task.objectDidChange.sink(in: cancellables) { status in
                 if case let .error(error) = status {
                     runtimeIssue(error)
                     
@@ -416,17 +405,5 @@ extension EnvironmentValues {
         } set {
             self[DefaultEnvironmentKey<AnyHashable>.self] = newValue
         }
-    }
-}
-
-// MARK: - API
-
-extension View {
-    public func customTaskIdentifier(_ name: AnyHashable) -> some View {
-        environment(\.customTaskIdentifier, name)
-    }
-    
-    public func customTaskIdentifier<H: Hashable>(_ name: H) -> some View {
-        customTaskIdentifier(.init(name))
     }
 }

@@ -6,18 +6,30 @@ import Foundation
 import Swallow
 
 @available(macOS 13.0, iOS 16.0, watchOS 9.0, tvOS 16.0, *)
-public enum _RetryStrategy {
+public enum _TaskRetryStrategy {
     case delay(any RetryDelayStrategy, initial: Duration)
+    
+    public static func delay(
+        _ strategy: some RetryDelayStrategy
+    ) -> Self {
+        .delay(strategy, initial: .seconds(1))
+    }
+    
+    public static func delay(
+        duration: Duration
+    ) -> Self {
+        .delay(.linear, initial: .seconds(1))
+    }
 }
 
 @available(macOS 13.0, iOS 16.0, watchOS 9.0, tvOS 16.0, *)
-public struct _RetryPolicy {
-    public var strategy: _RetryStrategy
+public struct _TaskRetryPolicy {
+    public var strategy: _TaskRetryStrategy
     public let maxRetryCount: Int?
     public let onFailure: (Error, Int) throws -> ()
     
     public init(
-        strategy: _RetryStrategy,
+        strategy: _TaskRetryStrategy,
         maxRetryCount: Int? = 1,
         onFailure: @escaping (Error, Int) throws -> () = { _, _ in }
     ) {
@@ -34,7 +46,7 @@ public enum _RetryError: Error {
 
 @available(macOS 13.0, iOS 16.0, watchOS 9.0, tvOS 16.0, *)
 public func _performTask<Result>(
-    retryPolicy: _RetryPolicy?,
+    retryPolicy: _TaskRetryPolicy?,
     operation: () async throws -> Result
 ) async throws -> Result {
     guard let retryPolicy else {

@@ -26,6 +26,13 @@ public struct LinearBackoffStrategy: RetryDelayStrategy {
 }
 
 @available(macOS 13.0, iOS 16.0, watchOS 9.0, tvOS 16.0, *)
+extension RetryDelayStrategy where Self == LinearBackoffStrategy {
+    public static var linear: Self {
+        .init()
+    }
+}
+
+@available(macOS 13.0, iOS 16.0, watchOS 9.0, tvOS 16.0, *)
 public struct ExponentialBackoffStrategy: RetryDelayStrategy {
     public let maximumInterval: Duration?
     public let jitter: Bool
@@ -51,10 +58,14 @@ public struct ExponentialBackoffStrategy: RetryDelayStrategy {
 
 @available(macOS 13.0, iOS 16.0, watchOS 9.0, tvOS 16.0, *)
 extension RetryDelayStrategy where Self == ExponentialBackoffStrategy {
-    public func exponential(
+    public static func exponentialBackoff(
         maximumInterval: Duration? = nil,
         jitter: Bool = true
     ) -> Self {
         .init(maximumInterval: nil, jitter: jitter)
+    }
+    
+    public static var exponentialBackoff: Self {
+        self.exponentialBackoff()
     }
 }

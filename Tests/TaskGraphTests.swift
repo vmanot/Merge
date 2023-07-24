@@ -9,7 +9,7 @@ import XCTest
 
 final class TaskGraphTests: XCTestCase {
     func testUseExistingPolicy() async throws {
-        let graph = TaskGraph<TestTasks>()
+        let graph = _KeyedTaskGraph<TestTasks>()
         
         try graph.insert(.foo) {
             try await Task.sleep(.milliseconds(200))
@@ -35,7 +35,7 @@ final class TaskGraphTests: XCTestCase {
     }
     
     func testUnspecifiedInsertionPolicyFailure() async throws {
-        let graph = TaskGraph<TestTasks>()
+        let graph = _KeyedTaskGraph<TestTasks>()
         
         func insertLongFoo() async throws {
             try graph.insert(.foo) {

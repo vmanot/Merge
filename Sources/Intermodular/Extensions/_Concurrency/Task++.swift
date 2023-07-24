@@ -160,3 +160,11 @@ extension Task where Failure == Error {
         }
     }
 }
+
+// MARK: - Auxiliary
+
+extension Thread {
+    fileprivate static var _isMainThread: Bool {
+        isMainThread
+    }
+}
