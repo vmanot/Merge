@@ -39,6 +39,15 @@ public func _withLogicalParent<Parent, Result>(
     }
 }
 
+public func _withLogicalParent<Parent, Result>(
+    _ parent: Parent,
+    operation: (Parent) throws -> Result
+) throws -> Result {
+    try withDependencies(from: Optional(parent)) {
+        try operation(parent)
+    }
+}
+
 extension DependencyValues {
     struct LogicalParentKey: DependencyKey {
         typealias Value = Optional<Weak<AnyObject>>
