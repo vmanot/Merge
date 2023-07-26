@@ -21,7 +21,7 @@ extension AsyncStream {
         _ elementType: Element.Type = Element.self,
         bufferingPolicy limit: Continuation.BufferingPolicy = .unbounded
     ) async -> (stream: Self, continuation: Continuation) {
-        await withUnsafeContinuation { continuationContinuation in
+        await withAsyncUnsafeContinuation { continuationContinuation in
             return Self(elementType, bufferingPolicy: limit) {
                 continuationContinuation.resume(returning: $0)
             }

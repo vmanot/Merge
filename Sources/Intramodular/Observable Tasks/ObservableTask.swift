@@ -8,18 +8,13 @@ import Foundation
 import Swallow
 
 /// An observable task is a token of activity with status-reporting.
-public protocol ObservableTask<Success, Error>: Cancellable, Identifiable, ObservableObject where
-ObjectWillChangePublisher.Failure == Never, ObjectDidChangePublisher.Failure == Never {
+public protocol ObservableTask<Success, Error>: Cancellable, Identifiable, _ObservableObjectX where ObjectDidChangePublisher.Output == TaskStatus<Self.Success, Self.Error> {
     associatedtype Success
     associatedtype Error: Swift.Error
-    associatedtype ObjectDidChangePublisher: Publisher<TaskStatus<Self.Success, Self.Error>, Never>
 
     /// The status of this task.
     var status: TaskStatus<Success, Error> { get }
     
-    /// A publisher that emits after the object has changed.
-    var objectDidChange: ObjectDidChangePublisher { get }
-        
     /// Start the task.
     func start()
         

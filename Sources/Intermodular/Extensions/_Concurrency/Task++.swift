@@ -10,7 +10,7 @@ extension Task {
     public static func _withUnsafeContinuation(
         _ fn: @escaping (UnsafeContinuation<Void, Never>) async -> Success
     ) async -> Task<Success, Failure> where Failure == Never {
-        let (task, _) = await Swallow.withUnsafeContinuation { (continuation: UnsafeContinuation<Void, Never>) -> Task<Success, Never> in
+        let (task, _) = await Swallow.withAsyncUnsafeContinuation { (continuation: UnsafeContinuation<Void, Never>) -> Task<Success, Never> in
             return Task<Success, Never> {
                 await fn(continuation)
             }
@@ -22,7 +22,7 @@ extension Task {
     public static func _withUnsafeThrowingContinuation(
         _ fn: @escaping (UnsafeContinuation<Void, Error>) async throws -> Success
     ) async throws -> Task<Success, Failure> where Failure == Error {
-        let (task, _) = try await Swallow.withUnsafeThrowingContinuation { (continuation: UnsafeContinuation<Void, Error>) -> Task<Success, Error> in
+        let (task, _) = try await Swallow.withAsyncUnsafeThrowingContinuation { (continuation: UnsafeContinuation<Void, Error>) -> Task<Success, Error> in
             return Task<Success, Error> {
                 try await fn(continuation)
             }

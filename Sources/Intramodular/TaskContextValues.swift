@@ -4,6 +4,7 @@
 
 import Swallow
 
+@_spi(Internal)
 public struct TaskContextValues {
     public var base: HeterogeneousDictionary<TaskContextValues>
     
@@ -20,10 +21,12 @@ public struct TaskContextValues {
     }
 }
 
+@_spi(Internal)
 public protocol TaskContextKey<Value>: HeterogeneousDictionaryKey<TaskContextValues, Self.Value> {
     static var defaultValue: Value { get }
 }
 
+@_spi(Internal)
 extension TaskContextValues {
     @TaskLocal static var current: TaskContextValues = .init()
 }

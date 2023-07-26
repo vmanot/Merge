@@ -29,9 +29,7 @@ public func _withLogicalParent<Parent, Result>(
     operation: () throws -> Result
 ) throws -> Result {
     try withDependencies {
-        if let parent {
-            $0[\._logicalParent] = Weak(try cast(parent, to: AnyObject.self))
-        }
+        try $0._setLogicalParent(parent)
     } operation: {
         try withDependencies(from: parent) {
             try operation()
@@ -40,16 +38,58 @@ public func _withLogicalParent<Parent, Result>(
 }
 
 public func _withLogicalParent<Parent, Result>(
+    _ parent: Parent?,
+    operation: () async throws -> Result
+) async throws -> Result {
+    try await withDependencies {
+        try $0._setLogicalParent(parent)
+    } operation: {
+        try await withDependencies(from: parent) {
+            try await operation()
+        }
+    }
+}
+
+public func _withLogicalParent<Parent, Result>(
     _ parent: Parent,
     operation: (Parent) throws -> Result
 ) throws -> Result {
-    try withDependencies(from: Optional(parent)) {
+    try _withLogicalParent(Optional(parent)) {
         try operation(parent)
     }
 }
 
+public func _withLogicalParent<Parent, Result>(
+    _ parent: Parent,
+    operation: (Parent) async throws -> Result
+) async throws -> Result {
+    try await _withLogicalParent(Optional(parent)) {
+        try await operation(parent)
+    }
+}
+
+public func _withLogicalParent<Parent, Result>(
+    ofType parentType: Parent.Type,
+    operation: (Parent) throws -> Result
+) throws -> Result {
+    do {
+        let parent = try cast(
+            Dependencies.current[unwrapping: \._logicalParent].wrappedValue.unwrap(),
+            to: parentType
+        )
+        
+        return try operation(parent)
+    } catch {
+        runtimeIssue(error)
+        
+        throw error
+    }
+}
+
+// MARK: - Auxiliary
+
 extension DependencyValues {
-    struct LogicalParentKey: DependencyKey {
+    fileprivate struct LogicalParentKey: DependencyKey {
         typealias Value = Optional<Weak<AnyObject>>
         
         static let defaultValue: Value = nil
@@ -59,11 +99,23 @@ extension DependencyValues {
         }
     }
     
-    var _logicalParent: LogicalParentKey.Value {
+    fileprivate var _logicalParent: LogicalParentKey.Value {
         get {
             self[LogicalParentKey.self]
         } set {
             self[LogicalParentKey.self] = newValue
+        }
+    }
+}
+
+extension Dependencies {
+    fileprivate mutating func _setLogicalParent<Parent>(
+        _ parent: Parent?
+    ) throws {
+        if let parent {
+            self[\DependencyValues._logicalParent] = Weak(try cast(parent, to: AnyObject.self))
+        } else {
+            self[\DependencyValues._logicalParent] = Weak(nil)
         }
     }
 }
