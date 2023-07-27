@@ -3,7 +3,7 @@
 //
 
 import Combine
-import Swift
+import Swallow
 import SwiftUI
 
 public enum TaskStatusDescription: CustomDebugStringConvertible, Hashable {
@@ -12,7 +12,7 @@ public enum TaskStatusDescription: CustomDebugStringConvertible, Hashable {
     case paused
     case canceled
     case success
-    case error(OpaqueError)
+    case error(AnyError)
     
     public var debugDescription: String {
         switch self {
@@ -99,22 +99,12 @@ extension TaskStatusDescription {
             case .success:
                 self = .success
             case .error(let error):
-                self = .error(.init(error))
+                self = .error(AnyError(erasing: error))
         }
     }
 }
 
 // MARK: - Auxiliary
-
-extension TaskStatusDescription {
-    public struct OpaqueError: Error, Hashable {
-        public let localizedDescription: String
-        
-        fileprivate init(_ error: Error) {
-            self.localizedDescription = error.localizedDescription
-        }
-    }
-}
 
 extension TaskStatusDescription {
     public enum Comparison {

@@ -5,7 +5,7 @@
 import Swallow
 
 @propertyWrapper
-public struct LogicalParent<Value: AnyObject>: _DependenciesUsing {
+public struct LogicalParent<Value>: _DependenciesUsing {
     @Dependency(
         \._logicalParent,
          _resolve: { try ($0?.wrappedValue).flatMap({ try cast($0) }) }
@@ -90,7 +90,7 @@ public func _withLogicalParent<Parent, Result>(
 
 extension DependencyValues {
     fileprivate struct LogicalParentKey: DependencyKey {
-        typealias Value = Optional<Weak<AnyObject>>
+        typealias Value = Optional<Weak<Any>>
         
         static let defaultValue: Value = nil
         
@@ -113,7 +113,7 @@ extension Dependencies {
         _ parent: Parent?
     ) throws {
         if let parent {
-            self[\DependencyValues._logicalParent] = Weak(try cast(parent, to: AnyObject.self))
+            self[\DependencyValues._logicalParent] = Weak(parent)
         } else {
             self[\DependencyValues._logicalParent] = Weak(nil)
         }

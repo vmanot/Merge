@@ -2,13 +2,14 @@
 // Copyright (c) Vatsal Manot
 //
 
-import Swift
-import SwiftUI
+import Foundation
+import Swallow
 
 extension Task where Failure == Error {
-    public struct TimeoutError: LocalizedError {
+    public struct TimeoutError: Hashable, Identifiable, LocalizedError, @unchecked Sendable {
         public let errorDescription: String? = "Task timed out before completion."
-        
+        public let id: AnyHashable = UUID()
+
         fileprivate init() {
             
         }
@@ -72,6 +73,8 @@ private func _runOperationWithTimeout<Success: Sendable>(
     timeout: TimeInterval
 ) async throws -> Success {
     try await withThrowingTaskGroup(of: Success.self) { group -> Success in
+        let timeoutError = Task<Success, Error>.TimeoutError()
+        
         await withUnsafeContinuation { continuation in
             group.addTask {
                 continuation.resume()
@@ -83,16 +86,18 @@ private func _runOperationWithTimeout<Success: Sendable>(
         group.addTask {
             try await Task.sleep(nanoseconds: UInt64(timeout * 1_000_000_000))
             
-            throw Task<Success, Error>.TimeoutError()
+            throw timeoutError
         }
         
-        guard let success = try await group.next() else {
+        let next = await Result(catching: { try await group.next() })
+        
+        guard let next else {
             throw _Concurrency.CancellationError()
         }
         
         group.cancelAll()
-        
-        return success
+
+        return try next.get()
     }
 }
 
