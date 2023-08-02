@@ -31,7 +31,7 @@ extension TaskQueue: TaskSinkProtocol {
     public func receive<Success: Sendable>(
         _ task: Task<Success, Never>
     ) async -> Result<Success, _ResultFailureType> {
-        await perform {
+        await _performCancellable {
             await task.value
         }
     }

@@ -17,9 +17,7 @@ public struct TaskButton<Success, Error: Swift.Error, Label: View>: View {
     
     private let action: () -> AnyTask<Success, Error>
     private let label: (TaskStatus<Success, Error>) -> Label
-    
-    @EnvironmentObject.Optional private var _taskGraph: _AnyObservableTaskGraph?
-    
+        
     var existingTask: (any ObservableTask<Success, Error>)?
         
     @State private var lastTask: AnyTask<Success, Error>?
@@ -395,15 +393,5 @@ struct GenericTaskButtonError: CustomStringConvertible, LocalizedError {
     
     public var errorDescription: String? {
         (base as? LocalizedError)?.errorDescription
-    }
-}
-
-extension EnvironmentValues {
-    public var customTaskIdentifier: AnyHashable? {
-        get {
-            self[DefaultEnvironmentKey<AnyHashable>.self]
-        } set {
-            self[DefaultEnvironmentKey<AnyHashable>.self] = newValue
-        }
     }
 }

@@ -44,7 +44,7 @@ public final class ThrowingTaskQueue: Sendable {
         @_implicitSelfCapture operation: @Sendable @escaping () async throws -> T
     ) async throws -> T {
         if queue.policy == .cancelPrevious {
-            await queue.cancelAllTasks()
+            await queue.cancelAll()
         }
         
         guard _Queue.queueID?.erasedAsAnyHashable != queue.id.erasedAsAnyHashable else {
@@ -73,7 +73,7 @@ public final class ThrowingTaskQueue: Sendable {
     }
     
     public func cancelAll() async {
-        await queue.cancelAllTasks()
+        await queue.cancelAll()
     }
     
     public func cancelAll() {
@@ -94,7 +94,7 @@ extension ThrowingTaskQueue {
             self.policy = policy
         }
         
-        func cancelAllTasks() {
+        func cancelAll() {
             previousTask?.cancel()
             previousTask = nil
         }

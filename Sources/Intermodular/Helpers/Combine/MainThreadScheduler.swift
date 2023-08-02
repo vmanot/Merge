@@ -29,6 +29,7 @@ public struct MainThreadScheduler: Scheduler {
         base.minimumTolerance
     }
     
+    @MainActor(unsafe)
     public func schedule(_ action: @escaping () -> Void) {
         if Thread.isMainThread {
             action()
@@ -37,6 +38,7 @@ public struct MainThreadScheduler: Scheduler {
         }
     }
     
+    @MainActor(unsafe)
     public func schedule(options: SchedulerOptions?, _ action: @escaping () -> Void) {
         if Thread.isMainThread {
             action()

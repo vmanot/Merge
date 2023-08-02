@@ -27,7 +27,7 @@ public struct Dependencies: @unchecked Sendable {
     var unkeyedValues: _BagOfExistentials<any Sendable>
     var unkeyedValueTypes: Set<Metatype<Any.Type>> = []
     var keyedValues = HeterogeneousDictionary<Dependencies>()
-
+    
     var isEmpty: Bool {
         unkeyedValues.isEmpty && keyedValues.isEmpty
     }
@@ -58,7 +58,7 @@ public struct Dependencies: @unchecked Sendable {
                 return self[key]
         }
     }
-        
+    
     public subscript<T>(unkeyed type: T.Type) -> T? {
         get {
             unkeyedValues.first(ofType: type)
@@ -87,10 +87,14 @@ public struct Dependencies: @unchecked Sendable {
         unwrapping keyPath: KeyPath<DependencyValues, Optional<T>>
     ) -> T {
         get throws {
-            try keyedValues[keyPath: keyPath].unwrap()
+            do {
+                return try keyedValues[keyPath: keyPath].unwrap()
+            } catch {
+                throw _PlaceholderError()
+            }
         }
     }
-
+    
     public subscript<T>(keyPath: WritableKeyPath<DependencyValues, T>) -> T {
         get {
             keyedValues[keyPath: keyPath]
@@ -133,7 +137,7 @@ extension Dependencies {
     public static var current: Dependencies {
         Dependencies._current
     }
-
+    
     static func resolve<T>(
         _ dependency: Dependency<T>
     ) throws -> T {

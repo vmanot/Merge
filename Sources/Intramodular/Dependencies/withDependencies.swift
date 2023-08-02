@@ -142,7 +142,11 @@ extension Dependencies {
         
         self.init()
         
-        let subject = _unwrapPossiblyTypeErasedValue(subject)
+        guard let subject = _unwrapPossiblyTypeErasedValue(subject) else {
+            self.init()
+            
+            return
+        }
         
         if let reflected = Mirror(reflecting: subject).children
             .lazy
@@ -175,7 +179,9 @@ extension Dependencies {
     ///
     /// Provide the subject with dependencies if it conforms to `_DependenciesUsing`.
     func _stashInOrProvideTo<T>(_ subject: T) {
-        let subject = _unwrapPossiblyTypeErasedValue(subject)
+        guard let subject = _unwrapPossiblyTypeErasedValue(subject) else {
+            return
+        }
         
         if let stasher = _DependenciesStasher(from: subject) {
             stasher.stash(self.stashable())

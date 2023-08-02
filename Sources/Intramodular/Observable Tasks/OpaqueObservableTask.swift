@@ -2,10 +2,10 @@
 // Copyright (c) Vatsal Manot
 //
 
-import Foundation
+import Runtime
 import Swallow
 
-public final class OpaqueObservableTask: CustomStringConvertible, ObservableTask {
+public final class OpaqueObservableTask: CustomStringConvertible, ObjCObject, ObservableTask {
     public typealias StatusDescription = TaskStatusDescription
 
     public typealias Success = Any
@@ -29,15 +29,11 @@ public final class OpaqueObservableTask: CustomStringConvertible, ObservableTask
         base._opaque_objectDidChange
     }
 
-    public var id: some Hashable {
-        base.id.eraseToAnyHashable()
-    }
-    
     public var statusDescription: StatusDescription {
         base.statusDescription
     }
         
-    public init<T: ObservableTask>(erasing base: T) {
+    fileprivate init<T: ObservableTask>(erasing base: T) {
         if base is OpaqueObservableTask {
             assertionFailure()
         }
@@ -60,12 +56,30 @@ public final class OpaqueObservableTask: CustomStringConvertible, ObservableTask
 }
 
 extension ObservableTask {
+    private static var _opaqueRepresentationKey: ObjCAssociationKey<OpaqueObservableTask> {
+        .init()
+    }
+    
     public func eraseToOpaqueObservableTask() -> OpaqueObservableTask {
-        .init(erasing: self)
+        ObjCAssociatedObjectView(base: self)[Self._opaqueRepresentationKey, default: .init(erasing: self)]
     }
 }
 
 // MARK: - Conformances
+
+extension OpaqueObservableTask {
+    public struct ID: Hashable, @unchecked Sendable {
+        private let base: AnyHashable
+        
+        fileprivate init(base: AnyHashable) {
+            self.base = base
+        }
+    }
+    
+    public var id: ID {
+        .init(base: base.id.eraseToAnyHashable())
+    }
+}
 
 extension OpaqueObservableTask: Equatable {
     public static func == (lhs: OpaqueObservableTask, rhs: OpaqueObservableTask) -> Bool {

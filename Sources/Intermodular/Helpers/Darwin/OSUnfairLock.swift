@@ -10,6 +10,7 @@ public final class OSUnfairLock: Initiable, Sendable, TestableLock {
     @usableFromInline
     let base: os_unfair_lock_t
     
+    @inlinable
     public init() {
         let base = os_unfair_lock_t.allocate(capacity: 1)
         
@@ -21,11 +22,6 @@ public final class OSUnfairLock: Initiable, Sendable, TestableLock {
     @inlinable
     public func acquireOrBlock() {
         os_unfair_lock_lock(base)
-    }
-
-    @usableFromInline
-    enum AcquisitionError: Error {
-        case failedToAcquireLock
     }
     
     @inlinable
@@ -45,5 +41,31 @@ public final class OSUnfairLock: Initiable, Sendable, TestableLock {
     deinit {
         base.deinitialize(count: 1)
         base.deallocate()
+    }
+}
+
+extension OSUnfairLock {
+    @discardableResult
+    @inlinable
+    @inline(__always)
+    public func withCriticalScope<Result>(
+        perform action: () -> Result
+    ) -> Result {
+        defer {
+            relinquish()
+        }
+        
+        acquireOrBlock()
+        
+        return action()
+    }
+}
+
+// MARK: - Error Handling
+
+extension OSUnfairLock {
+    @usableFromInline
+    enum AcquisitionError: Error {
+        case failedToAcquireLock
     }
 }

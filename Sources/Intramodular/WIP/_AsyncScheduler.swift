@@ -5,21 +5,27 @@
 import Combine
 import Swift
 
-/// WIP, not well-thought out.
+/// WIP, not super well thought out.
 public protocol _AsyncScheduler {
     func schedule(
         _ task: @Sendable @escaping () async -> Void
     )
     
-    func perform<T: Sendable>(
+    func _performCancellable<T: Sendable>(
         @_implicitSelfCapture operation: @Sendable @escaping () async -> T
     ) async -> Result<T, CancellationError>
+    
+    func perform<T: Sendable>(
+        @_implicitSelfCapture operation: @Sendable @escaping () async -> T
+    ) async throws -> T
 }
 
+// MARK: - Implementation
+
 extension _AsyncScheduler {
-    public func perform<T>(
+    public func _performCancellable<T: Sendable>(
         operation: @escaping @Sendable () async -> T
-    ) async -> Result<T, CancellationError> where T : Sendable {
+    ) async -> Result<T, CancellationError> {
         await withUnsafeContinuation { continuation in
             schedule {
                 do {
@@ -34,13 +40,23 @@ extension _AsyncScheduler {
             }
         }
     }
+    
+    public func perform<T: Sendable>(
+        @_implicitSelfCapture operation: @Sendable @escaping () async -> T
+    ) async throws -> T {
+        try await _performCancellable(operation: operation).get()
+    }
 }
+
+// MARK: - Implemented Conformances
 
 public struct _DefaultAsyncScheduler {
     public func schedule(
         _ task: @Sendable @escaping () async -> Void
     ) {
-        
+        Task {
+            await task()
+        }
     }
     
     public func perform<T: Sendable>(

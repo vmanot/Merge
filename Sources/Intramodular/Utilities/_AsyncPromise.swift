@@ -31,6 +31,28 @@ public final class _AsyncPromise<Success, Failure: Error>: ObservableObject, @un
     }
     
     public convenience init(
+        _ fulfill: @escaping (UnsafeContinuation<Success, Failure>) -> Void
+    ) where Failure == Swift.Error {
+        self.init()
+        
+        Task {
+            let result = await Result(catching: {
+                try await withUnsafeThrowingContinuation { (continuation: UnsafeContinuation<Success, Failure>) in
+                    fulfill(continuation)
+                }
+            })
+            
+            do {
+                try Task.checkCancellation()
+                
+                self.fulfill(with: result)
+            } catch {
+                self.fulfill(with: .failure(error))
+            }
+        }
+    }
+    
+    public convenience init(
         _ value: @escaping () async throws -> Success
     ) where Failure == Error {
         self.init()
@@ -68,6 +90,18 @@ public final class _AsyncPromise<Success, Failure: Error>: ObservableObject, @un
             _suspensions.forEach({ $0.resume(with: .success(result)) })
             _suspensions.removeAll()
         }
+    }
+    
+    public func fulfill(returning success: Success) {
+        self.fulfill(with: .success(success))
+    }
+    
+    public func fulfill(throwing error: Failure) {
+        self.fulfill(with: .failure(error))
+    }
+
+    public func fulfill() where Success == Void {
+        self.fulfill(with: .success(()))
     }
     
     public func cancel() where Failure == Error {

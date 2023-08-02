@@ -39,25 +39,27 @@ public final class TaskQueue: Sendable {
     /// - Returns: The return value of `action`
     public func perform<T: Sendable>(
         @_implicitSelfCapture operation: @Sendable @escaping () async -> T
-    ) async -> Result<T, CancellationError> {
+    ) async throws -> T {
         guard _Queue.queueID?.erasedAsAnyHashable != queue.id.erasedAsAnyHashable else {
             if queue.policy == .cancelPrevious {
                 await queue.cancelAll()
             }
-
-            return await .success(operation())
+            
+            return await operation()
         }
-                
-        return await withUnsafeContinuation { continuation in
+        
+        return try await withUnsafeThrowingContinuation { continuation in
             add {
                 do {
                     try Task.checkCancellation()
                     
-                    continuation.resume(returning: Result<T, CancellationError>.success(await operation()))
+                    let result = await operation()
                     
                     try Task.checkCancellation()
+                    
+                    continuation.resume(returning: result)
                 } catch {
-                    continuation.resume(returning: Result<T, CancellationError>.failure(CancellationError()))
+                    continuation.resume(throwing: CancellationError())
                 }
             }
         }
@@ -66,17 +68,10 @@ public final class TaskQueue: Sendable {
     public func perform(
         @_implicitSelfCapture operation: @Sendable @escaping () async -> Void,
         onCancel: @Sendable () -> Void
-    ) async {
-        let result = await perform(operation: operation)
-        
-        switch result {
-            case .success:
-                return
-            case .failure:
-                onCancel()
-        }
+    ) async throws {
+        try await perform(operation: operation)
     }
-        
+    
     public func cancelAll() {
         Task {
             await queue.cancelAll() // FIXME?
