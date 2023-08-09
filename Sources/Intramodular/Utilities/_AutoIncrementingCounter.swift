@@ -10,7 +10,9 @@ private var counters: _LockedState<[_AutoIncrementingIdentifierKey: _LockedState
 
 public struct _AutoIncrementingIdentifier<T>: Hashable, Codable, Sendable {
     private let file: String
-    private let id: UInt
+    
+    @usableFromInline
+    let id: UInt
     
     private var key: _AutoIncrementingIdentifierKey {
         Hashable2ple((file, Metatype(T.self)))
@@ -33,5 +35,17 @@ public struct _AutoIncrementingIdentifier<T>: Hashable, Codable, Sendable {
         counters.withLock {
             $0[key, defaultInPlace: .init(initialState: 0)]
         }
+    }
+}
+
+extension _AutoIncrementingIdentifier: Comparable {
+    @inlinable
+    public static func < (lhs: Self, rhs: Self) -> Bool {
+        lhs.id < rhs.id
+    }
+    
+    @inlinable
+    public static func > (lhs: Self, rhs: Self) -> Bool {
+        lhs.id > rhs.id
     }
 }
