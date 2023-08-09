@@ -78,8 +78,22 @@ extension TaskQueue: _AsyncScheduler {
     public func schedule(
         _ task: @Sendable @escaping () async -> Void
     ) {
-        add {
+        addTask {
             await task()
+        }
+    }
+}
+
+extension ThrowingTaskQueue: _AsyncScheduler {
+    public func schedule(
+        _ task: @Sendable @escaping () async -> Void
+    ) {
+        addTask {
+            await withTaskCancellationHandler {
+                await task()
+            } onCancel: {
+                assertionFailure()
+            }
         }
     }
 }

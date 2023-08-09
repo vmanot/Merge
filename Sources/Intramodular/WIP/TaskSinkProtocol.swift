@@ -22,21 +22,6 @@ extension TaskSinkProtocol where _TaskFailureType == Never {
     }
 }
 
-// MARK: - Implemented Conformances
-
-extension TaskQueue: TaskSinkProtocol {
-    public typealias _TaskFailureType = Never
-    public typealias _ResultFailureType = CancellationError
-    
-    public func receive<Success: Sendable>(
-        _ task: Task<Success, Never>
-    ) async -> Result<Success, _ResultFailureType> {
-        await _performCancellable {
-            await task.value
-        }
-    }
-}
-
 /// A property wrapper that represents a property that is the latest output in a stream of tasks.
 @propertyWrapper
 public final class TaskGenerated<Success, Failure: Error> {
@@ -51,10 +36,8 @@ public final class TaskGenerated<Success, Failure: Error> {
         try? output?.get()
     }
     
-    public init(
-        queueWithPolicy queuePolicy: TaskQueue.Policy
-    ) where Failure == Never {
-        self.sink = TaskQueue(policy: queuePolicy)
+    public init() where Failure == Never {
+        self.sink = TaskQueue()
     }
     
     public var projectedValue: TaskGenerated {
@@ -102,6 +85,34 @@ extension TaskGenerated where Failure == Never {
                     self.publish(.failure(error))
                 }
             })
+        }
+    }
+}
+
+// MARK: - Implemented Conformances
+
+extension TaskQueue: TaskSinkProtocol {
+    public typealias _TaskFailureType = Never
+    public typealias _ResultFailureType = CancellationError
+    
+    public func receive<Success: Sendable>(
+        _ task: Task<Success, Never>
+    ) async -> Result<Success, _ResultFailureType> {
+        await _performCancellable {
+            await task.value
+        }
+    }
+}
+
+extension ThrowingTaskQueue: TaskSinkProtocol {
+    public typealias _TaskFailureType = Never
+    public typealias _ResultFailureType = CancellationError
+    
+    public func receive<Success: Sendable>(
+        _ task: Task<Success, Never>
+    ) async -> Result<Success, _ResultFailureType> {
+        await _performCancellable {
+            await task.value
         }
     }
 }

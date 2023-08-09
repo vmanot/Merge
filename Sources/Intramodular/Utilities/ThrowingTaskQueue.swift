@@ -17,20 +17,28 @@ public final class ThrowingTaskQueue: Sendable {
     public init(policy: Policy = .waitOnPrevious) {
         self.queue = .init(policy: policy)
     }
-    
+        
     /// Spawns a task to add an action to perform.
     ///
     /// This method can be called from a synchronous context.
     ///
     /// - Parameters:
     ///   - action: An async function to execute.
-    public func add<T: Sendable>(
+    public func addTask<T: Sendable>(
         priority: TaskPriority? = nil,
-        @_implicitSelfCapture _ action: @Sendable @escaping () async throws -> T
+        @_implicitSelfCapture operation: @Sendable @escaping () async throws -> T
     ) {
         Task(priority: .userInitiated) {
-            await queue.add(priority: priority, action)
+            await queue.addTask(priority: priority, operation: operation)
         }
+    }
+
+    @available(*, deprecated, renamed: "addTask")
+    public func add<T: Sendable>(
+        priority: TaskPriority? = nil,
+        @_implicitSelfCapture operation: @Sendable @escaping () async throws -> T
+    ) {
+        addTask(priority: priority, operation: operation)
     }
     
     /// Performs an action right after the previous action has been finished.
@@ -57,7 +65,7 @@ public final class ThrowingTaskQueue: Sendable {
         
         await semaphore.wait()
         
-        add {
+        addTask {
             do {
                 resultBox.wrappedValue.wrappedValue = try await .success(operation())
             } catch {
@@ -88,7 +96,7 @@ extension ThrowingTaskQueue {
         let id: (any Hashable & Sendable) = UUID()
         
         let policy: Policy
-        var previousTask: OpaqueTask? = nil
+        var previousTask: OpaqueThrowingTask? = nil
         
         init(policy: Policy) {
             self.policy = policy
@@ -99,9 +107,9 @@ extension ThrowingTaskQueue {
             previousTask = nil
         }
         
-        func add<T: Sendable>(
+        func addTask<T: Sendable>(
             priority: TaskPriority?,
-            _ action: @Sendable @escaping () async throws -> T
+            operation: @Sendable @escaping () async throws -> T
         ) -> Task<T, Error> {
             guard Self.queueID?.erasedAsAnyHashable != id.erasedAsAnyHashable else {
                 fatalError()
@@ -116,17 +124,17 @@ extension ThrowingTaskQueue {
                         previousTask.cancel()
                     }
                     
-                    _ = try? await previousTask.value
+                    _ = await Result(catching: {
+                        try await previousTask.value
+                    })
                 }
-                
-                try Task.checkCancellation()
-                
+                                
                 return try await Self.$queueID.withValue(id) {
-                    try await action()
+                    try await operation()
                 }
             }
             
-            self.previousTask = OpaqueTask(erasing: newTask)
+            self.previousTask = OpaqueThrowingTask(erasing: newTask)
             
             return newTask
         }

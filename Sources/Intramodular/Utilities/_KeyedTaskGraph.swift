@@ -13,7 +13,7 @@ public actor _KeyedTaskGraph<Key: Hashable & Sendable>: Sendable {
         case unspecified
     }
     
-    private let tasks = MutexProtected(wrappedValue: [Key: OpaqueTask]())
+    private let tasks = MutexProtected(wrappedValue: [Key: OpaqueThrowingTask]())
     
     public init() {
         
@@ -61,7 +61,7 @@ public actor _KeyedTaskGraph<Key: Hashable & Sendable>: Sendable {
                         return result
                     }
                     
-                    tasks.assignedValue[key] = result.eraseToOpaqueTask()
+                    tasks.assignedValue[key] = result.eraseToOpaqueThrowingTask()
                 }
             case .unspecified:
                 if existingTask != nil {
@@ -75,7 +75,7 @@ public actor _KeyedTaskGraph<Key: Hashable & Sendable>: Sendable {
                         return result
                     }
                     
-                    tasks.assignedValue[key] = result.eraseToOpaqueTask()
+                    tasks.assignedValue[key] = result.eraseToOpaqueThrowingTask()
                 }
         }
         

@@ -3,19 +3,14 @@
 //
 
 import Combine
-import Foundation
+import FoundationX
 import Swallow
 
 public final class TaskQueue: Sendable {
-    public enum Policy: Sendable {
-        case cancelPrevious
-        case waitOnPrevious
-    }
-    
     private let queue: _Queue
     
-    public init(policy: Policy = .waitOnPrevious) {
-        self.queue = .init(policy: policy)
+    public init() {
+        self.queue = .init()
     }
     
     /// Spawns a task to add an action to perform.
@@ -24,14 +19,22 @@ public final class TaskQueue: Sendable {
     ///
     /// - Parameters:
     ///   - action: An async function to execute.
-    public func add<T: Sendable>(
-        @_implicitSelfCapture _ action: @Sendable @escaping () async -> T
+    public func addTask<T: Sendable>(
+        priority: TaskPriority? = nil,
+        @_implicitSelfCapture operation: @Sendable @escaping () async -> T
     ) {
         Task {
-            await queue.add(action)
+            await queue.addTask(priority: priority, operation: operation)
         }
     }
     
+    @available(*, deprecated, renamed: "addTask")
+    public func add<T: Sendable>(
+        @_implicitSelfCapture _ operation: @Sendable @escaping () async -> T
+    ) {
+        addTask(operation: operation)
+    }
+
     /// Performs an action right after the previous action has been finished.
     ///
     /// - Parameters:
@@ -39,28 +42,14 @@ public final class TaskQueue: Sendable {
     /// - Returns: The return value of `action`
     public func perform<T: Sendable>(
         @_implicitSelfCapture operation: @Sendable @escaping () async -> T
-    ) async throws -> T {
+    ) async -> T {
         guard _Queue.queueID?.erasedAsAnyHashable != queue.id.erasedAsAnyHashable else {
-            if queue.policy == .cancelPrevious {
-                await queue.cancelAll()
-            }
-            
             return await operation()
         }
         
-        return try await withUnsafeThrowingContinuation { continuation in
-            add {
-                do {
-                    try Task.checkCancellation()
-                    
-                    let result = await operation()
-                    
-                    try Task.checkCancellation()
-                    
-                    continuation.resume(returning: result)
-                } catch {
-                    continuation.resume(throwing: CancellationError())
-                }
+        return await withUnsafeContinuation { continuation in
+            addTask {
+                continuation.resume(returning: await operation())
             }
         }
     }
@@ -68,8 +57,8 @@ public final class TaskQueue: Sendable {
     public func perform(
         @_implicitSelfCapture operation: @Sendable @escaping () async -> Void,
         onCancel: @Sendable () -> Void
-    ) async throws {
-        try await perform(operation: operation)
+    ) async {
+        await perform(operation: operation)
     }
     
     public func cancelAll() {
@@ -77,17 +66,20 @@ public final class TaskQueue: Sendable {
             await queue.cancelAll() // FIXME?
         }
     }
+    
+    public func waitForAll() async {
+        await queue.waitForAll()
+    }
 }
 
 extension TaskQueue {
     fileprivate actor _Queue: Sendable {
         let id: (any Hashable & Sendable) = UUID()
         
-        let policy: Policy
         var previousTask: OpaqueTask? = nil
         
-        init(policy: Policy) {
-            self.policy = policy
+        init() {
+
         }
         
         func cancelAll() {
@@ -95,41 +87,23 @@ extension TaskQueue {
             previousTask = nil
         }
         
-        func add<T: Sendable>(
-            _ action: @Sendable @escaping () async -> T
-        ) -> Task<Result<T, CancellationError>, Never> {
+        func addTask<T: Sendable>(
+            priority: TaskPriority?,
+            operation: @Sendable @escaping () async -> T
+        ) -> Task<T, Never> {
             guard Self.queueID?.erasedAsAnyHashable != id.erasedAsAnyHashable else {
                 fatalError()
             }
             
-            if policy == .cancelPrevious {
-                cancelAll()
-            }
-            
-            let policy = self.policy
             let previousTask = self.previousTask
             
-            let newTask = Task { () async -> Result<T, CancellationError> in
+            let newTask = Task { () async -> T in
                 if let previousTask = previousTask {
-                    if policy == .cancelPrevious {
-                        previousTask.cancel()
-                    }
-                    
-                    do {
-                        _ = try await previousTask.value
-                    } catch {
-                        return .failure(CancellationError()) // this assumes error is a cancellation error
-                    }
+                    _ = await previousTask.value
                 }
-                
-                do {
-                    try Task.checkCancellation()
-                } catch {
-                    return .failure(CancellationError())
-                }
-                
+                                
                 return await Self.$queueID.withValue(id) {
-                    await .success(action())
+                    await operation()
                 }
             }
             
@@ -137,10 +111,34 @@ extension TaskQueue {
             
             return newTask
         }
+        
+        func waitForAll() async {
+            guard let last = previousTask else {
+                return
+            }
+            
+            _ = await last.value
+        }
     }
 }
 
 extension TaskQueue._Queue {
     @TaskLocal
     fileprivate static var queueID: (any Hashable & Sendable)?
+}
+
+// MARK: - Supplementary
+
+public func withTaskQueue<ChildTaskResult, Result>(
+    of childTaskResultType: ChildTaskResult.Type,
+    returning returnType: Result.Type = Result.self,
+    body: (TaskQueue) async -> Result
+) async throws -> Result {
+    let queue = TaskQueue()
+    
+    let result = await body(queue)
+    
+    await queue.waitForAll()
+    
+    return result
 }

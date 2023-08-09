@@ -25,6 +25,7 @@ final class DependenciesTests: XCTestCase {
         withDependencies {
             $0[unkeyed: Bar.self] = Baz2()
         } operation: {
+            XCTAssert(foo.baz is Baz2)
             XCTAssertEqual(foo.bongo(), 69)
         }
         
@@ -124,4 +125,3 @@ extension DependenciesTests {
 protocol _DependenciesTests_Bar {
     func baz() -> Int
 }
-

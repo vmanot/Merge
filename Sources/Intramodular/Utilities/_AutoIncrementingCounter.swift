@@ -38,6 +38,14 @@ public struct _AutoIncrementingIdentifier<T>: Hashable, Codable, Sendable {
     }
 }
 
+// MARK: - Conformances
+
+extension _AutoIncrementingIdentifier: CustomStringConvertible {
+    public var description: String {
+        id.description
+    }
+}
+
 extension _AutoIncrementingIdentifier: Comparable {
     @inlinable
     public static func < (lhs: Self, rhs: Self) -> Bool {

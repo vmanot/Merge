@@ -7,6 +7,34 @@ import SwiftUI
 
 /// A type-erased Task.
 public struct OpaqueTask: Sendable {
+    private let _completion: @Sendable () async -> any Sendable
+    private let _cancel: @Sendable () -> Void
+    
+    /// Wait for the task to complete, returning (or throwing) its result.
+    public var value: any Sendable {
+        get async {
+            await _completion()
+        }
+    }
+    
+    public init<Success>(erasing task: Task<Success, Never>) {
+        self._completion = {
+            await task.value
+        }
+        
+        self._cancel = {
+            task.cancel()
+        }
+    }
+    
+    /// Attempt to cancel the task.
+    public func cancel() {
+        _cancel()
+    }
+}
+
+/// A type-erased Task.
+public struct OpaqueThrowingTask: Sendable {
     private let _completion: @Sendable () async throws -> any Sendable
     private let _cancel: @Sendable () -> Void
     
@@ -35,7 +63,7 @@ public struct OpaqueTask: Sendable {
 
 extension Task {
     /// Returns a type-erased version of self.
-    public func eraseToOpaqueTask() -> OpaqueTask {
+    public func eraseToOpaqueThrowingTask() -> OpaqueThrowingTask {
         .init(erasing: self)
     }
     
@@ -69,9 +97,9 @@ extension Task {
     /// - Parameters:
     ///   - taskBinding: The `Binding` to set when this task starts, and clear when this task ends/errors out.
     public func bind(
-        @_UncheckedSendable to taskBinding: Binding<OpaqueTask?>
+        @_UncheckedSendable to taskBinding: Binding<OpaqueThrowingTask?>
     ) {
-        let erasedTask = OpaqueTask(erasing: self)
+        let erasedTask = OpaqueThrowingTask(erasing: self)
         
         _Concurrency.Task { @MainActor in
             _taskBinding.wrappedValue.wrappedValue = erasedTask

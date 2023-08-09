@@ -117,19 +117,25 @@ extension Dependencies: MergeOperatable {
             return lhs
         }
         
-        var rhsUnkeyedValues = rhs.unkeyedValues
+        var lhsUnkeyedValues = lhs.unkeyedValues
         
-        rhsUnkeyedValues.removeAll(where: { element -> Bool in
-            lhs.unkeyedValueTypes.contains(where: {
-                _isValueOfGivenType(element, type: $0.value)
+        if !lhs.unkeyedValues.isEmpty && !rhs.unkeyedValues.isEmpty {
+            lhsUnkeyedValues.removeAll(where: { element -> Bool in
+                rhs.unkeyedValueTypes.contains(where: {
+                    _isValueOfGivenType(element, type: $0.value)
+                })
             })
-        })
+        }
         
-        return Self(
-            unkeyedValues: lhs.unkeyedValues.merge(with: rhsUnkeyedValues),
+        let result = Self(
+            unkeyedValues: rhs.unkeyedValues.merge(with: lhsUnkeyedValues),
             unkeyedValueTypes: lhs.unkeyedValueTypes.union(rhs.unkeyedValueTypes),
             keyedValues: lhs.keyedValues.merging(rhs.keyedValues, uniquingKeysWith: { lhs, rhs in rhs })
         )
+        
+        assert(!result.isEmpty)
+        
+        return result
     }
 }
 
