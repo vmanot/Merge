@@ -48,6 +48,14 @@ extension Publisher where Output == Void, Failure == Never {
     public func publish(
         to publisher: _opaque_VoidSender
     ) -> Publishers.HandleEvents<Self> {
-        handleEvents(receiveOutput: { [weak publisher] _ in publisher?.send() })
+        handleEvents(receiveOutput: { [weak publisher] _ in
+            guard let publisher = publisher else {
+                assertionFailure()
+                
+                return
+            }
+            
+            publisher.send()
+        })
     }
 }
