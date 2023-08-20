@@ -11,7 +11,7 @@ public final class PublishedObject<Value>: PropertyWrapper {
     public typealias _SelfType = PublishedObject<Value>
     
     /// In case `_wrappedValue` is backed by an `ObservableArray` or some shit.
-    private let _wrappedValueBoxWillChangeRelay: ObjectWillChangePublisherRelay?
+    private let _wrappedValueBoxWillChangeRelay: ObjectWillChangePublisherRelay<Any, Any>?
     private let _assignmentPublisher = PassthroughSubject<Void, Never>()
     
     private let objectWillChangeRelay = ObjectWillChangePublisherRelay()
@@ -23,7 +23,7 @@ public final class PublishedObject<Value>: PropertyWrapper {
         get {
             _wrappedValue
         } set {
-            objectWillChange.send()
+            objectWillChangeRelay.send()
             
             _wrappedValue = newValue
         }
@@ -62,9 +62,12 @@ public final class PublishedObject<Value>: PropertyWrapper {
         } set {
             let propertyWrapper = enclosingInstance[keyPath: storageKeyPath]
                         
-            propertyWrapper.objectWillChangeRelay.source = propertyWrapper.wrappedValue
+            propertyWrapper.objectWillChangeRelay.source = newValue
             propertyWrapper.objectWillChangeRelay.destination = enclosingInstance
-            propertyWrapper._wrappedValueBoxWillChangeRelay?.destination = enclosingInstance
+
+            if let wrappedValueBoxRelay = propertyWrapper._wrappedValueBoxWillChangeRelay, wrappedValueBoxRelay.destination == nil {
+                wrappedValueBoxRelay.destination = enclosingInstance
+            }
             
             propertyWrapper.wrappedValue = newValue
             
@@ -127,16 +130,22 @@ extension PublishedObject: Encodable where Value: Encodable {
 }
 
 extension PublishedObject: ObservableObject {
-    public var objectWillChange: ObservableObjectPublisher {
+    public var objectWillChange: AnyObjectWillChangePublisher {
         objectWillChangeRelay.objectWillChange
     }
 }
 
 // MARK: - Auxiliary
 
-public final class ObjectWillChangePublisherRelay: ObservableObject {
+public final class ObjectWillChangePublisherRelay<Source, Destination>: ObservableObject {
+    private let _objectWillChange = ObservableObjectPublisher()
+    
+    public var objectWillChange: AnyObjectWillChangePublisher {
+        .init(erasing: _objectWillChange)
+    }
+    
     @Weak
-    public var source: Any? {
+    public var source: Source? {
         didSet {
             if let oldValue = oldValue as? AnyObject, let newValue = source as? AnyObject, oldValue === newValue {
                 return
@@ -147,7 +156,7 @@ public final class ObjectWillChangePublisherRelay: ObservableObject {
     }
     
     @Weak
-    public var destination: Any? {
+    public var destination: Destination? {
         didSet {
             if let oldValue = oldValue as? AnyObject, let newValue = destination as? AnyObject, oldValue === newValue {
                 return
@@ -157,16 +166,38 @@ public final class ObjectWillChangePublisherRelay: ObservableObject {
         }
     }
     
+    private var destinationObjectWillChangePublisher: _opaque_VoidSender?
     private var subscription: AnyCancellable?
     
-    public init(source: Any? = nil, destination: Any? = nil) {
+    public init(source: Source? = nil, destination: Destination? = nil) {
         self.source = source
         self.destination = destination
     }
     
-    public func updateSubscription() {
+    public convenience init() where Source == Any, Destination == Any {
+        self.init(source: nil, destination: nil)
+    }
+    
+    public func send() {
+        guard let destinationObjectWillChangePublisher else {
+            if subscription != nil {
+                assert(destination == nil)
+            }
+            
+            return
+        }
+        
+        destinationObjectWillChangePublisher.send()
+    }
+    
+    private func updateSubscription() {
+        destinationObjectWillChangePublisher = nil
         subscription?.cancel()
         subscription = nil
+        
+        guard let source = Optional(_unwrapping: source), let destination = Optional(_unwrapping: destination) else {
+            return
+        }
         
         guard
             let source = toObservableObject(source),
@@ -176,9 +207,11 @@ public final class ObjectWillChangePublisherRelay: ObservableObject {
             return
         }
         
+        destinationObjectWillChangePublisher = destinationObjectWillChange
+        
         subscription = source
             .eraseObjectWillChangePublisher()
-            .publish(to: objectWillChange)
+            .publish(to: _objectWillChange)
             .publish(to: destinationObjectWillChange)
             .sink()
     }
