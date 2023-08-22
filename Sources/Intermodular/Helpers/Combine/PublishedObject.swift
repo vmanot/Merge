@@ -144,6 +144,10 @@ public final class ObjectWillChangePublisherRelay<Source, Destination>: Observab
         .init(erasing: _objectWillChange)
     }
     
+    public var isUninitialized: Bool {
+        source == nil && destination == nil
+    }
+    
     @Weak
     public var source: Source? {
         didSet {
