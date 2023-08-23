@@ -37,6 +37,14 @@ public class _AnyObservableTaskGroup: ObservableObject {
 public final class _ObservableTaskGroup<CustomIdentifier: Hashable>: _AnyObservableTaskGroup, _ObservableTaskGroup_Type {
     public let cancellables = Cancellables()
     
+    @_spi(Internal)
+    @MainActor
+    public var keepHistory: Bool = false {
+        didSet {
+            taskHistoriesByCustomIdentifier.removeAll()
+        }
+    }
+    
     private weak var parent: _ObservableTaskGroup?
     
     @MainActor
@@ -107,7 +115,10 @@ extension _ObservableTaskGroup {
                 _expectNoThrow {
                     let taskID = try self.customIdentifierByTask[task.id].unwrap()
                     
-                    self.taskHistoriesByCustomIdentifier[taskID, default: []].append(task.statusDescription)
+                    if self.keepHistory {
+                        self.taskHistoriesByCustomIdentifier[taskID, default: []].append(task.statusDescription)
+                    }
+                    
                     self.customIdentifierByTask.removeValue(forKey: task.id)
                     self.activeTasksByCustomIdentifier[taskID, default: []].remove(task)
                 }
@@ -122,7 +133,10 @@ extension _ObservableTaskGroup {
         self.activeTasks.remove(task)
         
         if let customIdentifier = self.customIdentifierByTask[task.id] {
-            self.taskHistoriesByCustomIdentifier[customIdentifier, default: []].append(task.statusDescription)
+            if keepHistory {
+                self.taskHistoriesByCustomIdentifier[customIdentifier, default: []].append(task.statusDescription)
+            }
+            
             self.customIdentifierByTask.removeValue(forKey: task.id)
             self.activeTasksByCustomIdentifier[customIdentifier, default: []].remove(task)
         }
@@ -166,7 +180,13 @@ extension _ObservableTaskGroup {
     public func lastStatus(
         forCustomTaskIdentifier identifier: CustomIdentifier
     ) -> TaskStatusDescription? {
-        taskHistoriesByCustomIdentifier[identifier]?.last
+        guard keepHistory else {
+            assertionFailure()
+            
+            return nil
+        }
+        
+        return taskHistoriesByCustomIdentifier[identifier]?.last
     }
     
     public func cancelAll() {
