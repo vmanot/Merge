@@ -3,7 +3,7 @@
 //
 
 import Combine
-import Swift
+import Runtime
 
 public protocol _opaque_VoidSender: AnyObject {
     func send()
@@ -29,17 +29,25 @@ extension Publisher where Failure == Never {
     @inlinable
     public func publish(to object: _opaque_ObservableObject) -> Publishers.HandleEvents<Self> {
         if let object = object as? (_opaque_ObservableObject & AnyObject) {
-            return handleEvents(receiveOutput: { [weak object] _ in try! object?._opaque_objectWillChange_send() })
+            return handleEvents(receiveOutput: { [weak object] _ in
+                try! object?._opaque_objectWillChange_send()
+            })
         } else {
             assertionFailure()
             
-            return handleEvents(receiveOutput: { _ in try! object._opaque_objectWillChange_send() })
+            return handleEvents(receiveOutput: { _ in
+                try! object._opaque_objectWillChange_send()
+            })
         }
     }
     
     @inlinable
-    public func publish<T: ObservableObject>(to object: T) -> Publishers.HandleEvents<Self> where T.ObjectWillChangePublisher == Combine.ObservableObjectPublisher {
-        handleEvents(receiveOutput: { [weak object] _ in object?.objectWillChange.send() })
+    public func publish<T: ObservableObject>(
+        to object: T
+    ) -> Publishers.HandleEvents<Self> where T.ObjectWillChangePublisher == Combine.ObservableObjectPublisher {
+        handleEvents(receiveOutput: { [weak object] _ in
+            object?.objectWillChange.send()
+        })
     }
 }
 

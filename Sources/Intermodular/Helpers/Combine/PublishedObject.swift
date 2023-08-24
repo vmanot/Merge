@@ -47,31 +47,31 @@ public final class PublishedObject<Value>: PropertyWrapper {
         storage storageKeyPath: ReferenceWritableKeyPath<EnclosingSelf, PublishedObject>
     ) -> Value where EnclosingSelf.ObjectWillChangePublisher: _opaque_VoidSender {
         get {
-            let propertyWrapper = enclosingInstance[keyPath: storageKeyPath]
+            let published = enclosingInstance[keyPath: storageKeyPath]
             
-            if propertyWrapper.objectWillChangeRelay.source == nil {
-                propertyWrapper.objectWillChangeRelay.source = propertyWrapper.wrappedValue
-                propertyWrapper.objectWillChangeRelay.destination = enclosingInstance
-            }
+            published.setUpObjectWillChangeRelays(from: published.wrappedValue, to: enclosingInstance)
             
-            if let wrappedValueBoxRelay = propertyWrapper._wrappedValueBoxWillChangeRelay, wrappedValueBoxRelay.destination == nil {
-                wrappedValueBoxRelay.destination = enclosingInstance
-            }
-            
-            return propertyWrapper.wrappedValue
+            return published.wrappedValue
         } set {
-            let propertyWrapper = enclosingInstance[keyPath: storageKeyPath]
+            let published = enclosingInstance[keyPath: storageKeyPath]
                         
-            propertyWrapper.objectWillChangeRelay.source = newValue
-            propertyWrapper.objectWillChangeRelay.destination = enclosingInstance
+            published.setUpObjectWillChangeRelays(from: newValue, to: enclosingInstance)
 
-            if let wrappedValueBoxRelay = propertyWrapper._wrappedValueBoxWillChangeRelay, wrappedValueBoxRelay.destination == nil {
-                wrappedValueBoxRelay.destination = enclosingInstance
-            }
+            published.wrappedValue = newValue
             
-            propertyWrapper.wrappedValue = newValue
-            
-            propertyWrapper._assignmentPublisher.send()
+            published._assignmentPublisher.send()
+        }
+    }
+    
+    private func setUpObjectWillChangeRelays<T>(
+        from value: WrappedValue,
+        to enclosingInstance: T
+    ) {
+        objectWillChangeRelay.source = value
+        objectWillChangeRelay.destination = enclosingInstance
+        
+        if let wrappedValueBoxRelay = _wrappedValueBoxWillChangeRelay, wrappedValueBoxRelay.destination == nil {
+            wrappedValueBoxRelay.destination = enclosingInstance
         }
     }
     
@@ -210,6 +210,8 @@ public final class ObjectWillChangePublisherRelay<Source, Destination>: Observab
         else {
             return
         }
+        
+        assert(source !== destination)
         
         destinationObjectWillChangePublisher = destinationObjectWillChange
         
