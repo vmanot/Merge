@@ -3,7 +3,7 @@
 //
 
 import Combine
-import Foundation
+import FoundationX
 import Swift
 
 /// A `Publisher` guaranteed to publish no more than one element.
@@ -18,40 +18,50 @@ public protocol SingleOutputPublisher: Publisher {
 extension SingleOutputPublisher {
     /// Asynchronously runs this publisher and awaits its output.
     public func output() async throws -> Output {
-        var cancellable: AnyCancellable?
-        var didReceiveValue = false
+        let cancellable = SingleAssignmentAnyCancellable()
+        let didReceiveValue = _LockedState<Bool>(initialState: false)
         
         let result: Output = try await withCheckedThrowingContinuation { continuation in
-            cancellable = sink(
-                receiveCompletion: { completion in
-                    switch completion {
-                        case .failure(let error):
-                            continuation.resume(throwing: error)
-                        case .finished:
-                            if !didReceiveValue {
-                                continuation.resume(
-                                    throwing: CancellationError()
-                                )
+            cancellable.set(
+                sink(
+                    receiveCompletion: { completion in
+                        switch completion {
+                            case .failure(let error):
+                                continuation.resume(throwing: error)
+                            case .finished:
+                                if !didReceiveValue.withLock({ $0 }) {
+                                    continuation.resume(
+                                        throwing: CancellationError()
+                                    )
+                                }
+                        }
+                    },
+                    receiveValue: { value in
+                        didReceiveValue.withLock { didReceiveValue in
+                            guard !didReceiveValue else {
+                                assertionFailure("received more than one element")
+                                
+                                return
                             }
+                            
+                            didReceiveValue = true
+                            
+                            continuation.resume(returning: value)
+                        }
                     }
-                },
-                receiveValue: { value in
-                    guard !didReceiveValue else {
-                        assertionFailure("received more than one element")
-                        
-                        return
-                    }
-                    
-                    didReceiveValue = true
-                    
-                    continuation.resume(returning: value)
-                }
+                )
             )
         }
         
-        cancellable?.cancel()
+        cancellable.cancel()
         
-        return result
+        return try didReceiveValue.withLock { didReceiveValue in
+            if didReceiveValue {
+                return result
+            } else {
+                throw CancellationError()
+            }
+        }
     }
 }
 

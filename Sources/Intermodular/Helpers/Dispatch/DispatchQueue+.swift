@@ -9,12 +9,12 @@ import Swallow
 extension DispatchQueue {
     public final class _DebounceView {
         private let lock = OSUnfairLock()
-        private let debounceInterval: DispatchTimeInterval
+        private let debounceInterval: DispatchTimeInterval?
         private let queue: DispatchQueue
         
         private var workItem: DispatchWorkItem?
         
-        fileprivate init(queue: DispatchQueue, debounceInterval: DispatchTimeInterval) {
+        fileprivate init(queue: DispatchQueue, debounceInterval: DispatchTimeInterval?) {
             self.debounceInterval = debounceInterval
             self.queue = queue
         }
@@ -31,13 +31,17 @@ extension DispatchQueue {
                 
                 workItem = newWorkItem
                 
-                queue.asyncAfter(deadline: .now() + debounceInterval, execute: newWorkItem)
+                if let debounceInterval {
+                    queue.asyncAfter(deadline: .now() + debounceInterval, execute: newWorkItem)
+                } else {
+                    queue.async(execute: newWorkItem)
+                }
             }
         }
     }
     
     public func _debounce(
-        for debounceInterval: DispatchTimeInterval
+        for debounceInterval: DispatchTimeInterval? = nil
     ) -> _DebounceView {
         .init(queue: self, debounceInterval: debounceInterval)
     }

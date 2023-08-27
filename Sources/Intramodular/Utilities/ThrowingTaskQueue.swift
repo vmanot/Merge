@@ -6,15 +6,22 @@ import Combine
 import Foundation
 import Swallow
 
-public final class ThrowingTaskQueue: Sendable {
+public final class ThrowingTaskQueue: @unchecked Sendable {
     public enum Policy: Sendable {
         case cancelPrevious
         case waitOnPrevious
     }
     
+    private weak var owner: AnyObject?
     private let queue: _Queue
     
     public init(policy: Policy = .waitOnPrevious) {
+        self.owner = nil
+        self.queue = .init(policy: policy)
+    }
+    
+    public init<Owner: AnyObject>(owner: Owner, policy: Policy = .waitOnPrevious) {
+        self.owner = owner
         self.queue = .init(policy: policy)
     }
         
@@ -32,14 +39,6 @@ public final class ThrowingTaskQueue: Sendable {
             await queue.addTask(priority: priority, operation: operation)
         }
     }
-
-    @available(*, deprecated, renamed: "addTask")
-    public func add<T: Sendable>(
-        priority: TaskPriority? = nil,
-        @_implicitSelfCapture operation: @Sendable @escaping () async throws -> T
-    ) {
-        addTask(priority: priority, operation: operation)
-    }
     
     /// Performs an action right after the previous action has been finished.
     ///
@@ -56,7 +55,9 @@ public final class ThrowingTaskQueue: Sendable {
         }
         
         guard _Queue.queueID?.erasedAsAnyHashable != queue.id.erasedAsAnyHashable else {
-            return try await operation()
+           return try await withOwnershipScope {
+                try await operation()
+            }
         }
         
         let semaphore = _AsyncActorSemaphore()
@@ -67,7 +68,11 @@ public final class ThrowingTaskQueue: Sendable {
         
         addTask {
             do {
-                resultBox.wrappedValue.wrappedValue = try await .success(operation())
+                let result = try await withOwnershipScope {
+                    try await operation()
+                }
+                
+                resultBox.wrappedValue.wrappedValue = .success(result)
             } catch {
                 resultBox.wrappedValue.wrappedValue = .failure(.init(erasing: error))
             }
@@ -87,6 +92,14 @@ public final class ThrowingTaskQueue: Sendable {
     public func cancelAll() {
         Task {
             await self.cancelAll()
+        }
+    }
+    
+    private func withOwnershipScope<T>(
+        _ block: @Sendable () async throws -> T
+    ) async throws -> T {
+        try await withDependencies(from: owner) {
+            try await block()
         }
     }
 }
