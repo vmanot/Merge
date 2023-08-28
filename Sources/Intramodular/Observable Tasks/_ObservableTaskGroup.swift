@@ -7,7 +7,7 @@ import Diagnostics
 import Dispatch
 import Swallow
 
-public protocol _ObservableTaskGroup_Type: CancellablesHolder, ObservableObject {
+public protocol _ObservableTaskGroup_Type: _CancellablesProviding, ObservableObject {
     typealias TaskHistory = [TaskStatusDescription]
     
     associatedtype Key

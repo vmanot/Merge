@@ -5,8 +5,8 @@
 import Combine
 import ObjectiveC
 
-/// A type that holds cancellables.
-public protocol CancellablesHolder {
+/// A type that provides a `Cancellables` instance.
+public protocol _CancellablesProviding {
     var cancellables: Cancellables { get }
 }
 
@@ -14,10 +14,10 @@ public protocol CancellablesHolder {
 
 private var cancellables_objcAssociationKey: UInt = 0
 
-extension CancellablesHolder where Self: AnyObject {
+extension _CancellablesProviding where Self: AnyObject {
     public var cancellables: Cancellables {
         objc_sync_enter(self)
-
+        
         defer {
             objc_sync_exit(self)
         }
