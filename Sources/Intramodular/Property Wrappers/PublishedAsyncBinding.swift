@@ -2,8 +2,8 @@
 // Copyright (c) Vatsal Manot
 //
 
+import Combine
 import FoundationX
-import Merge
 import Swallow
 import SwiftUI
 
