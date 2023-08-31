@@ -95,32 +95,6 @@ public final class PublishedAsyncBinding<Value>: ObservableObject {
     }
     
     @MainActor
-    public convenience init(
-        wrappedValue: Value
-    ) {
-        let referenceBox = ReferenceBox(wrappedValue: wrappedValue)
-        
-        self.init(
-            accessor: .init(referenceBox),
-            cache: InMemorySingleValueCache(wrappedValue),
-            defaultValue: { wrappedValue },
-            debounceInterval: nil
-        )
-    }
-    
-    @MainActor
-    public convenience init(
-        from binding: Binding<Value>
-    ) {
-        self.init(
-            accessor: .init(binding),
-            cache: InMemorySingleValueCache(binding.wrappedValue),
-            defaultValue: { binding.wrappedValue },
-            debounceInterval: nil
-        )
-    }
-    
-    @MainActor
     public static subscript<EnclosingSelf>(
         _enclosingInstance enclosingInstance: EnclosingSelf,
         wrapped wrappedKeyPath: ReferenceWritableKeyPath<EnclosingSelf, Value>,
@@ -185,6 +159,36 @@ public final class PublishedAsyncBinding<Value>: ObservableObject {
     
     private func resolveConflict(latest: Value, cached: Value) -> Value {
         return latest
+    }
+}
+
+// MARK: - Initializers
+
+extension PublishedAsyncBinding {
+    @MainActor
+    public convenience init(
+        wrappedValue: Value
+    ) {
+        let referenceBox = ReferenceBox(wrappedValue: wrappedValue)
+        
+        self.init(
+            accessor: .init(referenceBox),
+            cache: InMemorySingleValueCache(wrappedValue),
+            defaultValue: { wrappedValue },
+            debounceInterval: nil
+        )
+    }
+    
+    @MainActor
+    public convenience init(
+        from binding: Binding<Value>
+    ) {
+        self.init(
+            accessor: .init(binding),
+            cache: InMemorySingleValueCache(binding.wrappedValue),
+            defaultValue: { binding.wrappedValue },
+            debounceInterval: nil
+        )
     }
 }
 

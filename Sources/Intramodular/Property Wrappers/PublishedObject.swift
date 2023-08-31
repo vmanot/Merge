@@ -56,7 +56,7 @@ public final class PublishedObject<Value>: PropertyWrapper {
             let published = enclosingInstance[keyPath: storageKeyPath]
                         
             published.setUpObjectWillChangeRelays(from: newValue, to: enclosingInstance)
-
+            
             published.wrappedValue = newValue
             
             published._assignmentPublisher.send()
@@ -199,22 +199,21 @@ public final class ObjectWillChangePublisherRelay<Source, Destination>: Observab
         subscription?.cancel()
         subscription = nil
         
-        guard let source = Optional(_unwrapping: source), let destination = Optional(_unwrapping: destination) else {
-            return
-        }
-        
         guard
-            let source = toObservableObject(source),
             let destination = toObservableObject(destination),
             let destinationObjectWillChange = (destination.objectWillChange as any Publisher) as? _opaque_VoidSender
         else {
             return
         }
-        
-        assert(source !== destination)
-        
+
         destinationObjectWillChangePublisher = destinationObjectWillChange
         
+        guard let source = toObservableObject(source) else {
+            return
+        }
+
+        assert(source !== destination)
+                
         subscription = source
             .eraseObjectWillChangePublisher()
             .publish(to: _objectWillChange)

@@ -148,9 +148,17 @@ extension _ObservableTaskGroup {
     public subscript(
         customIdentifier identifier: CustomIdentifier
     ) -> IdentifierIndexedArrayOf<OpaqueObservableTask> {
-        IdentifierIndexedArrayOf(
-            activeTasksByCustomIdentifier[identifier, default: []]
-        )
+        var filtered: [OpaqueObservableTask] = []
+
+        defer {
+            _expectNoThrow {
+                try _tryAssert(filtered.isEmpty)
+            }
+        }
+
+        return activeTasksByCustomIdentifier[identifier, default: []]._filter(removingInto: &filtered) {
+            !$0.status.isTerminal
+        }
     }
     
     public func customIdentifier(
