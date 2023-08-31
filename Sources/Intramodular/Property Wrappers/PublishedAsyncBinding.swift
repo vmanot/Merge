@@ -31,6 +31,10 @@ public final class PublishedAsyncBinding<Value>: ObservableObject {
         }
     }
     
+    public var projectedValue: Published<Value>.Publisher {
+        $value
+    }
+    
     public init(
         accessor: _AsyncElementAccessor<Value>,
         cache: any SingleValueCache<Value> = InMemorySingleValueCache(),

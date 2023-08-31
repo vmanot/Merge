@@ -146,6 +146,18 @@ extension TaskButton {
     }
     
     public init(
+        action: @escaping () -> Task<Success, Error>,
+        @ViewBuilder label: @escaping (TaskStatus<Success, Error>) -> Label
+    ) where Error == Swift.Error {
+        self.init(
+            action: { () -> AnyTask<Success, Error> in
+                action().eraseToAnyTask()
+            },
+            label: label
+        )
+    }
+
+    public init(
         action: @escaping () -> AnyTask<Success, Error>,
         @ViewBuilder label: () -> Label
     ) {
@@ -153,6 +165,18 @@ extension TaskButton {
         
         self.action = { action() }
         self.label = { _ in _label }
+    }
+    
+    public init(
+        action: @escaping () -> Task<Success, Error>,
+        @ViewBuilder label: @escaping () -> Label
+    ) where Error == Swift.Error {
+        self.init(
+            action: { () -> AnyTask<Success, Error> in
+                action().eraseToAnyTask()
+            },
+            label: label
+        )
     }
 }
 
@@ -278,7 +302,6 @@ extension TaskButton where Success == Void {
         self.init(action: { action().reduceAndMapTo(()).convertToTask() }, label: label)
     }
 }
-
 
 extension TaskButton where Label == Text {
     public init(

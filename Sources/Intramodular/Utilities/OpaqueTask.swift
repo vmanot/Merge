@@ -73,7 +73,6 @@ extension Task {
             try await value
         })
     }
-
 }
 
 // MARK: - Auxiliary
