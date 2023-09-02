@@ -12,7 +12,7 @@ public protocol _ObservableTaskGroup_Type: _CancellablesProviding, ObservableObj
     
     associatedtype Key
     
-    subscript(customIdentifier identifier: Key) -> IdentifierIndexedArrayOf<OpaqueObservableTask> { get }
+    subscript(customIdentifier identifier: Key) -> IdentifierIndexingArrayOf<OpaqueObservableTask> { get }
     
     func cancelAll()
     
@@ -48,11 +48,11 @@ public final class _ObservableTaskGroup<CustomIdentifier: Hashable>: _AnyObserva
     private weak var parent: _ObservableTaskGroup?
     
     @MainActor
-    @Published private var activeTasks: IdentifierIndexedArrayOf<OpaqueObservableTask> = []
+    @Published private var activeTasks: IdentifierIndexingArrayOf<OpaqueObservableTask> = []
     @MainActor
     @Published private var customIdentifierByTask: [OpaqueObservableTask.ID: CustomIdentifier] = [:]
     @MainActor
-    @Published private var activeTasksByCustomIdentifier: [CustomIdentifier: IdentifierIndexedArrayOf<OpaqueObservableTask>] = [:]
+    @Published private var activeTasksByCustomIdentifier: [CustomIdentifier: IdentifierIndexingArrayOf<OpaqueObservableTask>] = [:]
     @MainActor
     @Published private var taskHistoriesByCustomIdentifier: [CustomIdentifier: TaskHistory] = [:]
     
@@ -147,7 +147,7 @@ extension _ObservableTaskGroup {
 extension _ObservableTaskGroup {
     public subscript(
         customIdentifier identifier: CustomIdentifier
-    ) -> IdentifierIndexedArrayOf<OpaqueObservableTask> {
+    ) -> IdentifierIndexingArrayOf<OpaqueObservableTask> {
         var filtered: [OpaqueObservableTask] = []
 
         defer {
@@ -171,8 +171,8 @@ extension _ObservableTaskGroup {
     
     public func tasks<T>(
         matchedBy casePath: CasePath<CustomIdentifier, T>
-    ) throws -> IdentifierIndexedArrayOf<OpaqueObservableTask> {
-        try IdentifierIndexedArrayOf(
+    ) throws -> IdentifierIndexingArrayOf<OpaqueObservableTask> {
+        try IdentifierIndexingArrayOf(
             self
                 .filter { (element: Element) -> Bool in
                     guard let customIdentifier = element.customIdentifier else {
