@@ -15,6 +15,9 @@ protocol _DependencyPropertyWrapperType: PropertyWrapper {
     var initialDependencies: Dependencies { get }
 }
 
+/// A property wrapper that reads a dependency from a task's execution context.
+///
+/// This is similar to `@Environment` in SwiftUI.
 @propertyWrapper
 public struct Dependency<Value>: _DependenciesUsing, _DependencyPropertyWrapperType, DynamicProperty, Logging, @unchecked Sendable {
     public let logger = PassthroughLogger()
@@ -22,7 +25,7 @@ public struct Dependency<Value>: _DependenciesUsing, _DependencyPropertyWrapperT
     @Environment(\._dependencies) var _SwiftUI_dependencies
     
     private var _isInSwiftUIView: Bool = false
-
+    
     let initialDependencies: Dependencies
     let resolveValue: @Sendable (Dependencies) throws -> Value?
     var assignedValue: Value?
@@ -167,23 +170,22 @@ public struct Dependency<Value>: _DependenciesUsing, _DependencyPropertyWrapperT
 }
 
 extension Dependency {
-    public func get() throws -> Value {
-        try _get()
-    }
-}
-
-extension Dependency where Value: OptionalProtocol {
     @_disfavoredOverload
-    @available(*, unavailable)
     public func get() throws -> Value {
         try _get()
     }
-    
+
+    public func get() throws -> Value.Wrapped where Value: OptionalProtocol {
+        try _get()._wrapped.unwrap()
+    }
 }
 
 #if DEBUG
 extension Dependency where Value: OptionalProtocol {
-    public func get(file: StaticString = #fileID, line: UInt = #line) throws -> Value.Wrapped {
+    public func get(
+        file: StaticString = #fileID,
+        line: UInt = #line
+    ) throws -> Value.Wrapped {
         try _get()._wrapped.unwrap(file: file, line: line)
     }
 }
