@@ -174,25 +174,8 @@ extension Dependency {
     public func get() throws -> Value {
         try _get()
     }
-
+    
     public func get() throws -> Value.Wrapped where Value: OptionalProtocol {
         try _get()._wrapped.unwrap()
     }
 }
-
-#if DEBUG
-extension Dependency where Value: OptionalProtocol {
-    public func get(
-        file: StaticString = #fileID,
-        line: UInt = #line
-    ) throws -> Value.Wrapped {
-        try _get()._wrapped.unwrap(file: file, line: line)
-    }
-}
-#else
-extension Dependency where Value: OptionalProtocol {
-    public func get() throws -> Value.Wrapped {
-        try _get()._wrapped.unwrap()
-    }
-}
-#endif
