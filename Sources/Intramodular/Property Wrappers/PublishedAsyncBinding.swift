@@ -199,9 +199,10 @@ extension PublishedAsyncBinding {
 extension PublishedAsyncBinding {
     public static func unsafelyUnwrapping<T: AnyObject>(
         _ root: T,
-        _ keyPath: ReferenceWritableKeyPath<T, Value?>
+        _ keyPath: ReferenceWritableKeyPath<T, Value?>,
+        initial: Value? = nil
     ) -> PublishedAsyncBinding {
-        let currentValue = root[keyPath: keyPath]!
+        let currentValue: Value = (root[keyPath: keyPath] ?? initial)!
         
         return self.init(
             accessor: .anonymous(
@@ -227,9 +228,60 @@ extension PublishedAsyncBinding {
                     }
                 )
             ),
-            defaultValue: { currentValue },
+            defaultValue: {
+                currentValue
+            },
             debounceInterval: .milliseconds(200)
         )
+    }
+    
+    public static func unsafelyUnwrapping<T: AnyObject>(
+        _ root: T,
+        _ keyPath: ReferenceWritableKeyPath<T, Value>
+    ) -> PublishedAsyncBinding {
+        let currentValue: Value = root[keyPath: keyPath]
+        
+        return self.init(
+            accessor: .anonymous(
+                .init(
+                    upstream: Deferred { [weak root] in
+                        guard let root else {
+                            assertionFailure()
+                            
+                            return Just(currentValue)
+                        }
+                        
+                        return Just(root[keyPath: keyPath])
+                    }
+                        .eraseToAnyPublisher(),
+                    push: { [weak root] in
+                        guard let root = `root` else {
+                            assertionFailure()
+                            
+                            return
+                        }
+                        
+                        root[keyPath: keyPath] = $0
+                    }
+                )
+            ),
+            defaultValue: {
+                currentValue
+            },
+            debounceInterval: .milliseconds(200)
+        )
+    }
+    
+    public static func unwrapping<T: AnyObject, Result>(
+        _ root: T,
+        _ keyPath: ReferenceWritableKeyPath<T, Value?>,
+        operation: (PublishedAsyncBinding<Value>) -> Result
+    ) -> Result? {
+        guard root[keyPath: keyPath] != nil else {
+            return nil
+        }
+        
+        return operation(unsafelyUnwrapping(root, keyPath))
     }
 }
 
@@ -275,16 +327,12 @@ public enum _AsyncElementAccessor<Element>: Publisher {
     ) {
         self = .anonymous(
             .init(
-                upstream: Deferred { [weak wrapper] in
-                    Just(wrapper!.wrappedValue)
+                upstream: Deferred {
+                    Just(wrapper.wrappedValue)
                 }
                 .eraseToAnyPublisher(),
-                push: { [weak wrapper] in
-                    guard var wrapper else {
-                        assertionFailure()
-                        
-                        return
-                    }
+                push: {
+                    var wrapper = wrapper
                     
                     wrapper.wrappedValue = $0
                 }
