@@ -197,5 +197,5 @@ extension DependencyValues {
 }
 
 extension Dependencies {
-    @TaskLocal internal static var _current = Dependencies()
+    @TaskLocal public static var _current = Dependencies()
 }

@@ -32,6 +32,7 @@ public func withDependencies<Result>(
     try withDependencies({ _ in }, operation: operation)
 }
 
+@_transparent
 @_unsafeInheritExecutor
 @discardableResult
 public func withDependencies<Result>(
@@ -51,6 +52,7 @@ public func withDependencies<Result>(
     }
 }
 
+@_transparent
 @_unsafeInheritExecutor
 @discardableResult
 public func withDependency<Dependency, Result>(
@@ -65,6 +67,7 @@ public func withDependency<Dependency, Result>(
     }
 }
 
+@_transparent
 @_unsafeInheritExecutor
 @discardableResult
 public func withDependencies<Result>(
@@ -73,6 +76,7 @@ public func withDependencies<Result>(
     try await withDependencies({ _ in }, operation: operation)
 }
 
+@_transparent
 @discardableResult
 public func withDependency<Dependency, Result>(
     _ dependencyKey: WritableKeyPath<DependencyValues, Dependency>,
@@ -86,6 +90,7 @@ public func withDependency<Dependency, Result>(
     }
 }
 
+@_transparent
 @discardableResult
 public func withDependencies<Subject, Result>(
     from subject: Subject,
@@ -103,6 +108,7 @@ public func withDependencies<Subject, Result>(
     }
 }
 
+@_transparent
 @discardableResult
 public func withDependencies<Subject, Result>(
     from subject: Subject,
@@ -120,6 +126,7 @@ public func withDependencies<Subject, Result>(
     }
 }
 
+@_transparent
 @discardableResult
 public func withDependencies<Subject, Result>(
     from subject: Subject,
@@ -128,6 +135,7 @@ public func withDependencies<Subject, Result>(
     try withDependencies(from: subject, { _ in }, operation: operation)
 }
 
+@_transparent
 @discardableResult
 public func withDependencies<Subject, Result>(
     from subject: Subject,
@@ -137,7 +145,8 @@ public func withDependencies<Subject, Result>(
 }
 
 extension Dependencies {
-    fileprivate init<T>(from subject: T) {
+    @usableFromInline
+    init<T>(from subject: T) {
         TODO.here(.optimize)
         
         self.init()
@@ -178,6 +187,7 @@ extension Dependencies {
     /// Stash the dependencies in the given subject if its an object.
     ///
     /// Provide the subject with dependencies if it conforms to `_DependenciesUsing`.
+    @usableFromInline
     func _stashInOrProvideTo<T>(_ subject: T) {
         guard let subject = _unwrapPossiblyTypeErasedValue(subject) else {
             return

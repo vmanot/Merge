@@ -131,12 +131,12 @@ extension Task where Failure == Error {
     @discardableResult
     public static func retrying(
         priority: TaskPriority? = nil,
-        maxRetryCount: Int,
+        maxRetryCount: Int = 1,
         retryDelay: DispatchTimeInterval? = nil,
         operation: @escaping () async throws -> Success
     ) -> Task {
         Task(priority: priority) {
-            for _ in 0..<maxRetryCount {
+            for _ in 0...maxRetryCount {
                 do {
                     try Task<Never, Never>.checkCancellation()
 
@@ -159,6 +159,20 @@ extension Task where Failure == Error {
             return result
         }
     }
+}
+
+public func _performRetryingTask<Success>(
+    priority: TaskPriority? = nil,
+    maxRetryCount: Int = 1,
+    retryDelay: DispatchTimeInterval? = nil,
+    operation: @escaping () async throws -> Success
+) async throws -> Success {
+    try await Task.retrying(
+        priority: priority,
+        maxRetryCount: maxRetryCount,
+        retryDelay: retryDelay,
+        operation: operation
+    ).value
 }
 
 // MARK: - Auxiliary
