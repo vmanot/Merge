@@ -49,13 +49,17 @@ public final class PublishedObject<Value>: PropertyWrapper {
         get {
             let published = enclosingInstance[keyPath: storageKeyPath]
             
-            published.setUpObjectWillChangeRelays(from: published.wrappedValue, to: enclosingInstance)
+            if published.wrappedValue is any ObservableObject {
+                published.setUpObjectWillChangeRelays(from: published.wrappedValue, to: enclosingInstance)
+            }
             
             return published.wrappedValue
         } set {
             let published = enclosingInstance[keyPath: storageKeyPath]
                         
-            published.setUpObjectWillChangeRelays(from: newValue, to: enclosingInstance)
+            if newValue is any ObservableObject {
+                published.setUpObjectWillChangeRelays(from: newValue, to: enclosingInstance)
+            }
             
             published.wrappedValue = newValue
             
