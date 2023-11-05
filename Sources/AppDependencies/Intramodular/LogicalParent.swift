@@ -4,14 +4,16 @@
 
 import Swallow
 
+/// A logical parent provided via by dependency-injection.
 @propertyWrapper
-public struct LogicalParent<Value>: _DependenciesUsing {
+public struct LogicalParent<Parent>: _DependenciesConsuming {
     @Dependency(
         \._logicalParent,
-         _resolve: { try ($0?.wrappedValue).flatMap({ try cast($0) }) }
-    ) var parent: Value
+         _resolve: { try cast($0.unwrap().wrappedValue)  }
+    ) 
+    var parent: Parent
     
-    public var wrappedValue: Value {
+    public var wrappedValue: Parent {
         parent
     }
     
@@ -19,8 +21,8 @@ public struct LogicalParent<Value>: _DependenciesUsing {
         
     }
     
-    public func _useDependencies(_ dependencies: Dependencies) throws {
-        try $parent._useDependencies(dependencies)
+    public func _consumeDependencies(_ dependencies: Dependencies) throws {
+        try $parent._consumeDependencies(dependencies)
     }
 }
 

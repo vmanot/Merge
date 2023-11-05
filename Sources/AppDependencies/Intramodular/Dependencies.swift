@@ -5,19 +5,6 @@
 import Combine
 import Swallow
 
-protocol _opaque_DependencyResolutionRequest {
-    func _opaque_resolve(from dependencies: Dependencies) throws -> Any?
-}
-
-public enum DependencyResolutionRequest<Value>: _opaque_DependencyResolutionRequest {
-    case unkeyed(Value.Type)
-    case keyed(KeyPath<DependencyValues, Value>)
-    
-    func _opaque_resolve(from dependencies: Dependencies) throws -> Any? {
-        try dependencies.resolve(self)
-    }
-}
-
 public enum DependenciesError: Error {
     case failedToResolveDependency(Any.Type)
     case failedToUseDependencies(Error)
@@ -158,43 +145,6 @@ extension Dependencies {
 }
 
 // MARK: - Auxiliary
-
-public enum DependencyAttribute {
-    case unstashable
-}
-
-public protocol DependencyKey<Value>: HeterogeneousDictionaryKey<Dependencies, Self.Value> {
-    static var attributes: Set<DependencyAttribute> { get }
-    
-    static var defaultValue: Value { get }
-}
-
-extension DependencyKey {
-    public static var attributes: Set<DependencyAttribute> {
-        []
-    }
-}
-
-public struct _OptionalDependencyKey<T>: DependencyKey {
-    public typealias Domain = Dependencies
-    public typealias Value = T?
-    
-    public static var defaultValue: Value {
-        nil
-    }
-}
-
-public typealias DependencyValues = HeterogeneousDictionary<Dependencies>
-
-extension DependencyValues {
-    public subscript<Key: DependencyKey>(key: Key.Type) -> Key.Value {
-        get {
-            self[key] ?? key.defaultValue
-        } set {
-            self[key as any HeterogeneousDictionaryKey<Dependencies, Key.Value>.Type] = newValue
-        }
-    }
-}
 
 extension Dependencies {
     @TaskLocal public static var _current = Dependencies()

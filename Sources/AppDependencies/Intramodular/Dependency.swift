@@ -7,19 +7,24 @@ import Diagnostics
 import SwiftUI
 import Swallow
 
-public protocol _DependenciesUsing {
-    func _useDependencies(_ dependencies: Dependencies) throws
+public protocol _DependenciesConsuming {
+    func _consumeDependencies(_ dependencies: Dependencies) throws
 }
 
 protocol _DependencyPropertyWrapperType: PropertyWrapper {
     var initialDependencies: Dependencies { get }
 }
 
+public enum _DependencyKind {
+    case parameter
+    case contextual
+}
+
 /// A property wrapper that reads a dependency from a task's execution context.
 ///
 /// This is similar to `@Environment` in SwiftUI.
 @propertyWrapper
-public struct Dependency<Value>: _DependenciesUsing, _DependencyPropertyWrapperType, DynamicProperty, Logging, @unchecked Sendable {
+public struct Dependency<Value>: _DependenciesConsuming, _DependencyPropertyWrapperType, DynamicProperty, Logging, @unchecked Sendable {
     public let logger = PassthroughLogger()
     
     @Environment(\._dependencies) var _SwiftUI_dependencies
@@ -49,7 +54,7 @@ public struct Dependency<Value>: _DependenciesUsing, _DependencyPropertyWrapperT
         self
     }
     
-    public func _useDependencies(_ dependencies: Dependencies) throws {
+    public func _consumeDependencies(_ dependencies: Dependencies) throws {
         if _isValueNil(assignedValue), try resolveValue(initialDependencies) == nil {
             let hadValue = !_isValueNil(deferredAssignedValue.wrappedValue)
             
@@ -102,17 +107,27 @@ public struct Dependency<Value>: _DependenciesUsing, _DependencyPropertyWrapperT
         self.resolveValue = resolveValue
     }
     
-    public init<T>() where Value == Optional<T> {
-        self.init(
-            initialDependencies: Dependencies.current,
-            resolveValue: { try $0.resolve(.unkeyed(T.self)) }
-        )
+    public mutating func update() {
+        _isInSwiftUIView = true
     }
-    
-    public init() {
+}
+
+extension Dependency {
+    public init(
+        _ kind: _DependencyKind = .contextual
+    ) {
         self.init(
             initialDependencies: Dependencies.current,
             resolveValue: { try $0.resolve(.unkeyed(Value.self)) }
+        )
+    }
+    
+    public init<T>(
+        _ kind: _DependencyKind = .contextual
+    ) where Value == Optional<T> {
+        self.init(
+            initialDependencies: Dependencies.current,
+            resolveValue: { try $0.resolve(.unkeyed(T.self)) }
         )
     }
     
@@ -143,6 +158,16 @@ public struct Dependency<Value>: _DependenciesUsing, _DependencyPropertyWrapperT
             resolveValue: { $0[keyPath] }
         )
     }
+        
+    public init<T>(
+        _ keyPath: KeyPath<DependencyValues, T>,
+        _resolve resolve: @escaping (T) throws -> Optional<Value>
+    ) {
+        self.init(
+            initialDependencies: Dependencies.current,
+            resolveValue: { try resolve($0[keyPath]) }
+        )
+    }
     
     public init<T>(
         _ keyPath: KeyPath<DependencyValues, T>,
@@ -152,20 +177,6 @@ public struct Dependency<Value>: _DependenciesUsing, _DependencyPropertyWrapperT
             initialDependencies: Dependencies.current,
             resolveValue: { try cast($0[keyPath], to: Value.self) }
         )
-    }
-    
-    public init<T>(
-        _ keyPath: KeyPath<DependencyValues, T>,
-        _resolve resolve: @escaping (T) throws -> Value?
-    ) {
-        self.init(
-            initialDependencies: Dependencies.current,
-            resolveValue: { try resolve($0[keyPath]) }
-        )
-    }
-    
-    public mutating func update() {
-        _isInSwiftUIView = true
     }
 }
 

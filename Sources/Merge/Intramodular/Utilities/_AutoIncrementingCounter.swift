@@ -31,7 +31,9 @@ public struct _AutoIncrementingIdentifier<T>: Hashable, Codable, Sendable {
     }
     
     @_transparent
-    fileprivate static func nextID(key: _AutoIncrementingIdentifierKey) -> _LockedState<UInt> {
+    fileprivate static func nextID(
+        key: _AutoIncrementingIdentifierKey
+    ) -> _LockedState<UInt> {
         counters.withLock {
             $0[key, defaultInPlace: .init(initialState: 0)]
         }
