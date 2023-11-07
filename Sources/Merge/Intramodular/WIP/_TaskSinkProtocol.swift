@@ -102,7 +102,7 @@ extension TaskStreamed where Failure == Never {
 
 extension TaskStreamed {
     public func callAsFunction(
-        _ operation: @Sendable @escaping () async -> Success
+        @_implicitSelfCapture _ operation: @Sendable @escaping () async -> Success
     ) where Failure == Never {
         let task = AnyTask {
             await operation()
@@ -136,7 +136,7 @@ extension TaskStreamed {
     }
     
     public func callAsFunction(
-        _ operation: @Sendable @escaping () async throws -> Success
+        @_implicitSelfCapture _ operation: @Sendable @escaping () async throws -> Success
     ) where Failure == Swift.Error {
         let task = AnyTask {
             try await operation()
@@ -160,7 +160,7 @@ extension TaskStreamed {
     
     @_disfavoredOverload
     public func callAsFunction(
-        _ operation: @Sendable @escaping () async -> AsyncStream<Success>
+        @_implicitSelfCapture _ operation: @Sendable @escaping () async -> AsyncStream<Success>
     ) where Failure == Never {
         let task = AnyTask { () -> Success in
             let stream = await operation()
@@ -197,13 +197,13 @@ extension TaskStreamed {
     }
     
     public func stream(
-        _ operation: @Sendable @escaping () async -> Success
+        @_implicitSelfCapture _ operation: @Sendable @escaping () async -> Success
     ) where Failure == Never {
         callAsFunction(operation)
     }
     
     public func stream(
-        _ operation: @Sendable @escaping () async throws -> Success
+        @_implicitSelfCapture _ operation: @Sendable @escaping () async throws -> Success
     ) where Failure == Swift.Error {
         callAsFunction(operation)
     }
