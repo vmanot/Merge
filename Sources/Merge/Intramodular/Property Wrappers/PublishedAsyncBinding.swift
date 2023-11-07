@@ -116,11 +116,9 @@ public final class PublishedAsyncBinding<Value>: ObservableObject {
         } set {
             let binding = enclosingInstance[keyPath: storageKeyPath]
             
-            if binding.objectWillChangeRelay.isUninitialized {
-                binding.objectWillChangeRelay.source = binding
-                binding.objectWillChangeRelay.destination = enclosingInstance
-            }
-            
+            binding.objectWillChangeRelay.source = binding
+            binding.objectWillChangeRelay.destination = enclosingInstance
+
             binding.wrappedValue = newValue
         }
     }
