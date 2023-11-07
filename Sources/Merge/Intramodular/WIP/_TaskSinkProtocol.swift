@@ -44,7 +44,7 @@ public final class TaskStreamed<Success, Failure: Error> {
     
     @MainActor
     @Published
-    public private(set) var latest: AnyTask<Void, Failure>?
+    public private(set) var latest: AnyTask<Success, Failure>?
     
     @MutexProtected
     public var output: Result<Success, Error>? = nil
@@ -104,21 +104,54 @@ extension TaskStreamed {
     public func callAsFunction(
         _ operation: @Sendable @escaping () async -> Success
     ) where Failure == Never {
+        let task = AnyTask {
+            await operation()
+        }
+        
         Task {
-            let result = await sink._opaque_receive(Task {
-                await operation()
+            await MainActor.run {
+                self.objectWillChangeRelay.source = task
+                self.latest = task
+                
+                assert(task.status == .idle)
+            }
+            
+            let result: Result<Success?, Error> = await self.sink._opaque_receive(Task {
+                await _expectNoThrow {
+                    try await task.value
+                }
             })
             
-            self.publish(result)
+            switch result {
+                case .success(let success):
+                    if let success {
+                        self.publish(.success(success))
+                    } else {
+                        assertionFailure()
+                    }
+                case .failure(let error):
+                    self.publish(.failure(error))
+            }
         }
     }
     
     public func callAsFunction(
         _ operation: @Sendable @escaping () async throws -> Success
     ) where Failure == Swift.Error {
+        let task = AnyTask {
+            try await operation()
+        }
+        
         Task {
-            let result = await sink._opaque_receive(Task {
-                try await operation()
+            await MainActor.run {
+                self.objectWillChangeRelay.source = task
+                self.latest = task
+                
+                assert(task.status == .idle)
+            }
+            
+            let result: Result<Success, Error> = await sink._opaque_receive(Task {
+                try await task.value
             })
             
             self.publish(result)
@@ -129,22 +162,30 @@ extension TaskStreamed {
     public func callAsFunction(
         _ operation: @Sendable @escaping () async -> AsyncStream<Success>
     ) where Failure == Never {
-        let task = AnyTask {
+        let task = AnyTask { () -> Success in
             let stream = await operation()
+            
+            var last: Success?
             
             do {
                 for try await value in stream.eraseToAnyAsyncSequence() {
+                    last = value
+                    
                     self.publish(.success(value))
                 }
             } catch {
                 self.publish(.failure(error))
             }
+            
+            return last!
         }
         
         Task {
             await MainActor.run {
-                self.latest = task
                 self.objectWillChangeRelay.source = task
+                self.latest = task
+                
+                assert(task.status == .idle)
             }
             
             await sink._opaque_receive(Task {
@@ -157,13 +198,6 @@ extension TaskStreamed {
     
     public func stream(
         _ operation: @Sendable @escaping () async -> Success
-    ) where Failure == Never {
-        callAsFunction(operation)
-    }
-    
-    @_disfavoredOverload
-    public func stream(
-        _ operation: @Sendable @escaping () async -> AsyncStream<Success>
     ) where Failure == Never {
         callAsFunction(operation)
     }
