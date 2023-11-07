@@ -151,7 +151,9 @@ extension TaskStreamed {
             }
             
             let result: Result<Success, Error> = await sink._opaque_receive(Task {
-                try await task.value
+                try await _warnOnThrow {
+                    try await task.value
+                }
             })
             
             self.publish(result)

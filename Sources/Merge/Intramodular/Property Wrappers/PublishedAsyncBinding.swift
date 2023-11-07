@@ -11,7 +11,9 @@ import SwiftUI
 public final class PublishedAsyncBinding<Value>: ObservableObject {
     public typealias _Self = PublishedAsyncBinding
     
-    private let objectWillChangeRelay = ObjectWillChangePublisherRelay()
+    private lazy var _wrappedValueObjectWillChangeRelay = ObjectWillChangePublisherRelay<Value, PublishedAsyncBinding<Value>>(destination: self)
+    private let _enclosingInstanceObjectWillChangeRelay = ObjectWillChangePublisherRelay()
+    
     private let cancellables = Cancellables()
     private let subject = _MultiReaderSubject<Value, Never>()
     
@@ -26,6 +28,8 @@ public final class PublishedAsyncBinding<Value>: ObservableObject {
             value
         } set {
             value = newValue
+            
+            _wrappedValueObjectWillChangeRelay.source = value
             
             subject.send(newValue)
         }
@@ -47,6 +51,8 @@ public final class PublishedAsyncBinding<Value>: ObservableObject {
         let cachedValue = cache.retrieve()
         
         self.value = cachedValue ?? defaultValue()
+        
+        _wrappedValueObjectWillChangeRelay.source = self.value
         
         if cachedValue == nil {
             cache.store(self.value)
@@ -105,21 +111,21 @@ public final class PublishedAsyncBinding<Value>: ObservableObject {
         storage storageKeyPath: ReferenceWritableKeyPath<EnclosingSelf, _Self>
     ) -> Value {
         get {
-            let binding = enclosingInstance[keyPath: storageKeyPath]
+            let propertyWrapper = enclosingInstance[keyPath: storageKeyPath]
             
-            if binding.objectWillChangeRelay.isUninitialized {
-                binding.objectWillChangeRelay.source = binding
-                binding.objectWillChangeRelay.destination = enclosingInstance
+            if propertyWrapper._enclosingInstanceObjectWillChangeRelay.isUninitialized {
+                propertyWrapper._enclosingInstanceObjectWillChangeRelay.source = propertyWrapper
+                propertyWrapper._enclosingInstanceObjectWillChangeRelay.destination = enclosingInstance
             }
             
-            return binding.wrappedValue
+            return propertyWrapper.wrappedValue
         } set {
-            let binding = enclosingInstance[keyPath: storageKeyPath]
+            let propertyWrapper = enclosingInstance[keyPath: storageKeyPath]
             
-            binding.objectWillChangeRelay.source = binding
-            binding.objectWillChangeRelay.destination = enclosingInstance
+            propertyWrapper._enclosingInstanceObjectWillChangeRelay.source = propertyWrapper
+            propertyWrapper._enclosingInstanceObjectWillChangeRelay.destination = enclosingInstance
 
-            binding.wrappedValue = newValue
+            propertyWrapper.wrappedValue = newValue
         }
     }
     

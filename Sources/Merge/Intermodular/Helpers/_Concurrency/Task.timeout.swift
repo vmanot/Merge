@@ -6,29 +6,20 @@ import Foundation
 import Swallow
 
 extension Task where Failure == Error {
-    public struct TimeoutError: Hashable, Identifiable, LocalizedError, @unchecked Sendable {
-        public let errorDescription: String? = "Task timed out before completion."
-        public let id: AnyHashable = UUID()
-
-        fileprivate init() {
-            
-        }
-    }
-    
     public init(
         priority: TaskPriority? = nil,
         timeout: TimeInterval,
-        operation: @escaping @Sendable () async throws -> Success
+        @_implicitSelfCapture operation: @escaping @Sendable () async throws -> Success
     ) {
         self = Task(priority: priority) {
             try await _runOperationWithTimeout(operation, timeout: timeout)
         }
     }
-        
+    
     public init(
         priority: TaskPriority? = nil,
         timeout: DispatchTimeInterval,
-        operation: @escaping @Sendable () async throws -> Success
+        @_implicitSelfCapture operation: @escaping @Sendable () async throws -> Success
     ) {
         self.init(
             priority: priority,
@@ -40,7 +31,7 @@ extension Task where Failure == Error {
     public static func detached(
         priority: TaskPriority? = nil,
         timeout: TimeInterval,
-        operation: @escaping @Sendable () async throws -> Success
+        @_implicitSelfCapture operation: @escaping @Sendable () async throws -> Success
     ) -> Task {
         Task.detached(priority: priority) {
             try await _runOperationWithTimeout(operation, timeout: timeout)
@@ -50,7 +41,7 @@ extension Task where Failure == Error {
     public static func detached(
         priority: TaskPriority? = nil,
         timeout: DispatchTimeInterval,
-        operation: @escaping @Sendable () async throws -> Success
+        @_implicitSelfCapture operation: @escaping @Sendable () async throws -> Success
     ) -> Task {
         detached(
             priority: priority,
@@ -58,18 +49,38 @@ extension Task where Failure == Error {
             operation: operation
         )
     }
-
-    public func value(timeout: TimeInterval) async throws -> Success {
+    
+    public func value(
+        timeout: TimeInterval
+    ) async throws -> Success {
         try await _runOperationWithTimeout({ try await self.value }, timeout: timeout)
     }
     
-    public func value(timeout: DispatchTimeInterval) async throws -> Success {
+    public func value(
+        timeout: DispatchTimeInterval
+    ) async throws -> Success {
         try await self.value(timeout: timeout.toTimeInterval())
     }
 }
 
+public func withTaskTimeout<Success: Sendable>(
+    _ timeout: TimeInterval,
+    @_implicitSelfCapture operation: @escaping @Sendable () async throws -> Success
+) async throws -> Success {
+    try await Task(timeout: timeout, operation: operation).value
+}
+
+public func withTaskTimeout<Success: Sendable>(
+    _ timeout: DispatchTimeInterval,
+    @_implicitSelfCapture operation: @escaping @Sendable () async throws -> Success
+) async throws -> Success {
+    try await Task(timeout: timeout, operation: operation).value
+}
+
+// MARK: - Internal
+
 private func _runOperationWithTimeout<Success: Sendable>(
-    _ operation: @escaping @Sendable () async throws -> Success,
+    @_implicitSelfCapture _ operation: @escaping @Sendable () async throws -> Success,
     timeout: TimeInterval
 ) async throws -> Success {
     try await withThrowingTaskGroup(of: Success.self) { group -> Success in
@@ -78,7 +89,7 @@ private func _runOperationWithTimeout<Success: Sendable>(
         await withUnsafeContinuation { continuation in
             group.addTask {
                 continuation.resume()
-
+                
                 return try await operation()
             }
         }
@@ -96,11 +107,12 @@ private func _runOperationWithTimeout<Success: Sendable>(
         }
         
         group.cancelAll()
-
+        
         return try next.get()
     }
 }
 
+/// An actor-based approach to handling timeouts.
 extension Task where Failure == Error {
     public static func _detached(
         priority: TaskPriority? = nil,
@@ -111,7 +123,7 @@ extension Task where Failure == Error {
             try await Task.run(operation: operation, withTimeout: timeout)
         }
     }
-
+    
     public static func _detached(
         priority: TaskPriority? = nil,
         timeout: DispatchTimeInterval,
@@ -169,5 +181,18 @@ extension Task where Failure == Error {
                 }
             }
         })
+    }
+}
+
+// MARK: - Error Handling
+
+extension Task where Failure == Error {
+    public struct TimeoutError: Hashable, Identifiable, LocalizedError, @unchecked Sendable {
+        public let errorDescription: String? = "Task timed out before completion."
+        public let id: AnyHashable = UUID()
+        
+        fileprivate init() {
+            
+        }
     }
 }
