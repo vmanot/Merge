@@ -6,12 +6,6 @@ import Swallow
 
 public typealias DependencyValues = HeterogeneousDictionary<Dependencies>
 
-extension DependencyKey {
-    public static var attributes: Set<DependencyAttribute> {
-        []
-    }
-}
-
 public struct _OptionalDependencyKey<T>: DependencyKey {
     public typealias Domain = Dependencies
     public typealias Value = T?
