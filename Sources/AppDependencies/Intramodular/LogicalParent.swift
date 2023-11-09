@@ -132,7 +132,7 @@ extension DependencyValues {
         
         static let defaultValue: Value = nil
         
-        static var attributes: Set<DependencyAttribute> {
+        static var attributes: Set<_DependencyAttribute> {
             [.unstashable]
         }
     }

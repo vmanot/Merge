@@ -4,14 +4,9 @@
 
 import Swallow
 
-@_spi(Internal)
-public enum DependencyAttribute {
-    case unstashable
-}
-
 public protocol DependencyKey<Value>: HeterogeneousDictionaryKey<Dependencies, Self.Value> {
     @_spi(Internal)
-    static var attributes: Set<DependencyAttribute> { get }
+    static var attributes: Set<_DependencyAttribute> { get }
     
     static var defaultValue: Value { get }
 }
@@ -22,9 +17,12 @@ public protocol _DependencyPropertyWrapperScope {
     
 }
 
+public enum _DependencyAttribute {
+    case unstashable
+}
+
 extension DependencyKey {
-    @_spi(Internal)
-    public static var attributes: Set<DependencyAttribute> {
+    public static var attributes: Set<_DependencyAttribute> {
         []
     }
 }
