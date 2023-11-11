@@ -6,7 +6,7 @@ import Darwin
 import Swallow
 
 @available(macOS 13.0, iOS 16.0, watchOS 9.0, tvOS 16.0, *)
-public protocol RetryDelayStrategy: Hashable {
+public protocol TaskRetryDelayStrategy: Hashable {
     func delay(
         forAttempt attempt: Int,
         withInitialDelay initial: Duration
@@ -16,7 +16,7 @@ public protocol RetryDelayStrategy: Hashable {
 // MARK: - Implemented Conformances
 
 @available(macOS 13.0, iOS 16.0, watchOS 9.0, tvOS 16.0, *)
-public struct LinearBackoffStrategy: RetryDelayStrategy {
+public struct LinearBackoffStrategy: TaskRetryDelayStrategy {
     public func delay(
         forAttempt attempt: Int,
         withInitialDelay initial: Duration
@@ -26,14 +26,14 @@ public struct LinearBackoffStrategy: RetryDelayStrategy {
 }
 
 @available(macOS 13.0, iOS 16.0, watchOS 9.0, tvOS 16.0, *)
-extension RetryDelayStrategy where Self == LinearBackoffStrategy {
+extension TaskRetryDelayStrategy where Self == LinearBackoffStrategy {
     public static var linear: Self {
         .init()
     }
 }
 
 @available(macOS 13.0, iOS 16.0, watchOS 9.0, tvOS 16.0, *)
-public struct ExponentialBackoffStrategy: RetryDelayStrategy {
+public struct ExponentialBackoffStrategy: TaskRetryDelayStrategy {
     public let maximumInterval: Duration?
     public let jitter: Bool
     
@@ -57,7 +57,7 @@ public struct ExponentialBackoffStrategy: RetryDelayStrategy {
 }
 
 @available(macOS 13.0, iOS 16.0, watchOS 9.0, tvOS 16.0, *)
-extension RetryDelayStrategy where Self == ExponentialBackoffStrategy {
+extension TaskRetryDelayStrategy where Self == ExponentialBackoffStrategy {
     public static func exponentialBackoff(
         maximumInterval: Duration? = nil,
         jitter: Bool = true

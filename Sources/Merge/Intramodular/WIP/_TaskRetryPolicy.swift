@@ -7,10 +7,10 @@ import Swallow
 
 @available(macOS 13.0, iOS 16.0, watchOS 9.0, tvOS 16.0, *)
 public enum _TaskRetryStrategy {
-    case delay(any RetryDelayStrategy, initial: Duration)
+    case delay(any TaskRetryDelayStrategy, initial: Duration)
     
     public static func delay(
-        _ strategy: some RetryDelayStrategy
+        _ strategy: some TaskRetryDelayStrategy
     ) -> Self {
         .delay(strategy, initial: .seconds(1))
     }
@@ -40,13 +40,13 @@ public struct _TaskRetryPolicy {
 }
 
 @available(macOS 13.0, iOS 16.0, watchOS 9.0, tvOS 16.0, *)
-public enum _RetryError: Error {
+public enum _TaskRetryError: Error {
     case maximumRetriesExceeded(Int)
 }
 
 @available(macOS 13.0, iOS 16.0, watchOS 9.0, tvOS 16.0, *)
-public func _performTask<Result>(
-    retryPolicy: _TaskRetryPolicy?,
+public func withTaskRetryPolicy<Result>(
+    _ retryPolicy: _TaskRetryPolicy?,
     operation: () async throws -> Result
 ) async throws -> Result {
     guard let retryPolicy else {
@@ -67,7 +67,7 @@ public func _performTask<Result>(
                 }
                 
                 if let maxRetryCount = retryPolicy.maxRetryCount, (attempt - 1) > maxRetryCount {
-                    throw _RetryError.maximumRetriesExceeded(maxRetryCount)
+                    throw _TaskRetryError.maximumRetriesExceeded(maxRetryCount)
                 }
                 
                 let delay = delay.delay(forAttempt: attempt, withInitialDelay: initial)

@@ -4,6 +4,7 @@
 
 import Swallow
 
+@_transparent
 @discardableResult
 public func withDependencies<Result>(
     _ updateValuesForOperation: (inout Dependencies) throws -> Void,

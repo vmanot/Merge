@@ -4,8 +4,11 @@
 
 import Swift
 
+/// A type that is **maybe** asynchronous.
+///
 /// Utility protocol for things that might require preheating/one-off resource resolution and are then synchronous to use.
 public protocol _MaybeAsyncProtocol {
+    /// Whether this instance is known to be asynchronous.
     var _isKnownAsync: Bool? { get }
     
     func _resolveToNonAsync() async throws -> Self

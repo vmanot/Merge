@@ -6,7 +6,7 @@ import Combine
 import Swallow
 
 /// An actor that can manage a graph of running tasks.
-public actor _KeyedTaskGraph<Key: Hashable & Sendable>: Sendable {
+public actor KeyedThrowingTaskGroup<Key: Hashable & Sendable>: Sendable {
     public enum InsertPolicy: Hashable & Sendable {
         case discardPrevious
         case useExisting
@@ -116,7 +116,7 @@ public actor _KeyedTaskGraph<Key: Hashable & Sendable>: Sendable {
     }
 }
 
-extension _KeyedTaskGraph {
+extension KeyedThrowingTaskGroup {
     private enum _Error: Swift.Error, Hashable, Sendable {
         case insertPolicyUnspecified(for: Key)
     }

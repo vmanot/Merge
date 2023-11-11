@@ -5,7 +5,9 @@
 import Swift
 import SwiftUI
 
-/// A type-erased Task.
+/// A type-erased `Task`.
+///
+/// The success value is type-erased to `any Sendable`.
 public struct OpaqueTask: Sendable {
     private let _completion: @Sendable () async -> any Sendable
     private let _cancel: @Sendable () -> Void
@@ -17,7 +19,9 @@ public struct OpaqueTask: Sendable {
         }
     }
     
-    public init<Success>(erasing task: Task<Success, Never>) {
+    public init<Success>(
+        erasing task: Task<Success, Never>
+    ) {
         self._completion = {
             await task.value
         }
@@ -73,19 +77,6 @@ extension Task {
             try await value
         })
     }
-}
-
-// MARK: - Auxiliary
-
-public protocol TaskProtocol<Success, Failure>: Sendable {
-    associatedtype Success
-    associatedtype Failure
-    
-    func cancel()
-}
-
-extension Task: TaskProtocol {
-    
 }
 
 // MARK: - SwiftUI Additions

@@ -4,15 +4,6 @@
 
 import Swallow
 
-class MonotonicallyIncreasingID {
-    private var currentValue: Int64 = 0
-    
-    public func next() -> AnyHashable {
-        currentValue += 1
-        return currentValue
-    }
-}
-
 public final class _AsyncGenerationBox<Success, Failure: Error>: @unchecked Sendable {
     public typealias FulfilledValue = Result<Success, Failure>
     
@@ -102,5 +93,16 @@ extension _AsyncGenerationBox: Cancellable where Failure == Error {
 extension _AsyncGenerationBox {
     fileprivate enum _Error: Swift.Error {
         case promiseAlreadyFulfilled
+    }
+}
+
+// MARK: - Auxiliary
+
+private class MonotonicallyIncreasingID {
+    private var currentValue: Int64 = 0
+    
+    public func next() -> AnyHashable {
+        currentValue += 1
+        return currentValue
     }
 }

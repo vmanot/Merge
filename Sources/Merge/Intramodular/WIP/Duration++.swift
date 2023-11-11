@@ -7,10 +7,12 @@ import Swift
 
 @available(macOS 13.0, iOS 16.0, watchOS 9.0, tvOS 16.0, *)
 extension Duration {
+    @_spi(Internal)
     public var _timeInterval: TimeInterval {
         TimeInterval(components.seconds) + Double(components.attoseconds)/1e18
     }
     
+    @_spi(Internal)
     public init(_timeInterval: TimeInterval) {
         let fraction = _timeInterval - floor(_timeInterval)
         

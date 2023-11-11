@@ -6,7 +6,7 @@ import Combine
 import Swift
 
 /// WIP, not super well thought out.
-public protocol _AsyncScheduler {
+public protocol _AsyncTaskScheduler {
     func schedule(
         _ task: @Sendable @escaping () async -> Void
     )
@@ -22,7 +22,7 @@ public protocol _AsyncScheduler {
 
 // MARK: - Implementation
 
-extension _AsyncScheduler {
+extension _AsyncTaskScheduler {
     public func _performCancellable<T: Sendable>(
         operation: @escaping @Sendable () async -> T
     ) async -> Result<T, CancellationError> {
@@ -74,7 +74,7 @@ public struct _DefaultAsyncScheduler {
     }
 }
 
-extension TaskQueue: _AsyncScheduler {
+extension TaskQueue: _AsyncTaskScheduler {
     public func schedule(
         _ task: @Sendable @escaping () async -> Void
     ) {
@@ -84,7 +84,7 @@ extension TaskQueue: _AsyncScheduler {
     }
 }
 
-extension ThrowingTaskQueue: _AsyncScheduler {
+extension ThrowingTaskQueue: _AsyncTaskScheduler {
     public func schedule(
         _ task: @Sendable @escaping () async -> Void
     ) {

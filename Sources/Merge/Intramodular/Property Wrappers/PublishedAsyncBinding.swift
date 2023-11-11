@@ -7,6 +7,7 @@ import FoundationX
 import Swallow
 import SwiftUI
 
+@dynamicMemberLookup
 @propertyWrapper
 public final class PublishedAsyncBinding<Value>: ObservableObject {
     public typealias _Self = PublishedAsyncBinding
@@ -84,7 +85,7 @@ public final class PublishedAsyncBinding<Value>: ObservableObject {
         if debounceInterval == .zero {
             debounceInterval = nil
         }
-
+        
         if let debounceInterval {
             $value
                 .dropFirst()
@@ -124,7 +125,7 @@ public final class PublishedAsyncBinding<Value>: ObservableObject {
             
             propertyWrapper._enclosingInstanceObjectWillChangeRelay.source = propertyWrapper
             propertyWrapper._enclosingInstanceObjectWillChangeRelay.destination = enclosingInstance
-
+            
             propertyWrapper.wrappedValue = newValue
         }
     }
@@ -167,6 +168,14 @@ public final class PublishedAsyncBinding<Value>: ObservableObject {
     
     private func resolveConflict(latest: Value, cached: Value) -> Value {
         return latest
+    }
+    
+    public subscript<Subject>(
+        dynamicMember keyPath: WritableKeyPath<Value, Subject>
+    ) -> PublishedAsyncBinding<Subject> {
+        get {
+            map(keyPath)
+        }
     }
 }
 
@@ -217,10 +226,10 @@ extension PublishedAsyncBinding {
                             
                             return Just(currentValue)
                         }
-
+                        
                         return Just(root[keyPath: keyPath] ?? currentValue)
                     }
-                    .eraseToAnyPublisher(),
+                        .eraseToAnyPublisher(),
                     push: { [weak root] in
                         guard let root = `root` else {
                             assertionFailure()
@@ -334,7 +343,7 @@ public enum _AsyncElementAccessor<Element>: Publisher {
                 upstream: Deferred {
                     Just(wrapper.wrappedValue)
                 }
-                .eraseToAnyPublisher(),
+                    .eraseToAnyPublisher(),
                 push: {
                     var wrapper = wrapper
                     
