@@ -67,3 +67,18 @@ extension Publisher where Output == Void, Failure == Never {
         })
     }
 }
+
+@_spi(Internal)
+public func _ObservableObject_objectWillChange_send<T>(_ x: T) {
+    guard let x = x as? (any ObservableObject) else {
+        return
+    }
+    
+    guard let x = (x.objectWillChange as (any Publisher)) as? _opaque_VoidSender else {
+        assertionFailure()
+        
+        return
+    }
+    
+    x.send()
+}
