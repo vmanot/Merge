@@ -57,7 +57,7 @@ extension SingleOutputPublisher {
         }
         
         guard case .success(let value) = (result as Result<Output, Never>) else {
-            fatalError(reason: .impossible)
+            fatalError(.impossible)
         }
         
         return value

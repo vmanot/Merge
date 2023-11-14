@@ -23,8 +23,10 @@ public final class PublishedAsyncBinding<Value>: ObservableObject {
     private var cache: (any SingleValueCache<Value>)?
     private let accessor: _AsyncElementAccessor<Value>
     
+    public var animation: Animation?
+    
     @MainActor
-    public var wrappedValue: Value {
+    private var _wrappedValue: Value {
         get {
             value
         } set {
@@ -33,6 +35,21 @@ public final class PublishedAsyncBinding<Value>: ObservableObject {
             _wrappedValueObjectWillChangeRelay.source = value
             
             subject.send(newValue)
+        }
+    }
+    
+    @MainActor
+    public var wrappedValue: Value {
+        get {
+            value
+        } set {
+            if let animation {
+                withAnimation(animation) {
+                    value = newValue
+                }
+            } else {
+                value = newValue
+            }
         }
     }
     
@@ -248,11 +265,14 @@ extension PublishedAsyncBinding {
         )
     }
     
-    public static func unsafelyUnwrapping<T: AnyObject>(
+    public static func unsafelyUnwrapping<T: AnyObject, U>(
         _ root: T,
-        _ keyPath: ReferenceWritableKeyPath<T, Value>
-    ) -> PublishedAsyncBinding {
-        let currentValue: Value = root[keyPath: keyPath]
+        _ keyPath: ReferenceWritableKeyPath<T, U>,
+        as type: Value.Type
+    ) -> PublishedAsyncBinding? {
+        guard let currentValue: Value = root[keyPath: keyPath] as? Value else {
+            return nil
+        }
         
         return self.init(
             accessor: .anonymous(
@@ -264,17 +284,17 @@ extension PublishedAsyncBinding {
                             return Just(currentValue)
                         }
                         
-                        return Just(root[keyPath: keyPath])
+                        return Just(root[keyPath: keyPath] as! Value)
                     }
                         .eraseToAnyPublisher(),
-                    push: { [weak root] in
+                    push: { [weak root] (newValue: Value) in
                         guard let root = `root` else {
                             assertionFailure()
                             
                             return
                         }
                         
-                        root[keyPath: keyPath] = $0
+                        root[keyPath: keyPath] = newValue as! U
                     }
                 )
             ),

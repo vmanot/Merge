@@ -103,18 +103,18 @@ public func _withOrderedTaskGroup<ChildTaskResult, Result>(
         }
         
         func next() async -> ChildTaskResult? {
-            fatalError(reason: .unsupported)
+            fatalError(.unsupported)
             
             // await group.next()
         }
         
         func waitForAll() async {
-            fatalError(reason: .unsupported)
+            fatalError(.unsupported)
             // await group.waitForAll()
         }
         
         func isEmpty() -> Bool {
-            fatalError(reason: .unsupported)
+            fatalError(.unsupported)
             
             // pointer.pointee.isEmpty
         }
