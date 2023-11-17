@@ -265,6 +265,44 @@ extension PublishedAsyncBinding {
         )
     }
     
+    public static func unsafelyUnwrapping<T: AnyObject>(
+        _ root: T,
+        _ keyPath: ReferenceWritableKeyPath<T, Value>
+    ) -> PublishedAsyncBinding {
+        let currentValue: Value = root[keyPath: keyPath]
+        
+        return self.init(
+            accessor: .anonymous(
+                .init(
+                    upstream: Deferred { [weak root] in
+                        guard let root else {
+                            assertionFailure()
+                            
+                            return Just(currentValue)
+                        }
+                        
+                        return Just(root[keyPath: keyPath])
+                    }
+                        .eraseToAnyPublisher(),
+                    push: { [weak root] in
+                        guard let root = `root` else {
+                            assertionFailure()
+                            
+                            return
+                        }
+                        
+                        root[keyPath: keyPath] = $0
+                    }
+                )
+            ),
+            defaultValue: {
+                currentValue
+            },
+            debounceInterval: .milliseconds(200)
+        )
+    }
+    
+    @_disfavoredOverload
     public static func unsafelyUnwrapping<T: AnyObject, U>(
         _ root: T,
         _ keyPath: ReferenceWritableKeyPath<T, U>,
