@@ -176,7 +176,7 @@ extension Process.Task {
     ) {
         let process = Process()
         
-        process.currentDirectoryURL = currentDirectoryPath.flatMap(URL.init)
+        process.currentDirectoryURL = currentDirectoryPath.flatMap({ URL(_filePath: $0) })
         process.executableURL = URL(executablePath)
         process.arguments = arguments
         process.environment = environment
