@@ -3,6 +3,7 @@
 //
 
 import Combine
+import Foundation
 import Swallow
 
 #if os(iOS) || os(tvOS)
@@ -32,7 +33,9 @@ extension AppRunningState {
             
         }
         
-        public func receive<S: Subscriber>(subscriber: S) where S.Input == Output, S.Failure == Failure {
+        public func receive<S: Subscriber>(
+            subscriber: S
+        ) where S.Input == Output, S.Failure == Failure {
             let notificationCenter = NotificationCenter.default
 
             #if os(iOS) || os(tvOS)
