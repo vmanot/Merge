@@ -2,4 +2,4 @@
 // Copyright (c) Vatsal Manot
 //
 
-import SwiftUI
+import Swallow

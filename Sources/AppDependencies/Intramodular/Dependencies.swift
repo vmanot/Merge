@@ -5,11 +5,6 @@
 import Combine
 import Swallow
 
-public enum DependenciesError: Error {
-    case failedToResolveDependency(Any.Type)
-    case failedToUseDependencies(Error)
-}
-
 public struct Dependencies: @unchecked Sendable {
     var unkeyedValues: _BagOfExistentials<any Sendable>
     var unkeyedValueTypes: Set<Metatype<Any.Type>> = []
