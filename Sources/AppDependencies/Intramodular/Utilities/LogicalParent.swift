@@ -19,9 +19,13 @@ extension _LogicalParentConsuming {
 /// A logical parent provided via by dependency-injection.
 @propertyWrapper
 public struct LogicalParent<Parent>: _DependenciesConsuming {
+    let _resolvedValue = ReferenceBox<Weak<Parent>>(.init(nil))
+    
     @Dependency(
         \._logicalParent,
-         _resolve: { try cast($0.unwrap().wrappedValue)  }
+         _resolve: {
+             try cast($0.unwrap().wrappedValue)
+         }
     )
     var parent: Parent
     
@@ -50,15 +54,23 @@ extension LogicalParent: Codable {
 
 extension LogicalParent: Hashable {
     private var _hashableView: _HashableExistential<any Hashable> {
-        try! _HashableExistential(erasing: $parent.get())
+        get throws {
+            let parent = try $parent.get()
+            
+            if !(parent is (any Hashable)), swift_isClassType(type(of: parent)) {
+                return try _HashableExistential(erasing: ObjectIdentifier(parent as AnyObject))
+            } else {
+                return try _HashableExistential(erasing: $parent.get())
+            }
+        }
     }
     
     public static func == (lhs: Self, rhs: Self) -> Bool {
-        lhs._hashableView == rhs._hashableView
+        try! lhs._hashableView == rhs._hashableView
     }
     
     public func hash(into hasher: inout Hasher) {
-        hasher.combine(_hashableView)
+        try! hasher.combine(_hashableView)
     }
 }
 
@@ -66,11 +78,15 @@ public func _withLogicalParent<Parent, Result>(
     _ parent: Parent?,
     operation: () throws -> Result
 ) throws -> Result {
-    try withDependencies {
-        try $0._setLogicalParent(parent)
-    } operation: {
-        try withDependencies(from: parent) {
-            try operation()
+    return try withDependencies(from: parent) {
+        try withDependencies {
+            try $0._setLogicalParent(parent)
+        } operation: {
+            if parent != nil {
+                assert(Dependencies.current[\._logicalParent] != nil)
+            }
+            
+            return try operation()
         }
     }
 }
@@ -127,17 +143,19 @@ public func _withLogicalParent<Parent, Result>(
 // MARK: - Auxiliary
 
 extension DependencyValues {
-    fileprivate struct LogicalParentKey: DependencyKey {
-        typealias Value = Optional<Weak<Any>>
+    @_spi(Internal)
+    public struct LogicalParentKey: DependencyKey {
+        public typealias Value = Optional<Weak<Any>>
         
-        static let defaultValue: Value = nil
+        public static let defaultValue: Value = nil
         
-        static var attributes: Set<_DependencyAttribute> {
+        public static var attributes: Set<_DependencyAttribute> {
             [.unstashable]
         }
     }
     
-    fileprivate var _logicalParent: LogicalParentKey.Value {
+    @_spi(Internal)
+    public var _logicalParent: LogicalParentKey.Value {
         get {
             self[LogicalParentKey.self]
         } set {
@@ -153,7 +171,7 @@ extension Dependencies {
         if let parent {
             self[\DependencyValues._logicalParent] = Weak(parent)
         } else {
-            self[\DependencyValues._logicalParent] = Weak(nil)
+            self[\DependencyValues._logicalParent] = nil
         }
     }
 }

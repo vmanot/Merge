@@ -112,7 +112,13 @@ extension Dependencies: MergeOperatable {
         let result = Self(
             unkeyedValues: rhs.unkeyedValues.merge(with: lhsUnkeyedValues),
             unkeyedValueTypes: lhs.unkeyedValueTypes.union(rhs.unkeyedValueTypes),
-            keyedValues: lhs.keyedValues.merging(rhs.keyedValues, uniquingKeysWith: { lhs, rhs in rhs })
+            keyedValues: lhs.keyedValues.merging(rhs.keyedValues, uniquingKeysWith: { lhs, rhs -> Any in
+                guard !_isValueNil(rhs) else {
+                    return lhs
+                }
+                
+                return rhs
+            })
         )
         
         assert(!result.isEmpty)
