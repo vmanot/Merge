@@ -14,7 +14,7 @@ let package = Package(
         .library(
             name: "Merge",
             targets: [
-                "AppDependencies",
+                "SwiftDI",
                 "Merge"
             ]
         )
@@ -26,19 +26,19 @@ let package = Package(
     ],
     targets: [
         .target(
-            name: "AppDependencies",
+            name: "SwiftDI",
             dependencies: [
                 "Swallow"
             ],
-            path: "Sources/AppDependencies",
+            path: "Sources/SwiftDI",
             swiftSettings: []
         ),
         .target(
             name: "Merge",
             dependencies: [
-                "AppDependencies",
                 .product(name: "AsyncAlgorithms", package: "swift-async-algorithms"),
                 "Swallow",
+                "SwiftDI",
                 "SwiftUIX"
             ],
             path: "Sources/Merge",
