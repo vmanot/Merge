@@ -2,6 +2,7 @@
 // Copyright (c) Vatsal Manot
 //
 
+import Diagnostics
 import Swallow
 
 @_transparent
@@ -17,7 +18,9 @@ public func withDependencies<Result>(
     return try Dependencies.$_current.withValue(dependencies) {
         let result = try operation()
         
-        dependencies._stashInOrProvideTo(result)
+        _expectNoThrow {
+            try dependencies._stashInOrProvideTo(result)
+        }
         
         return result
     }
@@ -44,7 +47,9 @@ public func withDependencies<Result>(
     return try await Dependencies.$_current.withValue(dependencies) {
         let result = try await operation()
         
-        dependencies._stashInOrProvideTo(result)
+        _expectNoThrow {
+            try dependencies._stashInOrProvideTo(result)
+        }
         
         return result
     }

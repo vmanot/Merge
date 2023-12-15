@@ -95,7 +95,7 @@ public struct Dependency<Value>: _DependenciesConsuming, _DependencyPropertyWrap
             
             return try resolveValue(dependenciesAvailable()).unwrap()
         } catch {
-            throw runtimeIssue(DependenciesError.failedToResolveDependency(Value.self))
+            throw runtimeIssue(_SwiftDI.Error.failedToResolveDependency(Value.self))
         }
     }
     
@@ -150,12 +150,31 @@ extension Dependency {
         )
     }
     
+    @_disfavoredOverload
+    public init<T>(
+        _ keyPath: KeyPath<DependencyValues, Optional<T>>
+    ) where Value == Volatile<T> {
+        self.init(
+            initialDependencies: Dependencies.current,
+            resolveValue: { try Volatile(wrappedValue: $0[keyPath].unwrap()) }
+        )
+    }
+    
     public init<T>(
         _ keyPath: KeyPath<DependencyValues, Optional<T>>
     ) where Value == Optional<T> {
         self.init(
             initialDependencies: Dependencies.current,
             resolveValue: { $0[keyPath] }
+        )
+    }
+    
+    public init<T>(
+        _ keyPath: KeyPath<DependencyValues, Optional<T>>
+    ) where Value == Volatile<Optional<T>> {
+        self.init(
+            initialDependencies: Dependencies.current,
+            resolveValue: { Volatile(wrappedValue: $0[keyPath]) }
         )
     }
         

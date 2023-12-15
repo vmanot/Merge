@@ -3,3 +3,7 @@
 //
 
 import Swift
+
+public enum _SwiftDI {
+    
+}

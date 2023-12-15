@@ -23,7 +23,8 @@ extension Dependencies {
             .lazy
             .compactMap({ $1 as? (any _DependencyPropertyWrapperType) })
             .first?
-            .initialDependencies {
+            .initialDependencies
+        {
             mergeInPlace(with: reflected)
         }
         
@@ -41,7 +42,7 @@ extension Dependencies {
             unkeyedValues: unkeyedValues,
             unkeyedValueTypes: unkeyedValueTypes,
             keyedValues: .init(_unsafeUniqueKeysAndValues: keyedValues.filter {
-                !($0.key as! any DependencyKey.Type).attributes.contains(.unstashable)
+                !($0.key.base as! any DependencyKey.Type).attributes.contains(.unstashable)
             })
         )
     }
@@ -50,7 +51,7 @@ extension Dependencies {
     ///
     /// Provide the subject with dependencies if it conforms to `_DependenciesConsuming`.
     @usableFromInline
-    func _stashInOrProvideTo<T>(_ subject: T) {
+    func _stashInOrProvideTo<T>(_ subject: T) throws {
         guard let subject = _unwrapPossiblyTypeErasedValue(subject) else {
             return
         }
@@ -60,20 +61,16 @@ extension Dependencies {
         }
         
         do {
-            do {
-                try (subject as? _DependenciesConsuming)?._consumeDependencies(self)
-                
-                try Mirror(reflecting: subject).children
-                    .lazy
-                    .compactMap({ $1 as? (any _DependenciesConsuming) })
-                    .forEach {
-                        try $0._consumeDependencies(self)
-                    }
-            } catch {
-                throw DependenciesError.failedToUseDependencies(error)
-            }
+            try (subject as? _DependenciesConsuming)?._consumeDependencies(self)
+            
+            try Mirror(reflecting: subject).children
+                .lazy
+                .compactMap({ $1 as? (any _DependenciesConsuming) })
+                .forEach {
+                    try $0._consumeDependencies(self)
+                }
         } catch {
-            assertionFailure(error)
+            throw _SwiftDI.Error.failedToConsumeDependencies(AnyError(erasing: error))
         }
     }
 }

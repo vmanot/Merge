@@ -5,6 +5,23 @@
 import Swallow
 
 extension AsyncThrowingStream where Failure == Error {
+    public static func just(
+        _ element: @escaping () async throws -> Element
+    ) -> AsyncThrowingStream<Element, Failure> {
+        AsyncThrowingStream<Element, Failure> { continuation in
+            Task {
+                do {
+                    let value = try await element()
+                    
+                    continuation.yield(value)
+                    continuation.finish()
+                } catch {
+                    continuation.yield(with: .failure(error))
+                }
+            }
+        }
+    }
+    
     public init<S: AsyncSequence>(_ sequence: S) where S.Element == Element {
         var iterator: S.AsyncIterator?
         
