@@ -6,6 +6,14 @@ import Combine
 import Dispatch
 import Swallow
 
+extension Task where Success == Never, Failure == Never {
+    public static func sleep(
+        durationInSeconds duration: Double
+    ) async throws {
+        try await Task.sleep(nanoseconds: UInt64(duration * 1_000_000_000))
+    }
+}
+
 extension Task {
     public static func _withUnsafeContinuation(
         _ fn: @escaping (UnsafeContinuation<Void, Never>) async -> Success

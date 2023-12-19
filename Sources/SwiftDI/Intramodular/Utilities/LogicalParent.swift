@@ -4,6 +4,7 @@
 
 import Diagnostics
 import Swallow
+import SwiftUI
 
 /// A marker protocol to be implemented via a macro @LogicalParent(Parent.self)
 public protocol _LogicalParentConsuming<LogicalParentType> {
@@ -18,36 +19,45 @@ extension _LogicalParentConsuming {
 
 /// A logical parent provided via by dependency-injection.
 @propertyWrapper
-public struct LogicalParent<Parent>: _DependenciesConsuming {
+public final class LogicalParent<Parent>: Codable, _DependenciesConsuming {
     let _resolvedValue = ReferenceBox<Weak<Parent>>(.init(nil))
+    var _hasConsumedDependencies: Bool = false
     
     @Dependency(
         \._logicalParent,
          _resolve: {
-             try cast($0.unwrap().wrappedValue)
+             try $0.map({ try cast($0.wrappedValue) })
          }
     )
-    var parent: Parent
+    var parent: Parent?
+    
+    private var _wrappedValue: Parent? {
+        parent ?? _resolvedValue.wrappedValue.wrappedValue
+    }
     
     public var wrappedValue: Parent {
-        parent
+        _wrappedValue!
     }
     
     public init() {
         
     }
     
-    public func _consumeDependencies(_ dependencies: Dependencies) throws {
-        try $parent._consumeDependencies(dependencies)
+    public func _consumeDependencies(
+        _ dependencies: Dependencies
+    ) throws {
+        _ = try? $parent._consumeDependencies(dependencies)
+        
+        _resolvedValue.wrappedValue = Weak(dependencies[\._logicalParent]?.wrappedValue as? Parent)
+        
+        _hasConsumedDependencies = true
     }
-}
 
-extension LogicalParent: Codable {
     public func encode(to encoder: Encoder) throws {
         
     }
     
-    public init(from decoder: Decoder) throws {
+    public convenience init(from decoder: Decoder) throws {
         self.init()
     }
 }
@@ -65,12 +75,29 @@ extension LogicalParent: Hashable {
         }
     }
     
-    public static func == (lhs: Self, rhs: Self) -> Bool {
+    public static func == (lhs: LogicalParent, rhs: LogicalParent) -> Bool {
         try! lhs._hashableView == rhs._hashableView
     }
     
     public func hash(into hasher: inout Hasher) {
         try! hasher.combine(_hashableView)
+    }
+}
+
+extension Binding {
+    public func _withLogicalParent<Parent>(_ parent: Parent) -> Binding {
+        Binding(
+            get: {
+                try! SwiftDI._withLogicalParent(parent) {
+                    self.wrappedValue
+                }
+            },
+            set: { newValue in
+                try! SwiftDI._withLogicalParent(parent) {
+                    self.wrappedValue = newValue
+                }
+            }
+        )
     }
 }
 
