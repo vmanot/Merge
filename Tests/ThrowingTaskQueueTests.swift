@@ -11,7 +11,7 @@ final class TaskQueueTests: XCTestCase {
     func testReentrancy() {
         let queue = ThrowingTaskQueue()
         
-        queue.add {
+        queue.addTask {
             try await queue.perform {
                0
             }
@@ -22,7 +22,7 @@ final class TaskQueueTests: XCTestCase {
         let queue = ThrowingTaskQueue()
         let queue2 = ThrowingTaskQueue()
 
-        queue.add {
+        queue.addTask {
             try await queue2.perform {
                 try await queue.perform {
                     0

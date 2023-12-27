@@ -7,7 +7,7 @@
 import Swallow
 import XCTest
 
-final class TaskGraphTests: XCTestCase {
+final class KeyedThrowingTaskGroupTests: XCTestCase {
     func testUseExistingPolicy() async throws {
         let graph = KeyedThrowingTaskGroup<TestTasks>()
         

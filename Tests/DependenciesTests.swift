@@ -89,7 +89,7 @@ extension DependenciesTests {
     typealias Bar = _DependenciesTests_Bar
     
     struct Foo {
-        @Dependency var baz: Bar
+        @Dependency() var baz: Bar
         
         @discardableResult
         func bongo() -> Int {

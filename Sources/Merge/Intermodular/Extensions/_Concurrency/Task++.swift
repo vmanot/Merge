@@ -60,7 +60,13 @@ extension Task {
         ._unsafe_eraseToAnySingleOutputPublisher()
     }
     
-    /// Block the current thread and wait for the value.
+    /// Blocks the current thread and waits for the value.
+    ///
+    /// **DO NOT USE THIS**.
+    ///
+    /// Reference:
+    /// - https://saagarjha.com/blog/2023/12/22/swift-concurrency-waits-for-no-one/
+    @available(*, deprecated, message: "This can result in a deadlock.")
     public func blockAndWaitForValue() throws -> Success {
         try Future.async {
             try await value

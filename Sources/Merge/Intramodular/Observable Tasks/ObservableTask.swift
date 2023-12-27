@@ -39,10 +39,3 @@ extension Subscription where Self: ObservableTask {
         start()
     }
 }
-
-extension ObservableTask {
-    @discardableResult
-    public func blockAndUnwrap(on queue: DispatchQueue? = nil) throws -> Success {
-        try successPublisher.subscribeAndWaitUntilDone(on: queue).unwrap().get()
-    }
-}
