@@ -67,14 +67,22 @@ public func withTaskTimeout<Success: Sendable>(
     _ timeout: TimeInterval,
     @_implicitSelfCapture operation: @escaping @Sendable () async throws -> Success
 ) async throws -> Success {
-    try await Task(timeout: timeout, operation: operation).value
+    do {
+        return try await Task(timeout: timeout, operation: operation).value
+    } catch {
+        throw error
+    }
 }
 
 public func withTaskTimeout<Success: Sendable>(
     _ timeout: DispatchTimeInterval,
     @_implicitSelfCapture operation: @escaping @Sendable () async throws -> Success
 ) async throws -> Success {
-    try await Task(timeout: timeout, operation: operation).value
+    do {
+        return try await Task(timeout: timeout, operation: operation).value
+    } catch {
+        throw error
+    }
 }
 
 // MARK: - Internal
