@@ -20,23 +20,23 @@ public final class _AsyncObjectWillChangePublisher: Publisher {
     ) {
         base.receive(subscriber: subscriber)
     }
-        
+}
+
+extension _AsyncObjectWillChangePublisher {
     public func withCriticalScope(
         _ f: @escaping (ObservableObjectPublisher) -> Void
     ) {
-        var exit = false
-        
-        base.withGuaranteedSubscriberCount { count in
+        let shouldExit = base.withGuaranteedSubscriberCount { count -> Bool in
             guard count == 0 else {
-                return
+                return false
             }
-            
+
             f(self.base.upstream)
             
-            exit = true
+            return true
         }
         
-        guard !exit else {
+        if shouldExit {
             return
         }
         

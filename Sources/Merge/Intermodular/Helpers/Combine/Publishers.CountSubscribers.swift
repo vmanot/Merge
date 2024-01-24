@@ -34,11 +34,11 @@ extension Publishers {
             )
         }
         
-        public func withGuaranteedSubscriberCount(
-            _ fn: (Int) -> Void
-        ) {
-            mutex.withCriticalScope {
-                fn(numberOfSubscribers)
+        public func withGuaranteedSubscriberCount<Result>(
+            _ fn: (Int) throws -> Result
+        ) rethrows -> Result {
+            try mutex.withCriticalScope {
+                try fn(numberOfSubscribers)
             }
         }
         

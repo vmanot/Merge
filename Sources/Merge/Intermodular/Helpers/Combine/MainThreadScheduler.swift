@@ -12,10 +12,11 @@ public struct MainThreadScheduler: Scheduler {
     public typealias SchedulerOptions = DispatchQueue.SchedulerOptions
     
     public static var shared: Self {
-        .init()
+        Self()
     }
     
-    private let base = DispatchQueue.main
+    @usableFromInline
+    let base = DispatchQueue.main
     
     private init() {
         
@@ -29,8 +30,11 @@ public struct MainThreadScheduler: Scheduler {
         base.minimumTolerance
     }
     
+    @_transparent
     @MainActor(unsafe)
-    public func schedule(_ action: @escaping () -> Void) {
+    public func schedule(
+        _ action: @escaping () -> Void
+    ) {
         if Thread.isMainThread {
             action()
         } else {
@@ -38,8 +42,12 @@ public struct MainThreadScheduler: Scheduler {
         }
     }
     
+    @_transparent
     @MainActor(unsafe)
-    public func schedule(options: SchedulerOptions?, _ action: @escaping () -> Void) {
+    public func schedule(
+        options: SchedulerOptions?,
+        _ action: @escaping () -> Void
+    ) {
         if Thread.isMainThread {
             action()
         } else {
