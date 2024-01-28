@@ -35,12 +35,16 @@ extension Task where Success == Void, Failure == Error {
         every interval: DispatchTimeInterval,
         on runLoop: RunLoop = .main,
         operation: @escaping () async throws -> Void
-    ) throws -> Task {
-        let interval = try interval.toTimeInterval()
-        
+    ) -> Task {
         let _runLoop = _UncheckedSendable(wrappedValue: runLoop)
         
         return _Concurrency.Task {
+            guard let interval = try? interval.toTimeInterval() else {
+                assertionFailure("unsupported interval: \(interval)")
+                
+                return
+            }
+
             try _Concurrency.Task.checkCancellation()
             
             for await _ in Timer.publish(every: interval, on: _runLoop.wrappedValue, in: .default).autoconnect().values {

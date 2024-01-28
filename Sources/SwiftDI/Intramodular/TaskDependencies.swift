@@ -5,7 +5,11 @@
 import Combine
 import Swallow
 
-public struct Dependencies: @unchecked Sendable {
+public typealias Dependency<Value> = TaskDependency<Value>
+public typealias Dependencies = TaskDependencies
+public typealias DependencyKey = TaskDependencyKey
+
+public struct TaskDependencies: @unchecked Sendable {
     var unkeyedValues: _BagOfExistentials<any Sendable>
     var unkeyedValueTypes: Set<Metatype<Any.Type>> = []
     var keyedValues = HeterogeneousDictionary<Dependencies>()
@@ -32,7 +36,7 @@ public struct Dependencies: @unchecked Sendable {
         )
     }
     
-    func resolve<T>(_ request: DependencyResolutionRequest<T>) throws -> T? {
+    func resolve<T>(_ request: TaskDependencyResolutionRequest<T>) throws -> T? {
         switch request {
             case .unkeyed(let type):
                 return try unkeyedValues.firstAndOnly(ofType: type)
@@ -58,7 +62,7 @@ public struct Dependencies: @unchecked Sendable {
     }
     
     public subscript<T>(
-        keyPath: KeyPath<DependencyValues, T>
+        keyPath: KeyPath<TaskDependencyValues, T>
     ) -> T {
         get {
             keyedValues[keyPath: keyPath]
@@ -66,7 +70,7 @@ public struct Dependencies: @unchecked Sendable {
     }
     
     public subscript<T>(
-        unwrapping keyPath: KeyPath<DependencyValues, Optional<T>>
+        unwrapping keyPath: KeyPath<TaskDependencyValues, Optional<T>>
     ) -> T {
         get throws {
             do {
@@ -77,7 +81,7 @@ public struct Dependencies: @unchecked Sendable {
         }
     }
     
-    public subscript<T>(keyPath: WritableKeyPath<DependencyValues, T>) -> T {
+    public subscript<T>(keyPath: WritableKeyPath<TaskDependencyValues, T>) -> T {
         get {
             keyedValues[keyPath: keyPath]
         } set {
@@ -139,7 +143,7 @@ extension Dependencies {
     }
     
     public static func resolve<T>(
-        _ keyPath: KeyPath<DependencyValues, Optional<T>>
+        _ keyPath: KeyPath<TaskDependencyValues, Optional<T>>
     ) throws -> T {
         try Self.current[unwrapping: keyPath]
     }

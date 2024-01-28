@@ -21,9 +21,9 @@ extension Dependencies {
         
         if let reflected = Mirror(reflecting: subject).children
             .lazy
-            .compactMap({ $1 as? (any _DependencyPropertyWrapperType) })
+            .compactMap({ $1 as? (any _TaskDependencyPropertyWrapperType) })
             .first?
-            .initialDependencies
+            .initialTaskDependencies
         {
             mergeInPlace(with: reflected)
         }
@@ -32,8 +32,8 @@ extension Dependencies {
             mergeInPlace(with: stashed)
         }
         
-        if let subject = subject as? DependenciesExporting {
-            mergeInPlace(with: subject.exportedDependencies)
+        if let subject = subject as? _TaskDependenciesExporting {
+            mergeInPlace(with: subject._exportedTaskDependencies)
         }
     }
     
@@ -42,14 +42,14 @@ extension Dependencies {
             unkeyedValues: unkeyedValues,
             unkeyedValueTypes: unkeyedValueTypes,
             keyedValues: .init(_unsafeUniqueKeysAndValues: keyedValues.filter {
-                !($0.key.base as! any DependencyKey.Type).attributes.contains(.unstashable)
+                !($0.key.base as! any TaskDependencyKey.Type).attributes.contains(.unstashable)
             })
         )
     }
     
     /// Stash the dependencies in the given subject if its an object.
     ///
-    /// Provide the subject with dependencies if it conforms to `_DependenciesConsuming`.
+    /// Provide the subject with dependencies if it conforms to `_TaskDependenciesConsuming`.
     @usableFromInline
     func _stashInOrProvideTo<T>(_ subject: T) throws {
         guard let subject = _unwrapPossiblyTypeErasedValue(subject) else {
@@ -61,13 +61,13 @@ extension Dependencies {
         }
         
         do {
-            try (subject as? _DependenciesConsuming)?._consumeDependencies(self)
+            try (subject as? _TaskDependenciesConsuming)?.__consume(self)
             
             try Mirror(reflecting: subject).children
                 .lazy
-                .compactMap({ $1 as? (any _DependenciesConsuming) })
+                .compactMap({ $1 as? (any _TaskDependenciesConsuming) })
                 .forEach {
-                    try $0._consumeDependencies(self)
+                    try $0.__consume(self)
                 }
         } catch {
             throw _SwiftDI.Error.failedToConsumeDependencies(AnyError(erasing: error))

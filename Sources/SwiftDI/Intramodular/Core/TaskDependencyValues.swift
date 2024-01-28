@@ -4,10 +4,10 @@
 
 import Swallow
 
-public typealias DependencyValues = HeterogeneousDictionary<Dependencies>
+public typealias TaskDependencyValues = HeterogeneousDictionary<Dependencies>
 
-extension DependencyValues {
-    public subscript<Key: DependencyKey>(
+extension TaskDependencyValues {
+    public subscript<Key: TaskDependencyKey>(
         key: Key.Type
     ) -> Key.Value {
         get {

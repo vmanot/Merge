@@ -5,15 +5,15 @@
 import SwiftUI
 
 extension EnvironmentValues {
-    struct _DependenciesKey: EnvironmentKey {
-        static let defaultValue = Dependencies()
+    fileprivate struct _TaskDependenciesKey: EnvironmentKey {
+        static let defaultValue = TaskDependencies()
     }
     
-    var _dependencies: Dependencies {
+    var _dependencies: TaskDependencies {
         get {
-            self[_DependenciesKey.self]
+            self[_TaskDependenciesKey.self]
         } set {
-            self[_DependenciesKey.self] = newValue
+            self[_TaskDependenciesKey.self] = newValue
         }
     }
 }
@@ -28,7 +28,7 @@ extension View {
     }
     
     public func dependency<V>(
-        _ key: WritableKeyPath<DependencyValues, V>,
+        _ key: WritableKeyPath<TaskDependencyValues, V>,
         _ value: V
     ) -> some View {
         transformEnvironment(\._dependencies) {

@@ -59,7 +59,7 @@ public func withDependencies<Result>(
 @_unsafeInheritExecutor
 @discardableResult
 public func withDependency<Dependency, Result>(
-    _ dependencyKey: WritableKeyPath<DependencyValues, Dependency>,
+    _ dependencyKey: WritableKeyPath<TaskDependencyValues, Dependency>,
     _ dependency: Dependency,
     operation: () async throws -> Result
 ) async rethrows -> Result {
@@ -82,7 +82,7 @@ public func withDependencies<Result>(
 @_transparent
 @discardableResult
 public func withDependency<Dependency, Result>(
-    _ dependencyKey: WritableKeyPath<DependencyValues, Dependency>,
+    _ dependencyKey: WritableKeyPath<TaskDependencyValues, Dependency>,
     _ dependency: Dependency,
     operation: () throws -> Result
 ) rethrows -> Result {

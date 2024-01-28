@@ -19,7 +19,7 @@ extension _LogicalParentConsuming {
 
 /// A logical parent provided via by dependency-injection.
 @propertyWrapper
-public final class LogicalParent<Parent>: Codable, _DependenciesConsuming {
+public final class LogicalParent<Parent>: Codable, _TaskDependenciesConsuming {
     let _resolvedValue = ReferenceBox<Weak<Parent>>(.init(nil))
     var _hasConsumedDependencies: Bool = false
     
@@ -43,10 +43,10 @@ public final class LogicalParent<Parent>: Codable, _DependenciesConsuming {
         
     }
     
-    public func _consumeDependencies(
+    public func __consume(
         _ dependencies: Dependencies
     ) throws {
-        _ = try? $parent._consumeDependencies(dependencies)
+        _ = try? $parent.__consume(dependencies)
         
         _resolvedValue.wrappedValue = Weak(dependencies[\._logicalParent]?.wrappedValue as? Parent)
         
@@ -169,14 +169,14 @@ public func _withLogicalParent<Parent, Result>(
 
 // MARK: - Auxiliary
 
-extension DependencyValues {
+extension TaskDependencyValues {
     @_spi(Internal)
-    public struct LogicalParentKey: DependencyKey {
+    public struct LogicalParentKey: TaskDependencyKey {
         public typealias Value = Optional<Weak<Any>>
         
         public static let defaultValue: Value = nil
         
-        public static var attributes: Set<_DependencyAttribute> {
+        public static var attributes: Set<_TaskDependencyAttribute> {
             [.unstashable]
         }
     }
@@ -196,9 +196,9 @@ extension Dependencies {
         _ parent: Parent?
     ) throws {
         if let parent {
-            self[\DependencyValues._logicalParent] = Weak(parent)
+            self[\TaskDependencyValues._logicalParent] = Weak(parent)
         } else {
-            self[\DependencyValues._logicalParent] = nil
+            self[\TaskDependencyValues._logicalParent] = nil
         }
     }
 }

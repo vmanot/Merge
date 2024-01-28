@@ -12,6 +12,7 @@ public actor ActorIsolated<Value>: Sendable {
         self.value = value
     }
     
+    @_disfavoredOverload
     public init(_ value: @autoclosure @Sendable () throws -> Value) rethrows {
         self.value = try value()
     }

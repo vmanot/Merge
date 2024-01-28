@@ -6,13 +6,13 @@ import ObjectiveC
 import Diagnostics
 import Swallow
 
-protocol _opaque_DependencyResolutionRequest {
+protocol _opaque_TaskDependencyResolutionRequest {
     func _opaque_resolve(from dependencies: Dependencies) throws -> Any?
 }
 
-public enum DependencyResolutionRequest<Value>: _opaque_DependencyResolutionRequest {
+public enum TaskDependencyResolutionRequest<Value>: _opaque_TaskDependencyResolutionRequest {
     case unkeyed(Value.Type)
-    case keyed(KeyPath<DependencyValues, Value>)
+    case keyed(KeyPath<TaskDependencyValues, Value>)
     
     func _opaque_resolve(from dependencies: Dependencies) throws -> Any? {
         try dependencies.resolve(self)
