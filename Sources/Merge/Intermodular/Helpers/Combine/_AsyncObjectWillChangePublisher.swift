@@ -5,7 +5,7 @@
 import Combine
 import Swallow
 
-public final class _AsyncObjectWillChangePublisher: Publisher {
+public final class _AsyncObjectWillChangePublisher: Publisher, Sendable {
     public typealias Output = ObservableObjectPublisher.Output
     public typealias Failure = ObservableObjectPublisher.Failure
     

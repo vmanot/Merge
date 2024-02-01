@@ -6,7 +6,7 @@ import Combine
 import Foundation
 
 extension Publishers {
-    public class CountSubscribers<Upstream: Publisher>: Publisher {
+    public class CountSubscribers<Upstream: Publisher>: Publisher, @unchecked Sendable {
         public typealias Output = Upstream.Output
         public typealias Failure = Upstream.Failure
         
