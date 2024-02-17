@@ -20,7 +20,6 @@ let package = Package(
         )
     ],
     dependencies: [
-        .package(url: "https://github.com/apple/swift-async-algorithms", from: "1.0.0-beta.1"),
         .package(url: "https://github.com/vmanot/Swallow.git", branch: "master"),
         .package(url: "https://github.com/SwiftUIX/SwiftUIX.git", branch: "master")
     ],
@@ -36,7 +35,6 @@ let package = Package(
         .target(
             name: "Merge",
             dependencies: [
-                .product(name: "AsyncAlgorithms", package: "swift-async-algorithms"),
                 "Swallow",
                 "SwiftDI",
                 "SwiftUIX"
