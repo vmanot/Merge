@@ -86,7 +86,9 @@ extension TaskStatusDescription {
         }
     }
     
-    public init<Success, Error: Swift.Error>(_ status: TaskStatus<Success, Error>) {
+    public init<Success, Error: Swift.Error>(
+        _ status: TaskStatus<Success, Error>
+    ) {
         switch status {
             case .idle:
                 self = .idle
