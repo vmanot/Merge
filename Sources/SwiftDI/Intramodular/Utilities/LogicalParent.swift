@@ -43,6 +43,10 @@ public final class LogicalParent<Parent>: Codable, _TaskDependenciesConsuming {
         
     }
     
+    public init(_wrappedValue wrappedValue: Parent) {
+        self.parent = wrappedValue
+    }
+    
     public func __consume(
         _ dependencies: Dependencies
     ) throws {
