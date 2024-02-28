@@ -11,23 +11,24 @@ extension NSObject {
         for keyPath: String,
         type: Value.Type = Value.self,
         initial: Bool = false
-    ) -> StringKeyValueObservingPublisher<Value> {
-        .init(
+    ) -> AnyPublisher<Value, Never> {
+        StringKeyValueObservingPublisher(
             object: self,
             keyPath: keyPath,
             initial: initial
         )
+        .eraseToAnyPublisher()
     }
     
-    public struct StringKeyValueObservingPublisher<Value>: Combine.Publisher {
-        public typealias Output = Value
-        public typealias Failure = Never
+    fileprivate struct StringKeyValueObservingPublisher<Value>: Combine.Publisher {
+        typealias Output = Value
+        typealias Failure = Never
         
         let object: NSObject
         let keyPath: String
         let initial: Bool
         
-        public func receive<S: Combine.Subscriber>(
+        func receive<S: Combine.Subscriber>(
             subscriber: S
         ) where Failure == S.Failure, Output == S.Input {
             let subscription = Subscription(
@@ -44,7 +45,7 @@ extension NSObject {
 }
 
 private extension NSObject.StringKeyValueObservingPublisher {
-    final class Subscription<S: Subscriber>: NSObject, Combine.Subscription where S.Input == Value {
+    private final class Subscription<S: Subscriber>: NSObject, Combine.Subscription where S.Input == Value {
         private var subscriber: S?
         private var object: NSObject?
         private let keyPath: String
