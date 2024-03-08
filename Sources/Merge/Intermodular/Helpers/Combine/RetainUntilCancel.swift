@@ -59,14 +59,12 @@ extension Publisher {
             receiveValue: { _  in }
         )
     }
-}
 
-extension Publisher where Failure == Never {
     @discardableResult
     @inlinable
     public func retainSink(
         receiveValue: @escaping ((Output) -> Void)
-    ) -> RetainUntilCancel<SingleAssignmentAnyCancellable> {
+    ) -> RetainUntilCancel<SingleAssignmentAnyCancellable> where Failure == Never {
         retainSink(
             receiveCompletion: { _ in },
             receiveValue: receiveValue

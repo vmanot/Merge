@@ -7,7 +7,7 @@ import Foundation
 import Swift
 
 extension Publisher {
-    public func asyncSink(
+    public func _asyncSink(
         receiveValue: @escaping (Output) -> Void
     ) async throws {
         let cancellable = SingleAssignmentAnyCancellable()
