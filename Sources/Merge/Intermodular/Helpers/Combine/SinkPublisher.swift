@@ -5,6 +5,7 @@
 import Combine
 import Swift
 
+@frozen
 public struct SinkPublisher<P: Publisher>: Publisher {
     public typealias Output = P.Output
     public typealias Failure = P.Failure

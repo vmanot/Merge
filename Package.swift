@@ -30,7 +30,11 @@ let package = Package(
                 "Swallow"
             ],
             path: "Sources/SwiftDI",
-            swiftSettings: []
+            swiftSettings: [
+                .unsafeFlags([
+                    "-enable-library-evolution",
+                ])
+            ]
         ),
         .target(
             name: "Merge",
@@ -40,7 +44,11 @@ let package = Package(
                 "SwiftUIX"
             ],
             path: "Sources/Merge",
-            swiftSettings: []
+            swiftSettings: [
+                .unsafeFlags([
+                    "-enable-library-evolution",
+                ])
+            ]
         ),
         .testTarget(
             name: "MergeTests",

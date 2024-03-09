@@ -6,11 +6,10 @@ import Darwin
 import Swallow
 
 /// An `os_unfair_lock` wrapper.
-public final class OSUnfairLock: Initiable, Sendable, TestableLock {
+public final class OSUnfairLock: Initiable, @unchecked Sendable, TestableLock {
     @usableFromInline
     let base: os_unfair_lock_t
     
-    @inlinable
     public init() {
         let base = os_unfair_lock_t.allocate(capacity: 1)
         

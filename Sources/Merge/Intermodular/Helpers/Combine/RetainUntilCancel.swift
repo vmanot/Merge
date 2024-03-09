@@ -13,7 +13,6 @@ public final class RetainUntilCancel<Child: Cancellable>: Cancellable {
     @usableFromInline
     var child: Child?
     
-    @inlinable
     public init(_ cancellable: Child) {
         instance = self
         child = cancellable

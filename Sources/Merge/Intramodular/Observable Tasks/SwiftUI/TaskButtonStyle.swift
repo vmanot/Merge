@@ -34,6 +34,7 @@ extension EnvironmentValues {
 
 // MARK: - Conformances
 
+@frozen
 public struct DefaultTaskButtonStyle: TaskButtonStyle {
     @inlinable
     public init() {
@@ -48,6 +49,7 @@ public struct DefaultTaskButtonStyle: TaskButtonStyle {
 
 #if os(iOS) || os(macOS) || os(tvOS) || targetEnvironment(macCatalyst)
 
+@frozen
 public struct ActivityIndicatorTaskButtonStyle: TaskButtonStyle {
     @inlinable
     public init() {
