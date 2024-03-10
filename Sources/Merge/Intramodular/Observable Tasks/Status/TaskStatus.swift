@@ -6,6 +6,7 @@ import Combine
 import Swallow
 
 /// The status of a task.
+@frozen
 public enum TaskStatus<Success, Error: Swift.Error> {
     case idle
     case active

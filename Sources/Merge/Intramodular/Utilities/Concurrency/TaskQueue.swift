@@ -97,7 +97,7 @@ extension TaskQueue {
             
             let previousTask = self.previousTask
             
-            let newTask = Task { () async -> T in
+            let newTask = Task(priority: priority) { () async -> T in
                 if let previousTask = previousTask {
                     _ = await previousTask.value
                 }

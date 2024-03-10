@@ -7,6 +7,7 @@ import Combine
 import Swallow
 
 /// An enumeration that represents the source of task failure.
+@frozen
 public enum TaskFailure<Error: Swift.Error>: _ErrorX, HashEquatable {
     case canceled
     case error(Error)

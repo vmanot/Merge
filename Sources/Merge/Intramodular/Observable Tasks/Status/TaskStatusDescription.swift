@@ -6,6 +6,7 @@ import Combine
 import Swallow
 import SwiftUI
 
+@frozen
 public enum TaskStatusDescription: CustomDebugStringConvertible, Hashable {
     case idle
     case active
