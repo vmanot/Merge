@@ -6,6 +6,7 @@ import Combine
 import Swallow
 import SwiftUI
 
+@available(iOS 14.0, macOS 11.0, tvOS 14.0, watchOS 7.0, *)
 /// An button that represents a `Task`.
 public struct TaskButton<Success, Error: Swift.Error, Label: View>: View {
     @Environment(\._taskButtonStyle) package var buttonStyle
@@ -151,8 +152,11 @@ public struct TaskButton<Success, Error: Swift.Error, Label: View>: View {
 
 // MARK: - Supplementary
 
+@available(iOS 14.0, macOS 11.0, tvOS 14.0, watchOS 7.0, *)
 extension TaskButton {
-    public func animation(_ animation: Animation?) -> Self {
+    public func animation(
+        _ animation: Animation?
+    ) -> Self {
         var result = self
         
         result.animation = .known(animation)
@@ -161,7 +165,9 @@ extension TaskButton {
     }
     
     @available(iOS 16.0, macOS 13.0, tvOS 16.0, watchOS 9.0, *)
-    public func _existingTask(_ task: (any ObservableTask<Success, Error>)?) -> Self {
+    public func _existingTask(
+        _ task: (any ObservableTask<Success, Error>)?
+    ) -> Self {
         var result = self
         
         result.existingTask = task

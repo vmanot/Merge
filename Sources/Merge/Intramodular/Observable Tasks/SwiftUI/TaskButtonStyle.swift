@@ -49,6 +49,7 @@ public struct DefaultTaskButtonStyle: TaskButtonStyle {
 
 #if os(iOS) || os(macOS) || os(tvOS) || targetEnvironment(macCatalyst)
 
+@available(iOS 15.0, macOS 14.0, tvOS 15.0, watchOS 8.0, *)
 @frozen
 public struct ActivityIndicatorTaskButtonStyle: TaskButtonStyle {
     @inlinable

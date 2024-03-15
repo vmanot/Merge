@@ -5,6 +5,7 @@
 import Swallow
 import SwiftUI
 
+@available(iOS 14.0, macOS 11.0, tvOS 14.0, watchOS 7.0, *)
 extension TaskButton {
     public init(
         action: @escaping () -> AnyTask<Success, Error>,
@@ -49,6 +50,7 @@ extension TaskButton {
     }
 }
 
+@available(iOS 14.0, macOS 11.0, tvOS 14.0, watchOS 7.0, *)
 extension TaskButton {
     public init(
         action: @escaping @MainActor @Sendable () async -> Success,
@@ -111,6 +113,7 @@ extension TaskButton {
     }
 }
 
+@available(iOS 14.0, macOS 11.0, tvOS 14.0, watchOS 7.0, *)
 extension TaskButton {
     public init<P: SingleOutputPublisher>(
         action: @escaping () -> P,
@@ -142,6 +145,7 @@ extension TaskButton {
     }
 }
 
+@available(iOS 14.0, macOS 11.0, tvOS 14.0, watchOS 7.0, *)
 extension TaskButton where Success == Void {
     public init<P: Publisher>(
         action: @escaping () -> P,
@@ -172,6 +176,7 @@ extension TaskButton where Success == Void {
     }
 }
 
+@available(iOS 14.0, macOS 11.0, tvOS 14.0, watchOS 7.0, *)
 extension TaskButton where Label == Text {
     public init(
         _ titleKey: LocalizedStringKey,
@@ -219,6 +224,7 @@ extension TaskButton where Label == Text {
     }
 }
 
+@available(iOS 14.0, macOS 11.0, tvOS 14.0, watchOS 7.0, *)
 extension TaskButton where Success == Void, Error == Swift.Error {
     public init(
         action: @escaping () throws -> Void,
