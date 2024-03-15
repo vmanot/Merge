@@ -3,7 +3,7 @@
 //
 
 import Swift
-import SwiftUIX
+import SwiftUI
 
 public protocol TaskButtonStyle: DynamicProperty {
     associatedtype Body: View
@@ -58,17 +58,17 @@ public struct ActivityIndicatorTaskButtonStyle: TaskButtonStyle {
     
     @inlinable
     public func makeBody(configuration: TaskButtonConfiguration) -> some View {
-        PassthroughView {
+        Group {
             if configuration.status == .active {
                 #if os(macOS)
-                    ActivityIndicator()
-                        .style(.small)
+                    ProgressView()
+                        .controlSize(.small)
                 #else
-                    ActivityIndicator()
-                        .style(.regular)
+                    ProgressView()
+                        .controlSize(.regular)
                 #endif
             } else if configuration.status == .failure {
-                Image(systemName: .exclamationmarkTriangleFill)
+                Image(systemName: "exclamationmark.triangle.fill")
                     .foregroundColor(.yellow)
                     .imageScale(.small)
             } else {

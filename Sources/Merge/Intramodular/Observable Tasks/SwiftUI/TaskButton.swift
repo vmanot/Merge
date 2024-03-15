@@ -4,28 +4,42 @@
 
 import Combine
 import Swallow
-import SwiftUIX
+import SwiftUI
 
 /// An button that represents a `Task`.
 public struct TaskButton<Success, Error: Swift.Error, Label: View>: View {
-    @Environment(\._taskButtonStyle) private var buttonStyle
-    @Environment(\.cancellables) private var cancellables
-    @Environment(\.handleLocalizedError) private var handleLocalizedError
-    @Environment(\.isEnabled) private var isEnabled
-    @Environment(\.taskInterruptible) private var taskInterruptible
-    @Environment(\.taskRestartable) private var taskRestartable
+    @Environment(\._taskButtonStyle) package var buttonStyle
+    @Environment(\.cancellables) package var cancellables
+    @Environment(\.isEnabled) package var isEnabled
+    @Environment(\.taskInterruptible) package var taskInterruptible
+    @Environment(\.taskRestartable) package var taskRestartable
     
-    private let action: () -> AnyTask<Success, Error>
-    private let label: (TaskStatus<Success, Error>) -> Label
+    package let action: () -> AnyTask<Success, Error>
+    package let label: (TaskStatus<Success, Error>) -> Label
+    package var existingTask: (any ObservableTask<Success, Error>)?
+    
+    @State package var lastTask: AnyTask<Success, Error>?
+    
+    package final class _CurrentTaskBox: ObservableObject {
+        @PublishedObject var wrappedValue: AnyTask<Success, Error>?
         
-    var existingTask: (any ObservableTask<Success, Error>)?
-        
-    @State private var lastTask: AnyTask<Success, Error>?
+        init() {
+            
+        }
+    }
     
-    @PersistentObject private var currentTask: AnyTask<Success, Error>?
+    @StateObject package var currentTaskBox = _CurrentTaskBox()
     
-    @State private var taskRenewalSubscription: AnyCancellable?
-    @State private var wantsToDisplayLastTaskStatus: Bool = false
+    public var currentTask: AnyTask<Success, Error>? {
+        get {
+            currentTaskBox.wrappedValue
+        } nonmutating set {
+            currentTaskBox.wrappedValue = newValue
+        }
+    }
+    
+    @State package var taskRenewalSubscription: AnyCancellable?
+    @State package var wantsToDisplayLastTaskStatus: Bool = false
     
     private var animation: MaybeKnown<Animation?> = .known(.default)
     
@@ -55,11 +69,11 @@ public struct TaskButton<Success, Error: Swift.Error, Label: View>: View {
     
     private var isDisabled: Bool {
         false
-            || !isEnabled
-            || (currentTask?.status == .finished && !taskRestartable)
-            || (currentTask?.status == .active && !taskInterruptible)
+        || !isEnabled
+        || (currentTask?.status == .finished && !taskRestartable)
+        || (currentTask?.status == .active && !taskInterruptible)
     }
-        
+    
     public var body: some View {
         Button(action: trigger) {
             label(task?.status ?? .idle)
@@ -67,16 +81,17 @@ public struct TaskButton<Success, Error: Swift.Error, Label: View>: View {
         .modify {
             if let buttonStyle {
                 $0.buttonStyle { configuration in
-                    buttonStyle.makeBody(
-                        configuration: TaskButtonConfiguration(
-                            label: configuration.label.eraseToAnyView(),
-                            isPressed: configuration.isPressed,
-                            isInterruptible: taskInterruptible,
-                            isRestartable: taskRestartable,
-                            status: displayTaskStatus
+                    AnyView(
+                        buttonStyle.makeBody(
+                            configuration: TaskButtonConfiguration(
+                                label: AnyView(configuration.label),
+                                isPressed: configuration.isPressed,
+                                isInterruptible: taskInterruptible,
+                                isRestartable: taskRestartable,
+                                status: displayTaskStatus
+                            )
                         )
                     )
-                    .eraseToAnyView()
                 }
             } else {
                 $0
@@ -101,17 +116,17 @@ public struct TaskButton<Success, Error: Swift.Error, Label: View>: View {
         let task = action()
         
         setCurrentTask(task)
-
+        
         task.start()
-
+        
         wantsToDisplayLastTaskStatus = true
     }
-        
+    
     private func setCurrentTask(_ task: AnyTask<Success, Error>?) {
         guard task != currentTask else {
             return
         }
-                
+        
         if let task {
             lastTask = currentTask
             currentTask = task
@@ -120,7 +135,7 @@ public struct TaskButton<Success, Error: Swift.Error, Label: View>: View {
                 if case let .error(error) = status {
                     runtimeIssue(error)
                     
-                    handleLocalizedError(error as? LocalizedError ?? GenericTaskButtonError(base: error))
+                    // handleLocalizedError(error as? LocalizedError ?? GenericTaskButtonError(base: error))
                 }
                 
                 if status.isTerminal {
@@ -134,276 +149,35 @@ public struct TaskButton<Success, Error: Swift.Error, Label: View>: View {
     }
 }
 
-// MARK: - Initializers
-
-extension TaskButton {
-    public init(
-        action: @escaping () -> AnyTask<Success, Error>,
-        @ViewBuilder label: @escaping (TaskStatus<Success, Error>) -> Label
-    ) {
-        self.action = { action() }
-        self.label = label
-    }
-    
-    public init(
-        action: @escaping () -> Task<Success, Error>,
-        @ViewBuilder label: @escaping (TaskStatus<Success, Error>) -> Label
-    ) where Error == Swift.Error {
-        self.init(
-            action: { () -> AnyTask<Success, Error> in
-                action().eraseToAnyTask()
-            },
-            label: label
-        )
-    }
-
-    public init(
-        action: @escaping () -> AnyTask<Success, Error>,
-        @ViewBuilder label: () -> Label
-    ) {
-        let _label = label()
-        
-        self.action = { action() }
-        self.label = { _ in _label }
-    }
-    
-    public init(
-        action: @escaping () -> Task<Success, Error>,
-        @ViewBuilder label: @escaping () -> Label
-    ) where Error == Swift.Error {
-        self.init(
-            action: { () -> AnyTask<Success, Error> in
-                action().eraseToAnyTask()
-            },
-            label: label
-        )
-    }
-}
-
-extension TaskButton {
-    public init(
-        action: @escaping @MainActor @Sendable () async -> Success,
-        priority: TaskPriority? = .userInitiated,
-        @ViewBuilder label: @escaping (TaskStatus<Success, Error>) -> Label
-    ) where Error == Never {
-        self.init {
-            Task(priority: priority) { @MainActor in
-                await action()
-            }
-            .convertToObservableTask()
-        } label: { status in
-            label(status)
-        }
-    }
-    
-    public init(
-        action: @escaping @MainActor @Sendable () async -> Success,
-        priority: TaskPriority? = .userInitiated,
-        @ViewBuilder label: @escaping () -> Label
-    ) where Error == Never {
-        self.init {
-            Task(priority: priority) { @MainActor in
-                await action()
-            }
-            .convertToObservableTask()
-        } label: {
-            label()
-        }
-    }
-    
-    public init(
-        action: @escaping @MainActor @Sendable () async throws -> Success,
-        priority: TaskPriority? = .userInitiated,
-        @ViewBuilder label: @escaping (TaskStatus<Success, Error>) -> Label
-    ) where Error == Swift.Error {
-        self.init {
-            Task(priority: priority) { @MainActor in
-                try await action()
-            }
-            .convertToObservableTask()
-        } label: { status in
-            label(status)
-        }
-    }
-    
-    public init(
-        action: @escaping @MainActor @Sendable () async throws -> Success,
-        priority: TaskPriority? = .userInitiated,
-        @ViewBuilder label: @escaping () -> Label
-    ) where Error == Swift.Error {
-        self.init {
-            Task(priority: priority) { @MainActor in
-                try await action()
-            }
-            .convertToObservableTask()
-        } label: {
-            label()
-        }
-    }
-}
-
-extension TaskButton {
-    public init<P: SingleOutputPublisher>(
-        action: @escaping () -> P,
-        @ViewBuilder label: @escaping (TaskStatus<Success, Error>) -> Label
-    ) where P.Output == Success, P.Failure == Error {
-        self.init(action: { action().convertToTask() }, label: label)
-    }
-    
-    public init<P: SingleOutputPublisher>(
-        action: @escaping () -> P,
-        @ViewBuilder label: () -> Label
-    ) where P.Output == Success, P.Failure == Error {
-        self.init(action: { action().convertToTask() }, label: label)
-    }
-    
-    public init<P: SingleOutputPublisher>(
-        action: @escaping () throws -> P,
-        @ViewBuilder label: () -> Label
-    ) where P.Output == Success, Error == Swift.Error {
-        self.init {
-            do {
-                return try action().mapError({ $0 as Swift.Error }).convertToTask()
-            } catch {
-                return AnyTask<Success, Error>.failure(error)
-            }
-        } label: {
-            label()
-        }
-    }
-}
-
-extension TaskButton where Success == Void {
-    public init<P: Publisher>(
-        action: @escaping () -> P,
-        @ViewBuilder label: @escaping (TaskStatus<Success, Error>) -> Label
-    ) where P.Output == Success, P.Failure == Error {
-        self.init(action: { action().reduceAndMapTo(()).convertToTask() }, label: label)
-    }
-    
-    public init<P: Publisher>(
-        action: @escaping () -> P,
-        @ViewBuilder label: () -> Label
-    ) where P.Output == Success, P.Failure == Error {
-        self.init(action: { action().reduceAndMapTo(()).convertToTask() }, label: label)
-    }
-    
-    public init<P: SingleOutputPublisher>(
-        action: @escaping () -> P,
-        @ViewBuilder label: @escaping (TaskStatus<Success, Error>) -> Label
-    ) where P.Output == Success, P.Failure == Error {
-        self.init(action: { action().reduceAndMapTo(()).convertToTask() }, label: label)
-    }
-    
-    public init<P: SingleOutputPublisher>(
-        action: @escaping () -> P,
-        @ViewBuilder label: () -> Label
-    ) where P.Output == Success, P.Failure == Error {
-        self.init(action: { action().reduceAndMapTo(()).convertToTask() }, label: label)
-    }
-}
-
-extension TaskButton where Label == Text {
-    public init(
-        _ titleKey: LocalizedStringKey,
-        action: @escaping () -> AnyTask<Success, Error>
-    ) {
-        self.init(action: action) {
-            Text(titleKey)
-        }
-    }
-    
-    public init<S: StringProtocol>(
-        _ title: S,
-        action: @escaping () -> AnyTask<Success, Error>
-    ) {
-        self.init(action: action) {
-            Text(title)
-        }
-    }
-    
-    public init<S: StringProtocol, P: SingleOutputPublisher>(
-        _ title: S,
-        action: @escaping () throws -> P
-    ) where P.Output == Success, Error == Swift.Error {
-        self.init(action: action) {
-            Text(title)
-        }
-    }
-    
-    public init<S: StringProtocol>(
-        _ title: S,
-        action: @escaping @MainActor @Sendable () async -> Success
-    ) where Error == Never {
-        self.init(action: action) {
-            Text(title)
-        }
-    }
-    
-    public init<S: StringProtocol>(
-        _ title: S,
-        action: @escaping @MainActor @Sendable () async throws -> Success
-    ) where Error == Swift.Error {
-        self.init(action: action) {
-            Text(title)
-        }
-    }
-}
-
-extension TaskButton where Success == Void, Error == Swift.Error {
-    public init(
-        action: @escaping () throws -> Void,
-        @ViewBuilder label: @escaping (TaskStatus<Success, Error>) -> Label
-    ) {
-        self.init(
-            action: { () -> AnySingleOutputPublisher<Void, Error> in
-                do {
-                    return Just(try action())
-                        .setFailureType(to: Error.self)
-                        .eraseToAnySingleOutputPublisher()
-                } catch {
-                    return Fail(error: error)
-                        .eraseToAnySingleOutputPublisher()
-                }
-            },
-            label: label
-        )
-    }
-    
-    public init(
-        action: @escaping () throws -> Void,
-        @ViewBuilder label: () -> Label
-    ) {
-        let label = label()
-        
-        self.init(action: action, label: { _ in label })
-    }
-}
-
 // MARK: - Supplementary
 
 extension TaskButton {
     public func animation(_ animation: Animation?) -> Self {
-        then {
-            $0.animation = .known(animation)
-        }
+        var result = self
+        
+        result.animation = .known(animation)
+        
+        return result
     }
     
     @available(iOS 16.0, macOS 13.0, tvOS 16.0, watchOS 9.0, *)
     public func _existingTask(_ task: (any ObservableTask<Success, Error>)?) -> Self {
-        then {
-            $0.existingTask = task
-        }
+        var result = self
+        
+        result.existingTask = task
+        
+        return result
     }
 }
 
 // MARK: - Conformances
 
-extension TaskButton: ActionLabelView where Error == Swift.Error, Success == Void {
+// FIXME: SwiftUIX dependency
+/*extension TaskButton: ActionLabelView where Error == Swift.Error, Success == Void {
     public init(action: Action, label: () -> Label) {
         self.init(action: action.perform, label: label)
     }
-}
+}*/
 
 // MARK: - Auxiliary
 
@@ -416,5 +190,52 @@ struct GenericTaskButtonError: CustomStringConvertible, LocalizedError {
     
     public var errorDescription: String? {
         (base as? LocalizedError)?.errorDescription
+    }
+}
+
+// MARK: - Internal
+
+extension View {
+    @ViewBuilder
+    fileprivate func modify<T: View>(
+        @ViewBuilder transform: (Self) -> T
+    ) -> some View {
+        transform(self)
+    }
+    
+    @ViewBuilder
+    fileprivate func modify<T: View>(
+        if predicate: Bool,
+        @ViewBuilder transform: (Self) -> T
+    ) -> some View {
+        if predicate {
+            transform(self)
+        } else {
+            self
+        }
+    }
+}
+
+/// A type-erased wrapper for `ButtonStyle.`
+fileprivate struct AnyButtonStyle: ButtonStyle {
+    fileprivate let _makeBody: (Configuration) -> AnyView
+    
+    fileprivate init<V: View>(
+        makeBody: @escaping (Configuration) -> V
+    ) {
+        self._makeBody = { AnyView(makeBody($0)) }
+    }
+    
+    fileprivate func makeBody(configuration: Configuration) -> some View {
+        self._makeBody(configuration)
+    }
+}
+
+extension View {
+    @_disfavoredOverload
+    fileprivate func buttonStyle<V: View>(
+        @ViewBuilder makeBody: @escaping (AnyButtonStyle.Configuration) -> V
+    ) -> some View {
+        buttonStyle(AnyButtonStyle(makeBody: makeBody))
     }
 }

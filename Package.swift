@@ -20,8 +20,7 @@ let package = Package(
         )
     ],
     dependencies: [
-        .package(url: "https://github.com/vmanot/Swallow.git", branch: "master"),
-        .package(url: "https://github.com/SwiftUIX/SwiftUIX.git", branch: "master")
+        .package(url: "https://github.com/vmanot/Swallow.git", branch: "master")
     ],
     targets: [
         .target(
@@ -40,8 +39,7 @@ let package = Package(
             name: "Merge",
             dependencies: [
                 "Swallow",
-                "SwiftDI",
-                "SwiftUIX"
+                "SwiftDI"
             ],
             path: "Sources/Merge",
             swiftSettings: [
