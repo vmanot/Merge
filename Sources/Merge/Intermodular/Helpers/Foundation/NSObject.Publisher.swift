@@ -7,7 +7,8 @@ import Swift
 
 extension NSObject {
     /// Publish values when the value identified by a KVO-compliant keypath changes.
-    func publisher<Value>(
+    @_spi(Internal)
+    public func publisher<Value>(
         for keyPath: String,
         type: Value.Type = Value.self,
         initial: Bool = false

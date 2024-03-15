@@ -28,6 +28,7 @@ extension _MaybeAsyncProtocol {
 
 // MARK: - Supplementary
 
+@discardableResult
 public func _resolveMaybeAsync<T>(_ x: T) async throws -> T {
     do {
         if let x = x as? _MaybeAsyncProtocol {

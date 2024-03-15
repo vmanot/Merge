@@ -188,8 +188,8 @@ public final class ObjectWillChangePublisherRelay<Source, Destination>: Observab
     
     public func send() {
         guard let destinationObjectWillChangePublisher else {
-            if subscription != nil {
-                assert(destination == nil)
+            if subscription != nil, destination != nil {
+                updateSubscription()
             }
             
             return
