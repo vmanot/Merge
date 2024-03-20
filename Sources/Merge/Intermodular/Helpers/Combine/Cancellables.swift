@@ -30,6 +30,19 @@ public final class Cancellables: @unchecked Sendable, Cancellable {
         }
     }
     
+    /// Adds the given cancellable object to the set.
+    public func insert(
+        @ArrayBuilder cancellables: () -> [any Cancellable]
+    ) {
+        let cancellables = cancellables()
+        
+        queue.async {
+            cancellables.forEach { cancellable in
+                cancellable.store(in: &self.cancellables)
+            }
+        }
+    }
+    
     /// Removes the specified cancellable object from the set.
     public func remove(_ cancellable: AnyCancellable) {
         queue.async {
