@@ -7,26 +7,10 @@ import Foundation
 import Swift
 
 extension Publisher {
-    public func _asyncSink(
-        receiveValue: @escaping (Output) -> Void
-    ) async throws {
-        let cancellable = SingleAssignmentAnyCancellable()
-        
-        try await withUnsafeThrowingContinuation { (continuation: UnsafeContinuation<Void, Error>) in
-            cancellable.set(
-                sink(
-                    receiveCompletion: { completion in
-                        switch completion {
-                            case .finished:
-                                continuation.resume(returning: ())
-                            case .failure(let failure):
-                                continuation.resume(throwing: failure)
-                        }
-                    },
-                    receiveValue: receiveValue
-                )
-            )
-        }
+    public func debounce(
+        for stride: DispatchQueue.SchedulerTimeType.Stride
+    ) -> Publishers.Debounce<Self, DispatchQueue> {
+        self.debounce(for: stride, scheduler: DispatchQueue.main)
     }
 }
 
@@ -41,9 +25,7 @@ extension Publisher {
     public func printOnError() -> Publishers.HandleEvents<Self> {
         handleError({ Swift.print($0) })
     }
-}
 
-extension Publisher {
     public func succeeds() -> AnyPublisher<Bool, Never> {
         map({ _ in true })
             .reduce(true, { $0 && $1 })
@@ -64,6 +46,30 @@ extension Publisher {
     
     public func mapResult<T>(_ transform: @escaping (Result<Output, Failure>) -> T) -> Publishers.Catch<Publishers.Map<Self, T>, Just<T>> {
         map({ transform(Result<Output, Failure>.success($0)) }).catch({ Just(transform(.failure($0))) })
+    }
+}
+
+extension Publisher {
+    public func _asyncSink(
+        receiveValue: @escaping (Output) -> Void
+    ) async throws {
+        let cancellable = SingleAssignmentAnyCancellable()
+        
+        try await withUnsafeThrowingContinuation { (continuation: UnsafeContinuation<Void, Error>) in
+            cancellable.set(
+                sink(
+                    receiveCompletion: { completion in
+                        switch completion {
+                            case .finished:
+                                continuation.resume(returning: ())
+                            case .failure(let failure):
+                                continuation.resume(throwing: failure)
+                        }
+                    },
+                    receiveValue: receiveValue
+                )
+            )
+        }
     }
 }
 
