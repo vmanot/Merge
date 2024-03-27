@@ -7,10 +7,17 @@ import Foundation
 import Swift
 
 extension Publisher {
+    public func throttle(
+        for stride: DispatchQueue.SchedulerTimeType.Stride,
+        latest: Bool
+    ) -> Publishers.Throttle<Self, MainThreadScheduler> {
+        self.throttle(for: stride, scheduler: MainThreadScheduler.shared, latest: latest)
+    }
+
     public func debounce(
         for stride: DispatchQueue.SchedulerTimeType.Stride
-    ) -> Publishers.Debounce<Self, DispatchQueue> {
-        self.debounce(for: stride, scheduler: DispatchQueue.main)
+    ) -> Publishers.Debounce<Self, MainThreadScheduler> {
+        self.debounce(for: stride, scheduler: MainThreadScheduler.shared)
     }
 }
 
@@ -70,6 +77,16 @@ extension Publisher {
                 )
             )
         }
+    }
+    
+    public func sendValues<E>(
+        to subject: some Subject<Output, E>
+    ) -> AnyCancellable {
+        sink(receiveCompletion: { _ in
+            
+        }, receiveValue: {
+            subject.send($0)
+        })
     }
 }
 

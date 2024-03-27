@@ -158,8 +158,12 @@ extension Task where Failure == Error {
                     
                     return result
                 } catch {
+                    await Task<Never, Never>.yield()
+
                     if let retryDelay = retryDelay {
                         try await Task<Never, Never>.sleep(retryDelay)
+                        
+                        await Task<Never, Never>.yield()
                     }
                     
                     continue

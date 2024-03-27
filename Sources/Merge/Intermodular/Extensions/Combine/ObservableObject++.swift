@@ -28,3 +28,29 @@ extension ObservableObject {
         .eraseToAnyPublisher()
     }
 }
+
+extension ObservableObject {
+    @AssociatedObject(.retain(.atomic))
+    private var _adHocCancellables: Cancellables = Cancellables()
+    
+    public func _onReceiveOfValueEmittedBy<T, U>(
+        _ publisher: some Publisher<T, U>,
+        perform action: @escaping (T) -> Void
+    ) {
+        let cancellable = SingleAssignmentAnyCancellable()
+        let cancellableTypeErased = AnyCancellable(cancellable)
+        
+        _adHocCancellables.insert(cancellable)
+        
+        let _cancellable = publisher.sink(
+            receiveCompletion: { [weak self] _ in
+                self?._adHocCancellables.remove(cancellableTypeErased)
+            },
+            receiveValue: { (value: T) in
+                action(value)
+            }
+        )
+        
+        cancellable.set(_cancellable)
+    }
+}

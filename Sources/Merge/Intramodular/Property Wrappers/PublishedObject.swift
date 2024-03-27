@@ -26,6 +26,8 @@ public final class PublishedObject<Value>: PropertyWrapper {
             objectWillChangeRelay.send()
             
             _wrappedValue = newValue
+            
+            _assignmentPublisher.send()
         }
     }
         
@@ -62,8 +64,6 @@ public final class PublishedObject<Value>: PropertyWrapper {
             }
             
             published.wrappedValue = newValue
-            
-            published._assignmentPublisher.send()
         }
     }
     
