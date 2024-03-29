@@ -13,6 +13,15 @@ public protocol NotificationPublishing {
 
 extension NotificationPublishing where Self: ObservableObject {
     public func onNotification(
+        _ x: NotificationPublisherType.Output,
+        perform action: @escaping () -> Void
+    ) where NotificationPublisherType.Output: Equatable {
+        _onReceiveOfValueEmittedBy(notificationPublisher.filter({ $0 == x })) { _ in
+            action()
+        }
+    }
+
+    public func onNotification(
         _ type: NotificationPublisherType.Output.TypeDiscriminator,
         perform action: @escaping () -> Void
     ) where NotificationPublisherType.Output: TypeDiscriminable {
