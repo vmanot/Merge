@@ -27,7 +27,7 @@ public final class Shell: @unchecked Sendable {
         command: String = "/bin/bash",
         arguments: [String],
         currentDirectoryURL: URL? = nil,
-        environment: [String: String]
+        environment: [String: String] = [:]
     ) -> AsyncThrowingStream<String, Error> {
         self.process?.terminate()
         let process = Process()
@@ -119,7 +119,7 @@ public final class Shell: @unchecked Sendable {
         command: String = "/bin/bash",
         arguments: [String],
         currentDirectoryURL: URL? = nil,
-        environment: [String: String]
+        environment: [String: String] = [:]
     ) async throws -> String {
         let process = Process()
         
