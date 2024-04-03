@@ -192,11 +192,3 @@ public func _performRetryingTask<Success>(
         operation: operation
     ).value
 }
-
-// MARK: - Auxiliary
-
-extension Thread {
-    fileprivate static var _isMainThread: Bool {
-        isMainThread
-    }
-}

@@ -80,11 +80,3 @@ public func _offTheMainThread<Success>(
 ) async throws -> Success {
     try await Task._offTheMainThread(priority: priority, operation: operation).value
 }
-
-// MARK: - Auxiliary
-
-extension Thread {
-    fileprivate static var _isMainThread: Bool {
-        isMainThread
-    }
-}
