@@ -152,3 +152,21 @@ extension MutexProtected {
         }
     }
 }
+
+extension MutexProtected: Equatable where Value: Equatable {
+    public static func == (lhs: MutexProtected, rhs: MutexProtected) -> Bool {
+        lhs.withCriticalRegion { lhs in
+            rhs.withCriticalRegion { rhs in
+                lhs == rhs
+            }
+        }
+    }
+}
+
+extension MutexProtected: Hashable where Value: Hashable {
+    public func hash(into hasher: inout Hasher) {
+        withCriticalScope {
+            $0.hash(into: &hasher)
+        }
+    }
+}

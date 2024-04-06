@@ -7,7 +7,7 @@
 import Foundation
 import Swift
 
-class OSAScriptProcess: Process {
+class _OSAScriptProcess: Process {
     var _launchPath: String!
     var _currentDirectoryURL: URL!
     var _arguments: [String]!

@@ -8,7 +8,7 @@ import Foundation
 import Security
 import Swift
 
-class RootProcess: Process {
+class _UnsafePrivilegedProcess: Process {
     private enum LaunchAsRootError: CustomStringConvertible, Error {
         case error(OSStatus)
         
@@ -123,9 +123,9 @@ class RootProcess: Process {
     }
     
     private func clearCachedAuthorizationRef() {
-        if let authorizationRef = RootProcess.cachedAuthorizationRef {
+        if let authorizationRef = _UnsafePrivilegedProcess.cachedAuthorizationRef {
             AuthorizationFree(authorizationRef, [])
-            RootProcess.cachedAuthorizationRef = nil
+            _UnsafePrivilegedProcess.cachedAuthorizationRef = nil
         }
     }
     
@@ -134,7 +134,7 @@ class RootProcess: Process {
     }
     
     private func withAuthorizationRights() throws -> (authorizationRef: AuthorizationRef?, rights: AuthorizationRights) {
-        if let authorizationRef = RootProcess.cachedAuthorizationRef {
+        if let authorizationRef = _UnsafePrivilegedProcess.cachedAuthorizationRef {
             return (authorizationRef, AuthorizationRights())
         }
         
@@ -169,7 +169,7 @@ class RootProcess: Process {
                 throw LaunchAsRootError.error(err)
             }
             
-            RootProcess.cachedAuthorizationRef = authorizationRef
+            _UnsafePrivilegedProcess.cachedAuthorizationRef = authorizationRef
             
             return (authorizationRef, myRights)
         }

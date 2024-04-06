@@ -9,58 +9,54 @@ import Foundation
 import Swallow
 
 public final class Shell {
-    public let options: [AsyncProcess.Option]
-    
-    public init(options: [AsyncProcess.Option] = []) {
-        self.options = options
-    }
-    
+    public let options: [_UnsafeAsyncProcess.Option]?
+
     private var environmentVariables: [String: String] {
         ProcessInfo.processInfo.environment
     }
-    
-    @MainActor
+
+    public init(options: [_UnsafeAsyncProcess.Option]? = nil) {
+        self.options = options
+    }
+}
+
+extension Shell {
     public func run(
         arguments: [String],
         currentDirectoryURL: URL? = nil,
         environment: [String: String] = [:]
     ) async throws -> String {
-        let process = AsyncProcess(
+        let process = _UnsafeAsyncProcess(
             progress: .block { _ in },
-            options: options + [.reportCompletion]
+            options: options ?? [.reportCompletion]
         )
         
         process.process?.executableURL = URL(fileURLWithPath: "/bin/zsh")
-        process.process?.currentDirectoryURL = currentDirectoryURL
+        process.process?.currentDirectoryURL = currentDirectoryURL?._fromURLToFileURL()
         process.process?.arguments = arguments
         process.process?.environment = environmentVariables.merging(environment, uniquingKeysWith: { $1 })
         
         try await process.wait()
         
-        return process.outputResult
-    }
-    
-    @MainActor
-    public func run(
-        command: String,
-        environment: Environment = .zsh
-    ) async throws -> String {
-        try await Self.run(
-            command: command,
-            environment: environment,
-            options: options
-        )
+        return process.outputResult.trimmingWhitespaceAndNewlines()
     }
     
     @discardableResult
     public static func run(
         command: String,
+        currentDirectoryURL: URL? = nil,
         environment: Environment = .zsh,
-        progress: AsyncProcess.Progress = .print,
+        progress: _UnsafeAsyncProcess.Progress = .print,
         input: String? = nil,
-        options: [AsyncProcess.Option] = [.reportCompletion, .trimming(.whitespacesAndNewlines), .splitWithNewLine],
+        options: [_UnsafeAsyncProcess.Option]? = nil,
         threadIdentifier: String? = nil
     ) async throws -> String {
+        let options: [_UnsafeAsyncProcess.Option] = options ?? [
+            .reportCompletion,
+            .trimming(.whitespacesAndNewlines),
+            .splitWithNewLine
+        ]
+        
         var progress = progress
         if case .print = progress {
             progress = .block { text in
@@ -68,22 +64,40 @@ public final class Shell {
             }
         }
         
-        let asyncProcess = AsyncProcess(progress: progress, options: options)
+        let process = _UnsafeAsyncProcess(progress: progress, options: options)
         
-        let env: Environment.Process = try await environment.env(command: command)
+        let (launchPath, arguments) = try await environment.env(command: command)
         
-        asyncProcess.process?.launchPath = env.launchPath
-        asyncProcess.process?.arguments = env.arguments
+        if let currentDirectoryURL {
+            process.process!.currentDirectoryURL = currentDirectoryURL._fromURLToFileURL()
+        }
+        
+        process.process!.launchPath = launchPath
+        process.process!.arguments = arguments
         
         if let input = input?.data(using: .utf8), !input.isEmpty,
-           let handle = asyncProcess.inputPipe?.fileHandleForWriting {
+           let handle = process.inputPipe?.fileHandleForWriting {
             try? handle.write(contentsOf: input)
             try? handle.close()
         }
         
-        try await asyncProcess.wait()
+        try await process.wait()
         
-        return asyncProcess.outputResult
+        return process.outputResult.trimmingWhitespaceAndNewlines()
+    }
+    
+    
+    public func run(
+        command: String,
+        currentDirectoryURL: URL? = nil,
+        environment: Environment = .zsh
+    ) async throws -> String {
+        try await Self.run(
+            command: command,
+            currentDirectoryURL: currentDirectoryURL,
+            environment: environment,
+            options: options
+        )
     }
 }
 
@@ -91,43 +105,60 @@ extension Shell {
     public struct Environment {
         var launchPath: String
         var arguments: (_ command: String) -> [String]
-        
-        public static var bash: Environment {
-            .init(launchPath: "/bin/bash", arguments: { ["-c", $0] })
-        }
-        
-        public static var zsh: Environment {
-            .init(launchPath: "/bin/zsh", arguments: { ["-c", $0] })
-        }
-        
-        public static var none: Environment {
-            .init(launchPath: "", arguments: { _ in [] })
-        }
-        
-        public typealias Process = (launchPath: String, arguments: [String])
-        
+                        
         public func env(
             command: String
-        ) async throws -> Process {
+        ) async throws -> (launchPath: String, arguments: [String]) {
             if !launchPath.isEmpty {
                 return (launchPath, arguments(command))
             }
-            let commands = command.split(separator: " ")
-            var launchPath = ""
-            var arguments = [String]()
-            if !commands.isEmpty {
-                try await Shell.run(command: "which \(commands[0])", progress: .block {
-                    launchPath = $0
-                })
+            
+            let commands: [String.SubSequence] = command.split(separator: " ")
+            
+            assert(!commands.isEmpty)
+            
+            let launchPath: String = try await _memoize(uniquingWith: commands[0]) {
+                try await resolveLaunchPath(from: String(commands[0]))
             }
+            
+            var arguments = [String]()
+
             if commands.count > 1 {
                 try await Shell.run(command: "echo " + commands[1...].joined(separator: " "), environment: .bash, progress: .block {
                     arguments = $0.split(separator: " ").map(String.init)
                 })
             }
+            
             return (launchPath, arguments)
+        }
+        
+        private func resolveLaunchPath(
+            from x: String
+        ) async throws -> String {
+            var result: String = ""
+            
+            try await Shell.run(command: "which \(x)", progress: .block {
+                result = $0
+            })
+
+            return result
         }
     }
 }
 
+extension Shell.Environment {
+    public static var bash: Self {
+        Self(launchPath: "/bin/bash", arguments: { ["-c", $0] })
+    }
+    
+    public static var zsh: Self {
+        Self(launchPath: "/bin/zsh", arguments: { ["-c", $0] })
+    }
+    
+    public static var none: Self {
+        Self(launchPath: "", arguments: { _ in [] })
+    }
+}
+
 #endif
+

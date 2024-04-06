@@ -56,12 +56,13 @@ public final class OpaqueObservableTask: CustomStringConvertible, ObjCObject, Ob
 }
 
 extension ObservableTask {
-    private static var _opaqueRepresentationKey: ObjCAssociationKey<OpaqueObservableTask> {
-        .init()
-    }
-    
+    @AssociatedObject(.retain(.atomic))
+    private var _opaqueRepresentation: OpaqueObservableTask?
+
     public func eraseToOpaqueObservableTask() -> OpaqueObservableTask {
-        ObjCAssociatedObjectView(base: self)[Self._opaqueRepresentationKey, default: .init(erasing: self)]
+        _opaqueRepresentation.unwrapOrInitializeInPlace {
+            OpaqueObservableTask(erasing: self)
+        }
     }
 }
 

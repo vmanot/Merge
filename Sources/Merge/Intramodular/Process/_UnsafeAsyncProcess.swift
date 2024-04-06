@@ -7,7 +7,7 @@
 import Foundation
 import Swift
 
-public class AsyncProcess {
+public class _UnsafeAsyncProcess {
     public enum Progress {
         public typealias Block = (_ text: String) -> Void
         public enum ScriptOption: Equatable {
@@ -28,14 +28,14 @@ public class AsyncProcess {
         case trimming(CharacterSet)
     }
 
-    let progress: AsyncProcess.Progress
+    let progress: _UnsafeAsyncProcess.Progress
     let options: [Option]
     
     package private(set) var process: Process?
     package var isWaiting = false
     
     static let updateRunningCommandLock = NSLock()
-    public static var runningProcesses = [AsyncProcess]()
+    public static var runningProcesses = [_UnsafeAsyncProcess]()
     
     private var outPipe: Pipe?
     private var outCache = ""
@@ -85,10 +85,10 @@ public class AsyncProcess {
     }
     
     package init(
-        progress: AsyncProcess.Progress,
-        options: [AsyncProcess.Option]
+        progress: _UnsafeAsyncProcess.Progress,
+        options: [_UnsafeAsyncProcess.Option]
     ) {
-        self.process = options.contains(._launchAsRoot) ? RootProcess() : Process()
+        self.process = options.contains(._launchAsRoot) ? _UnsafePrivilegedProcess() : Process()
         self.progress = progress
         self.options = options
         
@@ -197,11 +197,18 @@ public class AsyncProcess {
     }
     
     package func wait() async throws {
+        try await _wait()
+        
+        try Task.checkCancellation()
+    }
+    
+    private func _wait() async throws {
         if Thread._isMainThread {
             let stack = Thread.callStackSymbols
             let tempFile = NSTemporaryDirectory() + "/" + UUID().uuidString
             try stack.joined(separator: "\n").write(toFile: tempFile, atomically: true, encoding: .utf8)
         }
+        
         guard isWaiting == false else {
             return
         }
@@ -214,12 +221,25 @@ public class AsyncProcess {
             throw Never.Reason.illegal
         }
         
-        try? process.run()
-
-        // Pipes need to be handled before waitUntilExit, otherwise process will never exit.
-        try await handlePipes()
-        process.waitUntilExit()
-        try await handlePipes()
+        try? await withCheckedThrowingContinuation { (continuation: CheckedContinuation<Void, Error>) in
+            process.terminationHandler = { process in
+                if let terminationError = process.terminationError {
+                    continuation.resume(throwing: terminationError)
+                } else {
+                    continuation.resume()
+                }
+            }
+            
+            do {
+                try process.run()
+            } catch {
+                continuation.resume(throwing: error)
+            }
+        }
+        
+        await _expectNoThrow {
+            try await handlePipes()
+        }
         
         self.process = nil
         
@@ -258,7 +278,7 @@ public class AsyncProcess {
     }
 }
 
-extension Array where Element == AsyncProcess.Option {
+extension Array where Element == _UnsafeAsyncProcess.Option {
     var splitWithNewLine: Bool {
         self.contains {
             if case .splitWithNewLine = $0 {

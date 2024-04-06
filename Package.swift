@@ -14,6 +14,7 @@ let package = Package(
         .library(
             name: "Merge",
             targets: [
+                "Shell",
                 "SwiftDI",
                 "Merge"
             ]
@@ -38,6 +39,14 @@ let package = Package(
                 "SwiftDI"
             ],
             path: "Sources/Merge",
+            swiftSettings: []
+        ),
+        .target(
+            name: "Shell",
+            dependencies: [
+                "Merge"
+            ],
+            path: "Sources/Shell",
             swiftSettings: []
         ),
         .testTarget(
