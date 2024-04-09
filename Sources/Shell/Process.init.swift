@@ -2,6 +2,8 @@
 // Copyright (c) Vatsal Manot
 //
 
+#if os(macOS)
+
 import Foundation
 import Merge
 import System
@@ -15,7 +17,7 @@ extension Process {
         self.init()
         
         self.executableURL = URL(fileURLWithPath: "/bin/zsh")
-        self.arguments = ["-c", cmd]
+        self.arguments = ["-l", "-c", cmd]
         self.environment = ProcessInfo.processInfo.environment.combine(with: environment)
         
         if let workingDirectory = workingDirectory {
@@ -237,3 +239,5 @@ private extension Dictionary where Key == String, Value == String {
         return result
     }
 }
+
+#endif

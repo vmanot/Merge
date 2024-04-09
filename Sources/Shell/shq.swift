@@ -2,6 +2,8 @@
 // Copyright (c) Vatsal Manot
 //
 
+#if os(macOS)
+
 import Foundation
 import Swallow
 
@@ -116,3 +118,5 @@ public func shq(
     )
     .runRedirectingAllOutput(to: sink)
 }
+
+#endif

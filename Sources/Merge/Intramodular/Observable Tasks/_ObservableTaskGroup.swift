@@ -7,7 +7,7 @@ import Diagnostics
 import Dispatch
 import Swallow
 
-public protocol _ObservableTaskGroup_Type: _CancellablesProviding, ObservableObject {
+public protocol _ObservableTaskGroupType: _CancellablesProviding, ObservableObject {
     typealias TaskHistory = [TaskStatusDescription]
     
     associatedtype Key
@@ -34,7 +34,7 @@ public class _AnyObservableTaskGroup: ObservableObject {
     
 }
 
-public final class _ObservableTaskGroup<CustomIdentifier: Hashable>: _AnyObservableTaskGroup, _ObservableTaskGroup_Type {
+public final class _ObservableTaskGroup<CustomIdentifier: Hashable>: _AnyObservableTaskGroup, _ObservableTaskGroupType {
     public let cancellables = Cancellables()
     
     @_spi(Internal)

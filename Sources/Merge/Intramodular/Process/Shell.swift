@@ -10,11 +10,11 @@ import Swallow
 
 public final class Shell {
     public let options: [_UnsafeAsyncProcess.Option]?
-
+    
     private var environmentVariables: [String: String] {
         ProcessInfo.processInfo.environment
     }
-
+    
     public init(options: [_UnsafeAsyncProcess.Option]? = nil) {
         self.options = options
     }
@@ -25,7 +25,7 @@ extension Shell {
         arguments: [String],
         currentDirectoryURL: URL? = nil,
         environment: [String: String] = [:]
-    ) async throws -> String {
+    ) async throws -> _UnsafeAsyncProcess.Output {
         let process = _UnsafeAsyncProcess(
             progress: .block { _ in },
             options: options ?? [.reportCompletion]
@@ -36,9 +36,7 @@ extension Shell {
         process.process?.arguments = arguments
         process.process?.environment = environmentVariables.merging(environment, uniquingKeysWith: { $1 })
         
-        try await process.wait()
-        
-        return process.outputResult.trimmingWhitespaceAndNewlines()
+        return try await process.wait()
     }
     
     @discardableResult
@@ -50,7 +48,7 @@ extension Shell {
         input: String? = nil,
         options: [_UnsafeAsyncProcess.Option]? = nil,
         threadIdentifier: String? = nil
-    ) async throws -> String {
+    ) async throws -> _UnsafeAsyncProcess.Output {
         let options: [_UnsafeAsyncProcess.Option] = options ?? [
             .reportCompletion,
             .trimming(.whitespacesAndNewlines),
@@ -58,6 +56,7 @@ extension Shell {
         ]
         
         var progress = progress
+        
         if case .print = progress {
             progress = .block { text in
                 print(text)
@@ -81,17 +80,14 @@ extension Shell {
             try? handle.close()
         }
         
-        try await process.wait()
-        
-        return process.outputResult.trimmingWhitespaceAndNewlines()
+        return try await process.wait()
     }
-    
     
     public func run(
         command: String,
         currentDirectoryURL: URL? = nil,
         environment: Environment = .zsh
-    ) async throws -> String {
+    ) async throws -> _UnsafeAsyncProcess.Output {
         try await Self.run(
             command: command,
             currentDirectoryURL: currentDirectoryURL,
@@ -105,7 +101,7 @@ extension Shell {
     public struct Environment {
         var launchPath: String
         var arguments: (_ command: String) -> [String]
-                        
+        
         public func env(
             command: String
         ) async throws -> (launchPath: String, arguments: [String]) {
@@ -122,7 +118,7 @@ extension Shell {
             }
             
             var arguments = [String]()
-
+            
             if commands.count > 1 {
                 try await Shell.run(command: "echo " + commands[1...].joined(separator: " "), environment: .bash, progress: .block {
                     arguments = $0.split(separator: " ").map(String.init)
@@ -140,7 +136,7 @@ extension Shell {
             try await Shell.run(command: "which \(x)", progress: .block {
                 result = $0
             })
-
+            
             return result
         }
     }

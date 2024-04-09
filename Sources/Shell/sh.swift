@@ -2,6 +2,8 @@
 // Copyright (c) Vatsal Manot
 //
 
+#if os(macOS)
+
 import Foundation
 import Swallow
 
@@ -190,11 +192,12 @@ public func sh(
 
 /// `Async`/`await` version
 @available(macOS 12.0, iOS 15.0, watchOS 8.0, tvOS 15.0, *)
-public func sh(_ sink: ShellExecutionOutputSink,
-               _ cmd: String,
-               environment: [String: String] = [:],
-               workingDirectory: String? = nil) async throws {
-    
+public func sh(
+    _ sink: ShellExecutionOutputSink,
+    _ cmd: String,
+    environment: [String: String] = [:],
+    workingDirectory: String? = nil
+) async throws {
     switch sink {
         case .terminal:
             await announce("Running `\(cmd)`")
@@ -250,3 +253,5 @@ private func announce(_ text: String) async {
         continuation.resume()
     }
 }
+
+#endif

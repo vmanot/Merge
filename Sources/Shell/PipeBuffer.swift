@@ -2,6 +2,8 @@
 // Copyright (c) Vatsal Manot
 //
 
+#if os(macOS)
+
 import Foundation
 
 class PipeBuffer {
@@ -36,3 +38,5 @@ class PipeBuffer {
         return data
     }
 }
+
+#endif

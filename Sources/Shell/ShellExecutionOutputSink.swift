@@ -2,6 +2,8 @@
 // Copyright (c) Vatsal Manot
 //
 
+#if os(macOS)
+
 import Foundation
 import Swallow
 
@@ -18,3 +20,5 @@ extension ShellExecutionOutputSink {
         Self.file(url._fromFileURLToURL().path)
     }
 }
+
+#endif

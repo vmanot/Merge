@@ -7,6 +7,13 @@
 import Foundation
 import Swift
 
+extension _UnsafeAsyncProcess {
+    public struct Output {
+        public let stdout: String
+        public let stderr: String
+    }
+}
+
 public class _UnsafeAsyncProcess {
     public enum Progress {
         public typealias Block = (_ text: String) -> Void
@@ -196,10 +203,15 @@ public class _UnsafeAsyncProcess {
         }
     }
     
-    package func wait() async throws {
+    package func wait() async throws -> _UnsafeAsyncProcess.Output {
         try await _wait()
         
         try Task.checkCancellation()
+        
+        return _UnsafeAsyncProcess.Output(
+            stdout: self.outputResult.trimmingWhitespaceAndNewlines(),
+            stderr: self.errorResult.trimmingWhitespaceAndNewlines()
+        )
     }
     
     private func _wait() async throws {
