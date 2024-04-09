@@ -36,7 +36,7 @@ extension MainActor {
         priority: TaskPriority? = nil,
         body: @MainActor @Sendable @escaping () async -> Success
     ) -> Task<Success, Never> {
-        if Thread.isMainThread, #available(iOS 17, *) {
+        if Thread.isMainThread {
             MainActor.unsafeAssumeIsolated {
                 Task.startOnMainActor {
                     await body()
@@ -57,7 +57,7 @@ extension MainActor {
         priority: TaskPriority? = nil,
         body: @MainActor @Sendable @escaping () async throws -> Success
     ) -> Task<Success, Error> {
-        if Thread.isMainThread, #available(iOS 17, *) {
+        if Thread.isMainThread {
             MainActor.unsafeAssumeIsolated {
                 Task.startOnMainActor {
                     try await body()
