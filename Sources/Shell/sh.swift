@@ -7,22 +7,6 @@
 import Foundation
 import Swallow
 
-/// Run a shell command. Useful for obtaining small bits of output
-/// from a shell program
-///
-/// Announces the command it is about to execute. To run quietly,
-/// use `shq`
-///
-/// Arguments:
-/// - `cmd` the shell command to run
-/// - `environment` a dictionary of enviroment variables to merge
-///     with the enviroment of the current `Process`
-/// - `workingDirectory` the directory where to run the command
-///
-/// Returns:
-/// - `String` of whatever is in the standard output buffer.
-///     Uses `.trimmingCharacters(in: .whitespacesAndNewlines)`
-///
 @available(macOS 12.0, iOS 15.0, watchOS 8.0, tvOS 15.0, *)
 public func sh(
     _ cmd: String,
@@ -34,7 +18,6 @@ public func sh(
     return try shq(cmd, environment: environment, workingDirectory: workingDirectory)
 }
 
-/// `Async`/`await` version
 @available(macOS 12.0, iOS 15.0, watchOS 8.0, tvOS 15.0, *)
 public func sh(
     _ cmd: String,
@@ -61,7 +44,7 @@ public func sh(
 
 @available(macOS 12.0, iOS 15.0, watchOS 8.0, tvOS 15.0, *)
 public func sh(
-    _ sink: ShellExecutionOutputSink,
+    _ sink: Process.StandardOutputSink,
     command: String,
     environment: [String: String] = [:],
     currentDirectoryURL: URL
@@ -74,7 +57,6 @@ public func sh(
     )
 }
 
-/// `Async`/`await` version
 @available(macOS 12.0, iOS 15.0, watchOS 8.0, tvOS 15.0, *)
 public func sh(
     _ cmd: String,
@@ -86,9 +68,6 @@ public func sh(
     return try await shq(cmd, environment: environment, workingDirectory: workingDirectory.path)
 }
 
-
-/// Run a shell command, and parse the output as JSON
-///
 @available(macOS 12.0, iOS 15.0, watchOS 8.0, tvOS 15.0, *)
 public func sh<D: Decodable>(
     _ type: D.Type,
@@ -108,7 +87,6 @@ public func sh<D: Decodable>(
     )
 }
 
-/// `Async`/`await` version
 @available(macOS 12.0, iOS 15.0, watchOS 8.0, tvOS 15.0, *)
 public func sh<D: Decodable>(
     _ type: D.Type,
@@ -128,23 +106,9 @@ public func sh<D: Decodable>(
     )
 }
 
-
-/// Run a shell command, sending output to the terminal or a file.
-/// Useful for long running shell commands like `xcodebuild`
-///
-/// Announces the command it is about to execute. To run quietly,
-/// use `shq`
-///
-/// Arguments:
-/// - `sink` where to redirect output to, either `.terminal` or `.file(path)`
-/// - `cmd` the shell command to run
-/// - `environment` a dictionary of enviroment variables to merge
-///     with the enviroment of the current `Process`
-/// - `workingDirectory` the directory where to run the command
-///
 @available(macOS 12.0, iOS 15.0, watchOS 8.0, tvOS 15.0, *)
 public func sh(
-    _ sink: ShellExecutionOutputSink,
+    _ sink: Process.StandardOutputSink,
     _ cmd: String,
     environment: [String: String] = [:],
     workingDirectory: String? = nil
@@ -182,18 +146,17 @@ public func sh(
                 
                 switch logResult {
                     case .success(let success):
-                        throw _ShellExecutionErrors.errorWithLogInfo(success, underlyingError: underlyingError)
+                        throw _ShellProcessExecutionError.errorWithLogInfo(success, underlyingError: underlyingError)
                     case .failure(let failure):
-                        throw _ShellExecutionErrors.openingLogError(failure, underlyingError: underlyingError)
+                        throw _ShellProcessExecutionError.openingLogError(failure, underlyingError: underlyingError)
                 }
             }
     }
 }
 
-/// `Async`/`await` version
 @available(macOS 12.0, iOS 15.0, watchOS 8.0, tvOS 15.0, *)
 public func sh(
-    _ sink: ShellExecutionOutputSink,
+    _ sink: Process.StandardOutputSink,
     _ cmd: String,
     environment: [String: String] = [:],
     workingDirectory: String? = nil
@@ -225,9 +188,9 @@ public func sh(
                 
                 switch logResult {
                     case .success(let success):
-                        throw _ShellExecutionErrors.errorWithLogInfo(success, underlyingError: underlyingError)
+                        throw _ShellProcessExecutionError.errorWithLogInfo(success, underlyingError: underlyingError)
                     case .failure(let failure):
-                        throw _ShellExecutionErrors.openingLogError(failure, underlyingError: underlyingError)
+                        throw _ShellProcessExecutionError.openingLogError(failure, underlyingError: underlyingError)
                 }
             }
         case .split(let out, let err):

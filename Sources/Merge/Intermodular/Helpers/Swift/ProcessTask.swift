@@ -107,7 +107,7 @@ extension Process.Task {
                 return self.standardOutputPipe.fileHandleForReading.readabilityHandler = nil
             }
             
-            self.standardOutputData.send(data)
+            self.standardErrorData.send(data)
         }
         
         standardErrorPipe.fileHandleForReading.readabilityHandler = {

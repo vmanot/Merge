@@ -28,8 +28,10 @@ class _UnsafePrivilegedProcess: Process {
     var _environment: [String: String]!
     var _standardOutput: Pipe!
     var _standardError: Pipe!
+    var _terminationHandler: (@Sendable (Process) -> Void)?
     var _terminationStatus: Int32?
-    
+    var _isRunning: Bool = false
+
     override var launchPath: String? {
         get {
             _launchPath
@@ -78,12 +80,20 @@ class _UnsafePrivilegedProcess: Process {
         }
     }
     
+    override var terminationHandler: (@Sendable (Process) -> Void)? {
+        get {
+            _terminationHandler
+        } set {
+            _terminationHandler = newValue
+        }
+    }
+
     override var terminationStatus: Int32 {
         _terminationStatus ?? super.terminationStatus
     }
     
     override var isRunning: Bool {
-        _terminationStatus == nil
+        _isRunning
     }
     
     override var terminationReason: Process.TerminationReason {
@@ -99,6 +109,10 @@ class _UnsafePrivilegedProcess: Process {
     }
     
     override public func run() throws {
+        assert(!_isRunning)
+        
+        _isRunning = true
+        
         let executionRights = try withAuthorizationRights()
         
         func cleanup(error: Error?) throws {
@@ -113,11 +127,17 @@ class _UnsafePrivilegedProcess: Process {
             )
             
             try cleanup(error: nil)
+            
+            _terminationHandler?(self)
         } catch {
             try cleanup(error: nil)
             
+            _terminationHandler?(self)
+
             throw error
         }
+        
+        _isRunning = false
         
         // clearCachedAuthorizationRef()
     }

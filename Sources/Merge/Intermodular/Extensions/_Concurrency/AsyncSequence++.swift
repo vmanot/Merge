@@ -6,7 +6,9 @@ import Swallow
 
 extension AsyncSequence {
     public func collect() async rethrows -> Array<Element> {
-        try await reduce(into: Array<Element>()) { $0.append($1) }
+        try await reduce(into: Array<Element>()) {
+            $0.append($1)
+        }
     }
 }
 

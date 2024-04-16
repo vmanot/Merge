@@ -8,22 +8,24 @@ import Foundation
 import Swallow
 
 extension Process {
-    public var terminationError: _TerminationError? {
-        if self.terminationStatus == 0 {
+    public var terminationError: TerminationError? {
+        guard terminationStatus != 0 else {
             return nil
         }
         
-        return _TerminationError(process: self)
+        return TerminationError(_from: self)
     }
 }
 
 extension Process {
-    public struct _TerminationError: Error, LocalizedError {
+    public struct TerminationError: Error, LocalizedError {
         public let status: Int32
         public let reason: Reason
         
-        public enum Reason {
-            case exit, uncaughtSignal, unknownDefault
+        public enum Reason: Hashable, Sendable {
+            case exit
+            case uncaughtSignal
+            case unknownDefault
         }
         
         public var errorDescription: String? {
@@ -39,15 +41,15 @@ extension Process {
     }
 }
 
-private extension Process._TerminationError {
-    init(process: Process) {
+extension Process.TerminationError {
+    fileprivate init(_from process: Process) {
         self.status = process.terminationStatus
         self.reason = process.terminationReason.reason
     }
 }
 
-private extension Process.TerminationReason {
-    var reason: Process._TerminationError.Reason {
+extension Process.TerminationReason {
+    package var reason: Process.TerminationError.Reason {
         switch self {
             case .exit:
                 return .exit

@@ -5,18 +5,22 @@
 #if os(macOS)
 
 import Foundation
+import Swift
 
-class PipeBuffer {
-    enum StreamID: String {
-        case stdOut, stdErr
+package class _UnsafePipeBuffer {
+    package enum StreamID: String {
+        case stdout
+        case stderr
     }
     
     internal let pipe = Pipe()
+    
     private var buffer: Data = .init()
     private let semaphore = DispatchGroup()
     
-    let id: StreamID
-    init(id: StreamID) {
+    private let id: StreamID
+    
+    package init(id: StreamID) {
         self.id = id
         
         self.pipe.fileHandleForReading.readabilityHandler = { handler in
@@ -27,14 +31,16 @@ class PipeBuffer {
         }
     }
     
-    func closeReturningData() -> Data {
+    package func closeReturningData() throws -> Data {
         self.semaphore.wait()
         
         self.pipe.fileHandleForReading.readabilityHandler = nil
-        let remainingData = try! self.pipe.fileHandleForReading.readToEnd() ?? Data()
         
-        let data = self.buffer + remainingData
+        let remainingData: Data = try self.pipe.fileHandleForReading.readToEnd() ?? Data()
+        let data: Data = self.buffer + remainingData
+        
         self.buffer = Data()
+        
         return data
     }
 }

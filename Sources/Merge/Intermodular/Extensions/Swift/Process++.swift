@@ -10,6 +10,26 @@ import Foundation
 import Swift
 
 extension Process {
+    public convenience init(
+        command: String,
+        environment: [String: String] = [:],
+        currentDirectoryPath: String? = nil
+    ) {
+        self.init()
+        
+        self.executableURL = URL(fileURLWithPath: "/bin/zsh")
+        self.arguments = ["-l", "-c", command]
+        self.environment = ProcessInfo.processInfo.environment.merging(environment) { lhs, rhs in
+            rhs
+        }
+        
+        if let currentDirectoryPath = currentDirectoryPath {
+            self.currentDirectoryURL = URL(fileURLWithPath: currentDirectoryPath)
+        }
+    }
+}
+
+extension Process {
     func pipeStandardOutput<S: Subject>(
         on queue: DispatchQueue,
         to sink: S

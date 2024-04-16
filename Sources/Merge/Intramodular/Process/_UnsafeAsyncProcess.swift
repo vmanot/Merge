@@ -106,9 +106,11 @@ public class _UnsafeAsyncProcess {
         if case .block = progress {
             outPipe = Pipe()
             errorPipe = Pipe()
+            
             if outPipe == nil {
-                print("outPipe is nil!")
+                runtimeIssue("outPipe is nil!")
             }
+            
             process?.standardOutput = outPipe
             process?.standardError = errorPipe
         }
@@ -233,27 +235,46 @@ public class _UnsafeAsyncProcess {
             throw Never.Reason.illegal
         }
         
+        let handlePipesTask = Task {
+            try await handlePipes()
+        }
+        
         try? await withCheckedThrowingContinuation { (continuation: CheckedContinuation<Void, Error>) in
+            @MutexProtected
+            var didResume: Bool = false
+            
             process.terminationHandler = { process in
                 if let terminationError = process.terminationError {
                     continuation.resume(throwing: terminationError)
                 } else {
                     continuation.resume()
                 }
+                
+                $didResume.assignedValue = true
             }
             
             do {
+                assert(!process.isRunning)
+                
                 try process.run()
             } catch {
                 continuation.resume(throwing: error)
             }
-        }
-        
-        await _expectNoThrow {
-            try await handlePipes()
+            
+            Task {
+                try await Task.sleep(.milliseconds(200))
+                
+                await Task.yield()
+                
+                if !process.isRunning && !didResume {
+                    runtimeIssue("Process exited")
+                }
+            }
         }
         
         self.process = nil
+        
+        try await handlePipesTask.value
         
         if case let .block(outputCall, errorCall) = progress {
             if options.reportCompletion {

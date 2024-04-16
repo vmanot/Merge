@@ -75,7 +75,13 @@ public struct ProcessPublisher<Failure: Error>: ConnectablePublisher {
     /// - parameter errorHandler: Allows certain kinds of exit to be processed
     ///     before being converted to the publisher's failure type (Error or
     ///     ProcessExitFailure).
-    internal init(_ command: URL, arguments: [String], input: AnyPublisher<Data, Failure>?, directInput: PipeOrFileHandle? = nil, errorHandler: @escaping (ProcessExitFailure) -> Failure) {
+    internal init(
+        _ command: URL,
+        arguments: [String],
+        input: AnyPublisher<Data, Failure>?,
+        directInput: PipeOrFileHandle? = nil,
+        errorHandler: @escaping (ProcessExitFailure) -> Failure
+    ) {
         assert(input != nil || directInput != nil)
         assert(Failure.self == Error.self || Failure.self == ProcessExitFailure.self)
         
@@ -89,7 +95,9 @@ public struct ProcessPublisher<Failure: Error>: ConnectablePublisher {
         
         // Conversely, the output is set up now to make directPipe() simpler.
         let outputPipe = Pipe()
+        
         process.standardOutput = outputPipe
+        
         outputPipe.fileHandleForReading.readabilityHandler = { [output] in
             let data = $0.availableData
             if data.isEmpty {
@@ -230,7 +238,9 @@ extension ProcessPublisher {
     ///
     /// - SeeAlso: `Process.qualityOfService`
     /// - SeeAlso: `ProcessPublisher.qualityOfService`
-    public func assignQualityOfService(_ qos: QualityOfService) -> Self {
+    public func assignQualityOfService(
+        _ qos: QualityOfService
+    ) -> Self {
         self.qualityOfService = qos
         return self
     }
