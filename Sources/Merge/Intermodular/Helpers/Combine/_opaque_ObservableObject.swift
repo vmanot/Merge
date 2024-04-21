@@ -13,11 +13,13 @@ public protocol _opaque_ObservableObject {
 
 // MARK: - Implementation
 
-extension _opaque_ObservableObject where Self: ObservableObject {
+extension ObservableObject {
     public var _opaque_objectWillChange: AnyObjectWillChangePublisher {
         AnyObjectWillChangePublisher(from: self)
     }
-    
+}
+
+extension _opaque_ObservableObject where Self: ObservableObject {
     public func _opaque_objectWillChange_send() throws {
         try cast(objectWillChange, to: _opaque_VoidSender.self).send()
     }
