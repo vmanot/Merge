@@ -52,7 +52,7 @@ extension SingleOutputPublisher {
                 )
             )
         }
-        
+
         cancellable.cancel()
         
         return try didReceiveValue.withLock { didReceiveValue in

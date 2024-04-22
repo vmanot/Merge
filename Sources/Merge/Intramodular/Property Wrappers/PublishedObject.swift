@@ -2,6 +2,7 @@
 // Copyright (c) Vatsal Manot
 //
 
+import Foundation
 import Combine
 import Swallow
 
@@ -193,6 +194,10 @@ public final class ObjectWillChangePublisherRelay<Source, Destination>: Observab
             }
             
             return
+        }
+        
+        if !Thread.isMainThread {
+            runtimeIssue("Publishing changes from background threads is not allowed.")
         }
         
         destinationObjectWillChangePublisher.send()
