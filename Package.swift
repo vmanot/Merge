@@ -36,6 +36,7 @@ let package = Package(
             name: "Merge",
             dependencies: [
                 "Swallow",
+                .product(name: "SwallowMacrosClient", package: "Swallow"),
                 "SwiftDI"
             ],
             path: "Sources/Merge",
