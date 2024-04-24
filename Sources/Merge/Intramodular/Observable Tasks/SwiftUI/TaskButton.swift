@@ -79,7 +79,7 @@ public struct TaskButton<Success, Error: Swift.Error, Label: View>: View {
         Button(action: trigger) {
             label(task?.status ?? .idle)
         }
-        .modify {
+        ._modify {
             if let buttonStyle {
                 $0.buttonStyle { configuration in
                     AnyView(
@@ -99,7 +99,7 @@ public struct TaskButton<Success, Error: Swift.Error, Label: View>: View {
             }
         }
         .disabled(isDisabled)
-        .modify(if: animation == .known) {
+        ._modify(if: animation == .known) {
             $0.animation(animation.knownValue ?? nil, value: displayTaskStatus)
         }
         .onChange(of: task) { task in
@@ -203,14 +203,14 @@ struct GenericTaskButtonError: CustomStringConvertible, LocalizedError {
 
 extension View {
     @ViewBuilder
-    fileprivate func modify<T: View>(
+    fileprivate func _modify<T: View>(
         @ViewBuilder transform: (Self) -> T
     ) -> some View {
         transform(self)
     }
     
     @ViewBuilder
-    fileprivate func modify<T: View>(
+    fileprivate func _modify<T: View>(
         if predicate: Bool,
         @ViewBuilder transform: (Self) -> T
     ) -> some View {
@@ -238,7 +238,6 @@ fileprivate struct AnyButtonStyle: ButtonStyle {
 }
 
 extension View {
-    @_disfavoredOverload
     fileprivate func buttonStyle<V: View>(
         @ViewBuilder makeBody: @escaping (AnyButtonStyle.Configuration) -> V
     ) -> some View {
