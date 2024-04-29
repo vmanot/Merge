@@ -32,7 +32,7 @@ extension ObservableObject {
 extension ObservableObject {
     @AssociatedObject(.retain(.atomic))
     private var _adHocCancellables: Cancellables = Cancellables()
-        
+    
     public func __onReceiveOfValueEmittedBy<T, U>(
         _ publisher: some Publisher<T, U>,
         perform action: @escaping (T) -> Void
@@ -60,7 +60,9 @@ extension ObservableObject {
     ) {
         __onReceiveOfValueEmittedBy(publisher, perform: action)
     }
-    
+}
+
+extension ObservableObject {
     public func _onReceiveOfValueEmittedBy<T: ObservableObject>(
         _ object: T,
         perform action: @escaping () -> Void
@@ -75,6 +77,30 @@ extension ObservableObject {
         perform action: @escaping () async throws -> Void
     ) {
         __onReceiveOfValueEmittedBy(object.objectWillChange) { _ in
+            Task {
+                do {
+                    try await action()
+                } catch {
+                    runtimeIssue(error)
+                }
+            }
+        }
+    }
+    
+    public func _onReceiveOfValueEmittedBy<T: _ObservableObjectX>(
+        _ object: T,
+        perform action: @escaping () -> Void
+    ) {
+        __onReceiveOfValueEmittedBy(object.objectDidChange) { _ in
+            action()
+        }
+    }
+    
+    public func _onReceiveOfValueEmittedBy<T: _ObservableObjectX>(
+        _ object: T,
+        perform action: @escaping () async throws -> Void
+    ) {
+        __onReceiveOfValueEmittedBy(object.objectDidChange) { _ in
             Task {
                 do {
                     try await action()
