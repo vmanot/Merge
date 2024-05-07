@@ -1,4 +1,9 @@
+//
+// Copyright (c) Vatsal Manot
+//
+
 import Foundation
+import Swift
 
 public enum _ShellProcessExecutionError: LocalizedError {
     case errorWithLogInfo(String, underlyingError: Error)

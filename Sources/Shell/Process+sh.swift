@@ -5,14 +5,15 @@
 #if os(macOS)
 
 import Foundation
-import Swallow
+import Merge
+private import Swallow
 
 @available(macOS 12.0, iOS 15.0, watchOS 8.0, tvOS 15.0, *)
 public func sh(
     _ cmd: String,
     environment: [String: String] = [:],
     workingDirectory: String? = nil
-) throws -> String? {
+) throws -> Process.AllOutput {
     announce("Running `\(cmd)`")
     
     return try shq(cmd, environment: environment, workingDirectory: workingDirectory)
@@ -23,7 +24,7 @@ public func sh(
     _ cmd: String,
     environment: [String: String] = [:],
     workingDirectory: String? = nil
-) async throws -> String? {
+) async throws -> Process.AllOutput {
     await announce("Running `\(cmd)`")
     
     return try await shq(cmd, environment: environment, workingDirectory: workingDirectory)
@@ -34,12 +35,12 @@ public func sh(
     command: String,
     environment: [String: String] = [:],
     currentDirectoryURL: URL
-) async throws -> String {
+) async throws -> Process.AllOutput {
     return try await sh(
         command,
         environment: environment,
         workingDirectory: currentDirectoryURL.path
-    ).unwrap()
+    )
 }
 
 @available(macOS 12.0, iOS 15.0, watchOS 8.0, tvOS 15.0, *)
@@ -62,7 +63,7 @@ public func sh(
     _ cmd: String,
     environment: [String: String] = [:],
     workingDirectory: URL
-) async throws -> String? {
+) async throws -> Process.AllOutput {
     await announce("Running `\(cmd)`")
     
     return try await shq(cmd, environment: environment, workingDirectory: workingDirectory.path)
@@ -113,7 +114,6 @@ public func sh(
     environment: [String: String] = [:],
     workingDirectory: String? = nil
 ) throws {
-    
     switch sink {
         case .terminal:
             announce("Running `\(cmd)`")
@@ -136,7 +136,7 @@ public func sh(
                 
                 let logResult = Result {
                     
-                    guard let lastFewLines = try sh("tail -n 10 \(path)")?
+                    guard let lastFewLines = try sh("tail -n 10 \(path)").stdoutString?
                         .trimmingCharacters(in: .whitespacesAndNewlines), !lastFewLines.isEmpty else {
                         return "<no content in log file>"
                     }
@@ -173,7 +173,7 @@ public func sh(
                 
                 let logResult: Result<String, Error> = await {
                     do {
-                        let lastFewLines = try await sh("tail -n 10 \(path)")?
+                        let lastFewLines = try await sh("tail -n 10 \(path)").stdoutString?
                             .trimmingCharacters(in: .whitespacesAndNewlines)
                         
                         guard let lastFewLines, !lastFewLines.isEmpty else {

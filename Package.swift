@@ -30,7 +30,9 @@ let package = Package(
                 "Swallow"
             ],
             path: "Sources/SwiftDI",
-            swiftSettings: []
+            swiftSettings: [
+                .enableExperimentalFeature("AccessLevelOnImport")
+            ]
         ),
         .target(
             name: "Merge",
@@ -40,7 +42,9 @@ let package = Package(
                 "SwiftDI"
             ],
             path: "Sources/Merge",
-            swiftSettings: []
+            swiftSettings: [
+                .enableExperimentalFeature("AccessLevelOnImport")
+            ]
         ),
         .target(
             name: "Shell",
@@ -48,12 +52,15 @@ let package = Package(
                 "Merge"
             ],
             path: "Sources/Shell",
-            swiftSettings: []
+            swiftSettings: [
+                .enableExperimentalFeature("AccessLevelOnImport")
+            ]
         ),
         .testTarget(
             name: "MergeTests",
             dependencies: [
-                "Merge"
+                "Merge",
+                "Shell",
             ],
             path: "Tests"
         )

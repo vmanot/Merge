@@ -2,11 +2,10 @@
 // Copyright (c) Vatsal Manot
 //
 
-#if os(macOS)
-
 import Foundation
 import Swift
 
+#if os(macOS)
 extension Process {
     // Passed as the first parameter to `sh` or `shq`, specifying where to direct the output
     public enum StandardOutputSink {
@@ -24,5 +23,4 @@ extension Process {
         }
     }
 }
-
 #endif

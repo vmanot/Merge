@@ -5,34 +5,65 @@
 #if os(macOS)
 
 import Foundation
-import Swallow
+import Merge
+private import Swallow
 
 public func shq(
     _ cmd: String,
+    arguments: [Process.ArgumentLiteral] = [],
     environment: [String: String] = [:],
     workingDirectory: String? = nil
-) throws -> String?  {
+) throws -> Process.AllOutput {
     return try Process(
         command: cmd,
+        arguments: arguments,
         environment: environment,
         currentDirectoryPath: workingDirectory
     )
-    .runReturningData()
-    .toStringTrimmingWhitespacesAndNewlines()
+    .runReturningAllOutput()
 }
 
 public func shq(
     _ cmd: String,
+    arguments: [String],
     environment: [String: String] = [:],
     workingDirectory: String? = nil
-) async throws -> String?  {
+) throws -> Process.AllOutput {
+    try shq(
+        cmd,
+        arguments: arguments.map(Process.ArgumentLiteral.init(stringLiteral:)),
+        environment: environment,
+        workingDirectory: workingDirectory
+    )
+}
+
+public func shq(
+    _ cmd: String,
+    arguments: [Process.ArgumentLiteral] = [],
+    environment: [String: String] = [:],
+    workingDirectory: String? = nil
+) async throws -> Process.AllOutput  {
     return try await Process(
         command: cmd,
+        arguments: arguments,
         environment: environment,
         currentDirectoryPath: workingDirectory
     )
-    .runReturningData()
-    .toStringTrimmingWhitespacesAndNewlines()
+    .runReturningAllOutput()
+}
+
+public func shq(
+    _ cmd: String,
+    arguments: [String],
+    environment: [String: String] = [:],
+    workingDirectory: String? = nil
+) async throws -> Process.AllOutput  {
+    try await shq(
+        cmd,
+        arguments: arguments.map(Process.ArgumentLiteral.init(stringLiteral:)),
+        environment: environment,
+        workingDirectory: workingDirectory
+    )
 }
 
 public func shq<D: Decodable>(
@@ -47,7 +78,8 @@ public func shq<D: Decodable>(
         environment: environment,
         currentDirectoryPath: workingDirectory
     )
-    .runReturningData()
+    .runReturningAllOutput()
+    .stdout
     .decode(type, using: jsonDecoder)
 }
 
@@ -64,7 +96,7 @@ public func shq<D: Decodable>(
         currentDirectoryPath: workingDirectory
     )
     
-    return try await process.runReturningData().decode(type, using: jsonDecoder)
+    return try await process.runReturningAllOutput().stdout.decode(type, using: jsonDecoder)
 }
 
 @available(macOS 12.0, iOS 15.0, watchOS 8.0, tvOS 15.0, *)
@@ -95,18 +127,6 @@ public func shq(
         currentDirectoryPath: workingDirectory
     )
     .runRedirectingAllOutput(to: sink)
-}
-
-// MARK: - Internal
-
-extension Process {
-    fileprivate func runReturningTrimmedString() throws -> String? {
-        try runReturningData().toStringTrimmingWhitespacesAndNewlines()
-    }
-    
-    fileprivate func runReturningTrimmedString() async throws -> String? {
-        try await runReturningData().toStringTrimmingWhitespacesAndNewlines()
-    }
 }
 
 #endif

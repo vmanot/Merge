@@ -124,10 +124,34 @@ extension Process {
 }
 
 extension Process {
-    public struct AllOutput {
+    public final class AllOutput: @unchecked Sendable {
         public let stdout: Data
         public let stderr: Data
         public let terminationError: Process.TerminationError?
+        
+        public init(
+            stdout: Data,
+            stderr: Data,
+            terminationError: Process.TerminationError?
+        ) {
+            self.stdout = stdout
+            self.stderr = stderr
+            self.terminationError = terminationError
+        }
+        
+        public var stdoutString: String? {
+            stdout.toStringTrimmingWhitespacesAndNewlines()
+        }
+        
+        public var stderrString: String? {
+            stderr.toStringTrimmingWhitespacesAndNewlines()
+        }
+
+        public func validate() async throws {
+            if let terminationError {
+                throw terminationError
+            }
+        }
     }
     
     public func runReturningAllOutput() throws -> AllOutput {
@@ -178,54 +202,4 @@ extension Process {
         }
     }
 }
-
-extension Process {
-    public func runReturningData() throws -> Data {
-        let standardOutput = _UnsafePipeBuffer(id: .stdout)
-        
-        self.standardOutput = standardOutput.pipe
-        self.standardError = FileHandle.standardError
-        
-        try self.run()
-        
-        self.waitUntilExit()
-        
-        if let terminationError = terminationError {
-            throw terminationError
-        } else {
-            return try standardOutput.closeReturningData()
-        }
-    }
-    
-    public func runReturningData() async throws -> Data {
-        self.standardError = FileHandle.standardError
-        
-        let standardOutput = _UnsafePipeBuffer(id: .stdout)
-        
-        self.standardOutput = standardOutput.pipe
-        
-        return try await withCheckedThrowingContinuation { (continuation: CheckedContinuation<Data, Error>) in
-            self.terminationHandler = { process in
-                if let terminationError = process.terminationError {
-                    continuation.resume(throwing: terminationError)
-                } else {
-                    do {
-                        let data = try standardOutput.closeReturningData()
-                        
-                        continuation.resume(returning: data)
-                    } catch {
-                        continuation.resume(throwing: error)
-                    }
-                }
-            }
-            
-            do {
-                try self.run()
-            } catch {
-                continuation.resume(throwing: error)
-            }
-        }
-    }
-}
-
 #endif
