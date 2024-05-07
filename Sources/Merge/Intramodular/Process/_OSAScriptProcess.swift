@@ -7,99 +7,77 @@
 import Foundation
 import Swift
 
-class _OSAScriptProcess: Process {
-    var _launchPath: String!
-    var _currentDirectoryURL: URL!
-    var _arguments: [String]!
-    var _environment: [String: String]!
-    var _standardOutput: Pipe!
-    var _standardError: Pipe!
-    var _terminationStatus: Int32?
+public class _OSAScriptProcess: Process {
+    private var underlyingTask = Process()
     
-    override var launchPath: String? {
-        get {
-            _launchPath
-        } set {
-            _launchPath = newValue
-        }
+    override public var launchPath: String? {
+        get { underlyingTask.launchPath }
+        set { underlyingTask.launchPath = newValue }
     }
     
-    override var currentDirectoryURL: URL? {
-        get {
-            _currentDirectoryURL
-        } set {
-            _currentDirectoryURL = newValue
-        }
+    override public var currentDirectoryURL: URL? {
+        get { underlyingTask.currentDirectoryURL }
+        set { underlyingTask.currentDirectoryURL = newValue }
     }
     
-    override var arguments: [String]? {
-        get {
-            _arguments
-        } set {
-            _arguments = newValue
-        }
+    override public var arguments: [String]? {
+        get { underlyingTask.arguments }
+        set { underlyingTask.arguments = newValue }
     }
     
-    override var environment: [String : String]?{
-        get {
-            _environment
-        } set {
-            _environment = newValue
-        }
+    override public var environment: [String : String]? {
+        get { underlyingTask.environment }
+        set { underlyingTask.environment = newValue }
     }
     
-    override var standardOutput: Any? {
-        get {
-            _standardOutput
-        } set {
-            _standardOutput = newValue as? Pipe
-        }
+    override public var standardOutput: Any? {
+        get { underlyingTask.standardOutput }
+        set { underlyingTask.standardOutput = newValue }
     }
     
-    override var standardError: Any? {
-        get {
-            _standardError
-        } set {
-            _standardError = newValue as? Pipe
-        }
+    override public var standardError: Any? {
+        get { underlyingTask.standardError }
+        set { underlyingTask.standardError = newValue }
     }
     
-    override var terminationStatus: Int32 {
-        task?.terminationStatus ?? super.terminationStatus
+    override public var terminationStatus: Int32 {
+        return underlyingTask.terminationStatus
     }
     
-    var task: Process!
+    override public var isRunning: Bool {
+        return underlyingTask.isRunning
+    }
+    
+    override public var terminationReason: Process.TerminationReason {
+        return underlyingTask.terminationReason
+    }
     
     override public func run() throws {
-        let toolPath = try executableURL.unwrap().path
-        let arguments = (self.arguments ?? []).joined(separator: "' '")
+        guard let executablePath = self.executableURL?.path else {
+            throw NSError(domain: "OSAScriptProcessError", code: 0, userInfo: [NSLocalizedDescriptionKey: "Executable URL is not set."])
+        }
         
-        let script = """
-        do shell script "'\(toolPath)' '\(arguments)'" with prompt "\(  Bundle.main.infoDictionary?["CFBundleDisplayName"] as? String ?? "This application") wants to run \(toolPath) as root" with administrator privileges
+        let argumentsEscaped = arguments?
+            .map({ $0.replacingOccurrences(of: "'", with: "'\\''") })
+            .joined(separator: " ") ?? ""
+        
+        let script: String = """
+        do shell script "'\(executablePath)' \(argumentsEscaped)" with prompt "\(Bundle.main.object(forInfoDictionaryKey: "CFBundleDisplayName") as? String ?? "This application") wants to run \(executablePath) as root" with administrator privileges
         """
         
-        self.task = Process()
+        // Setup the task to run the osascript
+        underlyingTask.launchPath = "/usr/bin/osascript"
+        underlyingTask.arguments = ["-e", script]
+        underlyingTask.standardOutput = standardOutput
+        underlyingTask.standardError = standardError
+        underlyingTask.environment = environment
+        underlyingTask.currentDirectoryURL = currentDirectoryURL
         
-        task.launchPath = "/usr/bin/osascript"
-        task.arguments = ["-e", script]
-        task.standardOutput = _standardOutput
-        task.standardError = _standardError
-        task.environment = _environment
-        task.currentDirectoryURL = _currentDirectoryURL
-
-        try task.run()
+        try underlyingTask.run()
     }
     
-    override func waitUntilExit() {
-        task.waitUntilExit()
-    }
-    
-    override var isRunning: Bool {
-        task.isRunning
-    }
-    
-    override var terminationReason: Process.TerminationReason {
-        task.terminationReason
+    override public func waitUntilExit() {
+        underlyingTask.waitUntilExit()
     }
 }
 

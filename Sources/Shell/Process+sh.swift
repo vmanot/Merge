@@ -13,7 +13,7 @@ public func sh(
     _ cmd: String,
     environment: [String: String] = [:],
     workingDirectory: String? = nil
-) throws -> Process.AllOutput {
+) throws -> _ProcessResult {
     announce("Running `\(cmd)`")
     
     return try shq(cmd, environment: environment, workingDirectory: workingDirectory)
@@ -24,7 +24,7 @@ public func sh(
     _ cmd: String,
     environment: [String: String] = [:],
     workingDirectory: String? = nil
-) async throws -> Process.AllOutput {
+) async throws -> _ProcessResult {
     await announce("Running `\(cmd)`")
     
     return try await shq(cmd, environment: environment, workingDirectory: workingDirectory)
@@ -35,7 +35,7 @@ public func sh(
     command: String,
     environment: [String: String] = [:],
     currentDirectoryURL: URL
-) async throws -> Process.AllOutput {
+) async throws -> _ProcessResult {
     return try await sh(
         command,
         environment: environment,
@@ -63,7 +63,7 @@ public func sh(
     _ cmd: String,
     environment: [String: String] = [:],
     workingDirectory: URL
-) async throws -> Process.AllOutput {
+) async throws -> _ProcessResult {
     await announce("Running `\(cmd)`")
     
     return try await shq(cmd, environment: environment, workingDirectory: workingDirectory.path)

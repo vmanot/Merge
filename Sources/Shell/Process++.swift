@@ -75,13 +75,13 @@ extension Process {
         self.standardOutput = FileHandle.nullDevice
         self.standardError = FileHandle.nullDevice
     }
-        
+    
     @available(macOS 12.0, iOS 15.0, watchOS 8.0, tvOS 15.0, *)
     private func setStandardOutputAndError(
         filePath: String
     ) throws {
         let fileHandle = try self.createFile(atPath: filePath)
-
+        
         self.standardOutput = fileHandle
         self.standardError = fileHandle
     }
@@ -123,74 +123,47 @@ extension Process {
     }
 }
 
-extension Process {
-    public final class AllOutput: @unchecked Sendable {
-        public let stdout: Data
-        public let stderr: Data
-        public let terminationError: Process.TerminationError?
-        
-        public init(
-            stdout: Data,
-            stderr: Data,
-            terminationError: Process.TerminationError?
-        ) {
-            self.stdout = stdout
-            self.stderr = stderr
-            self.terminationError = terminationError
-        }
-        
-        public var stdoutString: String? {
-            stdout.toStringTrimmingWhitespacesAndNewlines()
-        }
-        
-        public var stderrString: String? {
-            stderr.toStringTrimmingWhitespacesAndNewlines()
-        }
-
-        public func validate() async throws {
-            if let terminationError {
-                throw terminationError
-            }
-        }
-    }
-    
+extension Process {    
     public func runReturningAllOutput() throws -> AllOutput {
-        let standardOutput = _UnsafePipeBuffer(id: .stdout)
-        self.standardOutput = standardOutput.pipe
-        
+        let stdout = _UnsafePipeBuffer(id: .stdout)
         let stderr = _UnsafePipeBuffer(id: .stderr)
+        
+        self.standardOutput = stdout.pipe
         self.standardError = stderr.pipe
         
         try self.run()
         self.waitUntilExit()
         
         return AllOutput(
-            stdout: try standardOutput.closeReturningData(),
+            process: self,
+            stdout: try stdout.closeReturningData(),
             stderr: try stderr.closeReturningData(),
             terminationError: terminationError
         )
     }
     
     public func runReturningAllOutput() async throws -> AllOutput {
-        let standardOutput = _UnsafePipeBuffer(id: .stdout)
-        self.standardOutput = standardOutput.pipe
+        let stdout = _AsyncUnsafePipeBuffer(id: .stdout)
+        let stderr = _AsyncUnsafePipeBuffer(id: .stderr)
         
-        let stderr = _UnsafePipeBuffer(id: .stderr)
-        self.standardError = stderr.pipe
+        self.standardOutput = await stdout.pipe
+        self.standardError = await stderr.pipe
         
         return try await withCheckedThrowingContinuation  { (continuation: CheckedContinuation<AllOutput, Error>) in
-            
             self.terminationHandler = { process in
-                do {
-                    continuation.resume(
-                        returning: AllOutput(
-                            stdout: try standardOutput.closeReturningData(),
-                            stderr: try stderr.closeReturningData(),
-                            terminationError: process.terminationError
+                _Concurrency.Task {
+                    do {
+                        continuation.resume(
+                            returning: AllOutput(
+                                process: self,
+                                stdout: try await stdout.closeReturningData(),
+                                stderr: try await stderr.closeReturningData(),
+                                terminationError: process.terminationError
+                            )
                         )
-                    )
-                } catch {
-                    assertionFailure(error)
+                    } catch {
+                        assertionFailure(error)
+                    }
                 }
             }
             
@@ -202,4 +175,5 @@ extension Process {
         }
     }
 }
+
 #endif

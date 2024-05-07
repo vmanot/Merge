@@ -90,7 +90,6 @@ class ShellProcessTests: XCTestCase {
     }
     
     func testSplitArguments() {
-        let process = Process()
         let arguments = "arg1 \"arg2 with spaces\" 'arg3 with \"nested quotes\"' /path/to/file\\ with\\ spaces.txt"
         
         let expectedArguments = [
@@ -100,7 +99,7 @@ class ShellProcessTests: XCTestCase {
             "/path/to/file\\ with\\ spaces.txt"
         ]
         
-        let splitArguments = process.splitArguments(arguments)
+        let splitArguments = Process.splitArguments(arguments)
         
         XCTAssertEqual(splitArguments, expectedArguments)
     }
@@ -131,8 +130,7 @@ class ShellProcessTests: XCTestCase {
     
     func testSplitArgumentsWithMixedContent() {
         let command = "run --path=\"/Applications/My App.app\" --quiet"
-        let process = Process()
-        let result = process.splitArguments(command)
+        let result = Process.splitArguments(command)
         
         XCTAssertEqual(result, ["run", "--path=\"/Applications/My App.app\"", "--quiet"])
     }

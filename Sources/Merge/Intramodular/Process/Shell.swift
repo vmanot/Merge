@@ -8,13 +8,13 @@ import Foundation
 import Swallow
 
 public final class Shell {
-    public let options: [_UnsafeAsyncProcess.Option]?
+    public let options: [_AsyncProcess.Option]?
     
     private var environmentVariables: [String: String] {
         ProcessInfo.processInfo.environment
     }
     
-    public init(options: [_UnsafeAsyncProcess.Option]? = nil) {
+    public init(options: [_AsyncProcess.Option]? = nil) {
         self.options = options
     }
 }
@@ -24,9 +24,9 @@ extension Shell {
         arguments: [String],
         currentDirectoryURL: URL? = nil,
         environment: [String: String] = [:]
-    ) async throws -> _UnsafeAsyncProcess.Output {
-        let process = _UnsafeAsyncProcess(
-            progress: .block { _ in },
+    ) async throws -> _ProcessResult {
+        let process = _AsyncProcess(
+            progressHandler: .block { _ in },
             options: options ?? [.reportCompletion]
         )
         
@@ -43,26 +43,26 @@ extension Shell {
         command: String,
         currentDirectoryURL: URL? = nil,
         environment: Environment = .zsh,
-        progress: _UnsafeAsyncProcess.Progress = .print,
+        progressHandler: _AsyncProcess.ProgressHandler = .print,
         input: String? = nil,
-        options: [_UnsafeAsyncProcess.Option]? = nil,
+        options: [_AsyncProcess.Option]? = nil,
         threadIdentifier: String? = nil
-    ) async throws -> _UnsafeAsyncProcess.Output {
-        let options: [_UnsafeAsyncProcess.Option] = options ?? [
+    ) async throws -> _ProcessResult {
+        let options: [_AsyncProcess.Option] = options ?? [
             .reportCompletion,
             .trimming(.whitespacesAndNewlines),
             .splitWithNewLine
         ]
         
-        var progress = progress
+        var progressHandler = progressHandler
         
-        if case .print = progress {
-            progress = .block { text in
+        if case .print = progressHandler {
+            progressHandler = .block { text in
                 print(text)
             }
         }
         
-        let process = _UnsafeAsyncProcess(progress: progress, options: options)
+        let process = _AsyncProcess(progressHandler: progressHandler, options: options)
         
         let (launchPath, arguments) = try await environment.env(command: command)
         
@@ -86,7 +86,7 @@ extension Shell {
         command: String,
         currentDirectoryURL: URL? = nil,
         environment: Environment = .zsh
-    ) async throws -> _UnsafeAsyncProcess.Output {
+    ) async throws -> _ProcessResult {
         try await Self.run(
             command: command,
             currentDirectoryURL: currentDirectoryURL,

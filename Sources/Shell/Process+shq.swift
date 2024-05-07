@@ -13,7 +13,7 @@ public func shq(
     arguments: [Process.ArgumentLiteral] = [],
     environment: [String: String] = [:],
     workingDirectory: String? = nil
-) throws -> Process.AllOutput {
+) throws -> _ProcessResult {
     return try Process(
         command: cmd,
         arguments: arguments,
@@ -23,12 +23,13 @@ public func shq(
     .runReturningAllOutput()
 }
 
+@_disfavoredOverload
 public func shq(
     _ cmd: String,
     arguments: [String],
     environment: [String: String] = [:],
     workingDirectory: String? = nil
-) throws -> Process.AllOutput {
+) throws -> _ProcessResult {
     try shq(
         cmd,
         arguments: arguments.map(Process.ArgumentLiteral.init(stringLiteral:)),
@@ -39,10 +40,25 @@ public func shq(
 
 public func shq(
     _ cmd: String,
+    arguments: [String],
+    environment: [String: String] = [:],
+    workingDirectory: String? = nil
+) throws {
+    try shq(
+        cmd,
+        arguments: arguments.map(Process.ArgumentLiteral.init(stringLiteral:)),
+        environment: environment,
+        workingDirectory: workingDirectory
+    )
+    .validate()
+}
+
+public func shq(
+    _ cmd: String,
     arguments: [Process.ArgumentLiteral] = [],
     environment: [String: String] = [:],
     workingDirectory: String? = nil
-) async throws -> Process.AllOutput  {
+) async throws -> _ProcessResult  {
     return try await Process(
         command: cmd,
         arguments: arguments,
@@ -52,18 +68,34 @@ public func shq(
     .runReturningAllOutput()
 }
 
+@_disfavoredOverload
 public func shq(
     _ cmd: String,
     arguments: [String],
     environment: [String: String] = [:],
     workingDirectory: String? = nil
-) async throws -> Process.AllOutput  {
+) async throws -> _ProcessResult {
     try await shq(
         cmd,
         arguments: arguments.map(Process.ArgumentLiteral.init(stringLiteral:)),
         environment: environment,
         workingDirectory: workingDirectory
     )
+}
+
+public func shq(
+    _ cmd: String,
+    arguments: [String],
+    environment: [String: String] = [:],
+    workingDirectory: String? = nil
+) async throws  {
+    try await shq(
+        cmd,
+        arguments: arguments,
+        environment: environment,
+        workingDirectory: workingDirectory
+    )
+    .validate()
 }
 
 public func shq<D: Decodable>(

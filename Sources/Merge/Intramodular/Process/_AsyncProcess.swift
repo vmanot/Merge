@@ -7,15 +7,15 @@
 import Foundation
 import Swift
 
-extension _UnsafeAsyncProcess {
+extension _AsyncProcess {
     public struct Output {
         public let stdout: String
         public let stderr: String
     }
 }
 
-public class _UnsafeAsyncProcess {
-    public enum Progress {
+public class _AsyncProcess {
+    public enum ProgressHandler {
         public typealias Block = (_ text: String) -> Void
         public enum ScriptOption: Equatable {
             case login
@@ -29,20 +29,20 @@ public class _UnsafeAsyncProcess {
     }
     
     public enum Option: Hashable {
-        case _launchAsRoot
+        case _useAuthorizationExecuteWithPrivileges
         case reportCompletion
         case splitWithNewLine
         case trimming(CharacterSet)
     }
 
-    let progress: _UnsafeAsyncProcess.Progress
+    let progressHandler: _AsyncProcess.ProgressHandler
     let options: [Option]
     
     package private(set) var process: Process?
     package var isWaiting = false
     
     static let updateRunningCommandLock = NSLock()
-    public static var runningProcesses = [_UnsafeAsyncProcess]()
+    public static var runningProcesses = [_AsyncProcess]()
     
     private var outPipe: Pipe?
     private var outCache = ""
@@ -92,18 +92,18 @@ public class _UnsafeAsyncProcess {
     }
     
     package init(
-        progress: _UnsafeAsyncProcess.Progress,
-        options: [_UnsafeAsyncProcess.Option]
+        progressHandler: _AsyncProcess.ProgressHandler,
+        options: [_AsyncProcess.Option]
     ) {
-        self.process = options.contains(._launchAsRoot) ? _UnsafePrivilegedProcess() : Process()
-        self.progress = progress
+        self.process = options.contains(._useAuthorizationExecuteWithPrivileges) ? _SecAuthorizedProcess() : Process()
+        self.progressHandler = progressHandler
         self.options = options
         
         Self.updateRunningCommandLock.lock()
         Self.runningProcesses.append(self)
         Self.updateRunningCommandLock.unlock()
         
-        if case .block = progress {
+        if case .block = progressHandler {
             outPipe = Pipe()
             errorPipe = Pipe()
             
@@ -152,16 +152,18 @@ public class _UnsafeAsyncProcess {
             try await handle(data: data, for: outPipe)
         }
         
-        while
-            checkTask(),
-            interruptLater(),
-            let data = errorPipe?.fileHandleForReading.availableData, !data.isEmpty
-        {
-            workItem?.cancel()
-            
-            await Task.yield()
-
-            try await handle(data: data, for: errorPipe)
+        if !options.contains(._useAuthorizationExecuteWithPrivileges) {
+            while
+                checkTask(),
+                interruptLater(),
+                let data = errorPipe?.fileHandleForReading.availableData, !data.isEmpty
+            {
+                workItem?.cancel()
+                
+                await Task.yield()
+                
+                try await handle(data: data, for: errorPipe)
+            }
         }
         
         workItem?.cancel()
@@ -171,51 +173,61 @@ public class _UnsafeAsyncProcess {
         data: Data,
         for pipe: Pipe?
     ) async throws {
-        guard var strs = String(data: data, encoding: String.Encoding.utf8), !strs.isEmpty else {
+        guard var dataAsString = String(data: data, encoding: String.Encoding.utf8), !dataAsString.isEmpty else {
             return
         }
         
         if pipe == self.errorPipe {
-            self.errorResult += strs
+            self.errorResult += dataAsString
             return
         }
-        if strs.hasSuffix("\n") {
-            strs = self.outCache + strs
+        if dataAsString.hasSuffix("\n") {
+            dataAsString = self.outCache + dataAsString
             self.outCache = ""
         } else {
-            self.outCache += strs
-            strs = ""
+            self.outCache += dataAsString
+            dataAsString = ""
         }
         
-        if strs.isEmpty {
+        if dataAsString.isEmpty {
             return
         }
         
         if self.options.reportCompletion {
-            self.outputResult += strs
-        } else if case let .block(output, error) = self.progress {
+            self.outputResult += dataAsString
+        }
+        
+        if case let .block(output, error) = self.progressHandler {
             let progress = (pipe == self.outPipe ? output : error) ?? output
             if self.options.splitWithNewLine {
-                for str in strs.split(separator: "\n") {
+                for str in dataAsString.split(separator: "\n") {
                     progress(str.trimmingCharacters(in: self.options.trimmingCharacterSet))
                 }
             } else {
-                progress(strs.trimmingCharacters(in: self.options.trimmingCharacterSet))
+                progress(dataAsString.trimmingCharacters(in: self.options.trimmingCharacterSet))
             }
         }
     }
     
-    package func wait() async throws -> _UnsafeAsyncProcess.Output {
+    package func wait() async throws -> _ProcessResult {
         try await _wait()
         
         try Task.checkCancellation()
         
-        return _UnsafeAsyncProcess.Output(
-            stdout: self.outputResult.trimmingWhitespaceAndNewlines(),
-            stderr: self.errorResult.trimmingWhitespaceAndNewlines()
+        let process = try self.process.unwrap()
+        
+        let output = try _ProcessResult(
+            process: process,
+            stdout: self.outputResult,
+            stderr: self.errorResult,
+            terminationError: process.terminationError
         )
+        
+        self.process = nil
+        
+        return output
     }
-    
+
     private func _wait() async throws {
         if Thread._isMainThread {
             let stack = Thread.callStackSymbols
@@ -271,22 +283,23 @@ public class _UnsafeAsyncProcess {
                 }
             }
         }
-        
-        self.process = nil
-        
+                
         try await handlePipesTask.value
         
-        if case let .block(outputCall, errorCall) = progress {
-            if options.reportCompletion {
-                let output = outputResult.trimmingCharacters(in: options.trimmingCharacterSet)
-                if !output.isEmpty {
-                    outputCall(output)
+        switch progressHandler {
+            case let .block(outputCall, errorCall):
+                if options.reportCompletion {
+                    let output = outputResult.trimmingCharacters(in: options.trimmingCharacterSet)
+                    if !output.isEmpty {
+                        outputCall(output)
+                    }
                 }
-            }
-            let error = errorResult.trimmingCharacters(in: options.trimmingCharacterSet)
-            if !error.isEmpty {
-                (errorCall ?? outputCall)(error)
-            }
+                let error = errorResult.trimmingCharacters(in: options.trimmingCharacterSet)
+                if !error.isEmpty {
+                    (errorCall ?? outputCall)(error)
+                }
+            case .print:
+                fatalError()
         }
         
         Self.updateRunningCommandLock.withLock {
@@ -311,7 +324,7 @@ public class _UnsafeAsyncProcess {
     }
 }
 
-extension Array where Element == _UnsafeAsyncProcess.Option {
+extension Array where Element == _AsyncProcess.Option {
     var splitWithNewLine: Bool {
         self.contains {
             if case .splitWithNewLine = $0 {

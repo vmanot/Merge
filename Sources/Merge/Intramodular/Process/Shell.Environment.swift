@@ -29,9 +29,13 @@ extension Shell {
             var arguments = [String]()
             
             if commands.count > 1 {
-                try await Shell.run(command: "echo " + commands[1...].joined(separator: " "), environment: .bash, progress: .block {
-                    arguments = $0.split(separator: " ").map(String.init)
-                })
+                try await Shell.run(
+                    command: "echo " + commands[1...].joined(separator: " "),
+                    environment: .bash,
+                    progressHandler: .block {
+                        arguments = $0.split(separator: " ").map(String.init)
+                    }
+                )
             }
             
             return (launchPath, arguments)
@@ -42,9 +46,12 @@ extension Shell {
         ) async throws -> String {
             var result: String = ""
             
-            try await Shell.run(command: "which \(x)", progress: .block {
-                result = $0
-            })
+            try await Shell.run(
+                command: "which \(x)",
+                progressHandler: .block {
+                    result = $0
+                }
+            )
             
             return result
         }

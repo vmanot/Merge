@@ -12,6 +12,7 @@ extension Process {
     public enum ShellEnvironment {
         case bash
         case zsh
+        case unspecified
     }
     
     public struct ArgumentLiteral: ExpressibleByStringLiteral {
@@ -51,17 +52,31 @@ extension Process {
     /// Initializes a `Process` to run a command using a specified shell or directly, with given arguments and options.
     public convenience init(
         command: String,
-        shell: ShellEnvironment? = .bash,
+        shell: ShellEnvironment? = .unspecified,
         arguments: [ArgumentLiteral] = [],
         environment: [String: String] = [:],
         currentDirectoryPath: String? = nil
     ) {
         self.init()
         
+        var shell: ShellEnvironment? = shell
+        
+        if shell == .unspecified {
+            if command.hasPrefix("/bin") || command.hasPrefix("/usr/bin") {
+                shell = nil
+            } else {
+                shell = .zsh
+            }
+        }
+        
         let shellArguments = shell.shellPathAndArguments(command: command)
+        
         self.executableURL = shellArguments.0
         
-        let additionalArguments = arguments.map { $0.escapedValue }
+        let additionalArguments: [String] = arguments.map {
+            $0.escapedValue
+        }
+        
         self.arguments = shellArguments.1 + additionalArguments
         self.environment = ProcessInfo.processInfo.environment.merging(environment) { (_, new) in new }
         
@@ -71,33 +86,55 @@ extension Process {
     }
     
     public convenience init(
+        _ command: String,
+        arguments: [ArgumentLiteral] = [],
+        environment: [String: String] = [:],
+        currentDirectoryPath: String? = nil
+    ) {
+        self.init(
+            command: command,
+            shell: nil,
+            arguments: arguments,
+            environment: environment,
+            currentDirectoryPath: currentDirectoryPath
+        )
+    }
+    
+    public convenience init(
+        _ command: String,
+        arguments: [String] = [],
+        environment: [String: String] = [:],
+        currentDirectoryPath: String? = nil
+    ) {
+        self.init(
+            command: command,
+            shell: .unspecified,
+            arguments: arguments.map(Process.ArgumentLiteral.init(stringLiteral:)),
+            environment: environment,
+            currentDirectoryPath: currentDirectoryPath
+        )
+    }
+    
+    public convenience init(
         command: String,
-        shell: ShellEnvironment? = .bash,
+        shell: ShellEnvironment? = .unspecified,
         argumentString: String,
         environment: [String: String] = [:],
         currentDirectoryPath: String? = nil
     ) {
-        self.init()
-        
-        let shellPathAndArguments: (path: URL, arguments: [String]) = shell.shellPathAndArguments(command: command)
-        
-        self.executableURL = shellPathAndArguments.path
-        
-        let splitArguments = splitArguments(argumentString)
+        let splitArguments: [String] = Process.splitArguments(argumentString)
         
         let arguments: [ArgumentLiteral] = splitArguments.map {
             ArgumentLiteral($0,  isQuoted: $0.contains("\"") || $0.contains("'"))
         }
-        let additionalArguments: [String] = arguments.map({ $0.escapedValue })
-        
-        self.arguments = shellPathAndArguments.arguments + additionalArguments
-        self.environment = ProcessInfo.processInfo.environment.merging(environment) { (_, new) in
-            new
-        }
-        
-        if let currentDirectoryPath = currentDirectoryPath {
-            self.currentDirectoryURL = URL(fileURLWithPath: currentDirectoryPath)
-        }
+    
+        self.init(
+            command: command,
+            shell: shell,
+            arguments: arguments,
+            environment: environment,
+            currentDirectoryPath: currentDirectoryPath
+        )
     }
 }
 
@@ -113,6 +150,8 @@ extension Process.ShellEnvironment {
                 return (URL(fileURLWithPath: "/bin/bash"), ["-l", "-c", command])
             case .zsh:
                 return (URL(fileURLWithPath: "/bin/zsh"), ["-l", "-c", command])
+            case .unspecified:
+                fatalError()
         }
     }
 }
@@ -140,7 +179,7 @@ extension Process {
     
     /// Splits a single argument string into multiple arguments by spaces, respecting quoted substrings.
     /// Correctly handles paths and commands with spaces (Example: Path "/Applications/My App.app/Contents/MacOS/app").
-    func splitArguments(_ argument: String) -> [String] {
+    static func splitArguments(_ argument: String) -> [String] {
         var state = ArgumentStringSplitState()
         
         for char in argument {
@@ -157,7 +196,7 @@ extension Process {
         return state.parts
     }
     
-    private func processCharacter(
+    private static func processCharacter(
         _ char: Character,
         _ state: inout ArgumentStringSplitState
     ) {
@@ -176,7 +215,7 @@ extension Process {
         }
     }
     
-    private func handleEscapedCharacter(
+    private static func handleEscapedCharacter(
         _ char: Character,
         _ state: inout ArgumentStringSplitState
     ) {
@@ -184,21 +223,21 @@ extension Process {
         state.escaping = false
     }
     
-    private func handleBackslash(
+    private static  func handleBackslash(
         _ state: inout ArgumentStringSplitState
     ) {
         state.escaping = true
         state.currentPart.append("\\")
     }
     
-    private func handleSpace(_ state: inout ArgumentStringSplitState) {
+    private static func handleSpace(_ state: inout ArgumentStringSplitState) {
         if !state.currentPart.isEmpty {
             state.parts.append(state.currentPart)
             state.currentPart = ""
         }
     }
     
-    private func handleQuote(
+    private static func handleQuote(
         _ char: Character,
         _ state: inout ArgumentStringSplitState
     ) {
@@ -215,7 +254,7 @@ extension Process {
         }
     }
     
-    private func handleRegularCharacter(
+    private static func handleRegularCharacter(
         _ char: Character,
         _ state: inout ArgumentStringSplitState
     ) {
