@@ -18,7 +18,8 @@ extension Process {
 }
 
 extension Process {
-    public struct TerminationError: Error, LocalizedError {
+    public struct TerminationError: CustomStringConvertible, Error, LocalizedError {
+        public let process: Process
         public let status: Int32
         public let reason: Reason
         
@@ -28,23 +29,37 @@ extension Process {
             case unknownDefault
         }
         
+        public var description: String {
+            errorDescription ?? "<error>"
+        }
+        
+
         public var errorDescription: String? {
+            var description = "\(process.launchPath ?? "Unknown command")"
+            
+            if let arguments = process.arguments {
+                description += " " + arguments.joined(separator: " ")
+            }
+            
+            description += " failed because "
+            
             switch reason {
                 case .exit:
-                    return "Exited with code \(status)."
+                    description += "it exited with code \(status)."
                 case .uncaughtSignal:
-                    return "Uncaught signal, exited with code \(status)."
+                    description += "it received an uncaught signal with code \(status)."
                 case .unknownDefault:
-                    return "Unknown termination reason, exited with code \(status)."
+                    description += "of an unknown termination reason with code \(status)."
             }
+            
+            return description
         }
-    }
-}
-
-extension Process.TerminationError {
-    fileprivate init(_from process: Process) {
-        self.status = process.terminationStatus
-        self.reason = process.terminationReason.reason
+        
+        fileprivate init(_from process: Process) {
+            self.process = process
+            self.status = process.terminationStatus
+            self.reason = process.terminationReason.reason
+        }
     }
 }
 

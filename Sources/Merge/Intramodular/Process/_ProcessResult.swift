@@ -7,7 +7,7 @@
 import FoundationX
 import Swallow
 
-public final class _ProcessResult: @unchecked Sendable {
+public final class _ProcessResult: Logging, @unchecked Sendable {
     public let process: Process
     public let stdout: Data
     public let stderr: Data
@@ -47,8 +47,18 @@ public final class _ProcessResult: @unchecked Sendable {
         stderr.toStringTrimmingWhitespacesAndNewlines()
     }
     
+    public func toString() throws -> String {
+        try validate()
+        
+        return try stdoutString.unwrap()
+    }
+    
     public func validate() throws {
         if let terminationError {
+            if let stderrString = stderrString {
+                logger.error(stderrString)
+            }
+            
             throw terminationError
         }
     }

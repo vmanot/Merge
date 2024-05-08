@@ -7,13 +7,6 @@
 import Foundation
 import Swift
 
-extension _AsyncProcess {
-    public struct Output {
-        public let stdout: String
-        public let stderr: String
-    }
-}
-
 public class _AsyncProcess {
     public enum ProgressHandler {
         public typealias Block = (_ text: String) -> Void

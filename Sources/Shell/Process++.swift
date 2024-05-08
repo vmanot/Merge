@@ -124,7 +124,7 @@ extension Process {
 }
 
 extension Process {    
-    public func runReturningAllOutput() throws -> AllOutput {
+    public func runReturningAllOutput() throws -> _ProcessResult {
         let stdout = _UnsafePipeBuffer(id: .stdout)
         let stderr = _UnsafePipeBuffer(id: .stderr)
         
@@ -132,9 +132,10 @@ extension Process {
         self.standardError = stderr.pipe
         
         try self.run()
+        
         self.waitUntilExit()
         
-        return AllOutput(
+        return _ProcessResult(
             process: self,
             stdout: try stdout.closeReturningData(),
             stderr: try stderr.closeReturningData(),
@@ -142,19 +143,19 @@ extension Process {
         )
     }
     
-    public func runReturningAllOutput() async throws -> AllOutput {
+    public func runReturningAllOutput() async throws -> _ProcessResult {
         let stdout = _AsyncUnsafePipeBuffer(id: .stdout)
         let stderr = _AsyncUnsafePipeBuffer(id: .stderr)
         
         self.standardOutput = await stdout.pipe
         self.standardError = await stderr.pipe
         
-        return try await withCheckedThrowingContinuation  { (continuation: CheckedContinuation<AllOutput, Error>) in
+        return try await withCheckedThrowingContinuation  { (continuation: CheckedContinuation<_ProcessResult, Error>) in
             self.terminationHandler = { process in
                 _Concurrency.Task {
                     do {
                         continuation.resume(
-                            returning: AllOutput(
+                            returning: _ProcessResult(
                                 process: self,
                                 stdout: try await stdout.closeReturningData(),
                                 stderr: try await stderr.closeReturningData(),
