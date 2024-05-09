@@ -43,4 +43,13 @@ extension FileDescriptor {
     }
 }
 
+extension Pipe {
+    public var _fileDescriptorForReading: FileDescriptor {
+        FileDescriptor(rawValue: fileHandleForReading.fileDescriptor)
+    }
+    
+    public var _fileDescriptorForWriting: FileDescriptor {
+        FileDescriptor(rawValue: fileHandleForWriting.fileDescriptor)
+    }
+}
 #endif

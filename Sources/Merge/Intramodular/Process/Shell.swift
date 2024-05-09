@@ -23,7 +23,7 @@ extension Shell {
     public func run(
         arguments: [String],
         currentDirectoryURL: URL? = nil,
-        environment: [String: String] = [:]
+        environmentVariables: [String: String] = [:]
     ) async throws -> _ProcessResult {
         let process = _AsyncProcess(
             progressHandler: .block { _ in },
@@ -33,7 +33,7 @@ extension Shell {
         process.process?.executableURL = URL(fileURLWithPath: "/bin/zsh")
         process.process?.currentDirectoryURL = currentDirectoryURL?._fromURLToFileURL()
         process.process?.arguments = arguments
-        process.process?.environment = environmentVariables.merging(environment, uniquingKeysWith: { $1 })
+        process.process?.environment = self.environmentVariables.merging(environmentVariables, uniquingKeysWith: { $1 })
         
         return try await process.wait()
     }
@@ -43,6 +43,7 @@ extension Shell {
         command: String,
         currentDirectoryURL: URL? = nil,
         environment: Environment = .zsh,
+        environmentVariables: [String: String] = [:],
         progressHandler: _AsyncProcess.ProgressHandler = .print,
         input: String? = nil,
         options: [_AsyncProcess.Option]? = nil,
@@ -53,14 +54,6 @@ extension Shell {
             .trimming(.whitespacesAndNewlines),
             .splitWithNewLine
         ]
-        
-        var progressHandler = progressHandler
-        
-        if case .print = progressHandler {
-            progressHandler = .block { text in
-                print(text)
-            }
-        }
         
         let process = _AsyncProcess(progressHandler: progressHandler, options: options)
         
@@ -85,12 +78,14 @@ extension Shell {
     public func run(
         command: String,
         currentDirectoryURL: URL? = nil,
-        environment: Environment = .zsh
+        environment: Environment = .zsh,
+        progressHandler: _AsyncProcess.ProgressHandler = .print
     ) async throws -> _ProcessResult {
         try await Self.run(
             command: command,
             currentDirectoryURL: currentDirectoryURL,
             environment: environment,
+            progressHandler: progressHandler,
             options: options
         )
     }

@@ -80,28 +80,22 @@ class _SecAuthorizedProcess: Process {
         
         try _executeAuthorizedWithPrivileges()
     }
+    
+    static let _AuthorizationExecuteWithPrivileges = unsafeBitCast(
+        dlsym(UnsafeMutableRawPointer(bitPattern: -2), "AuthorizationExecuteWithPrivileges"),
+        to: (@convention(c) (
+            AuthorizationRef?,
+            UnsafePointer<CChar>,
+            AuthorizationFlags,
+            UnsafeMutablePointer<UnsafeMutablePointer<CChar>?>?,
+            UnsafeMutablePointer<FILE>?
+        ) -> OSStatus).self
+    )
             
-    private func _executeAuthorizedWithPrivileges() throws {
-        _isRunning = true
-
-        defer {
-            _isRunning = false
-        }
-        let _AuthorizationExecuteWithPrivileges = unsafeBitCast(
-            dlsym(UnsafeMutableRawPointer(bitPattern: -2), "AuthorizationExecuteWithPrivileges"),
-            to: (@convention(c) (
-                AuthorizationRef?,
-                UnsafePointer<CChar>,
-                AuthorizationFlags,
-                UnsafeMutablePointer<UnsafeMutablePointer<CChar>?>?,
-                UnsafeMutablePointer<FILE>?
-            ) -> OSStatus).self
-        )
-        
+    private func _authorizationRef() throws -> AuthorizationRef {
         var status: OSStatus = noErr
-        
         var authorizationRef: AuthorizationRef?
-        
+
         if let cachedAuthRef = _SecAuthorizedProcess.cachedAuthorizationRef {
             authorizationRef = cachedAuthRef
         } else {
@@ -114,7 +108,7 @@ class _SecAuthorizedProcess: Process {
             let toolPath = try executableURL!.path.cString(using: .utf8).unwrap()
             let toolPathPtr = malloc(toolPath.count)!
             toolPathPtr.copyMemory(from: toolPath, byteCount: toolPath.count)
-
+            
             var authItem = AuthorizationItem(
                 name: _AuthorizationRightName.execute.cString,
                 valueLength: toolPath.count,
@@ -129,7 +123,7 @@ class _SecAuthorizedProcess: Process {
                     authorizationRef!,
                     &rights,
                     nil,
-                    [.extendRights, .partialRights, .interactionAllowed],
+                    [.extendRights, .preAuthorize, .interactionAllowed],
                     nil
                 )
                 
@@ -137,6 +131,9 @@ class _SecAuthorizedProcess: Process {
                 
                 if status != errAuthorizationSuccess {
                     AuthorizationFree(authorizationRef!, [])
+                    
+                    runtimeIssue("Failed to copy authorization rights.")
+                    
                     throw _Error.error(status)
                 }
                 
@@ -149,19 +146,49 @@ class _SecAuthorizedProcess: Process {
             }
         }
         
+        return try authorizationRef.unwrap()
+    }
+    
+    private func _executeAuthorizedWithPrivileges() throws {
+        _isRunning = true
+
+        defer {
+            _isRunning = false
+        }
+                
+        var status: OSStatus = noErr
+                
+        
         let toolPath = try executableURL.unwrap().path.cString(using: .utf8)!
         var arguments: [UnsafeMutablePointer<CChar>?] = (self.arguments ?? []).map { strdup($0) }
         arguments.append(nil) // NULL terminate the arguments array as expected in C
         
         let outputFilePointer = _standardOutput.filePointer(mode: "w")
+        let isUsingCachedAuthorization = Self.cachedAuthorizationRef != nil
         
-        status = _AuthorizationExecuteWithPrivileges(
-            authorizationRef!,
-            toolPath,
-            AuthorizationFlags(rawValue: 0),
-            &arguments,
-            outputFilePointer
-        )
+        func execute() throws {
+            let authorization: AuthorizationRef = try _authorizationRef()
+            
+            status = Self._AuthorizationExecuteWithPrivileges(
+                authorization,
+                toolPath,
+                AuthorizationFlags(rawValue: 0),
+                &arguments,
+                outputFilePointer
+            )
+        }
+        
+        try execute()
+        
+        if status != errAuthorizationSuccess, isUsingCachedAuthorization {
+            Self.cachedAuthorizationRef = nil
+            
+            try execute()
+            
+            if status == errAuthorizationSuccess {
+                runtimeIssue("Cached authorization was invalid.")
+            }
+        }
         
         self.willChangeValue(for: \.terminationStatus)
 
@@ -175,6 +202,8 @@ class _SecAuthorizedProcess: Process {
             self.didChangeValue(for: \.terminationStatus)
         }
 
+        try? _standardOutput.fileHandleForWriting.write(contentsOf: " ".data(using: .utf8)!)
+        
         fclose(outputFilePointer)
             
         _terminationHandler?(self)

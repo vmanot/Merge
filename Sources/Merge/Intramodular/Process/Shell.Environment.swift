@@ -23,7 +23,9 @@ extension Shell {
             assert(!commands.isEmpty)
             
             let launchPath: String = try await _memoize(uniquingWith: commands[0]) {
-                try await resolveLaunchPath(from: String(commands[0]))
+                let result = try await resolveLaunchPath(from: String(commands[0]))
+                
+                return result
             }
             
             var arguments = [String]()

@@ -6,6 +6,7 @@
 
 import Foundation
 import Swift
+import System
 
 public class _AsyncProcess: CustomStringConvertible {
     public enum ProgressHandler {
@@ -18,7 +19,10 @@ public class _AsyncProcess: CustomStringConvertible {
         }
         // use stdout
         case print
-        case block(output: Block, error: Block? = nil)
+        case block(
+            output: Block,
+            error: Block? = nil
+        )
     }
     
     public enum Option: Hashable {
@@ -95,6 +99,14 @@ public class _AsyncProcess: CustomStringConvertible {
         progressHandler: _AsyncProcess.ProgressHandler,
         options: [_AsyncProcess.Option]
     ) {
+        var progressHandler = progressHandler
+        
+        if case .print = progressHandler {
+            progressHandler = .block { text in
+                print(text)
+            }
+        }
+
         self.process = options.contains(._useAuthorizationExecuteWithPrivileges) ? _SecAuthorizedProcess() : Process()
         self.progressHandler = progressHandler
         self.options = options
@@ -103,22 +115,31 @@ public class _AsyncProcess: CustomStringConvertible {
         Self.runningProcesses.append(self)
         Self.updateRunningCommandLock.unlock()
         
-        if case .block = progressHandler {
-            outPipe = Pipe()
-            errorPipe = Pipe()
-            
-            if outPipe == nil {
-                runtimeIssue("outPipe is nil!")
-            }
-            
-            process?.standardOutput = outPipe
-            process?.standardError = errorPipe
+        _setUpStdoutStderrPipes()
+    }
+    
+    private func _setUpStdoutStderrPipes() {
+        outPipe = Pipe()
+        errorPipe = Pipe()
+        
+        if outPipe == nil {
+            runtimeIssue("outPipe is nil!")
         }
+        
+        process?.standardOutput = outPipe
+        process?.standardError = errorPipe
     }
     
     func handlePipes() async throws {
+        guard let outPipe, let errorPipe else {
+            assertionFailure()
+            
+            return
+        }
+        
         weak var process = self.process
         var workItem: DispatchWorkItem?
+        
         func interruptLater() -> Bool {
             workItem?.cancel()
             workItem = DispatchWorkItem {
@@ -140,21 +161,21 @@ public class _AsyncProcess: CustomStringConvertible {
             }
         }
         
-        while checkTask(), interruptLater(),
-            let data = outPipe?.fileHandleForReading.availableData, !data.isEmpty
-        {
-            workItem?.cancel()
-            
-            await Task.yield()
-            
-            try await handle(data: data, for: outPipe)
-        }
-        
         if !options.contains(._useAuthorizationExecuteWithPrivileges) {
+            while checkTask(), interruptLater(),
+                  let data = outPipe.fileHandleForReading.availableData.nilIfEmpty()
+            {
+                workItem?.cancel()
+                
+                await Task.yield()
+                
+                try await handle(data: data, for: outPipe)
+            }
+            
             while
                 checkTask(),
                 interruptLater(),
-                let data = errorPipe?.fileHandleForReading.availableData, !data.isEmpty
+                let data = errorPipe.fileHandleForReading.availableData.nilIfEmpty()
             {
                 workItem?.cancel()
                 
@@ -162,6 +183,18 @@ public class _AsyncProcess: CustomStringConvertible {
                 
                 try await handle(data: data, for: errorPipe)
             }
+        } else {
+            while
+                checkTask(),
+                let data = outPipe.fileHandleForReading.availableData.nilIfEmpty()
+            {
+                workItem?.cancel()
+                
+                await Task.yield()
+                
+                try await handle(data: data, for: outPipe)
+            }
+            
         }
         
         workItem?.cancel()
@@ -195,15 +228,19 @@ public class _AsyncProcess: CustomStringConvertible {
             self.outputResult += dataAsString
         }
         
-        if case let .block(output, error) = self.progressHandler {
-            let progress = (pipe == self.outPipe ? output : error) ?? output
-            if self.options.splitWithNewLine {
-                for str in dataAsString.split(separator: "\n") {
-                    progress(str.trimmingCharacters(in: self.options.trimmingCharacterSet))
+        switch progressHandler {
+            case let .block(output, error):
+                let progress = (pipe == self.outPipe ? output : error) ?? output
+                
+                if self.options.splitWithNewLine {
+                    for str in dataAsString.split(separator: "\n") {
+                        progress(str.trimmingCharacters(in: self.options.trimmingCharacterSet))
+                    }
+                } else {
+                    progress(dataAsString.trimmingCharacters(in: self.options.trimmingCharacterSet))
                 }
-            } else {
-                progress(dataAsString.trimmingCharacters(in: self.options.trimmingCharacterSet))
-            }
+            case .print:
+                fatalError()
         }
     }
     
@@ -243,7 +280,7 @@ public class _AsyncProcess: CustomStringConvertible {
             throw Never.Reason.illegal
         }
         
-        let handlePipesTask = Task {
+        let handlePipesTask1 = Task {
             try await handlePipes()
         }
         
@@ -280,8 +317,12 @@ public class _AsyncProcess: CustomStringConvertible {
             }
         }
                 
-        try await handlePipesTask.value
+        try await handlePipesTask1.value
         
+        try await handlePipes()
+        
+        var progressHandler = self.progressHandler
+                
         switch progressHandler {
             case let .block(outputCall, errorCall):
                 if options.reportCompletion {
