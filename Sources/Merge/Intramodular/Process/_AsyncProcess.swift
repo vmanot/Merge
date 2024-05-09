@@ -7,7 +7,7 @@
 import Foundation
 import Swift
 
-public class _AsyncProcess {
+public class _AsyncProcess: CustomStringConvertible {
     public enum ProgressHandler {
         public typealias Block = (_ text: String) -> Void
         public enum ScriptOption: Equatable {
@@ -45,6 +45,13 @@ public class _AsyncProcess {
     public var errorResult = ""
     
     private var _inputPipe: Pipe?
+    
+    public var description: String {
+        Process._makeDescriptionPrefix(
+            launchPath: self.process?.launchPath,
+            arguments: self.process?.arguments
+        )
+    }
     
     var inputPipe: Pipe? {
         if state == .notLaunch, _inputPipe == nil {
@@ -133,9 +140,7 @@ public class _AsyncProcess {
             }
         }
         
-        while
-            checkTask(),
-            interruptLater(),
+        while checkTask(), interruptLater(),
             let data = outPipe?.fileHandleForReading.availableData, !data.isEmpty
         {
             workItem?.cancel()
@@ -215,9 +220,7 @@ public class _AsyncProcess {
             stderr: self.errorResult,
             terminationError: process.terminationError
         )
-        
-        self.process = nil
-        
+                
         return output
     }
 
@@ -272,7 +275,7 @@ public class _AsyncProcess {
                 await Task.yield()
                 
                 if !process.isRunning && !didResume {
-                    runtimeIssue("Process exited")
+                    runtimeIssue("\(description) exited.")
                 }
             }
         }

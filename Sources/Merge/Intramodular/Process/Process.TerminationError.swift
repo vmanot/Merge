@@ -18,6 +18,19 @@ extension Process {
 }
 
 extension Process {
+    static func _makeDescriptionPrefix(
+        launchPath: String?,
+        arguments: [String]?
+    ) -> String {
+        var description = "\(launchPath ?? "Unknown command")"
+        
+        if let arguments = arguments {
+            description += " " + arguments.joined(separator: " ")
+        }
+        
+        return description
+    }
+    
     public struct TerminationError: CustomStringConvertible, Error, LocalizedError {
         public let process: Process
         public let status: Int32

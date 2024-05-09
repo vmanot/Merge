@@ -72,26 +72,21 @@ class _SecAuthorizedProcess: Process {
     }
     
     override public func interrupt() {
-        // Not implemented yet
+        runtimeIssue("\(_SecAuthorizedProcess.self) does not support Process.interrupt()")
     }
     
     override public func run() throws {
-        assert(!_isRunning, "Process is already running")
+        precondition(!_isRunning)
         
-        _isRunning = true
-                
-        defer {
-            _isRunning = false
-            
-            // clearCachedAuthorizationRef()
-        }
-        
-        try executeWithPrivileges()
-        
-        _terminationHandler?(self)
+        try _executeAuthorizedWithPrivileges()
     }
             
-    private func executeWithPrivileges() throws {
+    private func _executeAuthorizedWithPrivileges() throws {
+        _isRunning = true
+
+        defer {
+            _isRunning = false
+        }
         let _AuthorizationExecuteWithPrivileges = unsafeBitCast(
             dlsym(UnsafeMutableRawPointer(bitPattern: -2), "AuthorizationExecuteWithPrivileges"),
             to: (@convention(c) (
@@ -168,30 +163,33 @@ class _SecAuthorizedProcess: Process {
             outputFilePointer
         )
         
-        fclose(outputFilePointer)
-        
         self.willChangeValue(for: \.terminationStatus)
-        
+
         if status != errAuthorizationSuccess {
             _terminationStatus = Int32(status)
+            
             self.didChangeValue(for: \.terminationStatus)
-            throw _Error.error(status)
         } else {
             _terminationStatus = 0
+            
             self.didChangeValue(for: \.terminationStatus)
         }
-    }
-    
-    private func clearCachedAuthorizationRef() {
-        if let authorizationRef = _SecAuthorizedProcess.cachedAuthorizationRef {
-            AuthorizationFree(authorizationRef, [])
-            _SecAuthorizedProcess.cachedAuthorizationRef = nil
-        }
+
+        fclose(outputFilePointer)
+            
+        _terminationHandler?(self)
     }
     
     override public func waitUntilExit() {
         while isRunning {
             Thread.sleep(forTimeInterval: 0.1)
+        }
+    }
+
+    private func clearCachedAuthorizationRef() {
+        if let authorizationRef = _SecAuthorizedProcess.cachedAuthorizationRef {
+            AuthorizationFree(authorizationRef, [])
+            _SecAuthorizedProcess.cachedAuthorizationRef = nil
         }
     }
 }
