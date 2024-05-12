@@ -158,7 +158,6 @@ class _SecAuthorizedProcess: Process {
                 
         var status: OSStatus = noErr
                 
-        
         let toolPath = try executableURL.unwrap().path.cString(using: .utf8)!
         var arguments: [UnsafeMutablePointer<CChar>?] = (self.arguments ?? []).map { strdup($0) }
         arguments.append(nil) // NULL terminate the arguments array as expected in C
@@ -180,7 +179,7 @@ class _SecAuthorizedProcess: Process {
         
         try execute()
         
-        if status != errAuthorizationSuccess, isUsingCachedAuthorization {
+        if status == -60002, isUsingCachedAuthorization {
             Self.cachedAuthorizationRef = nil
             
             try execute()

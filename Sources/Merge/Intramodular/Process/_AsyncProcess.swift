@@ -321,7 +321,7 @@ public class _AsyncProcess: CustomStringConvertible {
         
         try await handlePipes()
         
-        var progressHandler = self.progressHandler
+        let progressHandler = self.progressHandler
                 
         switch progressHandler {
             case let .block(outputCall, errorCall):
