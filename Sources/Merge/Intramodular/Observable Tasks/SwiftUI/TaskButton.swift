@@ -123,6 +123,7 @@ public struct TaskButton<Success, Error: Swift.Error, Label: View>: View {
         wantsToDisplayLastTaskStatus = true
     }
     
+    @MainActor
     private func setCurrentTask(_ task: AnyTask<Success, Error>?) {
         guard task != currentTask else {
             return

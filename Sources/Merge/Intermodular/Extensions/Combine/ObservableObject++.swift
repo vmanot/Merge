@@ -67,7 +67,7 @@ extension ObservableObject {
         _ object: T,
         perform action: @escaping () -> Void
     ) {
-        __onReceiveOfValueEmittedBy(object.objectWillChange) { _ in
+        __onReceiveOfValueEmittedBy(object.objectWillChange.receiveOnMainQueue()) { _ in
             action()
         }
     }
@@ -76,7 +76,7 @@ extension ObservableObject {
         _ object: T,
         perform action: @escaping () async throws -> Void
     ) {
-        __onReceiveOfValueEmittedBy(object.objectWillChange) { _ in
+        __onReceiveOfValueEmittedBy(object.objectWillChange.receiveOnMainQueue()) { _ in
             Task {
                 do {
                     try await action()

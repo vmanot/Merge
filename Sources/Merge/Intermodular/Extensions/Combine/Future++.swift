@@ -12,7 +12,7 @@ extension Future {
         priority: TaskPriority? = nil,
         @_implicitSelfCapture execute work: @escaping @Sendable () async -> Output
     ) -> Future<Output, Failure> where Failure == Never {
-        .init { attemptToFulfill in
+        Future { attemptToFulfill in
             Task.detached(priority: priority) {
                 await attemptToFulfill(.success(work()))
             }
