@@ -10,16 +10,19 @@ import Swallow
 ///
 /// `ObservableObject` subscribes to the `objectWillChange` publishers of all elements contained within it and forwards them to its own `objectWillChange` publisher.
 @propertyWrapper
-public final class ObservableArray<Element: ObservableObject>: MutablePropertyWrapper, Sequence, ObservableObject {
+public final class ObservableArray<Element: ObservableObject>: MutablePropertyWrapper, Sequence, _ObservableObjectX {
     public let objectWillChange = ObservableObjectPublisher()
     
     private var cancellables: [ObjectIdentifier: AnyCancellable] = [:]
-    
+    private let objectWillChangeRelay = ObjectWillChangePublisherRelay()
+
     fileprivate var storage: [Element] {
         willSet {
             objectWillChange.send()
         } didSet {
             resubscribeToAll()
+            
+            objectDidChange.send()
         }
     }
     
@@ -31,6 +34,34 @@ public final class ObservableArray<Element: ObservableObject>: MutablePropertyWr
         }
     }
     
+    public var projectedValue: ObservableArray {
+        self
+    }
+    
+    public static subscript<EnclosingSelf: ObservableObject>(
+        _enclosingInstance enclosingInstance: EnclosingSelf,
+        wrapped wrappedKeyPath: ReferenceWritableKeyPath<EnclosingSelf, WrappedValue>,
+        storage storageKeyPath: ReferenceWritableKeyPath<EnclosingSelf, ObservableArray>
+    ) -> WrappedValue where EnclosingSelf.ObjectWillChangePublisher: _opaque_VoidSender {
+        get {
+            let propertyWrapper = enclosingInstance[keyPath: storageKeyPath]
+            
+            if propertyWrapper.objectWillChangeRelay.isUninitialized {
+                propertyWrapper.setUpObjectWillChangeRelay(to: enclosingInstance)
+            }
+
+            return propertyWrapper.wrappedValue
+        } set {
+            let propertyWrapper = enclosingInstance[keyPath: storageKeyPath]
+            
+            if propertyWrapper.objectWillChangeRelay.isUninitialized {
+                propertyWrapper.setUpObjectWillChangeRelay(to: enclosingInstance)
+            }
+            
+            propertyWrapper.wrappedValue = newValue
+        }
+    }
+
     private init(storage: [Element]) {
         self.storage = storage
         
@@ -68,6 +99,13 @@ public final class ObservableArray<Element: ObservableObject>: MutablePropertyWr
         self.cancellables = newCancellables
     }
     
+    private func setUpObjectWillChangeRelay<T>(
+        to enclosingInstance: T
+    ) {
+        objectWillChangeRelay.source = self
+        objectWillChangeRelay.destination = enclosingInstance
+    }
+
     private func subscribe(to element: Element) {
         let id = ObjectIdentifier(element)
         
@@ -141,6 +179,18 @@ extension ObservableArray: MutableCollection, RandomAccessCollection {
     
     public func index(after i: Index) -> Index {
         storage.index(after: i)
+    }
+}
+
+extension ObservableArray: Publisher {
+    public typealias Output = WrappedValue
+    public typealias Failure = Never
+    
+    public func receive(subscriber: some Subscriber<WrappedValue, Never>) {
+        self.objectDidChange.compactMap { [weak self] in
+            self?.wrappedValue
+        }
+        .receive(subscriber: subscriber)
     }
 }
 

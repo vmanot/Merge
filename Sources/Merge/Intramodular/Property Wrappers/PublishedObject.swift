@@ -122,6 +122,18 @@ public final class PublishedObject<Value>: PropertyWrapper {
 
 // MARK: - Conditional Conformances
 
+extension PublishedObject: Equatable where Value: Equatable {
+    public static func == (lhs: PublishedObject, rhs: PublishedObject) -> Bool {
+        lhs.wrappedValue == rhs.wrappedValue
+    }
+}
+
+extension PublishedObject: Hashable where Value: Hashable {
+    public func hash(into hasher: inout Hasher) {
+        hasher.combine(wrappedValue)
+    }
+}
+
 extension PublishedObject: Decodable where Value: Decodable & ObservableObject {
     public convenience init(from decoder: Decoder) throws {
         try self.init(wrappedValue: WrappedValue(from: decoder))
