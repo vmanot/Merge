@@ -49,7 +49,9 @@ extension DispatchQueue {
 
 extension DispatchTime: CustomStringConvertible {
     public var description: String {
-        "(.now() + \(Double(Int(uptimeNanoseconds) - Int(DispatchTime.now().uptimeNanoseconds)) / Double(NSEC_PER_SEC)) seconds)"
+        let seconds = Double(Int(uptimeNanoseconds) - Int(DispatchTime.now().uptimeNanoseconds)) / Double(NSEC_PER_SEC)
+        
+        return "(.now() + \(seconds) seconds)"
     }
 }
 
