@@ -90,7 +90,7 @@ extension TaskStreamed {
             }
             
             let result: Result<Success?, Error> = await self.sink._opaque_receive(Task {
-                await _expectNoThrow {
+                #try(.optimistic) {
                     try await task.value
                 }
             })
@@ -164,7 +164,7 @@ extension TaskStreamed {
             }
             
             await sink._opaque_receive(Task {
-                await _expectNoThrow {
+                #try(.optimistic) {
                     try await task.value
                 }
             })

@@ -112,7 +112,7 @@ extension _ObservableTaskGroup {
             DispatchQueue.asyncOnMainIfNecessary {
                 self.activeTasks.remove(task)
                 
-                _expectNoThrow {
+                #try(.optimistic) {
                     let taskID = try self.customIdentifierByTask[task.id].unwrap()
                     
                     if self.keepHistory {
@@ -149,13 +149,13 @@ extension _ObservableTaskGroup {
         customIdentifier identifier: CustomIdentifier
     ) -> IdentifierIndexingArrayOf<OpaqueObservableTask> {
         var filtered: [OpaqueObservableTask] = []
-
+        
         defer {
-            _expectNoThrow {
+            #try(.optimistic) {
                 try _tryAssert(filtered.isEmpty)
             }
         }
-
+        
         return activeTasksByCustomIdentifier[identifier, default: []]._filter(removingInto: &filtered) {
             !$0.status.isTerminal
         }
@@ -224,12 +224,10 @@ extension _ObservableTaskGroup {
     public func status(
         ofMostRecent action: Key
     ) -> TaskStatusDescription? {
-        _expectNoThrow {
-            if let status = self[customIdentifier: action].last?.statusDescription {
-                return status
-            } else {
-                return lastStatus(forCustomTaskIdentifier: action)
-            }
+        if let status = self[customIdentifier: action].last?.statusDescription {
+            return status
+        } else {
+            return self.lastStatus(forCustomTaskIdentifier: action)
         }
     }
     
@@ -237,7 +235,7 @@ extension _ObservableTaskGroup {
     public func status<T>(
         ofMostRecent casePath: CasePath<Key, T>
     ) -> TaskStatusDescription? {
-        return _expectNoThrow { () -> TaskStatusDescription? in
+        return #try(.optimistic) { () -> TaskStatusDescription? in
             guard let id  = try _customKey(ofMostRecent: casePath) else {
                 return nil
             }
