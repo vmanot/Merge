@@ -7,6 +7,17 @@
 import Foundation
 import Swallow
 
+@globalActor
+public actor _ShellActor {
+    public actor ActorType {
+        fileprivate init() {
+            
+        }
+    }
+    
+    public static let shared: ActorType = ActorType()
+}
+
 public final class Shell {
     public let options: [_AsyncProcess.Option]?
     
@@ -20,6 +31,7 @@ public final class Shell {
 }
 
 extension Shell {
+    @_ShellActor
     public func run(
         arguments: [String],
         currentDirectoryURL: URL? = nil,
@@ -38,6 +50,7 @@ extension Shell {
         return try await process.wait()
     }
     
+    @_ShellActor
     @discardableResult
     public static func run(
         command: String,
@@ -75,6 +88,7 @@ extension Shell {
         return try await process.wait()
     }
     
+    @_ShellActor
     public func run(
         command: String,
         currentDirectoryURL: URL? = nil,

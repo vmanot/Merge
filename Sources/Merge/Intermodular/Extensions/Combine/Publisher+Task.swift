@@ -38,21 +38,41 @@ extension Publisher {
     
     public func flatMapAsyncSequential<T>(
         _ transform: @escaping (Output) async -> T
-    ) -> Publishers.FlatMap<Future<T, Never>, Self> {
+    ) -> Publishers.FlatMap<Future<T, any Error>, Publishers.SetFailureType<Self, any Error>> {
         let queue = TaskQueue()
         
-        return flatMapAsync { value in
-            await queue.perform(operation: { await transform(value) })
+        let x = flatMap { value in
+            Future<T, Error> { fulfill in
+                queue.addTask {
+                    let result = await Result(catching: {
+                        await transform(value)
+                    })
+                    
+                    fulfill(result)
+                }
+            }
         }
+        
+        return x
     }
     
     public func flatMapAsyncSequential<T>(
         _ transform: @escaping (Output) async throws -> T
-    ) -> Publishers.FlatMap<Future<T, Error>, Publishers.MapError<Self, Error>> {
+    ) -> Publishers.FlatMap<Publishers.MapError<Future<T, any Error>, any Error>, Publishers.MapError<Self, any Error>> {
         let queue = ThrowingTaskQueue()
         
-        return flatMapAsync { value in
-            try await queue.perform(operation: { try await transform(value) })
+        let x = flatMap { value in
+            Future<T, Error> { fulfill in
+                queue.addTask {
+                    let result = await Result(catching: {
+                        try await transform(value)
+                    })
+                    
+                    fulfill(result)
+                }
+            }
         }
+        
+        return x
     }
 }

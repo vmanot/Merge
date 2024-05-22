@@ -24,7 +24,7 @@ public final class ThrowingTaskQueue: @unchecked Sendable {
         self.owner = owner
         self.queue = .init(policy: policy)
     }
-        
+    
     /// Spawns a task to add an action to perform.
     ///
     /// This method can be called from a synchronous context.
@@ -35,7 +35,7 @@ public final class ThrowingTaskQueue: @unchecked Sendable {
         priority: TaskPriority? = nil,
         @_implicitSelfCapture operation: @Sendable @escaping () async throws -> T
     ) {
-        Task(priority: .userInitiated) {
+        Task {
             await queue.addTask(priority: priority, operation: operation)
         }
     }
@@ -55,18 +55,17 @@ public final class ThrowingTaskQueue: @unchecked Sendable {
         }
         
         guard _Queue.queueID?.erasedAsAnyHashable != queue.id.erasedAsAnyHashable else {
-           return try await withOwnershipScope {
+            return try await withOwnershipScope {
                 try await operation()
             }
         }
         
         let semaphore = _AsyncActorSemaphore()
-        
         let resultBox = _UncheckedSendable(ReferenceBox<Result<T, AnyError>?>(nil))
         
         await semaphore.wait()
         
-        addTask {
+        addTask(priority: priority) {
             do {
                 let result = try await withOwnershipScope {
                     try await operation()
@@ -109,15 +108,15 @@ extension ThrowingTaskQueue {
         let id: (any Hashable & Sendable) = UUID()
         
         let policy: Policy
-        var previousTask: OpaqueThrowingTask? = nil
+        var previousTaskBox: ReferenceBox<OpaqueThrowingTask?> = nil
         
         init(policy: Policy) {
             self.policy = policy
         }
         
         func cancelAll() {
-            previousTask?.cancel()
-            previousTask = nil
+            previousTaskBox.wrappedValue?.cancel()
+            previousTaskBox.wrappedValue = nil
         }
         
         func addTask<T: Sendable>(
@@ -129,10 +128,10 @@ extension ThrowingTaskQueue {
             }
             
             let policy = self.policy
-            let previousTask = self.previousTask
+            let previousTaskBox = self.previousTaskBox
             
             let newTask = Task(priority: priority) { () async throws -> T in
-                if let previousTask = previousTask {
+                if let previousTask = previousTaskBox.wrappedValue {
                     if policy == .cancelPrevious {
                         previousTask.cancel()
                     }
@@ -140,14 +139,16 @@ extension ThrowingTaskQueue {
                     _ = await Result(catching: {
                         try await previousTask.value
                     })
+                    
+                    previousTaskBox.wrappedValue = nil
                 }
-                                
+                
                 return try await Self.$queueID.withValue(id) {
                     try await operation()
                 }
             }
             
-            self.previousTask = OpaqueThrowingTask(erasing: newTask)
+            self.previousTaskBox.wrappedValue = OpaqueThrowingTask(erasing: newTask)
             
             return newTask
         }

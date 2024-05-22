@@ -5,6 +5,7 @@
 #if os(macOS)
 
 import Cocoa
+import Swallow
 import System
 
 extension Pipe {
@@ -29,10 +30,13 @@ extension Pipe {
         }
         
         let fileDescriptor = FileDescriptor(rawValue: rawFileDescriptor)
+        let descriptor: UnsafeMutablePointer<FILE>? = fdopen(rawFileDescriptor, mode)
         
-        assert(fileDescriptor._isOpen)
+        if !fileDescriptor._isOpen {
+            runtimeIssue("Failed to open file descriptor for mode: \(mode)")
+        }
         
-        return fdopen(rawFileDescriptor, mode)
+        return descriptor
     }
 }
 

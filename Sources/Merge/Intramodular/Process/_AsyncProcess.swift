@@ -31,7 +31,7 @@ public class _AsyncProcess: CustomStringConvertible {
         case splitWithNewLine
         case trimming(CharacterSet)
     }
-
+    
     let progressHandler: _AsyncProcess.ProgressHandler
     let options: [Option]
     
@@ -106,7 +106,7 @@ public class _AsyncProcess: CustomStringConvertible {
                 print(text)
             }
         }
-
+        
         self.process = options.contains(._useAuthorizationExecuteWithPrivileges) ? _SecAuthorizedProcess() : Process()
         self.progressHandler = progressHandler
         self.options = options
@@ -162,8 +162,10 @@ public class _AsyncProcess: CustomStringConvertible {
         }
         
         if !options.contains(._useAuthorizationExecuteWithPrivileges) {
-            while checkTask(), interruptLater(),
-                  let data = outPipe.fileHandleForReading.availableData.nilIfEmpty()
+            while
+                checkTask(),
+                interruptLater(),
+                let data = outPipe.fileHandleForReading.availableData.nilIfEmpty()
             {
                 workItem?.cancel()
                 
@@ -173,6 +175,7 @@ public class _AsyncProcess: CustomStringConvertible {
             }
             
             while
+                errorPipe._fileDescriptorForReading._isOpen,
                 checkTask(),
                 interruptLater(),
                 let data = errorPipe.fileHandleForReading.availableData.nilIfEmpty()
@@ -257,10 +260,10 @@ public class _AsyncProcess: CustomStringConvertible {
             stderr: self.errorResult,
             terminationError: process.terminationError
         )
-                
+        
         return output
     }
-
+    
     private func _wait() async throws {
         if Thread._isMainThread {
             let stack = Thread.callStackSymbols
@@ -316,13 +319,13 @@ public class _AsyncProcess: CustomStringConvertible {
                 }
             }
         }
-                
+        
         try await handlePipesTask1.value
         
         try await handlePipes()
         
         let progressHandler = self.progressHandler
-                
+        
         switch progressHandler {
             case let .block(outputCall, errorCall):
                 if options.reportCompletion {
