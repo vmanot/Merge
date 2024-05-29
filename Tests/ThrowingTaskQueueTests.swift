@@ -7,8 +7,8 @@
 import Swallow
 import XCTest
 
-final class TaskQueueTests: XCTestCase {
-    func testReentrancy() {
+final class ThrowingTaskQueueTests: XCTestCase {
+    func testReentrancy() async throws {
         let queue = ThrowingTaskQueue()
         
         queue.addTask {
@@ -16,9 +16,11 @@ final class TaskQueueTests: XCTestCase {
                0
             }
         }
+        
+        try await queue.waitForAll()
     }
     
-    func testComplexReentrancy() {
+    func testComplexReentrancy() async throws {
         let queue = ThrowingTaskQueue()
         let queue2 = ThrowingTaskQueue()
 
@@ -29,5 +31,7 @@ final class TaskQueueTests: XCTestCase {
                 }
             }
         }
+        
+        try await queue.waitForAll()
     }
 }

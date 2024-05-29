@@ -64,9 +64,11 @@ public struct ActivityIndicatorTaskButtonStyle: TaskButtonStyle {
                 #if os(macOS)
                     ProgressView()
                         .controlSize(.small)
-                #else
+                #elseif os(iOS) || os(visionOS)
                     ProgressView()
                         .controlSize(.regular)
+                #else
+                    ProgressView()
                 #endif
             } else if configuration.status == .failure {
                 Image(systemName: "exclamationmark.triangle.fill")

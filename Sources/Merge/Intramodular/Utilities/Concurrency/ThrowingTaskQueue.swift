@@ -94,6 +94,10 @@ public final class ThrowingTaskQueue: @unchecked Sendable {
         }
     }
     
+    public func waitForAll() async throws {
+        try await queue.waitForAll()
+    }
+    
     private func withOwnershipScope<T>(
         _ block: @Sendable () async throws -> T
     ) async throws -> T {
@@ -151,6 +155,10 @@ extension ThrowingTaskQueue {
             self.previousTaskBox.wrappedValue = OpaqueThrowingTask(erasing: newTask)
             
             return newTask
+        }
+        
+        func waitForAll() async throws {
+            _ = try await previousTaskBox.wrappedValue?.value
         }
     }
 }
