@@ -7,10 +7,23 @@ import Foundation
 import Swallow
 
 public final class ThrowingTaskQueue: @unchecked Sendable {
+    public enum _UnsafeFlag {
+        case sanityCheck
+    }
+    
+    public enum _UnsafeStateFlag {
+        case isWithinPerformTaskMethodBody
+    }
+    
     public enum Policy: Sendable {
         case cancelPrevious
         case waitOnPrevious
     }
+    
+    @_OSUnfairLocked
+    public var _unsafeFlags: Set<_UnsafeFlag> = []
+    @_OSUnfairLocked
+    public var _unsafeStateFlags: Set<_UnsafeStateFlag> = []
     
     private weak var owner: AnyObject?
     private let queue: _Queue
@@ -54,10 +67,14 @@ public final class ThrowingTaskQueue: @unchecked Sendable {
             await queue.cancelAll()
         }
         
-        guard _Queue.queueID?.erasedAsAnyHashable != queue.id.erasedAsAnyHashable else {
+        if _Queue.queueID?.erasedAsAnyHashable == queue.id.erasedAsAnyHashable {
             return try await withOwnershipScope {
                 try await operation()
             }
+        }
+        
+        if _unsafeFlags.contains(.sanityCheck) {
+            assert(!_unsafeStateFlags.contains(.isWithinPerformTaskMethodBody))
         }
         
         let semaphore = _AsyncActorSemaphore()
@@ -65,6 +82,8 @@ public final class ThrowingTaskQueue: @unchecked Sendable {
         
         await semaphore.wait()
         
+        _unsafeStateFlags.insert(.isWithinPerformTaskMethodBody)
+
         addTask(priority: priority) {
             do {
                 let result = try await withOwnershipScope {
@@ -75,13 +94,17 @@ public final class ThrowingTaskQueue: @unchecked Sendable {
             } catch {
                 resultBox.wrappedValue.wrappedValue = .failure(.init(erasing: error))
             }
-            
+        
             await semaphore.signal()
         }
         
-        return try await semaphore.withCriticalScope {
+        _unsafeStateFlags.remove(.isWithinPerformTaskMethodBody)
+
+        let result: T = try await semaphore.withCriticalScope {
             return try resultBox.wrappedValue.wrappedValue!.get()
         }
+        
+        return result
     }
     
     public func cancelAll() async {
@@ -102,7 +125,9 @@ public final class ThrowingTaskQueue: @unchecked Sendable {
         _ block: @Sendable () async throws -> T
     ) async throws -> T {
         try await withDependencies(from: owner) {
-            try await block()
+            try await _Queue.$queueID.withValue(queue.id) {
+                try await block()
+            }
         }
     }
 }
@@ -131,23 +156,12 @@ extension ThrowingTaskQueue {
                 fatalError()
             }
             
-            let policy = self.policy
-            let previousTaskBox = self.previousTaskBox
+            let previousTask = self.previousTaskBox.wrappedValue
             
             let newTask = Task(priority: priority) { () async throws -> T in
-                if let previousTask = previousTaskBox.wrappedValue {
-                    if policy == .cancelPrevious {
-                        previousTask.cancel()
-                    }
-                    
-                    _ = await Result(catching: {
-                        try await previousTask.value
-                    })
-                    
-                    previousTaskBox.wrappedValue = nil
-                }
+                await self._waitForPreviousTask(previousTask)
                 
-                return try await Self.$queueID.withValue(id) {
+                return try await Self.$queueID.withValue(self.id) {
                     try await operation()
                 }
             }
@@ -155,6 +169,24 @@ extension ThrowingTaskQueue {
             self.previousTaskBox.wrappedValue = OpaqueThrowingTask(erasing: newTask)
             
             return newTask
+        }
+        
+        private func _waitForPreviousTask(_ previousTask: OpaqueThrowingTask?) async {
+            guard let previousTask else {
+                return
+            }
+            
+            let policy = self.policy
+            
+            if policy == .cancelPrevious {
+                previousTask.cancel()
+            }
+            
+            _ = await Result(catching: {
+                try await Self.$queueID.withValue(self.id) {
+                    try await previousTask.value
+                }
+            })
         }
         
         func waitForAll() async throws {
