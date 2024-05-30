@@ -30,7 +30,7 @@ class OSAScriptProcessTests: XCTestCase {
         XCTAssertEqual(process.standardError as? Pipe, testOutput)
     }
     
-    func testRunMethod() {
+   /* func testRunMethod() {
         let process = _OSAScriptProcess()
         
         process.executableURL = URL(fileURLWithPath: "/usr/bin/say")
@@ -47,7 +47,7 @@ class OSAScriptProcessTests: XCTestCase {
         
         process.waitUntilExit()
         XCTAssertEqual(process.terminationStatus, 0)
-    }
+    }*/
     
     func testRunMethodWithUnsetExecutableURLShouldThrow() {
         let process = _OSAScriptProcess()

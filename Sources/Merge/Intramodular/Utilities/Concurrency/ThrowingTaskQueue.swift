@@ -7,33 +7,25 @@ import Foundation
 import Swallow
 
 public final class ThrowingTaskQueue: @unchecked Sendable {
-    public enum _UnsafeFlag {
-        case sanityCheck
-    }
-    
-    public enum _UnsafeStateFlag {
-        case isWithinPerformTaskMethodBody
-    }
-    
-    public enum Policy: Sendable {
-        case cancelPrevious
-        case waitOnPrevious
-    }
-    
     @_OSUnfairLocked
     public var _unsafeFlags: Set<_UnsafeFlag> = []
     @_OSUnfairLocked
     public var _unsafeStateFlags: Set<_UnsafeStateFlag> = []
     
     private weak var owner: AnyObject?
-    private let queue: _Queue
+    private let queue: _TaskQueueActor
     
-    public init(policy: Policy = .waitOnPrevious) {
+    /// Returns whether there are tasks currently executing.
+    public nonisolated var isActive: Bool {
+        queue.hasActiveTasks
+    }
+    
+    public init(policy: TaskQueuePolicy = .waitOnPrevious) {
         self.owner = nil
         self.queue = .init(policy: policy)
     }
     
-    public init<Owner: AnyObject>(owner: Owner, policy: Policy = .waitOnPrevious) {
+    public init<Owner: AnyObject>(owner: Owner, policy: TaskQueuePolicy = .waitOnPrevious) {
         self.owner = owner
         self.queue = .init(policy: policy)
     }
@@ -67,8 +59,8 @@ public final class ThrowingTaskQueue: @unchecked Sendable {
             await queue.cancelAll()
         }
         
-        if _Queue.queueID?.erasedAsAnyHashable == queue.id.erasedAsAnyHashable {
-            return try await withOwnershipScope {
+        if queue.isReentrantScope {
+            return try await _withOwnershipScope {
                 try await operation()
             }
         }
@@ -83,10 +75,10 @@ public final class ThrowingTaskQueue: @unchecked Sendable {
         await semaphore.wait()
         
         _unsafeStateFlags.insert(.isWithinPerformTaskMethodBody)
-
+        
         addTask(priority: priority) {
             do {
-                let result = try await withOwnershipScope {
+                let result = try await _withOwnershipScope {
                     try await operation()
                 }
                 
@@ -94,12 +86,12 @@ public final class ThrowingTaskQueue: @unchecked Sendable {
             } catch {
                 resultBox.wrappedValue.wrappedValue = .failure(.init(erasing: error))
             }
-        
+            
             await semaphore.signal()
         }
         
         _unsafeStateFlags.remove(.isWithinPerformTaskMethodBody)
-
+        
         let result: T = try await semaphore.withCriticalScope {
             return try resultBox.wrappedValue.wrappedValue!.get()
         }
@@ -121,81 +113,21 @@ public final class ThrowingTaskQueue: @unchecked Sendable {
         try await queue.waitForAll()
     }
     
-    private func withOwnershipScope<T>(
+    private func _withOwnershipScope<T>(
         _ block: @Sendable () async throws -> T
     ) async throws -> T {
         try await withDependencies(from: owner) {
-            try await _Queue.$queueID.withValue(queue.id) {
-                try await block()
-            }
+            try await block()
         }
     }
 }
 
 extension ThrowingTaskQueue {
-    fileprivate actor _Queue: Sendable {
-        let id: (any Hashable & Sendable) = UUID()
-        
-        let policy: Policy
-        var previousTaskBox: ReferenceBox<OpaqueThrowingTask?> = nil
-        
-        init(policy: Policy) {
-            self.policy = policy
-        }
-        
-        func cancelAll() {
-            previousTaskBox.wrappedValue?.cancel()
-            previousTaskBox.wrappedValue = nil
-        }
-        
-        func addTask<T: Sendable>(
-            priority: TaskPriority?,
-            operation: @Sendable @escaping () async throws -> T
-        ) -> Task<T, Error> {
-            guard Self.queueID?.erasedAsAnyHashable != id.erasedAsAnyHashable else {
-                fatalError()
-            }
-            
-            let previousTask = self.previousTaskBox.wrappedValue
-            
-            let newTask = Task(priority: priority) { () async throws -> T in
-                await self._waitForPreviousTask(previousTask)
-                
-                return try await Self.$queueID.withValue(self.id) {
-                    try await operation()
-                }
-            }
-            
-            self.previousTaskBox.wrappedValue = OpaqueThrowingTask(erasing: newTask)
-            
-            return newTask
-        }
-        
-        private func _waitForPreviousTask(_ previousTask: OpaqueThrowingTask?) async {
-            guard let previousTask else {
-                return
-            }
-            
-            let policy = self.policy
-            
-            if policy == .cancelPrevious {
-                previousTask.cancel()
-            }
-            
-            _ = await Result(catching: {
-                try await Self.$queueID.withValue(self.id) {
-                    try await previousTask.value
-                }
-            })
-        }
-        
-        func waitForAll() async throws {
-            _ = try await previousTaskBox.wrappedValue?.value
-        }
+    public enum _UnsafeFlag {
+        case sanityCheck
     }
-}
-
-extension ThrowingTaskQueue._Queue {
-    @TaskLocal
-    fileprivate static var queueID: (any Hashable & Sendable)?
+    
+    public enum _UnsafeStateFlag {
+        case isWithinPerformTaskMethodBody
+    }
 }

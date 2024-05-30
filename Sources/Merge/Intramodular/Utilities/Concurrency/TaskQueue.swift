@@ -6,21 +6,21 @@ import Combine
 import FoundationX
 import Swallow
 
+public enum TaskQueuePolicy: Sendable {
+    case cancelPrevious
+    case waitOnPrevious
+}
+
 public final class TaskQueue: Sendable {
-    private struct _State: Sendable {
-        var isTaskInProgress: Bool = false
-    }
-    
-    private let state = _OSUnfairLocked<_State>(wrappedValue: .init())
-    private let queue: _Queue
-    
-    public init() {
-        self.queue = .init()
-    }
+    private let queue: _TaskQueueActor
     
     /// Returns whether there are tasks currently executing.
     public nonisolated var isActive: Bool {
         queue.hasActiveTasks
+    }
+    
+    public init() {
+        self.queue = .init(policy: .waitOnPrevious)
     }
     
     /// Spawns a task to add an action to perform, with optional debouncing.
@@ -51,7 +51,11 @@ public final class TaskQueue: Sendable {
     public func perform<T: Sendable>(
         @_implicitSelfCapture operation: @Sendable @escaping () async -> T
     ) async -> T {
-        guard _Queue.queueID?.erasedAsAnyHashable != queue.id.erasedAsAnyHashable else {
+        if queue.policy == .cancelPrevious {
+            await queue.cancelAll()
+        }
+        
+        if queue.isReentrantScope {
             return await operation()
         }
         
@@ -69,66 +73,10 @@ public final class TaskQueue: Sendable {
     }
     
     public func waitForAll() async {
-        await queue.waitForAll()
-    }
-}
-
-extension TaskQueue {
-    fileprivate actor _Queue: Sendable {
-        private struct _State: Sendable {
-            var previousTask: OpaqueTask? = nil
-        }
-        
-        private nonisolated let state = _OSUnfairLocked<_State>(wrappedValue: .init())
-        
-        let id: (any Hashable & Sendable) = UUID()
-        
-        nonisolated var hasActiveTasks: Bool {
-            state.previousTask != nil
-        }
-        
-        func cancelAll() {
-            state.previousTask?.cancel()
-            state.previousTask = nil
-        }
-        
-        func addTask<T: Sendable>(
-            priority: TaskPriority?,
-            operation: @Sendable @escaping () async -> T
-        ) -> Task<T, Never> {
-            guard Self.queueID?.erasedAsAnyHashable != id.erasedAsAnyHashable else {
-                fatalError()
-            }
-            
-            let previousTask = self.state.previousTask
-            let newTask = Task(priority: priority) { () async -> T in
-                if let previousTask = previousTask {
-                    _ = await previousTask.value
-                }
-                
-                return await Self.$queueID.withValue(id) {
-                    await operation()
-                }
-            }
-            
-            self.state.previousTask = OpaqueTask(erasing: newTask)
-            
-            return newTask
-        }
-        
-        func waitForAll() async {
-            guard let last = state.previousTask else {
-                return
-            }
-            
-            _ = await last.value
+        #try(.optimistic) {
+            try await queue.waitForAll()
         }
     }
-}
-
-extension TaskQueue._Queue {
-    @TaskLocal
-    fileprivate static var queueID: (any Hashable & Sendable)?
 }
 
 // MARK: - Supplementary
@@ -145,4 +93,20 @@ public func withTaskQueue<ChildTaskResult, Result>(
     await queue.waitForAll()
     
     return result
+}
+
+public func withThrowingTaskQueue<ChildTaskResult, Result>(
+    of childTaskResultType: ChildTaskResult.Type,
+    returning returnType: Result.Type = Result.self,
+    body: (ThrowingTaskQueue) async throws -> Result
+) async throws -> Result {
+    let queue = ThrowingTaskQueue()
+    
+    let result = await Swift.Result(catching: {
+        try await body(queue)
+    })
+    
+    try await queue.waitForAll()
+    
+    return try result.get()
 }
