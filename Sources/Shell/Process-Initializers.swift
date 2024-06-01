@@ -15,15 +15,22 @@ extension Process {
         case unspecified
     }
     
-    public struct ArgumentLiteral: ExpressibleByStringLiteral {
+    public struct ArgumentLiteral: Hashable, ExpressibleByStringLiteral, Sendable {
+        public enum Option: Hashable, Sendable {
+            case escapeSpaces
+        }
+        
         let value: String
+        let options: Set<Option>
         let isQuoted: Bool
         
         public init(
             _ value: String,
+            options: Set<Option> = [.escapeSpaces],
             isQuoted: Bool = false
         ) {
             self.value = value
+            self.options = options
             self.isQuoted = isQuoted
         }
         
@@ -34,18 +41,24 @@ extension Process {
         /// Returns the argument value with necessary escape characters, optionally wrapped in quotes.
         /// Handles escaping quotes within quoted arguments (Example: Nested Quotes for "echo \"John said, 'Hello'\"").
         public var escapedValue: String {
-            var escaped = value
+            var result = value
+            
             if isQuoted {
-                escaped = escaped.replacingOccurrences(of: "\\", with: "\\\\") // First escape backslashes
-                escaped = escaped.replacingOccurrences(of: "\"", with: "\\\"") // Then escape double quotes
-                escaped = "\"" + escaped + "\"" // Wrap the whole argument in quotes
+                result = result.replacingOccurrences(of: "\\", with: "\\\\") // First escape backslashes
+                result = result.replacingOccurrences(of: "\"", with: "\\\"") // Then escape double quotes
+                result = "\"" + result + "\"" // Wrap the whole argument in quotes
             } else {
-                escaped = escaped.replacingOccurrences(of: "\\", with: "\\\\") // Escape backslashes
-                escaped = escaped.replacingOccurrences(of: " ", with: "\\ ") // Escape spaces
-                escaped = escaped.replacingOccurrences(of: "'", with: "\\'") // Escape single quotes
-                escaped = escaped.replacingOccurrences(of: "\"", with: "\\\"") // Escape double quotes
+                result = result.replacingOccurrences(of: "\\", with: "\\\\") // Escape backslashes
+                
+                if options.contains(.escapeSpaces) {
+                    result = result.replacingOccurrences(of: " ", with: "\\ ") // Escape spaces
+                }
+                
+                result = result.replacingOccurrences(of: "'", with: "\\'") // Escape single quotes
+                result = result.replacingOccurrences(of: "\"", with: "\\\"") // Escape double quotes
             }
-            return escaped
+            
+            return result
         }
     }
     
