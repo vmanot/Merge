@@ -81,22 +81,15 @@ public final class ObservableArray<Element: ObservableObject>: MutablePropertyWr
     }
     
     private func resubscribeToAll() {
-        let oldCancellables = self.cancellables
-        var newCancellables = [ObjectIdentifier: AnyCancellable](minimumCapacity: storage.count)
-        
+        guard !self.storage.isEmpty else {
+            return
+        }
+                
         for element in storage {
-            let id = ObjectIdentifier(element)
-            
-            if let cancellable = oldCancellables[id] {
-                newCancellables[id] = cancellable
-            } else {
-                newCancellables[id] = element.objectWillChange.sink { [weak self] _ in
-                    self?.objectWillChange.send()
-                }
-            }
+            subscribe(to: element, resubscribeIfNeeded: true)
         }
         
-        self.cancellables = newCancellables
+        assert(self.cancellables.count == storage.count)
     }
     
     private func setUpObjectWillChangeRelay<T>(
@@ -106,16 +99,25 @@ public final class ObservableArray<Element: ObservableObject>: MutablePropertyWr
         objectWillChangeRelay.destination = enclosingInstance
     }
 
-    private func subscribe(to element: Element) {
+    private func subscribe(
+        to element: Element,
+        resubscribeIfNeeded: Bool = false
+    ) {
         let id = ObjectIdentifier(element)
         
-        guard cancellables[id] == nil else {
-            return
+        if !resubscribeIfNeeded {
+            guard cancellables[id] == nil else {
+                return
+            }
         }
-        
-        cancellables[id] = element.objectWillChange.sink { [weak self] _ in
-            self?.objectWillChange.send()
+            
+        cancellables[id] = element.objectWillChange.sink { [weak self, weak element] _ in
+            self?._forwardObjectWillChangeEvent(from: element)
         }
+    }
+    
+    private func _forwardObjectWillChangeEvent(from element: Element?) {
+        objectWillChange.send()
     }
     
     private func unsubscribe(from elementID: ObjectIdentifier) {

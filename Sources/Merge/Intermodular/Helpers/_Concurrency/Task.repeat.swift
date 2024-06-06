@@ -11,7 +11,7 @@ extension Task where Success == Void, Failure == Error {
     /// Runs the given asynchronous operation repeatedly while a given predicate evaluates to `true`.
     @discardableResult
     public static func `repeat`(
-        while predicate: @escaping @Sendable () throws -> Bool,
+        while predicate: @escaping () throws -> Bool,
         maxRepetitions: Int = Int.max,
         _ operation: @escaping () async throws -> Void
     ) -> Task<Success, Failure> {
@@ -19,6 +19,30 @@ extension Task where Success == Void, Failure == Error {
             var numberOfRepetitions: Int = 0
             
             while try numberOfRepetitions <= maxRepetitions && (try predicate())  {
+                try await operation()
+                
+                numberOfRepetitions += 1
+            }
+        }
+    }
+    
+    /// Runs the given asynchronous operation repeatedly while a given predicate evaluates to `true`.
+    @discardableResult
+    public static func `repeat`(
+        while predicate: @escaping () async throws -> Bool,
+        maxRepetitions: Int = Int.max,
+        _ operation: @escaping () async throws -> Void
+    ) -> Task<Success, Failure> {
+        Task {
+            var numberOfRepetitions: Int = 0
+            
+            while numberOfRepetitions <= maxRepetitions {
+                let shouldContinue = try await predicate()
+                
+                guard shouldContinue else {
+                    break
+                }
+                
                 try await operation()
                 
                 numberOfRepetitions += 1

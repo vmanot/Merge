@@ -52,18 +52,14 @@ public final class PublishedObject<Value>: PropertyWrapper {
         get {
             let published = enclosingInstance[keyPath: storageKeyPath]
             
-            if published.wrappedValue is any ObservableObject {
-                published.setUpObjectWillChangeRelays(from: published.wrappedValue, to: enclosingInstance)
-            }
-            
+            published.setUpObjectWillChangeRelays(from: published.wrappedValue, to: enclosingInstance)
+
             return published.wrappedValue
         } set {
             let published = enclosingInstance[keyPath: storageKeyPath]
                         
-            if newValue is any ObservableObject {
-                published.setUpObjectWillChangeRelays(from: newValue, to: enclosingInstance)
-            }
-            
+            published.setUpObjectWillChangeRelays(from: newValue, to: enclosingInstance)
+
             published.wrappedValue = newValue
         }
     }
@@ -72,11 +68,15 @@ public final class PublishedObject<Value>: PropertyWrapper {
         from value: WrappedValue,
         to enclosingInstance: T
     ) {
-        objectWillChangeRelay.source = value
-        objectWillChangeRelay.destination = enclosingInstance
-        
-        if let wrappedValueBoxRelay = _wrappedValueBoxWillChangeRelay, wrappedValueBoxRelay.destination == nil {
-            wrappedValueBoxRelay.destination = enclosingInstance
+        if objectWillChangeRelay.isUninitialized {
+            objectWillChangeRelay.source = value
+            objectWillChangeRelay.destination = enclosingInstance
+        }
+         
+        if let wrappedBoxRelay = _wrappedValueBoxWillChangeRelay, wrappedBoxRelay.isUninitialized {
+            assert(wrappedBoxRelay.source != nil)
+            
+            wrappedBoxRelay.destination = enclosingInstance
         }
     }
     
