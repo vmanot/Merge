@@ -20,6 +20,7 @@ public final class PublishedObject<Value>: PropertyWrapper {
     @MutableValueBox
     public var _wrappedValue: Value
     
+    @MainActor
     public var wrappedValue: Value {
         get {
             _wrappedValue
@@ -36,6 +37,7 @@ public final class PublishedObject<Value>: PropertyWrapper {
         self
     }
     
+    @MainActor(unsafe)
     public var assignmentPublisher: AnyPublisher<Value, Never> {
         _assignmentPublisher
             .compactMap { [weak self] in
@@ -44,6 +46,7 @@ public final class PublishedObject<Value>: PropertyWrapper {
             .eraseToAnyPublisher()
     }
         
+    @MainActor
     public static subscript<EnclosingSelf: ObservableObject>(
         _enclosingInstance enclosingInstance: EnclosingSelf,
         wrapped wrappedKeyPath: ReferenceWritableKeyPath<EnclosingSelf, Value>,
@@ -123,24 +126,28 @@ public final class PublishedObject<Value>: PropertyWrapper {
 // MARK: - Conditional Conformances
 
 extension PublishedObject: Equatable where Value: Equatable {
+    @MainActor(unsafe)
     public static func == (lhs: PublishedObject, rhs: PublishedObject) -> Bool {
         lhs.wrappedValue == rhs.wrappedValue
     }
 }
 
 extension PublishedObject: Hashable where Value: Hashable {
+    @MainActor(unsafe)
     public func hash(into hasher: inout Hasher) {
         hasher.combine(wrappedValue)
     }
 }
 
 extension PublishedObject: Decodable where Value: Decodable & ObservableObject {
+    @MainActor(unsafe)
     public convenience init(from decoder: Decoder) throws {
         try self.init(wrappedValue: WrappedValue(from: decoder))
     }
 }
 
 extension PublishedObject: Encodable where Value: Encodable {
+    @MainActor(unsafe)
     public func encode(to encoder: Encoder) throws {
         try wrappedValue.encode(to: encoder)
     }
@@ -190,7 +197,12 @@ public final class ObjectWillChangePublisherRelay<Source, Destination>: Observab
     private var destinationObjectWillChangePublisher: _opaque_VoidSender?
     private var subscription: AnyCancellable?
     
-    public init(source: Source? = nil, destination: Destination? = nil) {
+    public var _allowPublishingChangesFromBackgroundThreads: Bool = false
+    
+    public init(
+        source: Source? = nil,
+        destination: Destination? = nil
+    ) {
         self.source = source
         self.destination = destination
     }
@@ -199,6 +211,7 @@ public final class ObjectWillChangePublisherRelay<Source, Destination>: Observab
         self.init(source: nil, destination: nil)
     }
     
+    @MainActor
     public func send() {
         guard let destinationObjectWillChangePublisher else {
             if subscription != nil, destination != nil {
@@ -208,11 +221,21 @@ public final class ObjectWillChangePublisherRelay<Source, Destination>: Observab
             return
         }
         
-        if !Thread.isMainThread {
-            runtimeIssue("Publishing changes from background threads is not allowed.")
+        if _allowPublishingChangesFromBackgroundThreads {
+            DispatchQueue.asyncOnMainIfNecessary {
+                if !Thread.isMainThread {
+                    runtimeIssue("Publishing changes from background threads is not allowed.")
+                }
+                
+                destinationObjectWillChangePublisher.send()
+            }
+        } else {
+            if !Thread.isMainThread {
+                runtimeIssue("Publishing changes from background threads is not allowed.")
+            }
+            
+            destinationObjectWillChangePublisher.send()
         }
-        
-        destinationObjectWillChangePublisher.send()
     }
     
     private func updateSubscription() {

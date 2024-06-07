@@ -13,7 +13,7 @@ open class PassthroughTask<Success, Error: Swift.Error>: ObservableTask {
     public typealias Body = (PassthroughTask) -> AnyCancellable
     public typealias Status = TaskStatus<Success, Error>
     
-    private let lock = OSUnfairLock()
+    private let lock = NSRecursiveLock()
     
     private let _objectWillChange = _AsyncObjectWillChangePublisher()
     private let _objectDidChange = PassthroughSubject<Status, Never>()

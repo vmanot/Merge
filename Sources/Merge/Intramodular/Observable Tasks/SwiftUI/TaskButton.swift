@@ -22,14 +22,23 @@ public struct TaskButton<Success, Error: Swift.Error, Label: View>: View {
     @State package var lastTask: AnyTask<Success, Error>?
     
     package final class _CurrentTaskBox: ObservableObject {
-        @PublishedObject var wrappedValue: AnyTask<Success, Error>?
+        private let objectWillChangeRelay = ObjectWillChangePublisherRelay()
+        
+        var wrappedValue: AnyTask<Success, Error>? {
+            didSet {
+                objectWillChangeRelay.source = wrappedValue
+            }
+        }
         
         init() {
-            
+            objectWillChangeRelay._allowPublishingChangesFromBackgroundThreads = true
+            objectWillChangeRelay.destination = self
         }
     }
     
     @StateObject package var currentTaskBox = _CurrentTaskBox()
+    @State package var taskRenewalSubscription: AnyCancellable?
+    @State package var wantsToDisplayLastTaskStatus: Bool = false
     
     public var currentTask: AnyTask<Success, Error>? {
         get {
@@ -38,10 +47,7 @@ public struct TaskButton<Success, Error: Swift.Error, Label: View>: View {
             currentTaskBox.wrappedValue = newValue
         }
     }
-    
-    @State package var taskRenewalSubscription: AnyCancellable?
-    @State package var wantsToDisplayLastTaskStatus: Bool = false
-    
+
     private var animation: MaybeKnown<Animation?> = .known(.default)
     
     private var task: AnyTask<Success, Error>? {
