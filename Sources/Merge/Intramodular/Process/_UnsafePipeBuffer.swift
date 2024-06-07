@@ -25,8 +25,11 @@ package class _UnsafePipeBuffer {
         
         self.pipe.fileHandleForReading.readabilityHandler = { handler in
             self.semaphore.enter()
+            
             let data = handler.availableData
+            
             self.buffer.append(contentsOf: data)
+            
             self.semaphore.leave()
         }
     }

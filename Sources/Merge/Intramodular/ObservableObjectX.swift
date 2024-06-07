@@ -20,15 +20,15 @@ private var _objectDidChange_objcAssociationKey: UInt = 0
 
 extension _ObservableObjectX where ObjectDidChangePublisher == _ObjectDidChangePublisher {
     public var objectDidChange: ObjectDidChangePublisher {
+        objc_sync_enter(self)
+
+        defer {
+            objc_sync_exit(self)
+        }
+
         if let result = objc_getAssociatedObject(self, &_objectDidChange_objcAssociationKey) as? ObjectDidChangePublisher {
             return result
         } else {
-            objc_sync_enter(self)
-            
-            defer {
-                objc_sync_exit(self)
-            }
-            
             let publisher = ObjectDidChangePublisher()
             
             objc_setAssociatedObject(
@@ -37,6 +37,8 @@ extension _ObservableObjectX where ObjectDidChangePublisher == _ObjectDidChangeP
                 publisher,
                 .OBJC_ASSOCIATION_RETAIN
             )
+            
+            assert((objc_getAssociatedObject(self, &_objectDidChange_objcAssociationKey) as? ObjectDidChangePublisher) != nil)
             
             return publisher
         }
@@ -51,6 +53,11 @@ public final class _ObjectDidChangePublisher: Publisher, Subject, @unchecked Sen
     
     private let lock = OSUnfairLock()
     private let base = PassthroughSubject<Void, Never>()
+    
+    @_spi(Internal)
+    public init() {
+        
+    }
     
     public func receive(
         subscriber: some Subscriber<Output, Failure>

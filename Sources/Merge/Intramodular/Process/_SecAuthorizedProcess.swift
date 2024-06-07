@@ -21,42 +21,65 @@ class _SecAuthorizedProcess: Process {
     var _isRunning: Bool = false
     
     override var launchPath: String? {
-        get { _launchPath }
-        set { _launchPath = newValue }
+        get {
+            _launchPath
+        } set {
+            _launchPath = newValue
+        }
     }
     
     override var currentDirectoryURL: URL? {
-        get { _currentDirectoryURL }
-        set { _currentDirectoryURL = newValue }
+        get {
+            _currentDirectoryURL
+        } set {
+            _currentDirectoryURL = newValue
+        }
     }
     
     override var arguments: [String]? {
-        get { _arguments }
-        set { _arguments = newValue }
+        get {
+            _arguments
+        } set {
+            _arguments = newValue
+        }
     }
     
     override var environment: [String : String]? {
-        get { _environment }
-        set { _environment = newValue }
+        get {
+            _environment
+        } set {
+            _environment = newValue
+        }
     }
     
     override var standardOutput: Any? {
-        get { _standardOutput }
-        set { _standardOutput = newValue as? Pipe }
+        get {
+            _standardOutput
+        } set {
+            _standardOutput = newValue as? Pipe
+        }
     }
     
     override var standardError: Any? {
-        get { _standardError }
-        set { _standardError = newValue as? Pipe }
+        get {
+            _standardError
+        } set {
+            _standardError = newValue as? Pipe
+        }
     }
     
     override var terminationHandler: (@Sendable (Process) -> Void)? {
-        get { _terminationHandler }
-        set { _terminationHandler = newValue }
+        get {
+            _terminationHandler
+        } set {
+            _terminationHandler = newValue
+        }
     }
     
     override var terminationStatus: Int32 {
-        get { _terminationStatus ?? super.terminationStatus }
+        get {
+            _terminationStatus ?? super.terminationStatus
+        }
     }
     
     override var terminationReason: Process.TerminationReason {
