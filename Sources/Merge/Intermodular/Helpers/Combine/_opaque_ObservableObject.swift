@@ -5,7 +5,7 @@
 import Combine
 import Swallow
 
-public protocol _opaque_ObservableObject {
+public protocol _opaque_ObservableObject: ObservableObject {
     var _opaque_objectWillChange: AnyObjectWillChangePublisher { get }
     
     func _opaque_objectWillChange_send() throws

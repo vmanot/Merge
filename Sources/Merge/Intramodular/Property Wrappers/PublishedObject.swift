@@ -48,7 +48,7 @@ public final class PublishedObject<Value>: PropertyWrapper {
         _enclosingInstance enclosingInstance: EnclosingSelf,
         wrapped wrappedKeyPath: ReferenceWritableKeyPath<EnclosingSelf, Value>,
         storage storageKeyPath: ReferenceWritableKeyPath<EnclosingSelf, PublishedObject>
-    ) -> Value where EnclosingSelf.ObjectWillChangePublisher: _opaque_VoidSender {
+    ) -> Value {
         get {
             let published = enclosingInstance[keyPath: storageKeyPath]
             

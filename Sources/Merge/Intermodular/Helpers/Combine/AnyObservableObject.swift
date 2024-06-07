@@ -6,7 +6,7 @@ import Combine
 import Swift
 
 public final class AnyObservableObject<Output, Failure: Error>: ObservableObject {
-    public let base: AnyObject
+    public let base: any ObservableObject
     public let objectWillChange: AnyPublisher<Output, Failure>
     
     public init<T: ObservableObject>(
@@ -18,16 +18,16 @@ public final class AnyObservableObject<Output, Failure: Error>: ObservableObject
     }
     
     public init(
-        _ base: _opaque_ObservableObject
+        _ base: any _opaque_ObservableObject
     ) where Output == AnyObjectWillChangePublisher.Output, Failure == AnyObjectWillChangePublisher.Failure  {
-        self.base = base as AnyObject
+        self.base = base as (any ObservableObject)
         self.objectWillChange = base._opaque_objectWillChange.eraseToAnyPublisher()
     }
     
     fileprivate init<T: ObservableObject>(
         _erasing base: T
     ) where Output == AnyObjectWillChangePublisher.Output, Failure == AnyObjectWillChangePublisher.Failure  {
-        self.base = base as AnyObject
+        self.base = base as (any ObservableObject)
         self.objectWillChange = base._opaque_objectWillChange.eraseToAnyPublisher()
     }
 }

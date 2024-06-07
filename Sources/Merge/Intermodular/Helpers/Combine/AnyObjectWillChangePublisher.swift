@@ -5,29 +5,45 @@
 import Combine
 import Swallow
 
-public struct AnyObjectWillChangePublisher: Publisher {
+public final class AnyObjectWillChangePublisher: Publisher {
     public typealias Output = Void
     public typealias Failure = Never
     
     private let base: AnyPublisher<Void, Never>
-        
-    private init(base: AnyPublisher<Void, Never>) {
-        self.base = base
+    private let _send: () -> Void
+    
+    fileprivate init<P: Publisher>(
+        publisher: P
+    ) where P.Failure == Never {
+        self.base = publisher.mapTo(()).eraseToAnyPublisher()
+        self._send = {
+            do {
+                try cast(publisher, to: _opaque_VoidSender.self).send()
+            } catch {
+                runtimeIssue(error)
+            }
+        }
     }
     
-    public init(erasing publisher: ObservableObjectPublisher) {
-        self.init(base: publisher.mapTo(()).eraseToAnyPublisher())
+    public convenience init(
+        erasing publisher: ObservableObjectPublisher
+    ) {
+        self.init(publisher: publisher)
     }
 
-    public init<Object: ObservableObject>(from object: Object) {
-        self.init(base: object.objectWillChange.mapTo(()).eraseToAnyPublisher())
+    public convenience init<Object: ObservableObject>(
+        from object: Object
+    ) {
+        self.init(publisher: object.objectWillChange)
     }
         
-    public func receive<S: Subscriber>(subscriber: S) where S.Input == Output, S.Failure == Failure {
+    public func receive<S: Subscriber>(
+        subscriber: S
+    ) where S.Input == Output, S.Failure == Failure {
         base.receive(subscriber: subscriber)
     }
     
-    public init?(from object: AnyObject) {
+    public convenience init?(from object: AnyObject) {
         let observableObject: (any ObservableObject)?
         
         if let wrappedValue = object as? (any OptionalProtocol) {
@@ -51,7 +67,14 @@ public struct AnyObjectWillChangePublisher: Publisher {
 // MARK: - Supplementary -
 
 extension AnyObjectWillChangePublisher {
-    public static var empty: Self {
-        .init(base: Empty().eraseToAnyPublisher())
+    public static var empty: AnyObjectWillChangePublisher {
+        AnyObjectWillChangePublisher(publisher: Empty<Void, Never>().eraseToAnyPublisher())
     }
 }
+
+extension AnyObjectWillChangePublisher: _opaque_VoidSender {
+    public func send() {
+        _send()
+    }
+}
+
