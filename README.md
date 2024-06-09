@@ -47,7 +47,7 @@ struct MyObjectViewModel {
     @PublishedObject var objects: [MyObject] = []
 }
 
-// a class that comforms to ObservableObject protocol
+// a class that comforms to the ObservableObject protocol
 class MyObject: ObservableObject {
     @Published var someText: String
     
