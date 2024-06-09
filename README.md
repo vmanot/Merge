@@ -38,6 +38,25 @@ public protocol ObservableTask: Identifiable, ObservableObject where
 
 An observable task can be thought of a status-reporting publisher subscription. 
 
+## `@PublishedObject`
+The `@PublishedObject` property wrapper extends the capabilities of the `@Published` property wrapper to instances that conform to the `ObservableObject` protocol. This allows for automatic observation and reaction to changes within objects that are marked as observable.
+
+```swift
+struct MyObjectViewModel {
+    @PublishedObject var currentObject: MyObject? = nil
+    @PublishedObject var objects: [MyObject] = []
+}
+
+// a class that comforms to ObservableObject protocol
+class MyObject: ObservableObject {
+    @Published var someText: String
+    
+    init(someText: String) {
+        self.someText = someText
+    }
+}
+```
+
 #### Motivation
 
 While **Combine** publishers are great, they're not suited for complex task management for the following reasons:
