@@ -20,7 +20,7 @@ public final class ObservableArray<Element: ObservableObject>: MutablePropertyWr
         willSet {
             objectWillChange.send()
         } didSet {
-            resubscribeToAll()
+            resubscribeToAll(oldValue: oldValue)
             
             objectDidChange.send()
         }
@@ -80,13 +80,22 @@ public final class ObservableArray<Element: ObservableObject>: MutablePropertyWr
         self.init(storage: elements)
     }
     
-    private func resubscribeToAll() {
+    private func resubscribeToAll(oldValue: [Element]? = nil) {
         guard !self.storage.isEmpty else {
             return
         }
                 
         for element in storage {
             subscribe(to: element, resubscribeIfNeeded: true)
+        }
+        
+        if let oldValue {
+            let removedObjects = oldValue._mapToSet({ _ObjectIdentifierIdentified($0) }).subtracting(self.storage._mapToSet({ _ObjectIdentifierIdentified($0) }))
+            
+            for removedObject in removedObjects {
+                self.cancellables[removedObject.id]?.cancel()
+                self.cancellables[removedObject.id] = nil
+            }
         }
         
         assert(self.cancellables.count == storage.count)
