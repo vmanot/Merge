@@ -111,6 +111,55 @@ extension TaskButton {
             label()
         }
     }
+    
+    public init(
+        priority: TaskPriority?,
+        action: @escaping @MainActor @Sendable () async throws -> Success,
+        @ViewBuilder label: @escaping (TaskStatus<Success, AnyError>) -> Label
+    ) where Error == Swift.Error {
+        self.init {
+            Task(priority: priority) { @MainActor in
+                try await action()
+            }
+            .convertToObservableTask()
+        } label: { status in
+            label(status.mapError({ AnyError(erasing: $0) }))
+        }
+    }
+    
+    public init(
+        priority: TaskPriority?,
+        action: @escaping @MainActor @Sendable () async throws -> Success,
+        @ViewBuilder label: @escaping (TaskStatus<Swallow.EmptyValue, AnyError>) -> Label
+    ) where Success == Void, Error == Swift.Error {
+        self.init {
+            Task(priority: priority) { @MainActor in
+                try await action()
+            }
+            .convertToObservableTask()
+        } label: { status in
+            let status: TaskStatus<Swallow.EmptyValue, AnyError> = status
+                .map({ _ in Swallow.EmptyValue() })
+                .mapError({ AnyError(erasing: $0) })
+            
+            label(status)
+        }
+    }
+    
+    public init(
+        priority: TaskPriority?,
+        action: @escaping @MainActor @Sendable () async throws -> Success,
+        @ViewBuilder label: @escaping () -> Label
+    ) where Error == Swift.Error {
+        self.init {
+            Task(priority: priority) { @MainActor in
+                try await action()
+            }
+            .convertToObservableTask()
+        } label: {
+            label()
+        }
+    }
 }
 
 @available(iOS 14.0, macOS 11.0, tvOS 14.0, watchOS 7.0, *)

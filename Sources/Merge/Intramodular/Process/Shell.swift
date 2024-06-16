@@ -68,7 +68,10 @@ extension Shell {
             .splitWithNewLine
         ]
         
-        let process = _AsyncProcess(progressHandler: progressHandler, options: options)
+        let process = _AsyncProcess(
+            progressHandler: progressHandler,
+            options: options
+        )
         
         let (launchPath, arguments) = try await environment.env(command: command)
         
@@ -79,8 +82,7 @@ extension Shell {
         process.process!.launchPath = launchPath
         process.process!.arguments = arguments
         
-        if let input = input?.data(using: .utf8), !input.isEmpty,
-           let handle = process.inputPipe?.fileHandleForWriting {
+        if let input = input?.data(using: .utf8), !input.isEmpty, let handle = process.inputPipe?.fileHandleForWriting {
             try? handle.write(contentsOf: input)
             try? handle.close()
         }
