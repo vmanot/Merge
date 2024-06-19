@@ -13,7 +13,7 @@ extension Publisher {
     ) -> Publishers.Throttle<Self, MainThreadScheduler> {
         self.throttle(for: stride, scheduler: MainThreadScheduler.shared, latest: latest)
     }
-
+    
     public func debounce(
         for stride: DispatchQueue.SchedulerTimeType.Stride
     ) -> Publishers.Debounce<Self, MainThreadScheduler> {
@@ -32,7 +32,7 @@ extension Publisher {
     public func printOnError() -> Publishers.HandleEvents<Self> {
         handleError({ Swift.print($0) })
     }
-
+    
     public func succeeds() -> AnyPublisher<Bool, Never> {
         map({ _ in true })
             .reduce(true, { $0 && $1 })
@@ -57,15 +57,22 @@ extension Publisher {
 }
 
 extension Publisher {
+    @available(*, deprecated, renamed: "sinkAsync")
     public func _asyncSink(
+        receiveValue: @escaping (Output) -> Void
+    ) async throws {
+       try await sinkAsync(receiveValue: receiveValue)
+    }
+    
+    public func sinkAsync(
         receiveValue: @escaping (Output) -> Void
     ) async throws {
         let cancellable = SingleAssignmentAnyCancellable()
         
-        try await withUnsafeThrowingContinuation { (continuation: UnsafeContinuation<Void, Error>) in
+        let result: Void = try await withUnsafeThrowingContinuation { (continuation: UnsafeContinuation<Void, Error>) in
             cancellable.set(
                 sink(
-                    receiveCompletion: { completion in
+                    receiveCompletion: { (completion: Subscribers.Completion<Self.Failure>) in
                         switch completion {
                             case .finished:
                                 continuation.resume(returning: ())
@@ -77,6 +84,10 @@ extension Publisher {
                 )
             )
         }
+        
+        try Task.checkCancellation()
+        
+        return result
     }
     
     public func sendValues<E>(

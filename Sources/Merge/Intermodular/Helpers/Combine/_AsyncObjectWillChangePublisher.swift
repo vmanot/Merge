@@ -44,4 +44,21 @@ extension _AsyncObjectWillChangePublisher {
             f(self.base.upstream)
         }
     }
+    
+    @MainActor(unsafe)
+    public func run(
+        _ f: @escaping @MainActor () -> Void
+    ) async {
+        let runOnMainThread = base.withGuaranteedSubscriberCount { count -> Bool in
+            return count != 0
+        }
+        
+        if runOnMainThread {
+            await MainActor.run {
+                f()
+            }
+        } else {
+            f()
+        }
+    }
 }
