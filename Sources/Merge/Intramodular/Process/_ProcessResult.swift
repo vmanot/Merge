@@ -7,11 +7,19 @@
 import FoundationX
 import Swallow
 
+/// A type that represents the result of a running a `Process`.
 public final class _ProcessResult: Logging, @unchecked Sendable {
     public let process: Process
     public let stdout: Data
     public let stderr: Data
     public let terminationError: Process.TerminationError?
+    
+    /// A convenience property to get lines of the standard output, whitespace and newline trimmed.
+    public var lines: [String] {
+        get throws {
+            try stdout.toStringTrimmingWhitespacesAndNewlines().unwrap().lines().map({ $0.trimmingCharacters(in: .whitespacesAndNewlines) })
+        }
+    }
     
     package init(
         process: Process,
@@ -40,11 +48,11 @@ public final class _ProcessResult: Logging, @unchecked Sendable {
     }
     
     public var stdoutString: String? {
-        stdout.toStringTrimmingWhitespacesAndNewlines()
+        stdout.toStringTrimmingWhitespacesAndNewlines().nilIfEmpty()
     }
     
     public var stderrString: String? {
-        stderr.toStringTrimmingWhitespacesAndNewlines()
+        stderr.toStringTrimmingWhitespacesAndNewlines().nilIfEmpty()
     }
     
     public func toString() throws -> String {

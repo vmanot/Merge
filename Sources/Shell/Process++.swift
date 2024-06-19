@@ -124,7 +124,7 @@ extension Process {
 }
 
 extension Process {    
-    public func runReturningAllOutput() throws -> _ProcessResult {
+    public func _runSync() throws -> _ProcessResult {
         let stdout = _UnsafePipeBuffer(id: .stdout)
         let stderr = _UnsafePipeBuffer(id: .stderr)
         
@@ -143,36 +143,40 @@ extension Process {
         )
     }
     
-    public func runReturningAllOutput() async throws -> _ProcessResult {
+    public func _runAsync() async throws -> _ProcessResult {
         let stdout = _AsyncUnsafePipeBuffer(id: .stdout)
         let stderr = _AsyncUnsafePipeBuffer(id: .stderr)
         
         self.standardOutput = await stdout.pipe
         self.standardError = await stderr.pipe
         
-        return try await withCheckedThrowingContinuation  { (continuation: CheckedContinuation<_ProcessResult, Error>) in
-            self.terminationHandler = { process in
-                _Concurrency.Task {
-                    do {
-                        continuation.resume(
-                            returning: _ProcessResult(
-                                process: self,
-                                stdout: try await stdout.closeReturningData(),
-                                stderr: try await stderr.closeReturningData(),
-                                terminationError: process.terminationError
+        return try await withTaskCancellationHandler {
+            return try await withCheckedThrowingContinuation  { (continuation: CheckedContinuation<_ProcessResult, Error>) in
+                self.terminationHandler = { process in
+                    _Concurrency.Task {
+                        do {
+                            continuation.resume(
+                                returning: _ProcessResult(
+                                    process: self,
+                                    stdout: try await stdout.closeReturningData(),
+                                    stderr: try await stderr.closeReturningData(),
+                                    terminationError: process.terminationError
+                                )
                             )
-                        )
-                    } catch {
-                        assertionFailure(error)
+                        } catch {
+                            assertionFailure(error)
+                        }
                     }
                 }
+                
+                do {
+                    try self.run()
+                } catch {
+                    continuation.resume(throwing: error)
+                }
             }
-            
-            do {
-                try self.run()
-            } catch {
-                continuation.resume(throwing: error)
-            }
+        } onCancel: {
+            self.terminate()
         }
     }
 }

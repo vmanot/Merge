@@ -20,7 +20,7 @@ public func shq(
         environment: environment,
         currentDirectoryPath: workingDirectory
     )
-    .runReturningAllOutput()
+    ._runSync()
 }
 
 @_disfavoredOverload
@@ -65,7 +65,7 @@ public func shq(
         environment: environment,
         currentDirectoryPath: workingDirectory
     )
-    .runReturningAllOutput()
+    ._runAsync()
 }
 
 @_disfavoredOverload
@@ -110,7 +110,7 @@ public func shq<D: Decodable>(
         environment: environment,
         currentDirectoryPath: workingDirectory
     )
-    .runReturningAllOutput()
+    ._runSync()
     .stdout
     .decode(type, using: jsonDecoder)
 }
@@ -128,7 +128,7 @@ public func shq<D: Decodable>(
         currentDirectoryPath: workingDirectory
     )
     
-    return try await process.runReturningAllOutput().stdout.decode(type, using: jsonDecoder)
+    return try await process._runAsync().stdout.decode(type, using: jsonDecoder)
 }
 
 @available(macOS 12.0, iOS 15.0, watchOS 8.0, tvOS 15.0, *)

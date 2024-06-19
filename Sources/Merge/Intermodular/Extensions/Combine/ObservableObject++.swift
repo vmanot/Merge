@@ -3,6 +3,7 @@
 //
 
 import Combine
+import ObjectiveC
 import Swallow
 
 extension ObservableObject {

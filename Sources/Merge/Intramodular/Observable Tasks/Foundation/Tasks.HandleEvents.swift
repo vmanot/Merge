@@ -62,7 +62,7 @@ extension ObservableTask {
         receiveStart: (() -> Void)? = nil,
         receiveCancel: (() -> Void)? = nil
     ) -> Tasks.HandleEvents<Self> {
-        .init(
+        Tasks.HandleEvents(
             base: self,
             receiveStart: receiveStart,
             receiveCancel: receiveCancel
