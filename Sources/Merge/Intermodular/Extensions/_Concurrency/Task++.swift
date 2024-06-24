@@ -6,6 +6,19 @@ import Combine
 import Dispatch
 import Swallow
 
+extension Task where Success == Void, Failure == Never {
+    /// Suspend indefinitely.
+    public static func _waitForeverIgnoringCancellation() async {
+        await withUnsafeContinuation { (continuation: UnsafeContinuation<Void, Never>) in
+            
+        }
+        
+        if !_isDebugAssertConfiguration {
+            runtimeIssue("You don't want to do this in production!")
+        }
+    }
+}
+
 extension Task where Success == Never, Failure == Never {
     public static func sleep(
         durationInSeconds duration: Double
