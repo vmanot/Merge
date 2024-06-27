@@ -61,6 +61,14 @@ public class _AsyncProcess: CustomStringConvertible {
         case notLaunch
         case running
         case terminated(status: Int, reason: Process.TerminationReason)
+        
+        public var isTerminated: Bool {
+            guard case .terminated = self else {
+                return false
+            }
+            
+            return true
+        }
     }
     
     public init(
@@ -199,10 +207,10 @@ public class _AsyncProcess: CustomStringConvertible {
                     let data = standardOutputPipe.fileHandleForReading.availableData.nilIfEmpty()
                 {
                     workItem?.cancel()
+                                        
+                    try await self.handle(data: data, forPipe: standardOutputPipe)
                     
                     await Task.yield()
-                    
-                    try await self.handle(data: data, forPipe: standardOutputPipe)
                 }
             }
             
@@ -215,15 +223,17 @@ public class _AsyncProcess: CustomStringConvertible {
                         let data = standardErrorPipe.fileHandleForReading.availableData.nilIfEmpty()
                     {
                         workItem?.cancel()
+                                                
+                        try await self.handle(data: data, forPipe: standardErrorPipe)
                         
                         await Task.yield()
-                        
-                        try await self.handle(data: data, forPipe: standardErrorPipe)
                     }
                 }
             }
             
             try await group.waitForAll()
+            
+            await Task.yield()
         }
         
         workItem?.cancel()
