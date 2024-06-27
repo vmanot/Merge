@@ -64,9 +64,7 @@ package actor _AsyncUnsafePipeBuffer {
             let data = handler.availableData
             
             Task {
-                await self.appendData(
-                    data
-                )
+                await self.appendData(data)
             }
         }
     }
@@ -81,6 +79,7 @@ package actor _AsyncUnsafePipeBuffer {
         let remainingData: Data = try await withCheckedThrowingContinuation { continuation in
             do {
                 let data = try pipe.fileHandleForReading.readToEnd() ?? Data()
+                
                 continuation.resume(returning: data)
             } catch {
                 continuation.resume(throwing: error)

@@ -38,16 +38,13 @@ extension Shell {
         environmentVariables: [String: String] = [:]
     ) async throws -> _ProcessResult {
         let process = _AsyncProcess(
-            progressHandler: .block { _ in },
+            arguments: arguments,
+            currentDirectoryURL: currentDirectoryURL?._fromURLToFileURL(),
+            environmentVariables: self.environmentVariables.merging(environmentVariables, uniquingKeysWith: { $1 }),
             options: options ?? [.reportCompletion]
         )
-        
-        process.process?.executableURL = URL(fileURLWithPath: "/bin/zsh")
-        process.process?.currentDirectoryURL = currentDirectoryURL?._fromURLToFileURL()
-        process.process?.arguments = arguments
-        process.process?.environment = self.environmentVariables.merging(environmentVariables, uniquingKeysWith: { $1 })
-        
-        return try await process.wait()
+                
+        return try await process.run()
     }
     
     @_ShellActor
@@ -69,6 +66,7 @@ extension Shell {
         ]
         
         let process = _AsyncProcess(
+            existingProcess: nil,
             progressHandler: progressHandler,
             options: options
         )
@@ -76,18 +74,18 @@ extension Shell {
         let (launchPath, arguments) = try await environment.env(command: command)
         
         if let currentDirectoryURL {
-            process.process!.currentDirectoryURL = currentDirectoryURL._fromURLToFileURL()
+            process.process.currentDirectoryURL = currentDirectoryURL._fromURLToFileURL()
         }
         
-        process.process!.launchPath = launchPath
-        process.process!.arguments = arguments
+        process.process.launchPath = launchPath
+        process.process.arguments = arguments
         
-        if let input = input?.data(using: .utf8), !input.isEmpty, let handle = process.inputPipe?.fileHandleForWriting {
+        if let input = input?.data(using: .utf8), !input.isEmpty, let handle = process.standardInputPipe?.fileHandleForWriting {
             try? handle.write(contentsOf: input)
             try? handle.close()
         }
         
-        return try await process.wait()
+        return try await process.run()
     }
     
     @_ShellActor

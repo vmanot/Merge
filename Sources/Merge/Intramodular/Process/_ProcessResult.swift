@@ -8,6 +8,7 @@ import FoundationX
 import Swallow
 
 /// A type that represents the result of a running a `Process`.
+@Hashable
 public final class _ProcessResult: Logging, @unchecked Sendable {
     public let process: Process
     public let stdout: Data

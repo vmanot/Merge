@@ -9,6 +9,8 @@ import Swallow
 
 extension Process {
     public var terminationError: TerminationError? {
+        assert(!isRunning)
+        
         guard terminationStatus != 0 else {
             return nil
         }
@@ -31,7 +33,7 @@ extension Process {
         return description
     }
     
-    public struct TerminationError: CustomStringConvertible, Error, LocalizedError {
+    public struct TerminationError: CustomStringConvertible, Error, Hashable, LocalizedError {
         public let process: Process
         public let status: Int32
         public let reason: Reason
