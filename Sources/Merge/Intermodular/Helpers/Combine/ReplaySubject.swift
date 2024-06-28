@@ -27,7 +27,7 @@ public final class ReplaySubject<Output, Failure: Error>: Subject {
     /// Create a `ReplaySubject`, buffering up to `bufferSize` values and replaying them to new subscribers.
     ///
     /// - Parameter bufferSize: The maximum number of value events to buffer and replay to all future subscribers.
-    public init(bufferSize: Int) {
+    public init(bufferSize: Int = Int.max) {
         self.bufferSize = bufferSize
     }
 

@@ -4,6 +4,7 @@
 
 #if os(macOS)
 
+import Combine
 import Foundation
 @_spi(Internal) import Swallow
 import System
@@ -20,11 +21,18 @@ extension _AsyncProcess {
     public static var runningProcesses = [_AsyncProcess]()
 }
 
-public class _AsyncProcess: CustomStringConvertible {
+public class _AsyncProcess {
+    struct _Publishers {
+        let standardOutputPublisher = ReplaySubject<Data, Never>()
+        let standardErrorPublisher = ReplaySubject<Data, Never>()
+        let exitPublisher = ReplaySubject<Int32, Never>()
+    }
+    
     public let progressHandler: _AsyncProcess.ProgressHandler
     public let options: [Option]
     public let process: Process
     
+    private let _publishers = _Publishers()
     private let processDidStart = _AsyncGate(initiallyOpen: false)
     private let processDidExit = _AsyncGate(initiallyOpen: false)
     
@@ -41,13 +49,6 @@ public class _AsyncProcess: CustomStringConvertible {
     
     public private(set) var _standardOutputString = ""
     public private(set) var _standardErrorString = ""
-    
-    public var description: String {
-        Process._makeDescriptionPrefix(
-            launchPath: self.process.launchPath,
-            arguments: self.process.arguments
-        )
-    }
     
     var standardInputPipe: Pipe? {
         if state == .notLaunch, _standardInputPipe == nil {
@@ -159,7 +160,7 @@ public class _AsyncProcess: CustomStringConvertible {
             
             return
         }
-
+        
         @MutexProtected
         var workItem: DispatchWorkItem? = nil
         
@@ -198,7 +199,7 @@ public class _AsyncProcess: CustomStringConvertible {
                 return true
             }
         }
-                
+        
         try await withThrowingTaskGroup(of: Void.self) { group in
             group.addTask {
                 while
@@ -207,7 +208,7 @@ public class _AsyncProcess: CustomStringConvertible {
                     let data = standardOutputPipe.fileHandleForReading.availableData.nilIfEmpty()
                 {
                     workItem?.cancel()
-                                        
+                    
                     try await self.handle(data: data, forPipe: standardOutputPipe)
                     
                     await Task.yield()
@@ -223,7 +224,7 @@ public class _AsyncProcess: CustomStringConvertible {
                         let data = standardErrorPipe.fileHandleForReading.availableData.nilIfEmpty()
                     {
                         workItem?.cancel()
-                                                
+                        
                         try await self.handle(data: data, forPipe: standardErrorPipe)
                         
                         await Task.yield()
@@ -245,7 +246,7 @@ public class _AsyncProcess: CustomStringConvertible {
             
             return
         }
-            
+        
         try await withThrowingTaskGroup(of: Void.self) { group in
             group.addTask {
                 try await standardOutputPipe._readToEnd(receiveData: { data in
@@ -262,11 +263,20 @@ public class _AsyncProcess: CustomStringConvertible {
             try await group.waitForAll()
         }
     }
-
+    
     private func handle(
         data: Data,
         forPipe pipe: Pipe?
     ) async throws {
+        switch pipe {
+            case self.standardOutputPipe:
+                _publishers.standardOutputPublisher.send(data)
+            case self.standardErrorPipe:
+                _publishers.standardErrorPublisher.send(data)
+            default:
+                break
+        }
+        
         guard var dataAsString = String(data: data, encoding: String.Encoding.utf8), !dataAsString.isEmpty else {
             return
         }
@@ -292,7 +302,7 @@ public class _AsyncProcess: CustomStringConvertible {
         }
         
         self._standardOutputString += dataAsString
-
+        
         switch progressHandler {
             case let .block(output, error):
                 let progress = (pipe == self.standardOutputPipe ? output : error) ?? output
@@ -323,7 +333,7 @@ public class _AsyncProcess: CustomStringConvertible {
         
         do {
             try Task.checkCancellation()
-                    
+            
             try await _run()
             
             await _spinUntilProcessExit()
@@ -390,9 +400,9 @@ public class _AsyncProcess: CustomStringConvertible {
             }
             
             try await readStdoutStderrTask.value
-                        
+            
             assert(!process.isRunning)
-                        
+            
             do {
                 try standardOutputPipe?.fileHandleForReading.close()
                 try standardErrorPipe?.fileHandleForReading.close()
@@ -424,7 +434,7 @@ public class _AsyncProcess: CustomStringConvertible {
     
     private func _willRunRightAfterThis() {
         assert(!process.isRunning)
-
+        
         Task.detached(priority: .userInitiated) { @MainActor in
             while !self.process.isRunning {
                 await Task.yield()
@@ -476,7 +486,7 @@ public class _AsyncProcess: CustomStringConvertible {
             case .print:
                 fatalError()
         }
-
+        
         let result: Result<_ProcessResult, Error>
         
         if let error {
@@ -493,14 +503,73 @@ public class _AsyncProcess: CustomStringConvertible {
         }
         
         self._result = result
-
+        
+        _publishers.exitPublisher.send(process.terminationStatus)
+        
         processDidExit.open()
-
+        
         return result
     }
     
     public func terminate() async throws {
         process.terminate()
+    }
+}
+
+extension _AsyncProcess {
+    public func _standardOutputPublisher() -> AnyPublisher<Data, Never> {
+        _publishers.standardOutputPublisher
+            .compactMap({ (data) -> [Just<String>]? in
+                String(data: data, encoding: .utf8)?.lines(omittingEmpty: false).map({
+                    Just(String($0))
+                })
+            })
+            .flatMap({ Publishers.ConcatenateMany($0) })
+            .compactMap({ $0.data(using: .utf8) })
+            .eraseToAnyPublisher()
+    }
+    
+    public func _standardErrorPublisher() -> AnyPublisher<Data, Never> {
+        _publishers.standardErrorPublisher.eraseToAnyPublisher()
+    }
+    
+    public func _exitPublisher() -> AnyPublisher<Int32, Never> {
+        _publishers.exitPublisher.eraseToAnyPublisher()
+    }
+    
+    public func _send(data: Data) throws {
+        runtimeIssue("Send not allowed")
+    }
+    
+    public func _terminate() {
+        Task {
+            try await terminate()
+        }
+    }
+}
+
+extension String {
+    /// Converts the string to an escaped version suitable for terminal emulators.
+    func toTerminalEscapedString() -> String {
+        var escapedString = self
+        
+        // Replace common special characters with their escape sequences
+        let replacements: [String: String] = [
+            "\u{1B}": "\\e",      // Escape character
+            "\u{07}": "\\a",      // Bell
+            "\u{08}": "\\b",      // Backspace
+            "\u{0C}": "\\f",      // Formfeed
+            "\u{0A}": "\\n",      // Newline
+            "\u{0D}": "\\r",      // Carriage return
+            "\u{09}": "\\t",      // Horizontal tab
+            "\u{0B}": "\\v"       // Vertical tab
+        ]
+        
+        for (character, escapeCode) in replacements {
+            escapedString = escapedString.replacingOccurrences(of: character, with: escapeCode)
+        }
+        
+        return escapedString
     }
 }
 
@@ -578,6 +647,17 @@ extension _AsyncProcess {
     }
 }
 
+// MARK: - Conformances
+
+extension _AsyncProcess: CustomStringConvertible {
+    public var description: String {
+        Process._makeDescriptionPrefix(
+            launchPath: self.process.launchPath,
+            arguments: self.process.arguments
+        )
+    }
+}
+
 // MARK: - Auxiliary
 
 extension _AsyncProcess {
@@ -614,6 +694,7 @@ extension Array where Element == _AsyncProcess.Option {
             return false
         }
     }
+    
     var reportCompletion: Bool {
         self.contains {
             if case .reportCompletion = $0 {
