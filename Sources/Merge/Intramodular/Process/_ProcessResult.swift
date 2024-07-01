@@ -18,7 +18,13 @@ public final class _ProcessResult: Logging, @unchecked Sendable {
     /// A convenience property to get lines of the standard output, whitespace and newline trimmed.
     public var lines: [String] {
         get throws {
-            try stdout.toStringTrimmingWhitespacesAndNewlines().unwrap().lines().map({ $0.trimmingCharacters(in: .whitespacesAndNewlines) })
+            let result = try stdout.toStringTrimmingWhitespacesAndNewlines().unwrap().lines().map({ $0.trimmingCharacters(in: .whitespacesAndNewlines) })
+            
+            if result.count == 1, result.first.isNilOrEmpty {
+                return []
+            }
+            
+            return result
         }
     }
     
