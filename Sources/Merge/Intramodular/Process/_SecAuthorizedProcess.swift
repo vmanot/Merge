@@ -14,6 +14,7 @@ class _SecAuthorizedProcess: Process {
     var _currentDirectoryURL: URL!
     var _arguments: [String]!
     var _environment: [String: String]!
+    var _standardInput: Pipe!
     var _standardOutput: Pipe!
     var _standardError: Pipe!
     var _terminationHandler: (@Sendable (Process) -> Void)?
@@ -49,6 +50,14 @@ class _SecAuthorizedProcess: Process {
             _environment
         } set {
             _environment = newValue
+        }
+    }
+    
+    override var standardInput: Any? {
+        get {
+            _standardInput
+        } set {
+            _standardInput = newValue as? Pipe
         }
     }
     
@@ -91,7 +100,9 @@ class _SecAuthorizedProcess: Process {
     }
     
     override var isRunning: Bool {
-        get { _isRunning }
+        get {
+            _isRunning
+        }
     }
     
     override public func interrupt() {
@@ -179,10 +190,6 @@ class _SecAuthorizedProcess: Process {
         executableURL: URL
     ) {
         _isRunning = true
-
-        defer {
-            _isRunning = false
-        }
                                 
         let toolPath = executableURL.path.cString(using: .utf8)!
         
@@ -222,6 +229,8 @@ class _SecAuthorizedProcess: Process {
             self.lastAuthorizationExecuteStatus = .init(-1)
         }
         
+        _isRunning = false
+
         _exit()
     }
     

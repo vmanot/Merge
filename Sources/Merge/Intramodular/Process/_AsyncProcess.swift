@@ -585,8 +585,14 @@ extension _AsyncProcess {
         
         var terminationReason: Process.TerminationReason?
         
-        if !processDidStart.isOpen && process.processIdentifier == 0 {
-            return .notLaunch
+        if process is _SecAuthorizedProcess {
+            if !processDidStart.isOpen {
+                return .notLaunch
+            }
+        } else {
+            if !processDidStart.isOpen && process.processIdentifier == 0 {
+                return .notLaunch
+            }
         }
         
         terminationReason = process.terminationReason
