@@ -4,6 +4,7 @@
 
 import Diagnostics
 import Swallow
+import SwallowMacrosClient
 
 @_transparent
 @discardableResult
