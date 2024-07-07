@@ -7,33 +7,6 @@ import Diagnostics
 import Dispatch
 import Swallow
 
-public protocol _ObservableTaskGroupType: _CancellablesProviding, ObservableObject {
-    typealias TaskHistory = [TaskStatusDescription]
-    
-    associatedtype Key
-    
-    subscript(customIdentifier identifier: Key) -> IdentifierIndexingArrayOf<OpaqueObservableTask> { get }
-    
-    func cancelAll()
-    
-    func _opaque_lastStatus(
-        forCustomTaskIdentifier identifier: AnyHashable
-    ) throws -> TaskStatusDescription?
-}
-
-extension _ObservableTaskGroup {
-    @MainActor(unsafe)
-    public func _opaque_lastStatus(
-        forCustomTaskIdentifier identifier: AnyHashable
-    ) throws -> TaskStatusDescription? {
-        self.lastStatus(forCustomTaskIdentifier: try cast(identifier.base, to: Key.self))
-    }
-}
-
-public class _AnyObservableTaskGroup: ObservableObject {
-    
-}
-
 public final class _ObservableTaskGroup<CustomIdentifier: Hashable>: _AnyObservableTaskGroup, _ObservableTaskGroupType {
     public let cancellables = Cancellables()
     
@@ -204,7 +177,7 @@ extension _ObservableTaskGroup {
 
 extension _ObservableTaskGroup {
     @MainActor
-    private func _customKey<T>(
+    private func _customIdentifier<T>(
         ofMostRecent casePath: CasePath<Key, T>
     ) throws -> Key?  {
         guard let element = try firstAndOnly(where: {
@@ -236,7 +209,7 @@ extension _ObservableTaskGroup {
         ofMostRecent casePath: CasePath<Key, T>
     ) -> TaskStatusDescription? {
         return #try(.optimistic) { () -> TaskStatusDescription? in
-            guard let id  = try _customKey(ofMostRecent: casePath) else {
+            guard let id  = try _customIdentifier(ofMostRecent: casePath) else {
                 return nil
             }
             
@@ -289,11 +262,11 @@ extension _ObservableTaskGroup: Sequence {
     
     @MainActor(unsafe)
     public func makeIterator() -> AnyIterator<Element> {
-        let allKnownCustomIdentifiers = Set(taskHistoriesByCustomIdentifier.keys)
-        let activeCustomIdentifiers = Set(activeTasksByCustomIdentifier.lazy.filter({ !$0.value.isEmpty }).map(\.key))
-        let tomstonedCustomIdentifiers: Set<Key> = allKnownCustomIdentifiers.subtracting(activeCustomIdentifiers)
+        let allKnownCustomIdentifiers: Set<CustomIdentifier> = Set(taskHistoriesByCustomIdentifier.keys)
+        let activeCustomIdentifiers: Set<CustomIdentifier>  = Set(activeTasksByCustomIdentifier.lazy.filter({ !$0.value.isEmpty }).map(\.key))
+        let tomstonedCustomIdentifiers: Set<CustomIdentifier> = allKnownCustomIdentifiers.subtracting(activeCustomIdentifiers)
         
-        let active = activeTasks.map { task in
+        let active: [Element] = activeTasks.map { task in
             let identifier = self.customIdentifierByTask[task.id]
             
             return Element(
@@ -303,7 +276,7 @@ extension _ObservableTaskGroup: Sequence {
             )
         }
         
-        let tombstoned = tomstonedCustomIdentifiers.map {
+        let tombstoned: [Element] = tomstonedCustomIdentifiers.map {
             return Element(
                 source: nil,
                 customIdentifier: $0,

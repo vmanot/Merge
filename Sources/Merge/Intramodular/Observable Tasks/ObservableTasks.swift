@@ -4,6 +4,6 @@
 
 import Swift
 
-public struct Tasks {
+public struct ObservableTasks {
     
 }

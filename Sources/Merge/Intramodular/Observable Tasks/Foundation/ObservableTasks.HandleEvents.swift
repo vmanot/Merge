@@ -5,7 +5,7 @@
 import Foundation
 import Swift
 
-extension Tasks {
+extension ObservableTasks {
     public final class HandleEvents<Base: ObservableTask>: ObservableTask {
         public typealias Success = Base.Success
         public typealias Error = Base.Error
@@ -61,8 +61,8 @@ extension ObservableTask {
     public func handleEvents(
         receiveStart: (() -> Void)? = nil,
         receiveCancel: (() -> Void)? = nil
-    ) -> Tasks.HandleEvents<Self> {
-        Tasks.HandleEvents(
+    ) -> ObservableTasks.HandleEvents<Self> {
+        ObservableTasks.HandleEvents(
             base: self,
             receiveStart: receiveStart,
             receiveCancel: receiveCancel

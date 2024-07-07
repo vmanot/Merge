@@ -6,7 +6,7 @@ import Foundation
 import Combine
 import Swift
 
-extension Tasks {
+extension ObservableTasks {
     public final class Map<Upstream: ObservableTask, Success>: ObservableTask {
         public typealias Success = Success
         public typealias Error = Upstream.Error
@@ -51,7 +51,9 @@ extension Tasks {
 // MARK: - API
 
 extension ObservableTask {
-    public func map<T>(_ transform: @escaping (Success) -> T) -> Tasks.Map<Self, T> {
-        Tasks.Map(upstream: self, transform: transform)
+    public func map<T>(
+        _ transform: @escaping (Success) -> T
+    ) -> ObservableTasks.Map<Self, T> {
+        ObservableTasks.Map(upstream: self, transform: transform)
     }
 }
