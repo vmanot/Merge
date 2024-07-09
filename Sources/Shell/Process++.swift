@@ -150,6 +150,8 @@ extension Process {
         self.standardOutput = await stdout.pipe
         self.standardError = await stderr.pipe
         
+        let isRunning = _OSUnfairLocked<Bool>(wrappedValue: false)
+        
         return try await withTaskCancellationHandler {
             return try await withCheckedThrowingContinuation  { (continuation: CheckedContinuation<_ProcessResult, Error>) in
                 self.terminationHandler = { process in
@@ -171,12 +173,16 @@ extension Process {
                 
                 do {
                     try self.run()
+                    
+                    isRunning.wrappedValue = true
                 } catch {
                     continuation.resume(throwing: error)
                 }
             }
         } onCancel: {
-            self.terminate()
+            if isRunning.wrappedValue {
+                self.terminate()
+            }
         }
     }
 }
