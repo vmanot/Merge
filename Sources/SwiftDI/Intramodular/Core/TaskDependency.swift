@@ -86,6 +86,10 @@ public struct TaskDependency<Value>: _TaskDependenciesConsuming, _TaskDependency
             
             return try resolveValue(dependenciesAvailable()).unwrap()
         } catch {
+            if let type = Value.self as? ExpressibleByNilLiteral.Type {
+                return type.init(nilLiteral: ()) as! Value
+            }
+            
             throw runtimeIssue(_SwiftDI.Error.failedToResolveDependency(Value.self))
         }
     }

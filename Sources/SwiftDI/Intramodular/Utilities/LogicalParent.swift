@@ -3,6 +3,7 @@
 //
 
 import Diagnostics
+import Runtime
 import Swallow
 import SwiftUI
 
@@ -20,7 +21,8 @@ extension _LogicalParentConsuming {
 /// A logical parent provided via by dependency-injection.
 @propertyWrapper
 public final class LogicalParent<Parent>: Codable, _TaskDependenciesConsuming {
-    let _resolvedValue = ReferenceBox<Weak<Parent>>(.init(nil))
+    @ReferenceBox
+    var _resolvedValue = Weak<Parent>(nil)
     var _hasConsumedDependencies: Bool = false
     
     @Dependency(
@@ -31,12 +33,20 @@ public final class LogicalParent<Parent>: Codable, _TaskDependenciesConsuming {
     )
     var parent: Parent?
     
-    private var _wrappedValue: Parent? {
-        parent ?? _resolvedValue.wrappedValue.wrappedValue
+    package fileprivate(set) var _wrappedValue: Parent? {
+        get {
+            parent ?? _resolvedValue.wrappedValue
+        } set {
+            _resolvedValue.wrappedValue = newValue
+        }
     }
     
     public var wrappedValue: Parent {
         _wrappedValue!
+    }
+    
+    public var projectedValue: LogicalParent {
+        self
     }
     
     public init() {
@@ -48,15 +58,21 @@ public final class LogicalParent<Parent>: Codable, _TaskDependenciesConsuming {
     }
     
     public func __consume(
-        _ dependencies: Dependencies
+        _ dependencies: TaskDependencies
     ) throws {
+        guard _wrappedValue == nil, !_hasConsumedDependencies else {
+            return
+        }
+        
         _ = try? $parent.__consume(dependencies)
         
-        _resolvedValue.wrappedValue = Weak(dependencies[\._logicalParent]?.wrappedValue as? Parent)
+        _resolvedValue = Weak(dependencies[\._logicalParent]?.wrappedValue as? Parent)
         
-        _hasConsumedDependencies = true
+        if _wrappedValue != nil {
+            _hasConsumedDependencies = true
+        }
     }
-
+    
     public func encode(to encoder: Encoder) throws {
         
     }
@@ -80,26 +96,58 @@ extension LogicalParent: Hashable {
     }
     
     public static func == (lhs: LogicalParent, rhs: LogicalParent) -> Bool {
-        try! lhs._hashableView == rhs._hashableView
+        do {
+            return try lhs._hashableView == rhs._hashableView
+        } catch {
+            return false
+        }
     }
     
     public func hash(into hasher: inout Hasher) {
-        try! hasher.combine(_hashableView)
+        #try(.optimistic) {
+            try hasher.combine(_hashableView)
+        }
     }
 }
 
 extension Binding {
-    public func _withLogicalParent<Parent>(_ parent: Parent) -> Binding {
-        Binding(
+    public func _withLogicalParent<Parent>(
+        _ parent: Parent
+    ) -> Binding<Value> {
+        Binding<Value>(
             get: {
-                try! SwiftDI._withLogicalParent(parent) {
+                SwiftDI._withLogicalParent(parent) {
                     self.wrappedValue
                 }
             },
-            set: { newValue in
-                try! SwiftDI._withLogicalParent(parent) {
+            set: { (newValue: Value) in
+                SwiftDI._withLogicalParent(parent) {
                     self.wrappedValue = newValue
                 }
+            }
+        )
+    }
+    
+    public func _assigningLogicalParent<Parent>(
+        _ parent: Parent,
+        to keyPath: KeyPath<Value, LogicalParent<Parent>>
+    ) -> Binding<Value> {
+        Binding<Value>(
+            get: {
+                let result: Value = self.wrappedValue
+                
+                if result[keyPath: keyPath]._wrappedValue == nil {
+                    result[keyPath: keyPath]._wrappedValue = parent
+                }
+                
+                return result
+            },
+            set: { (newValue: Value) in
+                if newValue[keyPath: keyPath]._wrappedValue == nil {
+                    newValue[keyPath: keyPath]._wrappedValue = parent
+                }
+                
+                self.wrappedValue = newValue
             }
         )
     }
@@ -108,16 +156,30 @@ extension Binding {
 public func _withLogicalParent<Parent, Result>(
     _ parent: Parent?,
     operation: () throws -> Result
-) throws -> Result {
+) rethrows -> Result {
     return try withDependencies(from: parent) {
-        try withDependencies {
-            try $0._setLogicalParent(parent)
-        } operation: {
+        try withDependencies { (dependencies: inout TaskDependencies) -> Void in
+            #try(.optimistic) {
+                try dependencies._setLogicalParent(parent)
+            }
+        } operation: { () -> Result in
             if parent != nil {
-                assert(Dependencies.current[\._logicalParent] != nil)
+                assert(TaskDependencies.current[\._logicalParent] != nil)
             }
             
-            return try operation()
+            let result: Result = try operation()
+            
+            if parent != nil {
+                if let mirror = InstanceMirror(result) {
+                    mirror._smartForEachField(ofPropertyWrapperType: (any _TaskDependenciesConsuming).self) { element in
+                        #try(.optimistic) {
+                            try element.__consume(TaskDependencies.current)
+                        }
+                    }
+                }
+            }
+            
+            return result
         }
     }
 }
