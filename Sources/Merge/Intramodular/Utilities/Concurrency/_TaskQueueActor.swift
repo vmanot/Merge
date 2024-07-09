@@ -59,8 +59,7 @@ actor _TaskQueueActor: Sendable {
             fatalError()
         }
         
-        let previousTask = self.previousTaskBox.wrappedValue
-        
+        let previousTask: OpaqueThrowingTask? = self.previousTaskBox.wrappedValue
         let newTask = Task(priority: priority) { () async -> T in
             await self._waitForPreviousTask(previousTask)
             

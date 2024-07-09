@@ -76,7 +76,10 @@ public struct TaskDependencies: @unchecked Sendable {
             do {
                 return try keyedValues[keyPath: keyPath].unwrap()
             } catch {
-                throw _PlaceholderError()
+                throw TaskDependenciesError.init(
+                    rawValue: .noValueForKey(keyPath),
+                    location: .unavailable
+                )           
             }
         }
     }
@@ -90,7 +93,7 @@ public struct TaskDependencies: @unchecked Sendable {
     }
 }
 
-extension Dependencies: MergeOperatable {
+extension TaskDependencies: MergeOperatable {
     public mutating func mergeInPlace(with other: Self) {
         self = Self.merge(lhs: self, rhs: other)
     }
@@ -131,7 +134,7 @@ extension Dependencies: MergeOperatable {
     }
 }
 
-extension Dependencies {
+extension TaskDependencies {
     public static var current: Dependencies {
         Dependencies._current
     }
@@ -153,4 +156,22 @@ extension Dependencies {
 
 extension Dependencies {
     @TaskLocal public static var _current = Dependencies()
+}
+
+public struct TaskDependenciesError: CustomStringConvertible, Error, Hashable {
+    public enum RawValue: Hashable {
+        case noValueForKey(AnyKeyPath)
+    }
+    
+    public let rawValue: RawValue
+    public let location: SourceCodeLocation
+    
+    public var description: String {
+        String(describing: rawValue)
+    }
+    
+    public init(rawValue: RawValue, location: SourceCodeLocation) {
+        self.rawValue = rawValue
+        self.location = location
+    }
 }
