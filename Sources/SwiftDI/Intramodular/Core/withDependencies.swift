@@ -17,7 +17,7 @@ public func withDependencies<Result>(
     try updateValuesForOperation(&dependencies)
     
     return try Dependencies.$_current.withValue(dependencies) {
-        let result = try operation()
+        let result: Result = try operation()
         
         #try(.optimistic) {
             try dependencies._stashInOrProvideTo(result)
@@ -98,17 +98,19 @@ public func withDependency<Dependency, Result>(
 @discardableResult
 public func withDependencies<Subject, Result>(
     from subject: Subject,
-    _ updateValuesForOperation: (inout Dependencies) throws -> Void,
+    _ updateValuesForOperation: (inout TaskDependencies) throws -> Void,
     operation: () throws -> Result
 ) rethrows -> Result {
-    let dependencies = Dependencies(from: subject)
+    let dependencies = TaskDependencies(from: subject)
     
     return try withDependencies {
         $0 = dependencies.merging($0)
         
         try updateValuesForOperation(&$0)
     } operation: {
-        try operation()
+        let result: Result = try operation()
+        
+        return result
     }
 }
 

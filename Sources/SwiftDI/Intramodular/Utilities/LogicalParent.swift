@@ -4,7 +4,7 @@
 
 import Diagnostics
 import Runtime
-import Swallow
+@_spi(Internal) import Swallow
 import SwiftUI
 
 /// A marker protocol to be implemented via a macro @LogicalParent(Parent.self)
@@ -21,6 +21,8 @@ extension _LogicalParentConsuming {
 /// A logical parent provided via by dependency-injection.
 @propertyWrapper
 public final class LogicalParent<Parent>: Codable, _TaskDependenciesConsuming {
+    private let lock = OSUnfairLock()
+    
     @ReferenceBox
     var _resolvedValue = Weak<Parent>(nil)
     var _hasConsumedDependencies: Bool = false
@@ -60,6 +62,12 @@ public final class LogicalParent<Parent>: Codable, _TaskDependenciesConsuming {
     public func __consume(
         _ dependencies: TaskDependencies
     ) throws {
+        lock.acquireOrBlock()
+        
+        defer {
+            lock.relinquish()
+        }
+        
         guard _wrappedValue == nil, !_hasConsumedDependencies else {
             return
         }
@@ -132,24 +140,28 @@ extension Binding {
         _ parent: Parent,
         to keyPath: KeyPath<Value, LogicalParent<Parent>>
     ) -> Binding<Value> {
-        Binding<Value>(
-            get: {
-                let result: Value = self.wrappedValue
-                
-                if result[keyPath: keyPath]._wrappedValue == nil {
-                    result[keyPath: keyPath]._wrappedValue = parent
+        let parent = parent
+        
+        return withExtendedLifetime(parent) {
+            Binding<Value>(
+                get: {
+                    let result: Value = self.wrappedValue
+                    
+                    if result[keyPath: keyPath]._wrappedValue == nil {
+                        result[keyPath: keyPath]._wrappedValue = parent
+                    }
+                    
+                    return result
+                },
+                set: { (newValue: Value) in
+                    if newValue[keyPath: keyPath]._wrappedValue == nil {
+                        newValue[keyPath: keyPath]._wrappedValue = parent
+                    }
+                    
+                    self.wrappedValue = newValue
                 }
-                
-                return result
-            },
-            set: { (newValue: Value) in
-                if newValue[keyPath: keyPath]._wrappedValue == nil {
-                    newValue[keyPath: keyPath]._wrappedValue = parent
-                }
-                
-                self.wrappedValue = newValue
-            }
-        )
+            )
+        }
     }
 }
 

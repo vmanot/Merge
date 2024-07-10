@@ -9,7 +9,7 @@ import SwiftUI
 @available(iOS 14.0, macOS 11.0, tvOS 14.0, watchOS 7.0, *)
 /// An button that represents a `Task`.
 public struct TaskButton<Success, Error: Swift.Error, Label: View>: View {
-    @Environment(\._taskButtonStyle) package var buttonStyle
+    @Environment(\._taskButtonStyle) package var taskButtonStyle
     @Environment(\.cancellables) package var cancellables
     @Environment(\.isEnabled) package var isEnabled
     @Environment(\.taskInterruptible) package var taskInterruptible
@@ -86,10 +86,12 @@ public struct TaskButton<Success, Error: Swift.Error, Label: View>: View {
             label(task?.status ?? .idle)
         }
         ._modify {
-            if let buttonStyle {
-                $0.buttonStyle { configuration in
+            if let taskButtonStyle {
+                $0.buttonStyle(
+                    _composeRecursively: !type(of: taskButtonStyle)._overridesButtonStyle
+                ) { configuration in
                     AnyView(
-                        buttonStyle.makeBody(
+                        taskButtonStyle.makeBody(
                             configuration: TaskButtonConfiguration(
                                 label: AnyView(configuration.label),
                                 isPressed: configuration.isPressed,
@@ -231,7 +233,7 @@ extension View {
 
 /// A type-erased wrapper for `ButtonStyle.`
 fileprivate struct AnyButtonStyle: ButtonStyle {
-    fileprivate let _makeBody: (Configuration) -> AnyView
+    private let _makeBody: (Configuration) -> AnyView
     
     fileprivate init<V: View>(
         makeBody: @escaping (Configuration) -> V
@@ -245,9 +247,20 @@ fileprivate struct AnyButtonStyle: ButtonStyle {
 }
 
 extension View {
+    @ViewBuilder
     fileprivate func buttonStyle<V: View>(
+        _composeRecursively: Bool,
         @ViewBuilder makeBody: @escaping (AnyButtonStyle.Configuration) -> V
     ) -> some View {
-        buttonStyle(AnyButtonStyle(makeBody: makeBody))
+        if _composeRecursively {
+            Button(action: { }) {
+                self
+            }
+            .allowsHitTesting(false)
+            .contentShape(Rectangle())
+            .buttonStyle(AnyButtonStyle(makeBody: makeBody))
+        } else {
+            buttonStyle(AnyButtonStyle(makeBody: makeBody))
+        }
     }
 }
