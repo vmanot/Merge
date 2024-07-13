@@ -47,7 +47,7 @@ public struct TaskButton<Success, Error: Swift.Error, Label: View>: View {
             currentTaskBox.wrappedValue = newValue
         }
     }
-
+    
     private var animation: MaybeKnown<Animation?> = .known(.default)
     
     private var task: AnyTask<Success, Error>? {
@@ -76,35 +76,14 @@ public struct TaskButton<Success, Error: Swift.Error, Label: View>: View {
     
     private var isDisabled: Bool {
         false
-        || !isEnabled
-        || (currentTask?.status == .finished && !taskRestartable)
-        || (currentTask?.status == .active && !taskInterruptible)
+            || !isEnabled
+            || (currentTask?.status == .finished && !taskRestartable)
+            || (currentTask?.status == .active && !taskInterruptible)
     }
-    
+        
     public var body: some View {
-        Button(action: trigger) {
-            label(task?.status ?? .idle)
-        }
-        ._modify {
-            if let taskButtonStyle {
-                $0.buttonStyle(
-                    _composeRecursively: !type(of: taskButtonStyle)._overridesButtonStyle
-                ) { configuration in
-                    AnyView(
-                        taskButtonStyle.makeBody(
-                            configuration: TaskButtonConfiguration(
-                                label: AnyView(configuration.label),
-                                isPressed: configuration.isPressed,
-                                isInterruptible: taskInterruptible,
-                                isRestartable: taskRestartable,
-                                status: displayTaskStatus
-                            )
-                        )
-                    )
-                }
-            } else {
-                $0
-            }
+        Group {
+            _button
         }
         .disabled(isDisabled)
         ._modify(if: animation == .known) {
@@ -114,7 +93,51 @@ public struct TaskButton<Success, Error: Swift.Error, Label: View>: View {
             setCurrentTask(task)
         }
     }
+        
+    @ViewBuilder
+    private var _button: some View {
+        if let taskButtonStyle {
+            if type(of: taskButtonStyle)._overridesButtonStyle {
+                Button(action: trigger) {
+                    label(task?.status ?? .idle)
+                }
+                .buttonStyle { configuration in
+                    taskButtonStyle.makeBody(
+                        configuration: TaskButtonConfiguration(
+                            label: _buttonLabel,
+                            isPressed: configuration.isPressed,
+                            isInterruptible: taskInterruptible,
+                            isRestartable: taskRestartable,
+                            status: displayTaskStatus
+                        )
+                    )
+                }
+            } else {
+                Button(action: trigger) {
+                    AnyView(
+                        taskButtonStyle.makeBody(
+                            configuration: TaskButtonConfiguration(
+                                label: _buttonLabel,
+                                isPressed: nil,
+                                isInterruptible: taskInterruptible,
+                                isRestartable: taskRestartable,
+                                status: displayTaskStatus
+                            )
+                        )
+                    )
+                }
+            }
+        } else {
+            Button(action: trigger) {
+                label(task?.status ?? .idle)
+            }
+        }
+    }
     
+    private var _buttonLabel: AnyView {
+        AnyView(label(task?.status ?? .idle))
+    }
+
     private func trigger() {
         if currentTask != nil {
             guard taskRestartable else {
@@ -189,10 +212,10 @@ extension TaskButton {
 
 // FIXME: SwiftUIX dependency
 /*extension TaskButton: ActionLabelView where Error == Swift.Error, Success == Void {
-    public init(action: Action, label: () -> Label) {
-        self.init(action: action.perform, label: label)
-    }
-}*/
+ public init(action: Action, label: () -> Label) {
+ self.init(action: action.perform, label: label)
+ }
+ }*/
 
 // MARK: - Auxiliary
 
@@ -235,8 +258,8 @@ extension View {
 fileprivate struct AnyButtonStyle: ButtonStyle {
     private let _makeBody: (Configuration) -> AnyView
     
-    fileprivate init<V: View>(
-        makeBody: @escaping (Configuration) -> V
+    fileprivate init(
+        makeBody: @escaping (Configuration) -> any View
     ) {
         self._makeBody = { AnyView(makeBody($0)) }
     }
@@ -248,19 +271,9 @@ fileprivate struct AnyButtonStyle: ButtonStyle {
 
 extension View {
     @ViewBuilder
-    fileprivate func buttonStyle<V: View>(
-        _composeRecursively: Bool,
-        @ViewBuilder makeBody: @escaping (AnyButtonStyle.Configuration) -> V
+    fileprivate func buttonStyle(
+        @ViewBuilder makeBody: @escaping (AnyButtonStyle.Configuration) -> any View
     ) -> some View {
-        if _composeRecursively {
-            Button(action: { }) {
-                self
-            }
-            .allowsHitTesting(false)
-            .contentShape(Rectangle())
-            .buttonStyle(AnyButtonStyle(makeBody: makeBody))
-        } else {
-            buttonStyle(AnyButtonStyle(makeBody: makeBody))
-        }
+        buttonStyle(AnyButtonStyle(makeBody: makeBody))
     }
 }
