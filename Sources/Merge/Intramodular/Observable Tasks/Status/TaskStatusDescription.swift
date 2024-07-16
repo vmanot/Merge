@@ -105,6 +105,21 @@ extension TaskStatusDescription {
                 self = .error(AnyError(erasing: error))
         }
     }
+    
+    public init<Success, Error: Swift.Error>(
+        for status: Result<Success, Error>
+    ) {
+        switch status {
+            case .success:
+                self = .success
+            case .failure(let error):
+                if error is CancellationError {
+                    self = .canceled
+                } else {
+                    self = .error(AnyError(erasing: error))
+                }
+        }
+    }
 }
 
 // MARK: - Auxiliary
