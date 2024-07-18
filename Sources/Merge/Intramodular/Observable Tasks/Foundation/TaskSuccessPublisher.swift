@@ -5,10 +5,7 @@
 import Swift
 
 /// A publisher that delivers the result of a task.
-public struct TaskSuccessPublisher<Upstream: ObservableTask>: SingleOutputPublisher {
-    public typealias Output = Upstream.Success
-    public typealias Failure = TaskFailure<Upstream.Error>
-    
+public struct TaskSuccessPublisher<Upstream: ObservableTask> {
     private let upstream: Upstream
     
     public init(upstream: Upstream) {
@@ -23,6 +20,11 @@ public struct TaskSuccessPublisher<Upstream: ObservableTask>: SingleOutputPublis
             .compactMap({ $0.value })
             .receive(subscriber: subscriber)
     }
+}
+
+extension TaskSuccessPublisher: SingleOutputPublisher {
+    public typealias Output = Upstream.Success
+    public typealias Failure = TaskFailure<Upstream.Error>
 }
 
 // MARK: - API

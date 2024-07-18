@@ -5,7 +5,7 @@
 import Combine
 import Swallow
 
-extension Either: Publisher where
+extension Either: Combine.Publisher where
     LeftValue: Publisher,
     RightValue: Publisher,
     LeftValue.Output == RightValue.Output,
@@ -30,7 +30,7 @@ extension Either: Publisher where
     }
 }
 
-extension Either: SingleOutputPublisher where
+extension Either: Merge.SingleOutputPublisher where
     LeftValue: SingleOutputPublisher,
     RightValue: SingleOutputPublisher,
     LeftValue.Output == RightValue.Output,

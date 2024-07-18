@@ -7,6 +7,12 @@
 import Foundation
 import Swift
 
+#if swift(>=6.0)
+extension _OSAScriptProcess: @unchecked Sendable {
+    
+}
+#endif
+
 public class _OSAScriptProcess: Process {
     private var underlyingTask = Process()
     

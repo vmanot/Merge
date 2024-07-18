@@ -5,7 +5,7 @@
 import Dispatch
 import Swallow
 
-extension DispatchQoS.QoSClass: CaseIterable {
+extension DispatchQoS.QoSClass: Swift.CaseIterable {
     public static let allCases: [DispatchQoS.QoSClass] = [
         .background,
         .utility,
@@ -16,13 +16,13 @@ extension DispatchQoS.QoSClass: CaseIterable {
     ]
 }
 
-extension DispatchQoS: Comparable {
+extension DispatchQoS: Swift.Comparable {
     public static func < (lhs: DispatchQoS, rhs: DispatchQoS) -> Bool {
         return lhs.qosClass < rhs.qosClass
     }
 }
 
-extension DispatchQoS.QoSClass: Comparable {
+extension DispatchQoS.QoSClass: Swift.Comparable {
     private var sortValue: UInt32 {
         #if !os(Linux)
         return rawValue.rawValue

@@ -55,9 +55,16 @@ public final class OpaqueObservableTask: CustomStringConvertible, ObjCObject, Ob
     }
 }
 
+private var _ObservableTask__opaqueRepresentationKey: UInt8 = 0
+
 extension ObservableTask {
-    @AssociatedObject(.retain(.atomic))
-    private var _opaqueRepresentation: OpaqueObservableTask?
+    var _opaqueRepresentation: OpaqueObservableTask? {
+        get {
+            objc_getAssociatedObject(self, &_ObservableTask__opaqueRepresentationKey) as? OpaqueObservableTask
+        }  set {
+            objc_setAssociatedObject(self, &_ObservableTask__opaqueRepresentationKey, newValue, .OBJC_ASSOCIATION_RETAIN_NONATOMIC)
+        }
+    }
 
     public func eraseToOpaqueObservableTask() -> OpaqueObservableTask {
         _opaqueRepresentation.unwrapOrInitializeInPlace {

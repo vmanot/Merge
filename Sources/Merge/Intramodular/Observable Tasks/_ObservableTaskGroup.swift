@@ -170,8 +170,10 @@ extension _ObservableTaskGroup {
         return taskHistoriesByCustomIdentifier[identifier]?.last
     }
     
-    public func cancelAll() {
-        activeTasks.forEach({ $0.cancel() })
+    public nonisolated func cancelAll() {
+        Task { @MainActor in
+            activeTasks.forEach({ $0.cancel() })
+        }
     }
 }
 

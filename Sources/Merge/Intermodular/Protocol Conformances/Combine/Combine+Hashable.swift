@@ -5,13 +5,13 @@
 import Combine
 import Swallow
 
-extension Published: Equatable where Value: Equatable {
+extension Published: Swift.Equatable where Value: Swift.Equatable {
     public static func == (lhs: Self, rhs: Self) -> Bool {
         lhs._wrappedValue == rhs._wrappedValue
     }
 }
 
-extension Published: Hashable where Value: Hashable {
+extension Published: Swift.Hashable where Value: Swift.Hashable {
     public func hash(into hasher: inout Hasher) {
         _wrappedValue.hash(into: &hasher)
     }

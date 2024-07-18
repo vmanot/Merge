@@ -5,9 +5,14 @@
 import Combine
 import Swallow
 
+public protocol TaskStatusType<Success, Error> {
+    associatedtype Success
+    associatedtype Error 
+}
+
 /// The status of a task.
 @frozen
-public enum TaskStatus<Success, Error: Swift.Error> {
+public enum TaskStatus<Success, Error: Swift.Error>: TaskStatusType {
     case idle
     case active
     case paused

@@ -48,10 +48,10 @@ extension _UnsafeActorIsolated {
     public func changesUntilRelinquished() async throws -> AsyncThrowingStream<Value, Error> {
         try await mutex.acquireOrFail()
         
-        var iterator = await stream.makeAsyncIterator()
+        let iteratorBox = ReferenceBox(await stream.makeAsyncIterator())
         
         let stream = AsyncThrowingStream(unfolding: {
-            try await iterator.next()
+            try await iteratorBox.wrappedValue.next()
         })
         
         await mutex.relinquish()

@@ -47,7 +47,7 @@ extension DispatchQueue {
     }
 }
 
-extension DispatchTime: CustomStringConvertible {
+extension DispatchTime: Swift.CustomStringConvertible {
     public var description: String {
         let seconds = Double(Int(uptimeNanoseconds) - Int(DispatchTime.now().uptimeNanoseconds)) / Double(NSEC_PER_SEC)
         
@@ -55,13 +55,13 @@ extension DispatchTime: CustomStringConvertible {
     }
 }
 
-extension DispatchWallTime: CustomStringConvertible {
+extension DispatchWallTime: Swift.CustomStringConvertible {
     public var description: String {
         "(some dispatch wall time)"
     }
 }
 
-extension DispatchTimeInterval: CustomStringConvertible {
+extension DispatchTimeInterval: Swift.CustomStringConvertible {
     public var description: String {
         switch self {
             case .seconds(let value):

@@ -7,6 +7,12 @@
 import Foundation
 import Security
 
+#if swift(>=6.0)
+extension _SecAuthorizedProcess: @unchecked Sendable {
+    
+}
+#endif
+
 class _SecAuthorizedProcess: Process {
     private static var cachedAuthorizationRef: AuthorizationRef? = KeychainManager.shared.retrieveAuthorizationRef(forRight: .execute)
     
