@@ -30,7 +30,7 @@ extension _AsyncObjectWillChangePublisher {
             guard count == 0 else {
                 return false
             }
-
+            
             f(self.base.upstream)
             
             return true
@@ -45,7 +45,6 @@ extension _AsyncObjectWillChangePublisher {
         }
     }
     
-    @MainActor(unsafe)
     public func run(
         _ f: @escaping @MainActor () -> Void
     ) async {
@@ -58,7 +57,7 @@ extension _AsyncObjectWillChangePublisher {
                 f()
             }
         } else {
-            f()
+            await f()
         }
     }
 }

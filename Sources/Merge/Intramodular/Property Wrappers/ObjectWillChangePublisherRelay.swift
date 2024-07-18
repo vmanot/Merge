@@ -56,7 +56,6 @@ public final class ObjectWillChangePublisherRelay<Source, Destination>: Observab
         self.init(source: nil, destination: nil)
     }
     
-    @MainActor
     public func send() {
         guard let destinationObjectWillChangePublisher else {
             if subscription != nil, destination != nil {

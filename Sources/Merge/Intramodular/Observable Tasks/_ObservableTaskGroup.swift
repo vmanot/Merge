@@ -20,13 +20,9 @@ public final class _ObservableTaskGroup<CustomIdentifier: Hashable>: _AnyObserva
     
     private weak var parent: _ObservableTaskGroup?
     
-    @MainActor
     @Published private var activeTasks: IdentifierIndexingArrayOf<OpaqueObservableTask> = []
-    @MainActor
     @Published private var customIdentifierByTask: [OpaqueObservableTask.ID: CustomIdentifier] = [:]
-    @MainActor
     @Published private var activeTasksByCustomIdentifier: [CustomIdentifier: IdentifierIndexingArrayOf<OpaqueObservableTask>] = [:]
-    @MainActor
     @Published private var taskHistoriesByCustomIdentifier: [CustomIdentifier: TaskHistory] = [:]
     
     private init(_parent parent: _ObservableTaskGroup? = nil) {
@@ -262,7 +258,6 @@ extension _ObservableTaskGroup: Sequence {
         }
     }
     
-    @MainActor(unsafe)
     public func makeIterator() -> AnyIterator<Element> {
         let allKnownCustomIdentifiers: Set<CustomIdentifier> = Set(taskHistoriesByCustomIdentifier.keys)
         let activeCustomIdentifiers: Set<CustomIdentifier>  = Set(activeTasksByCustomIdentifier.lazy.filter({ !$0.value.isEmpty }).map(\.key))

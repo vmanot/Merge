@@ -31,7 +31,6 @@ public struct MainThreadScheduler: Scheduler {
     }
     
     @_transparent
-    @MainActor(unsafe)
     public func schedule(
         _ action: @escaping () -> Void
     ) {
@@ -43,7 +42,6 @@ public struct MainThreadScheduler: Scheduler {
     }
     
     @_transparent
-    @MainActor(unsafe)
     public func schedule(
         options: SchedulerOptions?,
         _ action: @escaping () -> Void

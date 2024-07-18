@@ -6,7 +6,7 @@ import Combine
 import Foundation
 import Swallow
 
-open class TaskOperation<Base: ObservableTask>: Operation {
+open class TaskOperation<Base: ObservableTask>: Operation, @unchecked Sendable {
     public let base: Base
     
     public init(_ base: Base) {

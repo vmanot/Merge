@@ -10,10 +10,12 @@ public protocol _ObservableTaskGroupType: _CancellablesProviding, ObservableObje
     
     associatedtype Key
     
+    @MainActor
     subscript(customIdentifier identifier: Key) -> IdentifierIndexingArrayOf<OpaqueObservableTask> { get }
     
     func cancelAll()
     
+    @MainActor
     func _opaque_lastStatus(
         forCustomTaskIdentifier identifier: AnyHashable
     ) throws -> TaskStatusDescription?
@@ -26,7 +28,7 @@ public class _AnyObservableTaskGroup: ObservableObject {
 // MARK: - Internal
 
 extension _ObservableTaskGroup {
-    @MainActor(unsafe)
+    @MainActor
     public func _opaque_lastStatus(
         forCustomTaskIdentifier identifier: AnyHashable
     ) throws -> TaskStatusDescription? {

@@ -5,12 +5,12 @@
 import Combine
 import Swift
 
-extension Cancellable {
-    public func eraseToAnyCancellable() -> AnyCancellable {
-        AnyCancellable(self)
+extension Combine.Cancellable {
+    public func eraseToAnyCancellable() -> Combine.AnyCancellable {
+        Combine.AnyCancellable(self)
     }
 }
 
-extension Task: Cancellable {
+extension _Concurrency.Task: Combine.Cancellable {
     
 }

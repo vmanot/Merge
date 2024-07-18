@@ -7,13 +7,7 @@
 import Foundation
 import Swift
 
-#if swift(>=6.0)
-extension _OSAScriptProcess: @unchecked Sendable {
-    
-}
-#endif
-
-public class _OSAScriptProcess: Process {
+public class _OSAScriptProcess: Process, @unchecked Sendable {
     private var underlyingTask = Process()
     
     override public var launchPath: String? {

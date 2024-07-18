@@ -20,7 +20,6 @@ public final class PublishedObject<Value>: PropertyWrapper {
     @MutableValueBox
     public var _wrappedValue: Value
     
-    @MainActor
     public var wrappedValue: Value {
         get {
             _wrappedValue
@@ -32,12 +31,11 @@ public final class PublishedObject<Value>: PropertyWrapper {
             _assignmentPublisher.send()
         }
     }
-        
+    
     public var projectedValue: _SelfType {
         self
     }
     
-    @MainActor(unsafe)
     public var assignmentPublisher: AnyPublisher<Value, Never> {
         _assignmentPublisher
             .compactMap { [weak self] in
@@ -45,7 +43,7 @@ public final class PublishedObject<Value>: PropertyWrapper {
             }
             .eraseToAnyPublisher()
     }
-        
+    
     @MainActor
     public static subscript<EnclosingSelf: ObservableObject>(
         _enclosingInstance enclosingInstance: EnclosingSelf,
@@ -56,13 +54,13 @@ public final class PublishedObject<Value>: PropertyWrapper {
             let published = enclosingInstance[keyPath: storageKeyPath]
             
             published.setUpObjectWillChangeRelays(from: published.wrappedValue, to: enclosingInstance)
-
+            
             return published.wrappedValue
         } set {
             let published = enclosingInstance[keyPath: storageKeyPath]
-                        
+            
             published.setUpObjectWillChangeRelays(from: newValue, to: enclosingInstance)
-
+            
             published.wrappedValue = newValue
         }
     }
@@ -75,7 +73,7 @@ public final class PublishedObject<Value>: PropertyWrapper {
             objectWillChangeRelay.source = value
             objectWillChangeRelay.destination = enclosingInstance
         }
-         
+        
         if let wrappedBoxRelay = _wrappedValueBoxWillChangeRelay, wrappedBoxRelay.isUninitialized {
             assert(wrappedBoxRelay.source != nil)
             
@@ -94,9 +92,9 @@ public final class PublishedObject<Value>: PropertyWrapper {
         wrappedValue: [Element]
     ) where Value == [Element] {
         let array = ObservableArray(wrappedValue)
-    
+        
         self.__wrappedValue = .init(array)
-
+        
         _wrappedValueBoxWillChangeRelay = ObjectWillChangePublisherRelay()
         _wrappedValueBoxWillChangeRelay?.source = array
     }
@@ -126,30 +124,26 @@ public final class PublishedObject<Value>: PropertyWrapper {
 // MARK: - Conditional Conformances
 
 extension PublishedObject: Equatable where Value: Equatable {
-    @MainActor(unsafe)
     public static func == (lhs: PublishedObject, rhs: PublishedObject) -> Bool {
-        lhs.wrappedValue == rhs.wrappedValue
+        lhs._wrappedValue == rhs._wrappedValue
     }
 }
 
 extension PublishedObject: Hashable where Value: Hashable {
-    @MainActor(unsafe)
     public func hash(into hasher: inout Hasher) {
-        hasher.combine(wrappedValue)
+        hasher.combine(_wrappedValue)
     }
 }
 
 extension PublishedObject: Decodable where Value: Decodable & ObservableObject {
-    @MainActor(unsafe)
     public convenience init(from decoder: Decoder) throws {
         try self.init(wrappedValue: WrappedValue(from: decoder))
     }
 }
 
 extension PublishedObject: Encodable where Value: Encodable {
-    @MainActor(unsafe)
     public func encode(to encoder: Encoder) throws {
-        try wrappedValue.encode(to: encoder)
+        try _wrappedValue.encode(to: encoder)
     }
 }
 
