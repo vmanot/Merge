@@ -19,9 +19,9 @@ extension MainActor {
         typealias YesActor = @MainActor () throws -> T
         typealias NoActor = () throws -> T
         
-        // To do the unsafe cast, we have to pretend it's @escaping.
         return try withoutActuallyEscaping(operation) { (_ fn: @escaping YesActor) throws -> T in
             let rawFn = unsafeBitCast(fn, to: NoActor.self)
+
             return try rawFn()
         }
     }
