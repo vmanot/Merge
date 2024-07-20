@@ -31,7 +31,6 @@ public final class Shell {
 }
 
 extension Shell {
-    @_ShellActor
     public func run(
         arguments: [String],
         currentDirectoryURL: URL? = nil,
@@ -47,7 +46,6 @@ extension Shell {
         return try await process.run()
     }
     
-    @_ShellActor
     @discardableResult
     public static func run(
         command: String,
@@ -88,7 +86,6 @@ extension Shell {
         return try await process.run()
     }
     
-    @_ShellActor
     public func run(
         command: String,
         currentDirectoryURL: URL? = nil,
