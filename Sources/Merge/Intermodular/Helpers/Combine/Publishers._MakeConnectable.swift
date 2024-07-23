@@ -95,7 +95,7 @@ extension Publishers._MakeConnectable {
 
 // MARK: - Conformances
 
-extension Publishers._MakeConnectable: Initiable where Base: Initiable {
+extension Publishers._MakeConnectable: _ThrowingInitiable, Initiable where Base: Initiable {
     public convenience init() {
         self.init(Base())
     }
