@@ -25,7 +25,6 @@ public final class PublishedAsyncBinding<Value>: ObservableObject {
     
     public var animation: Animation?
     
-    @MainActor
     private var _wrappedValue: Value {
         get {
             value
@@ -38,7 +37,6 @@ public final class PublishedAsyncBinding<Value>: ObservableObject {
         }
     }
     
-    @MainActor
     public var wrappedValue: Value {
         get {
             value
@@ -199,7 +197,6 @@ public final class PublishedAsyncBinding<Value>: ObservableObject {
 // MARK: - Initializers
 
 extension PublishedAsyncBinding {
-    @MainActor
     public convenience init(
         wrappedValue: Value
     ) {

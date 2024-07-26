@@ -7,7 +7,7 @@ import Foundation
 import Combine
 import Swallow
 
-public struct MainThreadScheduler: Scheduler {
+public struct MainThreadScheduler: Scheduler, @unchecked Sendable {
     public typealias SchedulerTimeType = DispatchQueue.SchedulerTimeType
     public typealias SchedulerOptions = DispatchQueue.SchedulerOptions
     
