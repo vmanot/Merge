@@ -2,12 +2,12 @@
 // Copyright (c) Vatsal Manot
 //
 
-#if os(macOS)
-
-import Cocoa
+import Foundation
 import Swallow
 import System
 
+@available(macOS 11.0, iOS 14.0, watchOS 7.0, tvOS 14.0, *)
+@available(macCatalyst, unavailable)
 extension Pipe {
     /// Obtains a `FILE` pointer for the pipe's read or write end.
     ///
@@ -40,7 +40,10 @@ extension Pipe {
         
         return descriptor
     }
+}
 
+@available(macOS 11.0, iOS 14.0, watchOS 7.0, tvOS 14.0, *)
+extension Pipe {
     public var _fileDescriptorForReading: FileDescriptor {
         FileDescriptor(rawValue: fileHandleForReading.fileDescriptor)
     }
@@ -96,6 +99,8 @@ extension Pipe {
     }
 }
 
+@available(macOS 11.0, iOS 14.0, watchOS 7.0, tvOS 14.0, *)
+@available(macCatalyst, unavailable)
 extension FileDescriptor {
     public var _isOpen: Bool {
         var statBuffer = stat()
@@ -103,5 +108,3 @@ extension FileDescriptor {
         return fstat(self.rawValue, &statBuffer) == 0
     }
 }
-
-#endif

@@ -2,8 +2,6 @@
 // Copyright (c) Vatsal Manot
 //
 
-#if os(macOS)
-
 import Foundation
 import Swift
 
@@ -12,6 +10,7 @@ package enum _UnsafePipeStreamID: String {
     case stderr
 }
 
+@available(macOS 10.15.4, iOS 13.4, watchOS 6.2, tvOS 13.4, *)
 package class _UnsafePipeBuffer {
     package let pipe = Pipe()
     
@@ -48,6 +47,7 @@ package class _UnsafePipeBuffer {
     }
 }
 
+@available(macOS 10.15.4, iOS 13.4, watchOS 6.2, tvOS 13.4, *)
 package actor _AsyncUnsafePipeBuffer {
     package let pipe = Pipe()
     
@@ -109,5 +109,3 @@ package actor _AsyncUnsafePipeBuffer {
         return data
     }
 }
-
-#endif

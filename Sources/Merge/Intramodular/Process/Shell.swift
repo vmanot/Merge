@@ -32,11 +32,13 @@ public final class Shell {
 
 extension Shell {
     public func run(
+        executableURL: URL?,
         arguments: [String],
         currentDirectoryURL: URL? = nil,
         environmentVariables: [String: String] = [:]
     ) async throws -> _ProcessResult {
         let process = _AsyncProcess(
+            executableURL: executableURL,
             arguments: arguments,
             currentDirectoryURL: currentDirectoryURL?._fromURLToFileURL(),
             environmentVariables: self.environmentVariables.merging(environmentVariables, uniquingKeysWith: { $1 }),
@@ -44,6 +46,33 @@ extension Shell {
         )
                 
         return try await process.run()
+    }
+    
+    public func run(
+        executablePath: String?,
+        arguments: [String],
+        currentDirectoryURL: URL? = nil,
+        environmentVariables: [String: String] = [:]
+    ) async throws -> _ProcessResult {
+        try await run(
+            executableURL: executablePath.map({ try URL(string: $0).unwrap() }),
+            arguments: arguments,
+            currentDirectoryURL: nil,
+            environmentVariables: [:]
+        )
+    }
+
+    public func run(
+        arguments: [String],
+        currentDirectoryURL: URL? = nil,
+        environmentVariables: [String: String] = [:]
+    ) async throws -> _ProcessResult {
+        try await run(
+            executableURL: nil,
+            arguments: arguments,
+            currentDirectoryURL: nil,
+            environmentVariables: [:]
+        )
     }
     
     @discardableResult

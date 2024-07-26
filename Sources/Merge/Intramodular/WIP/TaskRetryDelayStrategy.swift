@@ -6,7 +6,7 @@ import Darwin
 import Swallow
 
 @available(macOS 13.0, iOS 16.0, watchOS 9.0, tvOS 16.0, *)
-public protocol TaskRetryDelayStrategy: Hashable {
+public protocol TaskRetryDelayStrategy: Hashable, Sendable {
     func delay(
         forAttempt attempt: Int,
         withInitialDelay initial: Duration

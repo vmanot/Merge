@@ -6,7 +6,7 @@
 
 import Foundation
 import Merge
-private import Swallow
+internal import Swallow
 
 public func shq(
     _ cmd: String,

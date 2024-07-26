@@ -213,7 +213,6 @@ extension PublishedAsyncBinding {
         )
     }
     
-    @MainActor
     public convenience init(
         from binding: Binding<Value>
     ) {

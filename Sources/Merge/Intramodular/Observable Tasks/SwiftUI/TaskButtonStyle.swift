@@ -15,8 +15,6 @@ public protocol TaskButtonStyle: DynamicProperty {
     func makeBody(configuration: TaskButtonConfiguration) -> Body
 }
 
-// MARK: - Implementation
-
 // MARK: - Auxiliary
 
 fileprivate struct TaskButtonStyleEnvironmentKey: EnvironmentKey {
@@ -59,7 +57,7 @@ public struct DefaultTaskButtonStyle: TaskButtonStyle {
     }
 }
 
-#if os(iOS) || os(macOS) || os(tvOS) || targetEnvironment(macCatalyst)
+#if os(iOS) || os(macOS) || os(tvOS) || os(visionOS) || os(watchOS) || targetEnvironment(macCatalyst)
 
 @available(iOS 15.0, macOS 14.0, tvOS 15.0, watchOS 8.0, *)
 @frozen
@@ -67,7 +65,7 @@ public struct ActivityIndicatorTaskButtonStyle: TaskButtonStyle {
     public static var _overridesButtonStyle: Bool {
         false
     }
-
+    
     @inlinable
     public init() {
         
@@ -77,15 +75,15 @@ public struct ActivityIndicatorTaskButtonStyle: TaskButtonStyle {
     public func makeBody(configuration: TaskButtonConfiguration) -> some View {
         Group {
             if configuration.status == .active {
-                #if os(macOS)
+#if os(macOS)
                 ProgressView()
                     .controlSize(.small)
-                #elseif os(iOS) || os(visionOS)
+#elseif os(iOS) || os(visionOS)
                 ProgressView()
                     .controlSize(.regular)
-                #else
+#else
                 ProgressView()
-                #endif
+#endif
             } else if configuration.status == .failure {
                 Image(systemName: "exclamationmark.triangle.fill")
                     .foregroundColor(.yellow)

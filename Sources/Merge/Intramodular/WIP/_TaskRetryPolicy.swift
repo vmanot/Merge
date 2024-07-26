@@ -6,7 +6,7 @@ import Foundation
 import Swallow
 
 @available(macOS 13.0, iOS 16.0, watchOS 9.0, tvOS 16.0, *)
-public enum _TaskRetryStrategy {
+public enum _TaskRetryStrategy: Sendable {
     case delay(any TaskRetryDelayStrategy, initial: Duration)
     
     public static func delay(
@@ -23,15 +23,15 @@ public enum _TaskRetryStrategy {
 }
 
 @available(macOS 13.0, iOS 16.0, watchOS 9.0, tvOS 16.0, *)
-public struct _TaskRetryPolicy {
+public struct _TaskRetryPolicy: Sendable {
     public var strategy: _TaskRetryStrategy
     public let maxRetryCount: Int?
-    public let onFailure: (Error, Int) throws -> ()
+    public let onFailure: @Sendable (Error, Int) throws -> ()
     
     public init(
         strategy: _TaskRetryStrategy,
         maxRetryCount: Int? = 1,
-        onFailure: @escaping (Error, Int) throws -> () = { _, _ in }
+        onFailure: @escaping @Sendable (Error, Int) throws -> () = { _, _ in }
     ) {
         self.strategy = strategy
         self.maxRetryCount = maxRetryCount

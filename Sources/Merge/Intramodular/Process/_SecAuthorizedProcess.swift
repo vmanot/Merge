@@ -2,11 +2,13 @@
 // Copyright (c) Vatsal Manot
 //
 
-#if os(macOS)
+#if os(macOS) || targetEnvironment(macCatalyst)
 
 import Foundation
 import Security
 
+@available(macOS 11.0, iOS 14.0, watchOS 7.0, tvOS 14.0, *)
+@available(macCatalyst, unavailable)
 class _SecAuthorizedProcess: Process, @unchecked Sendable {
     private static var cachedAuthorizationRef: AuthorizationRef? = KeychainManager.shared.retrieveAuthorizationRef(forRight: .execute)
     
@@ -248,7 +250,7 @@ class _SecAuthorizedProcess: Process, @unchecked Sendable {
         }
         
         try? _standardOutput.fileHandleForWriting.write(contentsOf: " ".data(using: .utf8)!)
-        
+
         fclose(outputFilePointer)
         
         _terminationHandler?(self)
@@ -268,6 +270,7 @@ class _SecAuthorizedProcess: Process, @unchecked Sendable {
     }
 }
 
+@available(macCatalyst, unavailable)
 extension _SecAuthorizedProcess {
     fileprivate class KeychainManager {
         static let shared = KeychainManager()
@@ -391,6 +394,8 @@ fileprivate enum _AuthorizationRightName: String, CaseIterable {
 
 // MARK: - Error Handling
 
+@available(macOS 11.0, iOS 14.0, watchOS 7.0, tvOS 14.0, *)
+@available(macCatalyst, unavailable)
 extension _SecAuthorizedProcess {
     private enum _Error: CustomStringConvertible, Error {
         case error(OSStatus)
@@ -427,4 +432,3 @@ fileprivate func withUnsafeMutablePointerAsync<T, ResultType>(
 }
 
 #endif
-

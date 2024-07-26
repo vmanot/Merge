@@ -2,13 +2,15 @@
 // Copyright (c) Vatsal Manot
 //
 
-#if os(macOS)
+#if os(macOS) || targetEnvironment(macCatalyst)
 
 import Combine
 import Foundation
 @_spi(Internal) import Swallow
 import System
 
+@available(macOS 11.0, iOS 14.0, watchOS 7.0, tvOS 14.0, *)
+@available(macCatalyst, unavailable)
 extension _AsyncProcess {
     public enum Option: Hashable {
         case _useAuthorizationExecuteWithPrivileges
@@ -21,6 +23,8 @@ extension _AsyncProcess {
     public static var runningProcesses = [_AsyncProcess]()
 }
 
+@available(macOS 11.0, iOS 14.0, watchOS 7.0, tvOS 14.0, *)
+@available(macCatalyst, unavailable)
 public class _AsyncProcess {
     struct _Publishers {
         let standardOutputPublisher = ReplaySubject<Data, Never>()
@@ -516,6 +520,7 @@ public class _AsyncProcess {
     }
 }
 
+@available(macCatalyst, unavailable)
 extension _AsyncProcess {
     public func _standardOutputPublisher() -> AnyPublisher<Data, Never> {
         _publishers.standardOutputPublisher
@@ -573,6 +578,7 @@ extension String {
     }
 }
 
+@available(macCatalyst, unavailable)
 extension _AsyncProcess {
     public var isRunning: Bool {
         state == .running
@@ -633,8 +639,11 @@ extension _AsyncProcess {
 
 // MARK: - Initializers
 
+@available(macOS 11.0, iOS 14.0, watchOS 7.0, tvOS 14.0, *)
+@available(macCatalyst, unavailable)
 extension _AsyncProcess {
     public convenience init(
+        executableURL: URL?,
         arguments: [String],
         currentDirectoryURL: URL? = nil,
         environmentVariables: [String: String] = [:],
@@ -646,7 +655,7 @@ extension _AsyncProcess {
             options: options
         )
         
-        self.process.executableURL = URL(fileURLWithPath: "/bin/zsh")
+        self.process.executableURL = executableURL ?? URL(fileURLWithPath: "/bin/zsh")
         self.process.arguments = arguments
         self.process.currentDirectoryURL = currentDirectoryURL?._fromURLToFileURL()
         self.process.environment = environmentVariables
@@ -655,6 +664,8 @@ extension _AsyncProcess {
 
 // MARK: - Conformances
 
+@available(macOS 11.0, iOS 14.0, watchOS 7.0, tvOS 14.0, *)
+@available(macCatalyst, unavailable)
 extension _AsyncProcess: CustomStringConvertible {
     public var description: String {
         Process._makeDescriptionPrefix(
@@ -666,6 +677,8 @@ extension _AsyncProcess: CustomStringConvertible {
 
 // MARK: - Auxiliary
 
+@available(macOS 11.0, iOS 14.0, watchOS 7.0, tvOS 14.0, *)
+@available(macCatalyst, unavailable)
 extension _AsyncProcess {
     public enum ProgressHandler {
         public typealias Block = (_ text: String) -> Void
@@ -691,6 +704,8 @@ extension _AsyncProcess {
 
 // MARK: - Internal
 
+@available(macOS 11.0, iOS 14.0, watchOS 7.0, tvOS 14.0, *)
+@available(macCatalyst, unavailable)
 extension Array where Element == _AsyncProcess.Option {
     var splitWithNewLine: Bool {
         self.contains {
