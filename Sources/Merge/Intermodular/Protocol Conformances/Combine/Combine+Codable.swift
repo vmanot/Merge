@@ -7,7 +7,7 @@ import Swift
 
 extension Combine.Published: Swift.Decodable where Value: Decodable {
     public init(from decoder: Decoder) throws {
-        self.init(wrappedValue: try .init(from: decoder))
+        self.init(wrappedValue: try Value(from: decoder))
     }
 }
 
