@@ -36,7 +36,7 @@ extension Shell {
         currentDirectoryURL: URL? = nil,
         environmentVariables: [String: String] = [:]
     ) async throws -> _ProcessResult {
-        let process = _AsyncProcess(
+        let process = try _AsyncProcess(
             executableURL: executableURL,
             arguments: arguments,
             currentDirectoryURL: currentDirectoryURL?._fromURLToFileURL(),
@@ -64,21 +64,17 @@ extension Shell {
             .splitWithNewLine
         ]
         
-        let process = _AsyncProcess(
-            existingProcess: nil,
+        let (launchPath, arguments) = try await environment.env(command: command)
+
+        let process = try _AsyncProcess(
+            executableURL: URL(fileURLWithPath: launchPath),
+            arguments: arguments,
+            environment: environmentVariables,
+            currentDirectoryURL: currentDirectoryURL,
             progressHandler: progressHandler,
             options: options
         )
-        
-        let (launchPath, arguments) = try await environment.env(command: command)
-        
-        if let currentDirectoryURL {
-            process.process.currentDirectoryURL = currentDirectoryURL._fromURLToFileURL()
-        }
-        
-        process.process.launchPath = launchPath
-        process.process.arguments = arguments
-        
+                    
         if let input = input?.data(using: .utf8), !input.isEmpty, let handle = process.standardInputPipe?.fileHandleForWriting {
             try? handle.write(contentsOf: input)
             try? handle.close()

@@ -9,7 +9,7 @@ extension Shell {
         var launchPath: String
         var arguments: (_ command: String) -> [String]
         
-        public func env(
+        func env(
             command: String
         ) async throws -> (launchPath: String, arguments: [String]) {
             if !launchPath.isEmpty {

@@ -8,10 +8,12 @@ import Foundation
 import System
 
 public enum _AsyncProcessOption: Hashable {
-    case _useAuthorizationExecuteWithPrivileges
     case reportCompletion
     case splitWithNewLine
     case trimming(CharacterSet)
+    
+    case _useAppleScript
+    case _useAuthorizationExecuteWithPrivileges
 }
 
 #if os(macOS) || targetEnvironment(macCatalyst)
@@ -46,8 +48,8 @@ public class _AsyncProcess {
     @_OSUnfairLocked
     private var isWaiting = false
     private var _standardInputPipe: Pipe?
-    private var standardOutputPipe: Pipe?
-    private var standardErrorPipe: Pipe?
+    private var _standardOutputPipe: Pipe?
+    private var _standardErrorPipe: Pipe?
     
     private var standardOutputCache = ""
     
@@ -83,30 +85,66 @@ public class _AsyncProcess {
         existingProcess: Process?,
         progressHandler: _AsyncProcess.ProgressHandler = .empty,
         options: [_AsyncProcess.Option]
-    ) {
-        var progressHandler = progressHandler
-        
-        if case .print = progressHandler {
-            progressHandler = .block { text in
-                print(text)
+    ) throws {
+        if let existingProcess {
+            assert(!existingProcess.isRunning)
+
+            self.process = existingProcess
+        } else {
+            if Set(options).isSuperset(of: [._useAppleScript, ._useAppleScript]) {
+                throw Never.Reason.unsupported
+            } else if options.contains(._useAuthorizationExecuteWithPrivileges) {
+                self.process = _SecAuthorizedProcess()
+            } else if options.contains(._useAppleScript) {
+                self.process = _OSAScriptProcess()
+            } else {
+                self.process = Process()
             }
         }
         
-        if let existingProcess {
-            assert(!existingProcess.isRunning)
-        }
-        
-        self.process = existingProcess ?? (options.contains(._useAuthorizationExecuteWithPrivileges) ? _SecAuthorizedProcess() : Process())
         self.progressHandler = progressHandler
         self.options = options
         
+        _registerAndSetUpIO(existingProcess: existingProcess)
+    }
+    
+    public init(
+        executableURL: URL?,
+        arguments: [String]?,
+        environment: [String: String]?,
+        currentDirectoryURL: URL?,
+        progressHandler: _AsyncProcess.ProgressHandler = .empty,
+        options: [_AsyncProcess.Option]
+    ) throws {
+        if Set(options).isSuperset(of: [._useAppleScript, ._useAppleScript]) {
+            self.process = _SecAuthorizedProcess()
+        } else if options.contains(._useAuthorizationExecuteWithPrivileges) {
+            self.process = _SecAuthorizedProcess()
+        } else if options.contains(._useAppleScript) {
+            self.process = _OSAScriptProcess()
+        } else {
+            self.process = Process()
+        }
+
+        process.executableURL = executableURL
+        process.arguments = arguments
+        process.environment = environment
+        process.currentDirectoryURL = currentDirectoryURL?._fromURLToFileURL() ?? process.currentDirectoryURL
+
+        self.progressHandler = progressHandler
+        self.options = options
+                
+        _registerAndSetUpIO(existingProcess: nil)
+    }
+    
+    private func _registerAndSetUpIO(existingProcess: Process?) {
         Self.$runningProcesses.withCriticalRegion {
             $0.append(self)
         }
         
         _setUpStdoutStderr(existingProcess: existingProcess)
     }
-    
+
     private func _setUpStdoutStderr(
         existingProcess: Process?
     ) {
@@ -115,21 +153,21 @@ public class _AsyncProcess {
         }
         
         if let existingStandardOutputPipe = existingProcess?.standardOutput as? Pipe {
-            standardOutputPipe = .some(existingStandardOutputPipe)
+            _standardOutputPipe = .some(existingStandardOutputPipe)
         } else {
-            standardOutputPipe = Pipe()
-            process.standardOutput = standardOutputPipe
+            _standardOutputPipe = Pipe()
+            process.standardOutput = _standardOutputPipe
         }
         
         if let existingStandardErrorPipe = existingProcess?.standardError as? Pipe {
-            standardErrorPipe = .some(existingStandardErrorPipe)
+            _standardErrorPipe = .some(existingStandardErrorPipe)
         } else {
-            standardErrorPipe = Pipe()
-            process.standardError = standardErrorPipe
+            _standardErrorPipe = Pipe()
+            process.standardError = _standardErrorPipe
         }
         
-        if standardOutputPipe == nil {
-            runtimeIssue("standardOutputPipe is nil!")
+        if _standardOutputPipe == nil {
+            runtimeIssue("_standardOutputPipe is nil!")
         }
     }
     
@@ -162,7 +200,7 @@ public class _AsyncProcess {
     }
     
     private func _readStdoutStderrUntilEnd(ignoreStderr: Bool = false) async throws {
-        guard let standardOutputPipe, let standardErrorPipe else {
+        guard let _standardOutputPipe, let _standardErrorPipe else {
             assertionFailure()
             
             return
@@ -212,11 +250,11 @@ public class _AsyncProcess {
                 while
                     checkTask(),
                     interruptLater(),
-                    let data = standardOutputPipe.fileHandleForReading.availableData.nilIfEmpty()
+                    let data = _standardOutputPipe.fileHandleForReading.availableData.nilIfEmpty()
                 {
                     workItem?.cancel()
                     
-                    try await self.handle(data: data, forPipe: standardOutputPipe)
+                    try await self.handle(data: data, forPipe: _standardOutputPipe)
                     
                     await Task.yield()
                 }
@@ -225,14 +263,14 @@ public class _AsyncProcess {
             if !ignoreStderr {
                 group.addTask {
                     while
-                        standardErrorPipe._fileDescriptorForReading._isOpen,
+                        _standardErrorPipe._fileDescriptorForReading._isOpen,
                         checkTask(),
                         interruptLater(),
-                        let data = standardErrorPipe.fileHandleForReading.availableData.nilIfEmpty()
+                        let data = _standardErrorPipe.fileHandleForReading.availableData.nilIfEmpty()
                     {
                         workItem?.cancel()
                         
-                        try await self.handle(data: data, forPipe: standardErrorPipe)
+                        try await self.handle(data: data, forPipe: _standardErrorPipe)
                         
                         await Task.yield()
                     }
@@ -248,7 +286,7 @@ public class _AsyncProcess {
     }
     
     private func _readStdoutStderrUntilEnd2(ignoreStderr: Bool = false) async throws {
-        guard let standardOutputPipe, let standardErrorPipe else {
+        guard let _standardOutputPipe, let _standardErrorPipe else {
             assertionFailure()
             
             return
@@ -256,14 +294,14 @@ public class _AsyncProcess {
         
         try await withThrowingTaskGroup(of: Void.self) { group in
             group.addTask {
-                try await standardOutputPipe._readToEnd(receiveData: { data in
-                    try await self.handle(data: data, forPipe: standardOutputPipe)
+                try await _standardOutputPipe._readToEnd(receiveData: { data in
+                    try await self.handle(data: data, forPipe: _standardOutputPipe)
                 })
             }
             
             group.addTask {
-                try await standardErrorPipe._readToEnd(receiveData: { data in
-                    try await self.handle(data: data, forPipe: standardErrorPipe)
+                try await _standardErrorPipe._readToEnd(receiveData: { data in
+                    try await self.handle(data: data, forPipe: _standardErrorPipe)
                 })
             }
             
@@ -276,9 +314,9 @@ public class _AsyncProcess {
         forPipe pipe: Pipe?
     ) async throws {
         switch pipe {
-            case self.standardOutputPipe:
+            case self._standardOutputPipe:
                 _publishers.standardOutputPublisher.send(data)
-            case self.standardErrorPipe:
+            case self._standardErrorPipe:
                 _publishers.standardErrorPublisher.send(data)
             default:
                 break
@@ -288,7 +326,7 @@ public class _AsyncProcess {
             return
         }
         
-        if pipe == self.standardErrorPipe {
+        if pipe == self._standardErrorPipe {
             self._standardErrorString += dataAsString
             
             return
@@ -310,9 +348,17 @@ public class _AsyncProcess {
         
         self._standardOutputString += dataAsString
         
+        var progressHandler = self.progressHandler
+        
+        if case .print = progressHandler {
+            progressHandler = .block { text in
+                print(text)
+            }
+        }
+
         switch progressHandler {
             case let .block(output, error):
-                let progress = (pipe == self.standardOutputPipe ? output : error) ?? output
+                let progress = (pipe == self._standardOutputPipe ? output : error) ?? output
                 
                 if self.options.splitWithNewLine {
                     for str in dataAsString.split(separator: "\n") {
@@ -411,9 +457,9 @@ public class _AsyncProcess {
             assert(!process.isRunning)
             
             do {
-                try standardOutputPipe?.fileHandleForReading.close()
-                try standardErrorPipe?.fileHandleForReading.close()
-                try standardInputPipe?.fileHandleForWriting.close()
+                try _standardOutputPipe?.fileHandleForReading.close()
+                try _standardErrorPipe?.fileHandleForReading.close()
+                try _standardInputPipe?.fileHandleForWriting.close()
             } catch {
                 runtimeIssue("Failed to close a pipe.")
             }
@@ -651,8 +697,8 @@ extension _AsyncProcess {
         currentDirectoryURL: URL? = nil,
         environmentVariables: [String: String] = [:],
         options: [_AsyncProcess.Option]
-    ) {
-        self.init(
+    ) throws {
+        try self.init(
             existingProcess: nil,
             progressHandler: .empty,
             options: options
