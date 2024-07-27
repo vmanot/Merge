@@ -2,8 +2,6 @@
 // Copyright (c) Vatsal Manot
 //
 
-#if os(macOS)
-
 import Combine
 
 extension Shell {
@@ -73,5 +71,3 @@ extension Shell.Environment {
         Self(launchPath: "", arguments: { _ in [] })
     }
 }
-
-#endif

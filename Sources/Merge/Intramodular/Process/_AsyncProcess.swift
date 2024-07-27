@@ -2,23 +2,23 @@
 // Copyright (c) Vatsal Manot
 //
 
-#if os(macOS) || targetEnvironment(macCatalyst)
-
 import Combine
 import Foundation
 @_spi(Internal) import Swallow
 import System
 
+public enum _AsyncProcessOption: Hashable {
+    case _useAuthorizationExecuteWithPrivileges
+    case reportCompletion
+    case splitWithNewLine
+    case trimming(CharacterSet)
+}
+
+#if os(macOS) || targetEnvironment(macCatalyst)
+
 @available(macOS 11.0, iOS 14.0, watchOS 7.0, tvOS 14.0, *)
 @available(macCatalyst, unavailable)
 extension _AsyncProcess {
-    public enum Option: Hashable {
-        case _useAuthorizationExecuteWithPrivileges
-        case reportCompletion
-        case splitWithNewLine
-        case trimming(CharacterSet)
-    }
-    
     @MutexProtected
     public static var runningProcesses = [_AsyncProcess]()
 }
@@ -26,6 +26,9 @@ extension _AsyncProcess {
 @available(macOS 11.0, iOS 14.0, watchOS 7.0, tvOS 14.0, *)
 @available(macCatalyst, unavailable)
 public class _AsyncProcess {
+    public typealias Option = _AsyncProcessOption
+    public typealias ProgressHandler = Shell.ProgressHandler
+    
     struct _Publishers {
         let standardOutputPublisher = ReplaySubject<Data, Never>()
         let standardErrorPublisher = ReplaySubject<Data, Never>()
@@ -672,33 +675,6 @@ extension _AsyncProcess: CustomStringConvertible {
             launchPath: self.process.launchPath,
             arguments: self.process.arguments
         )
-    }
-}
-
-// MARK: - Auxiliary
-
-@available(macOS 11.0, iOS 14.0, watchOS 7.0, tvOS 14.0, *)
-@available(macCatalyst, unavailable)
-extension _AsyncProcess {
-    public enum ProgressHandler {
-        public typealias Block = (_ text: String) -> Void
-        
-        public enum ScriptOption: Equatable {
-            case login
-            case delay(_ timeinterval: TimeInterval)
-            case waitUntilFinish
-            case closeScriptInside
-        }
-        
-        case print
-        case block(
-            output: Block,
-            error: Block? = nil
-        )
-        
-        public static var empty: Self {
-            .block(output: { _ in }, error: nil)
-        }
     }
 }
 

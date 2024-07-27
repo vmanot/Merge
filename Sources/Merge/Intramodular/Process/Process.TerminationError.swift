@@ -2,47 +2,32 @@
 // Copyright (c) Vatsal Manot
 //
 
-#if os(macOS) || targetEnvironment(macCatalyst)
-
 import Foundation
 import Swallow
 
-@available(macCatalyst, unavailable)
-extension Process {
-    public var terminationError: TerminationError? {
-        assert(!isRunning)
+#if os(macOS) || targetEnvironment(macCatalyst)
+public struct ProcessTerminationError: Error, Hashable, LocalizedError {
+    public let process: Process
+    public let status: Int32
+    public let reason: Reason
         
-        guard terminationStatus != 0 else {
-            return nil
-        }
-        
-        return TerminationError(_from: self)
+    @available(macCatalyst, unavailable)
+    fileprivate init(_from process: Process) {
+        self.process = process
+        self.status = process.terminationStatus
+        self.reason = process.terminationReason.reason
     }
 }
-
-extension Process {
-    public struct TerminationError: Error, Hashable, LocalizedError {
-        public let process: Process
-        public let status: Int32
-        public let reason: Reason
-        
-        public enum Reason: Hashable, Sendable {
-            case exit
-            case uncaughtSignal
-            case unknownDefault
-        }
-                    
-        @available(macCatalyst, unavailable)
-        fileprivate init(_from process: Process) {
-            self.process = process
-            self.status = process.terminationStatus
-            self.reason = process.terminationReason.reason
-        }
-    }
+#else
+public struct ProcessTerminationError: Error, Hashable, LocalizedError {
+    public let status: Int32
+    public let reason: Reason
 }
+#endif
 
+#if os(macOS) || targetEnvironment(macCatalyst)
 @available(macCatalyst, unavailable)
-extension Process.TerminationError: CustomStringConvertible {
+extension ProcessTerminationError: CustomStringConvertible {
     public var description: String {
         errorDescription ?? "<error>"
     }
@@ -84,6 +69,38 @@ extension Process {
     }
 }
 
+#endif
+
+// MARK: - Auxiliary
+
+extension ProcessTerminationError {
+    public enum Reason: Hashable, Sendable {
+        case exit
+        case uncaughtSignal
+        case unknownDefault
+    }
+}
+
+// MARK: - Supplementary
+
+#if os(macOS) || targetEnvironment(macCatalyst)
+extension Process {
+    public typealias TerminationError = ProcessTerminationError
+}
+
+@available(macCatalyst, unavailable)
+extension Process {
+    public var terminationError: TerminationError? {
+        assert(!isRunning)
+        
+        guard terminationStatus != 0 else {
+            return nil
+        }
+        
+        return TerminationError(_from: self)
+    }
+}
+
 @available(macCatalyst, unavailable)
 extension Process.TerminationReason {
     package var reason: Process.TerminationError.Reason {
@@ -97,5 +114,4 @@ extension Process.TerminationReason {
         }
     }
 }
-
 #endif

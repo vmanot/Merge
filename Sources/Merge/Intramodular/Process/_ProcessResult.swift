@@ -2,18 +2,18 @@
 // Copyright (c) Vatsal Manot
 //
 
-#if os(macOS) || targetEnvironment(macCatalyst)
-
 import FoundationX
 import Swallow
 
 /// A type that represents the result of a running a `Process`.
 @Hashable
-public final class _ProcessResult: Logging, @unchecked Sendable {
+public struct _ProcessResult: Logging, @unchecked Sendable {
+    #if os(macOS)
     public let process: Process
+    #endif
     public let stdout: Data
     public let stderr: Data
-    public let terminationError: Process.TerminationError?
+    public let terminationError: ProcessTerminationError?
     
     /// A convenience property to get lines of the standard output, whitespace and newline trimmed.
     public var lines: [String] {
@@ -28,6 +28,7 @@ public final class _ProcessResult: Logging, @unchecked Sendable {
         }
     }
     
+    #if os(macOS)
     package init(
         process: Process,
         stdout: Data,
@@ -39,20 +40,7 @@ public final class _ProcessResult: Logging, @unchecked Sendable {
         self.stderr = stderr
         self.terminationError = terminationError
     }
-    
-    package convenience init(
-        process: Process,
-        stdout: String,
-        stderr: String,
-        terminationError: Process.TerminationError?
-    ) throws {
-        self.init(
-            process: process,
-            stdout: try stdout.data(),
-            stderr: try stderr.data(),
-            terminationError: terminationError
-        )
-    }
+    #endif
     
     public var stdoutString: String? {
         stdout.toStringTrimmingWhitespacesAndNewlines().nilIfEmpty()
@@ -79,9 +67,27 @@ public final class _ProcessResult: Logging, @unchecked Sendable {
     }
 }
 
+#if os(macOS)
+extension _ProcessResult {
+    package init(
+        process: Process,
+        stdout: String,
+        stderr: String,
+        terminationError: Process.TerminationError?
+    ) throws {
+        self.init(
+            process: process,
+            stdout: try stdout.data(),
+            stderr: try stderr.data(),
+            terminationError: terminationError
+        )
+    }
+}
+#endif
+
+#if os(macOS)
 extension Process {
     @available(*, deprecated, renamed: "_ProcessResult")
     public typealias AllOutput = _ProcessResult
 }
-
 #endif
