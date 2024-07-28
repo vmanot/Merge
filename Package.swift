@@ -67,23 +67,3 @@ let package = Package(
     ],
     swiftLanguageVersions: [.v5]
 )
-
-func addUnsafeFlags(to targets: inout [Target]) {
-    let unsafeFlags: [SwiftSetting] = [
-        .enableExperimentalFeature("AccessLevelOnImport"),
-        .unsafeFlags([
-            "-Xfrontend",
-            "-disable-autolink-framework",
-            "-Xfrontend",
-            "-enforce-exclusivity=unchecked",
-            "-Xfrontend",
-            "-validate-tbd-against-ir=none"
-        ])
-    ]
-    
-    for i in 0..<targets.count {
-        targets[i].swiftSettings = unsafeFlags
-    }
-}
-
-addUnsafeFlags(to: &package.targets)
