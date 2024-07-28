@@ -6,39 +6,46 @@ import Combine
 
 extension Shell {
     public struct Environment {
-        var launchPath: String
-        var arguments: (_ command: String) -> [String]
+        var launchPath: String?
+        var deriveArguments: (_ command: String) -> [String]
         
-        func env(
+        func resolve(
+            launchPath: String,
+            arguments: [String]
+        ) async throws -> (launchPath: String, arguments: [String]) {
+            try await resolve(command: "\(launchPath) \(arguments.joined(separator: " "))")
+        }
+        
+        func resolve(
             command: String
         ) async throws -> (launchPath: String, arguments: [String]) {
-            if !launchPath.isEmpty {
-                return (launchPath, arguments(command))
-            }
-            
-            let commands: [String.SubSequence] = command.split(separator: " ")
-            
-            assert(!commands.isEmpty)
-            
-            let launchPath: String = try await _memoize(uniquingWith: commands[0]) {
-                let result = try await resolveLaunchPath(from: String(commands[0]))
+            if let launchPath = launchPath {
+                return (launchPath, deriveArguments(command))
+            } else {
+                let commands: [String.SubSequence] = command.split(separator: " ")
                 
-                return result
+                assert(!commands.isEmpty)
+                
+                let launchPath: String = try await _memoize(uniquingWith: commands[0]) {
+                    let result = try await resolveLaunchPath(from: String(commands[0]))
+                    
+                    return result
+                }
+                
+                var arguments = [String]()
+                
+                if commands.count > 1 {
+                    try await Shell.run(
+                        command: "echo " + commands[1...].joined(separator: " "),
+                        environment: .bash,
+                        progressHandler: .block {
+                            arguments = $0.split(separator: " ").map(String.init)
+                        }
+                    )
+                }
+                
+                return (launchPath, arguments)
             }
-            
-            var arguments = [String]()
-            
-            if commands.count > 1 {
-                try await Shell.run(
-                    command: "echo " + commands[1...].joined(separator: " "),
-                    environment: .bash,
-                    progressHandler: .block {
-                        arguments = $0.split(separator: " ").map(String.init)
-                    }
-                )
-            }
-            
-            return (launchPath, arguments)
         }
         
         private func resolveLaunchPath(
@@ -60,14 +67,14 @@ extension Shell {
 
 extension Shell.Environment {
     public static var bash: Self {
-        Self(launchPath: "/bin/bash", arguments: { ["-c", $0] })
+        Self(launchPath: "/bin/bash", deriveArguments: { ["-c", $0] })
     }
     
     public static var zsh: Self {
-        Self(launchPath: "/bin/zsh", arguments: { ["-c", $0] })
+        Self(launchPath: "/bin/zsh", deriveArguments: { ["-l", "-c", $0] })
     }
     
     public static var none: Self {
-        Self(launchPath: "", arguments: { _ in [] })
+        Self(launchPath: nil, deriveArguments: { _ in [] })
     }
 }

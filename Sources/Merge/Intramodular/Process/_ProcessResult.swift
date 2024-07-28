@@ -56,6 +56,7 @@ public struct _ProcessResult: Logging, @unchecked Sendable {
         return try stdoutString.unwrap()
     }
     
+    @_transparent
     public func validate() throws {
         if let terminationError {
             if let stderrString = stderrString {

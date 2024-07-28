@@ -3,6 +3,7 @@
 //
 
 import Combine
+import Diagnostics
 import Foundation
 @_spi(Internal) import Swallow
 import System
@@ -27,7 +28,7 @@ extension _AsyncProcess {
 
 @available(macOS 11.0, iOS 14.0, watchOS 7.0, tvOS 14.0, *)
 @available(macCatalyst, unavailable)
-public class _AsyncProcess {
+public class _AsyncProcess: Logging {
     public typealias Option = _AsyncProcessOption
     public typealias ProgressHandler = Shell.ProgressHandler
     
@@ -409,6 +410,10 @@ public class _AsyncProcess {
     
     private func _run() async throws {
         do {
+            if case .print = progressHandler {
+                logger.info("\(self.process.executableURL!), args: \(self.process.arguments ?? [])")
+            }
+            
             _dumpCallStackIfNeeded()
             
             guard !isWaiting else {
@@ -707,6 +712,22 @@ extension _AsyncProcess {
         self.process.arguments = arguments
         self.process.currentDirectoryURL = currentDirectoryURL?._fromURLToFileURL()
         self.process.environment = environmentVariables
+    }
+    
+    public convenience init(
+        launchPath: String?,
+        arguments: [String],
+        currentDirectoryURL: URL? = nil,
+        environmentVariables: [String: String] = [:],
+        options: [_AsyncProcess.Option]
+    ) throws {
+        try self.init(
+            executableURL: launchPath.map({ URL(fileURLWithPath: $0) }),
+            arguments: arguments,
+            currentDirectoryURL: currentDirectoryURL,
+            environmentVariables: environmentVariables,
+            options: options
+        )
     }
 }
 

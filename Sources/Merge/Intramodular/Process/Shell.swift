@@ -19,6 +19,8 @@ public actor _ShellActor {
 public final class Shell {
     public let options: [_AsyncProcessOption]?
     
+    public var currentDirectoryURL: URL?
+    
     private var environmentVariables: [String: String] {
         ProcessInfo.processInfo.environment
     }
@@ -31,15 +33,18 @@ public final class Shell {
 #if os(macOS) || targetEnvironment(macCatalyst)
 extension Shell {
     public func run(
-        executableURL: URL?,
+        executableURL: URL,
         arguments: [String],
         currentDirectoryURL: URL? = nil,
+        environment: Environment = .zsh,
         environmentVariables: [String: String] = [:]
     ) async throws -> _ProcessResult {
+        let (launchPath, arguments) = try await environment.resolve(launchPath: executableURL.path, arguments: arguments)
+
         let process = try _AsyncProcess(
-            executableURL: executableURL,
+            launchPath: launchPath,
             arguments: arguments,
-            currentDirectoryURL: currentDirectoryURL?._fromURLToFileURL(),
+            currentDirectoryURL: currentDirectoryURL?._fromURLToFileURL() ?? self.currentDirectoryURL,
             environmentVariables: self.environmentVariables.merging(environmentVariables, uniquingKeysWith: { $1 }),
             options: options ?? [.reportCompletion]
         )
@@ -48,14 +53,13 @@ extension Shell {
     }
     
     @discardableResult
-    public static func run(
+    public func run(
         command: String,
+        input: String? = nil,
         environment: Environment = .zsh,
         environmentVariables: [String: String] = [:],
         currentDirectoryURL: URL? = nil,
-        progressHandler: Shell.ProgressHandler = .print,
-        input: String? = nil,
-        options: [_AsyncProcessOption]? = nil
+        progressHandler: Shell.ProgressHandler = .print
     ) async throws -> _ProcessResult {
         let options: [_AsyncProcessOption] = options ?? [
             .reportCompletion,
@@ -63,17 +67,17 @@ extension Shell {
             .splitWithNewLine
         ]
         
-        let (launchPath, arguments) = try await environment.env(command: command)
-
+        let (launchPath, arguments) = try await environment.resolve(command: command)
+        
         let process = try _AsyncProcess(
             executableURL: URL(fileURLWithPath: launchPath),
             arguments: arguments,
-            environment: environmentVariables,
-            currentDirectoryURL: currentDirectoryURL,
+            environment: self.environmentVariables.merging(environmentVariables, uniquingKeysWith: { $1 }),
+            currentDirectoryURL: currentDirectoryURL ?? self.currentDirectoryURL,
             progressHandler: progressHandler,
             options: options
         )
-                    
+        
         if let input = input?.data(using: .utf8), !input.isEmpty, let handle = process.standardInputPipe?.fileHandleForWriting {
             try? handle.write(contentsOf: input)
             try? handle.close()
@@ -85,72 +89,68 @@ extension Shell {
 #else
 extension Shell {
     public func run(
-        executableURL: URL?,
+        executableURL: URL,
         arguments: [String],
         currentDirectoryURL: URL? = nil,
+        environment: Environment = .zsh,
         environmentVariables: [String: String] = [:]
     ) async throws -> _ProcessResult {
         throw Never.Reason.unsupported
     }
     
     @discardableResult
-    public static func run(
+    public func run(
         command: String,
-        currentDirectoryURL: URL? = nil,
+        input: String? = nil,
         environment: Environment = .zsh,
         environmentVariables: [String: String] = [:],
-        progressHandler: Shell.ProgressHandler = .print,
-        input: String? = nil,
-        options: [_AsyncProcessOption]? = nil
+        currentDirectoryURL: URL? = nil,
+        progressHandler: Shell.ProgressHandler = .print
     ) async throws -> _ProcessResult {
         throw Never.Reason.unsupported
     }
 }
 #endif
 
+// MARK: - Extensions
+
 extension Shell {
     public func run(
-        executablePath: String?,
+        executablePath: String,
         arguments: [String],
         currentDirectoryURL: URL? = nil,
         environmentVariables: [String: String] = [:]
     ) async throws -> _ProcessResult {
         try await run(
-            executableURL: executablePath.map({ try URL(string: $0).unwrap() }),
+            executableURL: try URL(string: executablePath).unwrap(),
             arguments: arguments,
             currentDirectoryURL: nil,
             environmentVariables: [:]
         )
     }
-
-    public func run(
-        arguments: [String],
-        currentDirectoryURL: URL? = nil,
-        environmentVariables: [String: String] = [:]
-    ) async throws -> _ProcessResult {
-        try await run(
-            executableURL: nil,
-            arguments: arguments,
-            currentDirectoryURL: nil,
-            environmentVariables: [:]
-        )
-    }
-        
-    public func run(
+    
+    @discardableResult
+    public static func run(
         command: String,
+        input: String? = nil,
         environment: Environment = .zsh,
+        environmentVariables: [String: String] = [:],
         currentDirectoryURL: URL? = nil,
-        progressHandler: Shell.ProgressHandler = .print
+        progressHandler: Shell.ProgressHandler = .print,
+        options: [_AsyncProcessOption]? = nil
     ) async throws -> _ProcessResult {
-        try await Self.run(
+        try await Shell(options: options).run(
             command: command,
+            input: input,
             environment: environment,
+            environmentVariables: environmentVariables,
             currentDirectoryURL: currentDirectoryURL,
-            progressHandler: progressHandler,
-            options: options
+            progressHandler: progressHandler
         )
     }
 }
+
+// MARK: - Auxiliary
 
 extension Shell {
     public enum ProgressHandler {
