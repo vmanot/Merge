@@ -520,14 +520,13 @@ public class _AsyncProcess {
         }
         
         let progressHandler = self.progressHandler
-        
+        let outputString = _standardOutputString.trimmingCharacters(in: options.trimmingCharacterSet)
+
         switch progressHandler {
             case let .block(outputCall, errorCall):
                 if options.reportCompletion {
-                    let output = _standardOutputString.trimmingCharacters(in: options.trimmingCharacterSet)
-                    
-                    if !output.isEmpty {
-                        outputCall(output)
+                    if !outputString.isEmpty {
+                        outputCall(outputString)
                     }
                 }
                 
@@ -537,7 +536,7 @@ public class _AsyncProcess {
                     (errorCall ?? outputCall)(error)
                 }
             case .print:
-                fatalError()
+                debugPrint(outputString)
         }
         
         let result: Result<_ProcessResult, Error>

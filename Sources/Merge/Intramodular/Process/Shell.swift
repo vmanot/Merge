@@ -50,13 +50,12 @@ extension Shell {
     @discardableResult
     public static func run(
         command: String,
-        currentDirectoryURL: URL? = nil,
         environment: Environment = .zsh,
         environmentVariables: [String: String] = [:],
+        currentDirectoryURL: URL? = nil,
         progressHandler: Shell.ProgressHandler = .print,
         input: String? = nil,
-        options: [_AsyncProcessOption]? = nil,
-        threadIdentifier: String? = nil
+        options: [_AsyncProcessOption]? = nil
     ) async throws -> _ProcessResult {
         let options: [_AsyncProcessOption] = options ?? [
             .reportCompletion,
@@ -102,8 +101,7 @@ extension Shell {
         environmentVariables: [String: String] = [:],
         progressHandler: Shell.ProgressHandler = .print,
         input: String? = nil,
-        options: [_AsyncProcessOption]? = nil,
-        threadIdentifier: String? = nil
+        options: [_AsyncProcessOption]? = nil
     ) async throws -> _ProcessResult {
         throw Never.Reason.unsupported
     }
@@ -140,14 +138,14 @@ extension Shell {
         
     public func run(
         command: String,
-        currentDirectoryURL: URL? = nil,
         environment: Environment = .zsh,
+        currentDirectoryURL: URL? = nil,
         progressHandler: Shell.ProgressHandler = .print
     ) async throws -> _ProcessResult {
         try await Self.run(
             command: command,
-            currentDirectoryURL: currentDirectoryURL,
             environment: environment,
+            currentDirectoryURL: currentDirectoryURL,
             progressHandler: progressHandler,
             options: options
         )

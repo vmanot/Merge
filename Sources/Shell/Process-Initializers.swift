@@ -34,7 +34,24 @@ extension Process {
             self.isQuoted = isQuoted
         }
         
-        public init(stringLiteral value: String) {
+        @_disfavoredOverload
+        public init(
+            _ value: URL,
+            options: Set<Option> = [.escapeSpaces],
+            isQuoted: Bool = false
+        ) {
+            let value: String = value.isFileURL ? value.path : value.absoluteString
+          
+            self.init(
+                value,
+                options: options,
+                isQuoted: isQuoted
+            )
+        }
+
+        public init(
+            stringLiteral value: String
+        ) {
             self.init(value)
         }
         
