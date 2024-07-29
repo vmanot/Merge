@@ -17,15 +17,16 @@ public actor _ShellActor {
 }
 
 public final class Shell {
-    public let options: [_AsyncProcessOption]?
-    
     public var currentDirectoryURL: URL?
-    
+
+    public let options: [_AsyncProcessOption]?
+        
     private var environmentVariables: [String: String] {
         ProcessInfo.processInfo.environment
     }
     
-    public init(options: [_AsyncProcessOption]? = nil) {
+    public init(currentDirectoryURL: URL? = nil, options: [_AsyncProcessOption]? = nil) {
+        self.currentDirectoryURL = currentDirectoryURL
         self.options = options
     }
 }
