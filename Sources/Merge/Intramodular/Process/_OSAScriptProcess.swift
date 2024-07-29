@@ -2,11 +2,11 @@
 // Copyright (c) Vatsal Manot
 //
 
-#if os(macOS)
-
 import Foundation
 import Swift
 import SwallowMacrosClient
+
+#if os(macOS)
 
 public class _OSAScriptProcess: Process, @unchecked Sendable {
     private var underlyingTask = Process()
@@ -212,6 +212,12 @@ extension _OSAScriptProcess {
         
         return escapedCode as String
     }
+}
+
+#elseif targetEnvironment(macCatalyst)
+
+public class _OSAScriptProcess: Process, @unchecked Sendable {
+    
 }
 
 #endif

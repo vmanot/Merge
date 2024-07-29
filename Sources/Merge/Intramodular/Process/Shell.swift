@@ -31,7 +31,7 @@ public final class Shell {
     }
 }
 
-#if os(macOS) || targetEnvironment(macCatalyst)
+#if os(macOS)
 extension Shell {
     public func run(
         executableURL: URL,
