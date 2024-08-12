@@ -106,7 +106,9 @@ public struct _ResolvedTaskContextValues: TaskContextValues {
         self.base = .init()
     }
     
-    public subscript<Key: TaskContextKey>(_ key: Key.Type) -> Key.Value {
+    public subscript<Key: TaskContextKey>(
+        _ key: Key.Type
+    ) -> Key.Value {
         get {
             base[key] ?? key.defaultValue
         } set {

@@ -7,7 +7,7 @@ import Foundation
 import Swallow
 
 /// A task that performs type erasure by wrapping another task.
-public final class AnyTask<Success, Error: Swift.Error>: ObservableObject, ObservableTask {
+public final class AnyTask<Success, Error: Swift.Error>: ObservableObject, ObservableTask, @unchecked Sendable {
     public typealias ID = AnyHashable
     public typealias Status = TaskStatus<Success, Error>
     
