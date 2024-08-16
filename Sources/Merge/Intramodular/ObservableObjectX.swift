@@ -54,7 +54,6 @@ public final class _ObjectDidChangePublisher: Publisher, Subject, @unchecked Sen
     private let lock = OSUnfairLock()
     private let base = PassthroughSubject<Void, Never>()
     
-    @_spi(Internal)
     public init() {
         
     }
@@ -103,7 +102,7 @@ extension ObservableObject {
 }
 
 extension _ObservableObjectX {
-    fileprivate var _opaque_objectDidChange: AnyPublisher<Void, Never> {
+    public var _opaque_objectDidChange: AnyPublisher<Void, Never> {
         objectDidChange.mapTo(()).eraseToAnyPublisher()
     }
 }

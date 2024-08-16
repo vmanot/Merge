@@ -13,7 +13,13 @@ public final class PublishedObject<Value>: PropertyWrapper {
     
     /// In case `_wrappedValue` is backed by an `ObservableArray` or some shit.
     private let _wrappedValueBoxWillChangeRelay: ObjectWillChangePublisherRelay<Any, Any>?
-    private let _assignmentPublisher = PassthroughSubject<Void, Never>()
+    private lazy var _assignmentPublisher = {
+        let result = ReplaySubject<Value, Never>()
+        
+        result.send(wrappedValue)
+        
+        return result
+    }()
     
     private let objectWillChangeRelay = ObjectWillChangePublisherRelay()
     
@@ -28,7 +34,7 @@ public final class PublishedObject<Value>: PropertyWrapper {
             
             _wrappedValue = newValue
             
-            _assignmentPublisher.send()
+            _assignmentPublisher.send(newValue)
         }
     }
     
@@ -38,9 +44,6 @@ public final class PublishedObject<Value>: PropertyWrapper {
     
     public var assignmentPublisher: AnyPublisher<Value, Never> {
         _assignmentPublisher
-            .compactMap { [weak self] in
-                self?.wrappedValue
-            }
             .eraseToAnyPublisher()
     }
     
@@ -150,5 +153,23 @@ extension PublishedObject: Encodable where Value: Encodable {
 extension PublishedObject: ObservableObject {
     public var objectWillChange: AnyObjectWillChangePublisher {
         objectWillChangeRelay.objectWillChange
+    }
+}
+
+extension PublishedObject: Publisher {
+    public typealias Output = Value
+    public typealias Failure = Never
+    
+    public func receive<S: Subscriber<Value, Never>>(
+        subscriber: S
+    ) {
+        _assignmentPublisher.flatMap { (value: Value) -> AnyPublisher<Value, Never> in
+            if let _value = value as? (any _ObservableObjectX) {
+                return Publishers.MergeMany(Just(value).eraseToAnyPublisher(), _value._opaque_objectDidChange.mapTo(value).eraseToAnyPublisher()).eraseToAnyPublisher()
+            } else {
+                return Just(value).eraseToAnyPublisher()
+            }
+        }
+        .receive(subscriber: subscriber)
     }
 }

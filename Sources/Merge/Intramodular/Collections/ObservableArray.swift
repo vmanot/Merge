@@ -136,6 +136,12 @@ public final class ObservableArray<Element: ObservableObject>: MutablePropertyWr
 
 // MARK: - Conformances
 
+extension ObservableArray: CustomStringConvertible {
+    public var description: String {
+        wrappedValue.description
+    }
+}
+
 extension ObservableArray: Decodable where Element: Decodable {
     public convenience init(from decoder: Decoder) throws {
         try self.init(Array<Element>(from: decoder))
