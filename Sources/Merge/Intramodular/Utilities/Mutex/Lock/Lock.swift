@@ -22,9 +22,12 @@ public protocol ReentrantLock: Lock, ReentrantMutex {
 // MARK: - Implementation
 
 extension Lock {
+    @_transparent
     @discardableResult
     @inlinable
-    public func withCriticalScope<T>(_ f: (() throws -> T)) rethrows -> T {
+    public func withCriticalScope<T>(
+        _ f: (() throws -> T)
+    ) rethrows -> T {
         defer {
             relinquish()
         }
