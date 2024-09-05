@@ -144,6 +144,11 @@ extension Process {
     }
     
     public func _runAsync() async throws -> _ProcessResult {
+        signal(SIGINT, SIG_IGN)
+        let sigintSrc = DispatchSource.makeSignalSource(signal: SIGINT, queue: .main)
+        sigintSrc.setEventHandler { exit(0) }
+        sigintSrc.resume()
+        
         let stdout = _AsyncUnsafePipeBuffer(id: .stdout)
         let stderr = _AsyncUnsafePipeBuffer(id: .stderr)
         
