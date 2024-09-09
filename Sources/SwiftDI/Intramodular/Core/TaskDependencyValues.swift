@@ -4,7 +4,7 @@
 
 import Swallow
 
-public typealias TaskDependencyValues = HeterogeneousDictionary<Dependencies>
+public typealias TaskDependencyValues = HeterogeneousDictionary<TaskDependencies>
 
 extension TaskDependencyValues {
     public subscript<Key: TaskDependencyKey>(
@@ -13,7 +13,7 @@ extension TaskDependencyValues {
         get {
             self[key] ?? key.defaultValue
         } set {
-            self[key as any HeterogeneousDictionaryKey<Dependencies, Key.Value>.Type] = newValue
+            self[key as any HeterogeneousDictionaryKey<TaskDependencies, Key.Value>.Type] = newValue
         }
     }
 }

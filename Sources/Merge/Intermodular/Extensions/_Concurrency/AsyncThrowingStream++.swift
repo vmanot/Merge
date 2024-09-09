@@ -26,11 +26,27 @@ extension AsyncThrowingStream where Failure == Error {
         var iterator: S.AsyncIterator?
         
         self.init {
-            if iterator == nil {
-                iterator = sequence.makeAsyncIterator()
+            var _iterator: S.AsyncIterator
+            
+            defer {
+                iterator = _iterator
             }
             
-            return try await iterator?.next()
+            if let iterator {
+                _iterator = iterator
+            } else {
+                _iterator = sequence.makeAsyncIterator()
+                
+                iterator = _iterator
+            }
+            
+            do {
+                let result: Element? = try await _iterator.next()
+                
+                return result
+            } catch {
+                throw error
+            }
         }
     }
     

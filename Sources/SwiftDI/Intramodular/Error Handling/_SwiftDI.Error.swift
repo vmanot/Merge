@@ -2,7 +2,6 @@
 // Copyright (c) Vatsal Manot
 //
 
-import ObjectiveC
 import Diagnostics
 import Swallow
 

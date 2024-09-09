@@ -101,7 +101,7 @@ open class PassthroughTask<Success, Error: Swift.Error>: ObservableTask {
                 lock.withCriticalScope {
                     Task._offTheMainThread {
                         await withTaskCancellationHandler {
-                            withDependencies(from: self) {
+                            withTaskDependencies(from: self) {
                                 cancellable.set(body(self as! Self))
                             }
                         } onCancel: {
@@ -242,11 +242,11 @@ open class PassthroughTask<Success, Error: Swift.Error>: ObservableTask {
         priority: TaskPriority? = nil,
         operation: @escaping @Sendable () async -> Success
     ) where Error == Never {
-        let dependencies = Dependencies.current
+        let dependencies = TaskDependencies.current
         
         self.init(publisher: Deferred {
             Future.async(priority: priority, execute: {
-                await withDependencies {
+                await withTaskDependencies {
                     $0.mergeInPlace(with: dependencies)
                 } operation: {
                     await operation()
@@ -259,11 +259,11 @@ open class PassthroughTask<Success, Error: Swift.Error>: ObservableTask {
         priority: TaskPriority? = nil,
         operation: @escaping @Sendable () async throws -> Success
     ) where Error == Swift.Error {
-        let dependencies = Dependencies.current
+        let dependencies = TaskDependencies.current
 
         self.init(publisher: Deferred {
             Future.async(priority: priority, execute: {
-                try await withDependencies {
+                try await withTaskDependencies {
                     $0.mergeInPlace(with: dependencies)
                 } operation: {
                     try await operation()

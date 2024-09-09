@@ -21,7 +21,7 @@ extension EnvironmentValues {
 
 extension View {
     public func dependencies(
-        _ dependencies: Dependencies
+        _ dependencies: TaskDependencies
     ) -> some View {
         transformEnvironment(\._dependencies) {
             $0.mergeInPlace(with: dependencies)
@@ -38,13 +38,13 @@ extension View {
     }
 }
 
-public func withDependencies<Subject, Content: View>(
+public func withTaskDependencies<Subject, Content: View>(
     from subject: Subject,
     @ViewBuilder content: () -> Content
 ) -> some View {
     var result: Content!
     
-    withDependencies(from: subject) {
+    withTaskDependencies(from: subject) {
         result = content()
     }
     

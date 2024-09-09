@@ -8,15 +8,15 @@ import SwallowMacrosClient
 
 @_transparent
 @discardableResult
-public func withDependencies<Result>(
-    _ updateValuesForOperation: (inout Dependencies) throws -> Void,
+public func withTaskDependencies<Result>(
+    _ updateValuesForOperation: (inout TaskDependencies) throws -> Void,
     operation: () throws -> Result
 ) rethrows -> Result {
-    var dependencies = Dependencies._current
+    var dependencies = TaskDependencies._current
     
     try updateValuesForOperation(&dependencies)
     
-    return try Dependencies.$_current.withValue(dependencies) {
+    return try TaskDependencies.$_current.withValue(dependencies) {
         let result: Result = try operation()
         
         #try(.optimistic) {
@@ -28,24 +28,24 @@ public func withDependencies<Result>(
 }
 
 @discardableResult
-public func withDependencies<Result>(
+public func withTaskDependencies<Result>(
     operation: () throws -> Result
 ) rethrows -> Result {
-    try withDependencies({ _ in }, operation: operation)
+    try withTaskDependencies({ _ in }, operation: operation)
 }
 
 @_transparent
 @_unsafeInheritExecutor
 @discardableResult
-public func withDependencies<Result>(
-    _ updateValuesForOperation: (inout Dependencies) async throws -> Void,
+public func withTaskDependencies<Result>(
+    _ updateValuesForOperation: (inout TaskDependencies) async throws -> Void,
     operation: () async throws -> Result
 ) async rethrows -> Result {
-    var dependencies = Dependencies._current
+    var dependencies = TaskDependencies._current
     
     try await updateValuesForOperation(&dependencies)
     
-    return try await Dependencies.$_current.withValue(dependencies) {
+    return try await TaskDependencies.$_current.withValue(dependencies) {
         let result = try await operation()
         
         #try(.optimistic) {
@@ -56,6 +56,31 @@ public func withDependencies<Result>(
     }
 }
 
+#if swift(>=6)
+@_transparent
+@discardableResult
+public func withDependency<Dependency, Result>(
+    isolation: isolated (any Actor)? = #isolation,
+    _ dependencyKey: WritableKeyPath<TaskDependencyValues, Dependency>,
+    _ dependency: Dependency,
+    operation: () async throws -> Result
+) async rethrows -> Result {
+    try await withTaskDependencies {
+        $0[dependencyKey] = dependency
+    } operation: {
+        try await operation()
+    }
+}
+
+@_transparent
+@discardableResult
+public func withTaskDependencies<Result>(
+    isolation: isolated (any Actor)? = #isolation,
+    operation: () async throws -> Result
+) async rethrows -> Result {
+    try await withTaskDependencies({ _ in }, operation: operation)
+}
+#else
 @_transparent
 @_unsafeInheritExecutor
 @discardableResult
@@ -64,7 +89,7 @@ public func withDependency<Dependency, Result>(
     _ dependency: Dependency,
     operation: () async throws -> Result
 ) async rethrows -> Result {
-    try await withDependencies {
+    try await withTaskDependencies {
         $0[dependencyKey] = dependency
     } operation: {
         try await operation()
@@ -74,11 +99,12 @@ public func withDependency<Dependency, Result>(
 @_transparent
 @_unsafeInheritExecutor
 @discardableResult
-public func withDependencies<Result>(
+public func withTaskDependencies<Result>(
     operation: () async throws -> Result
 ) async rethrows -> Result {
-    try await withDependencies({ _ in }, operation: operation)
+    try await withTaskDependencies({ _ in }, operation: operation)
 }
+#endif
 
 @_transparent
 @discardableResult
@@ -87,7 +113,7 @@ public func withDependency<Dependency, Result>(
     _ dependency: Dependency,
     operation: () throws -> Result
 ) rethrows -> Result {
-    try withDependencies {
+    try withTaskDependencies {
         $0[dependencyKey] = dependency
     } operation: {
         try operation()
@@ -96,14 +122,14 @@ public func withDependency<Dependency, Result>(
 
 @_transparent
 @discardableResult
-public func withDependencies<Subject, Result>(
+public func withTaskDependencies<Subject, Result>(
     from subject: Subject,
     _ updateValuesForOperation: (inout TaskDependencies) throws -> Void,
     operation: () throws -> Result
 ) rethrows -> Result {
     let dependencies = TaskDependencies(from: subject)
     
-    return try withDependencies {
+    return try withTaskDependencies {
         $0 = dependencies.merging($0)
         
         try updateValuesForOperation(&$0)
@@ -116,14 +142,14 @@ public func withDependencies<Subject, Result>(
 
 @_transparent
 @discardableResult
-public func withDependencies<Subject, Result>(
+public func withTaskDependencies<Subject, Result>(
     from subject: Subject,
-    _ updateValuesForOperation: (inout Dependencies) async throws -> Void,
+    _ updateValuesForOperation: (inout TaskDependencies) async throws -> Void,
     operation: () async throws -> Result
 ) async rethrows -> Result {
-    let dependencies = Dependencies(from: subject)
+    let dependencies = TaskDependencies(from: subject)
     
-    return try await withDependencies {
+    return try await withTaskDependencies {
         $0 = dependencies.merging($0)
         
         try await updateValuesForOperation(&$0)
@@ -134,18 +160,18 @@ public func withDependencies<Subject, Result>(
 
 @_transparent
 @discardableResult
-public func withDependencies<Subject, Result>(
+public func withTaskDependencies<Subject, Result>(
     from subject: Subject,
     operation: () throws -> Result
 ) rethrows -> Result {
-    try withDependencies(from: subject, { _ in }, operation: operation)
+    try withTaskDependencies(from: subject, { _ in }, operation: operation)
 }
 
 @_transparent
 @discardableResult
-public func withDependencies<Subject, Result>(
+public func withTaskDependencies<Subject, Result>(
     from subject: Subject,
     operation: () async throws -> Result
 ) async rethrows -> Result {
-    try await withDependencies(from: subject, { _ in }, operation: operation)
+    try await withTaskDependencies(from: subject, { _ in }, operation: operation)
 }

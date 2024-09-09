@@ -116,7 +116,7 @@ public final class ThrowingTaskQueue: @unchecked Sendable {
     private func _withOwnershipScope<T>(
         _ block: @Sendable () async throws -> T
     ) async throws -> T {
-        try await withDependencies(from: owner) {
+        try await withTaskDependencies(from: owner) {
             try await block()
         }
     }

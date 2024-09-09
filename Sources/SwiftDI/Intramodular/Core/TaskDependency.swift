@@ -2,7 +2,7 @@
 // Copyright (c) Vatsal Manot
 //
 
-import Combine
+private import Combine
 import Diagnostics
 import SwiftUI
 import Swallow
@@ -22,8 +22,8 @@ public struct TaskDependency<Value>: _TaskDependenciesConsuming, _TaskDependency
     
     private var _isInSwiftUIView: Bool = false
     
-    let initialTaskDependencies: Dependencies
-    let resolveValue: @Sendable (Dependencies) throws -> Value?
+    let initialTaskDependencies: TaskDependencies
+    let resolveValue: @Sendable (TaskDependencies) throws -> Value?
     var assignedValue: Value?
     let deferredAssignedValue = ReferenceBox<Value?>(nil)
     
@@ -45,7 +45,7 @@ public struct TaskDependency<Value>: _TaskDependenciesConsuming, _TaskDependency
         self
     }
     
-    public func __consume(_ dependencies: Dependencies) throws {
+    public func __consume(_ dependencies: TaskDependencies) throws {
         if _isValueNil(assignedValue), try resolveValue(initialTaskDependencies) == nil {
             let hadValue = !_isValueNil(deferredAssignedValue.wrappedValue)
             
@@ -59,18 +59,18 @@ public struct TaskDependency<Value>: _TaskDependenciesConsuming, _TaskDependency
         }
     }
     
-    private func dependenciesAvailable() -> Dependencies {
+    private func dependenciesAvailable() -> TaskDependencies {
         if _isInSwiftUIView {
             var dependencies = _SwiftUI_dependencies
             
             dependencies.mergeInPlace(with: self.initialTaskDependencies)
-            dependencies.mergeInPlace(with: Dependencies.current)
+            dependencies.mergeInPlace(with: TaskDependencies.current)
             
             return dependencies
         } else {
             var dependencies = self.initialTaskDependencies
             
-            dependencies.mergeInPlace(with: Dependencies.current)
+            dependencies.mergeInPlace(with: TaskDependencies.current)
             
             return dependencies
         }
@@ -95,8 +95,8 @@ public struct TaskDependency<Value>: _TaskDependenciesConsuming, _TaskDependency
     }
     
     init(
-        initialTaskDependencies: Dependencies,
-        resolveValue: @escaping @Sendable (Dependencies) throws -> Value?
+        initialTaskDependencies: TaskDependencies,
+        resolveValue: @escaping @Sendable (TaskDependencies) throws -> Value?
     ) {
         self.initialTaskDependencies = initialTaskDependencies
         self.resolveValue = resolveValue

@@ -2,11 +2,11 @@
 // Copyright (c) Vatsal Manot
 //
 
-import ObjectiveC
 import Diagnostics
+private import ObjectiveC
 import Swallow
 
-extension Dependencies {
+extension TaskDependencies {
     @usableFromInline
     init<T>(from subject: T) {
         TODO.here(.optimize)
@@ -37,7 +37,7 @@ extension Dependencies {
         }
     }
     
-    func stashable() -> Dependencies {
+    func stashable() -> TaskDependencies {
         .init(
             unkeyedValues: unkeyedValues,
             unkeyedValueTypes: unkeyedValueTypes,
@@ -88,7 +88,7 @@ fileprivate struct _DependenciesStasher {
         self.subject = try! cast(subject, to: AnyObject.self)
     }
     
-    func fetch() -> Dependencies? {
+    func fetch() -> TaskDependencies? {
         guard let value = objc_getAssociatedObject(
             subject,
             &Self.objc_dependenciesKey
@@ -96,10 +96,10 @@ fileprivate struct _DependenciesStasher {
             return nil
         }
         
-        return (value as! Dependencies)
+        return (value as! TaskDependencies)
     }
     
-    func stash(_ dependencies: Dependencies) {
+    func stash(_ dependencies: TaskDependencies) {
         objc_setAssociatedObject(
             subject,
             &Self.objc_dependenciesKey,

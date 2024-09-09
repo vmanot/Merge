@@ -3,7 +3,7 @@
 //
 
 import Diagnostics
-import Runtime
+private import Runtime
 @_spi(Internal) import Swallow
 import SwiftUI
 
@@ -27,7 +27,7 @@ public final class LogicalParent<Parent>: Codable, _TaskDependenciesConsuming {
     var _resolvedValue = Weak<Parent>(nil)
     var _hasConsumedDependencies: Bool = false
     
-    @Dependency(
+    @TaskDependency(
         \._logicalParent,
          _resolve: {
              try $0.map({ try cast($0.wrappedValue) })
@@ -169,8 +169,8 @@ public func _withLogicalParent<Parent, Result>(
     _ parent: Parent?,
     operation: () throws -> Result
 ) rethrows -> Result {
-    return try withDependencies(from: parent) {
-        try withDependencies { (dependencies: inout TaskDependencies) -> Void in
+    return try withTaskDependencies(from: parent) {
+        try withTaskDependencies { (dependencies: inout TaskDependencies) -> Void in
             #try(.optimistic) {
                 try dependencies._setLogicalParent(parent)
             }
@@ -200,10 +200,10 @@ public func _withLogicalParent<Parent, Result>(
     _ parent: Parent?,
     operation: () async throws -> Result
 ) async throws -> Result {
-    try await withDependencies {
+    try await withTaskDependencies {
         try $0._setLogicalParent(parent)
     } operation: {
-        try await withDependencies(from: parent) {
+        try await withTaskDependencies(from: parent) {
             try await operation()
         }
     }
@@ -233,7 +233,7 @@ public func _withLogicalParent<Parent, Result>(
 ) throws -> Result {
     do {
         let parent = try cast(
-            Dependencies.current[unwrapping: \._logicalParent].wrappedValue.unwrap(),
+            TaskDependencies.current[unwrapping: \._logicalParent].wrappedValue.unwrap(),
             to: parentType
         )
         
@@ -269,7 +269,7 @@ extension TaskDependencyValues {
     }
 }
 
-extension Dependencies {
+extension TaskDependencies {
     fileprivate mutating func _setLogicalParent<Parent>(
         _ parent: Parent?
     ) throws {

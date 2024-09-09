@@ -9,7 +9,7 @@ import XCTest
 
 final class DependenciesTests: XCTestCase {
     func testBasics() async throws {
-        let foo: Foo = withDependencies {
+        let foo: Foo = withTaskDependencies {
             $0[unkeyed: Bar.self] = Baz1()
         } operation: {
             Foo()
@@ -22,7 +22,7 @@ final class DependenciesTests: XCTestCase {
         }
         .value
         
-        withDependencies {
+        withTaskDependencies {
             $0[unkeyed: Bar.self] = Baz2()
         } operation: {
             XCTAssert(foo.baz is Baz2)
@@ -30,14 +30,14 @@ final class DependenciesTests: XCTestCase {
         }
         
         XCTAssertNoThrow(
-            try withDependencies {
+            try withTaskDependencies {
                 $0[unkeyed: Bar.self] = nil
             } operation: {
                 try foo.tryBongo()
             }
         )
         
-        try await withDependencies {
+        try await withTaskDependencies {
             $0[unkeyed: Bar.self] = Baz1()
         } operation: {
             let result = await Result(catching: {
@@ -49,7 +49,7 @@ final class DependenciesTests: XCTestCase {
     }
     
     func testAsyncAndRecursive() async throws {
-        let foo: Foo = withDependencies {
+        let foo: Foo = withTaskDependencies {
             $0[unkeyed: Bar.self] = Baz1()
         } operation: {
             Foo()
@@ -103,7 +103,7 @@ extension DependenciesTests {
         
         @discardableResult
         func tryRecursiveBongo() throws -> Int {
-            try withDependencies(from: self) {
+            try withTaskDependencies(from: self) {
                 try Foo().tryBongo()
             }
         }

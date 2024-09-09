@@ -2,17 +2,24 @@
 // Copyright (c) Vatsal Manot
 //
 
-import Combine
+private import Combine
 import Swallow
 
-public typealias Dependency<Value> = TaskDependency<Value>
+@available(*, deprecated, renamed: "TaskDependencies")
 public typealias Dependencies = TaskDependencies
+@available(*, deprecated, renamed: "TaskDependency")
+public typealias Dependency<Value> = TaskDependency<Value>
+@available(*, deprecated, renamed: "TaskDependencyKey")
 public typealias DependencyKey = TaskDependencyKey
+
+public protocol _TaskDependenciesConsuming {
+    func __consume(_: TaskDependencies) throws
+}
 
 public struct TaskDependencies: @unchecked Sendable {
     var unkeyedValues: _BagOfExistentials<any Sendable>
     var unkeyedValueTypes: Set<Metatype<Any.Type>> = []
-    var keyedValues = HeterogeneousDictionary<Dependencies>()
+    var keyedValues = HeterogeneousDictionary<TaskDependencies>()
     
     var isEmpty: Bool {
         unkeyedValues.isEmpty && keyedValues.isEmpty
@@ -21,7 +28,7 @@ public struct TaskDependencies: @unchecked Sendable {
     internal init(
         unkeyedValues: _BagOfExistentials<Sendable>,
         unkeyedValueTypes: Set<Metatype<Any.Type>>,
-        keyedValues: HeterogeneousDictionary<Dependencies>
+        keyedValues: HeterogeneousDictionary<TaskDependencies>
     ) {
         self.unkeyedValues = unkeyedValues
         self.unkeyedValueTypes = unkeyedValueTypes
@@ -36,7 +43,9 @@ public struct TaskDependencies: @unchecked Sendable {
         )
     }
     
-    func resolve<T>(_ request: TaskDependencyResolutionRequest<T>) throws -> T? {
+    func resolve<T>(
+        _ request: TaskDependencyResolutionRequest<T>
+    ) throws -> T? {
         switch request {
             case .unkeyed(let type):
                 return try unkeyedValues.firstAndOnly(ofType: type)
@@ -79,7 +88,7 @@ public struct TaskDependencies: @unchecked Sendable {
                 throw TaskDependenciesError.init(
                     rawValue: .noValueForKey(keyPath),
                     location: .unavailable
-                )           
+                )
             }
         }
     }
@@ -135,12 +144,12 @@ extension TaskDependencies: MergeOperatable {
 }
 
 extension TaskDependencies {
-    public static var current: Dependencies {
-        Dependencies._current
+    public static var current: TaskDependencies {
+        TaskDependencies._current
     }
     
     static func resolve<T>(
-        _ dependency: Dependency<T>
+        _ dependency: TaskDependency<T>
     ) throws -> T {
         try dependency.get()
     }
@@ -154,8 +163,8 @@ extension TaskDependencies {
 
 // MARK: - Auxiliary
 
-extension Dependencies {
-    @TaskLocal public static var _current = Dependencies()
+extension TaskDependencies {
+    @TaskLocal public static var _current = TaskDependencies()
 }
 
 public struct TaskDependenciesError: CustomStringConvertible, Error, Hashable {

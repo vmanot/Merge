@@ -5,7 +5,9 @@
 import Swallow
 
 extension AsyncStream {
-    public init<S: AsyncSequence>(_ sequence: S) where S.Element == Element {
+    public init<S: AsyncSequence>(
+        _ sequence: S
+    ) where S.Element == Element {
         var iterator: S.AsyncIterator?
         
         self.init {
@@ -13,7 +15,13 @@ extension AsyncStream {
                 iterator = sequence.makeAsyncIterator()
             }
             
-            return try? await iterator?.next()
+            do {
+                return try await iterator?.next()
+            } catch {
+                runtimeIssue(error)
+                
+                return nil
+            }
         }
     }
     
