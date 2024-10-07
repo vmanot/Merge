@@ -80,6 +80,28 @@ public func withTaskDependencies<Result>(
 ) async rethrows -> Result {
     try await withTaskDependencies({ _ in }, operation: operation)
 }
+#elseif canImport(Translation)
+@_transparent
+@discardableResult
+public func withDependency<Dependency, Result>(
+    _ dependencyKey: WritableKeyPath<TaskDependencyValues, Dependency>,
+    _ dependency: Dependency,
+    operation: () async throws -> Result
+) async rethrows -> Result {
+    try await withTaskDependencies {
+        $0[dependencyKey] = dependency
+    } operation: {
+        try await operation()
+    }
+}
+
+@_transparent
+@discardableResult
+public func withTaskDependencies<Result>(
+    operation: () async throws -> Result
+) async rethrows -> Result {
+    try await withTaskDependencies({ _ in }, operation: operation)
+}
 #else
 @_transparent
 @_unsafeInheritExecutor
