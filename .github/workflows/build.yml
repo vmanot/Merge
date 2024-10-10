@@ -1,34 +1,22 @@
-name: Build Package For All Platforms (Xcode 16 & Xcode 15.4)
+name: Preternatural Build
 on:
+  push:
+    branches:
+      - '**'
+  pull_request:
+    branches:
+      - '**'
   workflow_dispatch:
+
 jobs:
   build:
-    runs-on: macos-latest
+    runs-on: ghcr.io/cirruslabs/macos-runner:sonoma
     steps:
     - name: Checkout repository
       uses: actions/checkout@v3
     
-    - name: Cache derived data
-      if: ${{ !env.ACT }} # Skipping when run locally.
-      uses: actions/cache@v3
-      with:
-        path: ~/Library/Developer/Xcode/DerivedData
-        key: ${{ runner.os }}-derived-data
-        restore-keys: |
-          ${{ runner.os }}-derived-data
-    
     - name: Run Preternatural Build (Xcode 16)
-      uses: PreternaturalAI/github-action@main
+      uses: PreternaturalAI/github-action/preternatural-build@main
       with:
-        command: build
-        derived_data_path: ~/Library/Developer/Xcode/DerivedData
         xcode-version: '16'
-        build_all_platforms: 'true'
-    
-    - name: Run Preternatural Build (Xcode 15.4)
-      uses: PreternaturalAI/github-action@main
-      with:
-        command: build
-        derived_data_path: ~/Library/Developer/Xcode/DerivedData
-        xcode-version: '15.4'
-        build_all_platforms: 'true'
+        configuration: 'debug'
