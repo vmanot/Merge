@@ -15,19 +15,6 @@ public struct _ProcessResult: Logging, @unchecked Sendable {
     public let stderr: Data
     public let terminationError: ProcessTerminationError?
     
-    /// A convenience property to get lines of the standard output, whitespace and newline trimmed.
-    public var lines: [String] {
-        get throws {
-            let result = try stdout.toStringTrimmingWhitespacesAndNewlines().unwrap().lines().map({ $0.trimmingCharacters(in: .whitespacesAndNewlines) })
-            
-            if result.count == 1, result.first.isNilOrEmpty {
-                return []
-            }
-            
-            return result
-        }
-    }
-    
     #if os(macOS)
     package init(
         process: Process,
@@ -41,6 +28,32 @@ public struct _ProcessResult: Logging, @unchecked Sendable {
         self.terminationError = terminationError
     }
     #endif
+        
+    @_transparent
+    public func validate() throws {
+        if let terminationError {
+            if let stderrString = stderrString {
+                logger.error(stderrString)
+            }
+            
+            throw terminationError
+        }
+    }
+}
+
+extension _ProcessResult {
+    /// A convenience property to get lines of the standard output, whitespace and newline trimmed.
+    public var lines: [String] {
+        get throws {
+            let result = try stdout.toStringTrimmingWhitespacesAndNewlines().unwrap().lines().map({ $0.trimmingCharacters(in: .whitespacesAndNewlines) })
+            
+            if result.count == 1, result.first.isNilOrEmpty {
+                return []
+            }
+            
+            return result
+        }
+    }
     
     public var stdoutString: String? {
         stdout.toStringTrimmingWhitespacesAndNewlines().nilIfEmpty()
@@ -55,18 +68,9 @@ public struct _ProcessResult: Logging, @unchecked Sendable {
         
         return try stdoutString.unwrap()
     }
-    
-    @_transparent
-    public func validate() throws {
-        if let terminationError {
-            if let stderrString = stderrString {
-                logger.error(stderrString)
-            }
-            
-            throw terminationError
-        }
-    }
 }
+
+// MARK: - Initializers
 
 #if os(macOS) || targetEnvironment(macCatalyst)
 @available(macOS 11.0, iOS 14.0, watchOS 7.0, tvOS 14.0, *)
@@ -87,6 +91,8 @@ extension _ProcessResult {
     }
 }
 #endif
+
+// MARK: - Deprecated
 
 #if os(macOS)
 extension Process {

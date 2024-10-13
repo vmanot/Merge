@@ -5,22 +5,14 @@
 import Foundation
 import Swallow
 
-@globalActor
-public actor _ShellActor {
-    public actor ActorType {
-        fileprivate init() {
-            
-        }
-    }
-    
-    public static let shared: ActorType = ActorType()
-}
+@available(*, deprecated, renamed: "SystemShell")
+public typealias Shell = SystemShell
 
-public final class Shell {
+public final class SystemShell {
     public var currentDirectoryURL: URL?
-
+    
     public let options: [_AsyncProcessOption]?
-        
+    
     private var environmentVariables: [String: String] {
         ProcessInfo.processInfo.environment
     }
@@ -32,7 +24,7 @@ public final class Shell {
 }
 
 #if os(macOS)
-extension Shell {
+extension SystemShell {
     public func run(
         executableURL: URL,
         arguments: [String],
@@ -41,7 +33,7 @@ extension Shell {
         environmentVariables: [String: String] = [:]
     ) async throws -> _ProcessResult {
         let (launchPath, arguments) = try await environment.resolve(launchPath: executableURL.path, arguments: arguments)
-
+        
         let process = try _AsyncProcess(
             launchPath: launchPath,
             arguments: arguments,
@@ -60,7 +52,7 @@ extension Shell {
         environment: Environment = .zsh,
         environmentVariables: [String: String] = [:],
         currentDirectoryURL: URL? = nil,
-        progressHandler: Shell.ProgressHandler = .print
+        outputHandler: SystemShell.StandardOutputHandler = .print
     ) async throws -> _ProcessResult {
         let options: [_AsyncProcessOption] = options ?? [
             .reportCompletion,
@@ -75,7 +67,7 @@ extension Shell {
             arguments: arguments,
             environment: self.environmentVariables.merging(environmentVariables, uniquingKeysWith: { $1 }),
             currentDirectoryURL: currentDirectoryURL ?? self.currentDirectoryURL,
-            progressHandler: progressHandler,
+            outputHandler: outputHandler,
             options: options
         )
         
@@ -88,7 +80,7 @@ extension Shell {
     }
 }
 #else
-extension Shell {
+extension SystemShell {
     public func run(
         executableURL: URL,
         arguments: [String],
@@ -106,7 +98,7 @@ extension Shell {
         environment: Environment = .zsh,
         environmentVariables: [String: String] = [:],
         currentDirectoryURL: URL? = nil,
-        progressHandler: Shell.ProgressHandler = .print
+        outputHandler: SystemShell.StandardOutputHandler = .print
     ) async throws -> _ProcessResult {
         throw Never.Reason.unsupported
     }
@@ -115,16 +107,9 @@ extension Shell {
 
 // MARK: - Auxiliary
 
-extension Shell {
-    public enum ProgressHandler {
+extension SystemShell {
+    public enum StandardOutputHandler {
         public typealias Block = (_ text: String) -> Void
-        
-        public enum ScriptOption: Equatable {
-            case login
-            case delay(_ timeinterval: TimeInterval)
-            case waitUntilFinish
-            case closeScriptInside
-        }
         
         case print
         case block(
@@ -136,4 +121,17 @@ extension Shell {
             .block(output: { _ in }, error: nil)
         }
     }
+}
+
+// MARK: - Auxiliary
+
+@globalActor
+public actor _ShellActor {
+    public actor ActorType {
+        fileprivate init() {
+            
+        }
+    }
+    
+    public static let shared: ActorType = ActorType()
 }

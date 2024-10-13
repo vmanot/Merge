@@ -7,8 +7,8 @@ import Swift
 import SwallowMacrosClient
 
 #if os(macOS)
-
-public class _OSAScriptProcess: Process, @unchecked Sendable {
+/// A `Process` subclass that internally uses `AppleScript` to execute itself.
+public class OSAScriptProcess: Process, @unchecked Sendable {
     private var underlyingTask = Process()
     private var pidFilePath: String = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString + ".pid").path
     private var _terminationHandler: (@Sendable (Process) -> Void)?
@@ -104,7 +104,7 @@ public class _OSAScriptProcess: Process, @unchecked Sendable {
     }
         
     override public func run() throws {
-        let (launchPath, arguments) = try _OSAScriptProcess._osascript_launchPathAndArguments(for: (executableURL, arguments))
+        let (launchPath, arguments) = try OSAScriptProcess._osascript_launchPathAndArguments(for: (executableURL, arguments))
         
         underlyingTask.launchPath = launchPath
         underlyingTask.arguments = arguments
@@ -137,7 +137,7 @@ public class _OSAScriptProcess: Process, @unchecked Sendable {
     }
 }
 
-extension _OSAScriptProcess {
+extension OSAScriptProcess {
     public static func _osascript_launchPathAndArguments(
         for executableURLAndArguments: (executableURL: URL?, arguments: [String]?)
     ) throws -> (launchPath: String, arguments: [String]) {
@@ -216,7 +216,7 @@ extension _OSAScriptProcess {
 
 #elseif targetEnvironment(macCatalyst)
 
-public class _OSAScriptProcess: Process, @unchecked Sendable {
+public class OSAScriptProcess: Process, @unchecked Sendable {
     
 }
 

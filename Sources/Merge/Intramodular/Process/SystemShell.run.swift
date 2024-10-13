@@ -29,7 +29,7 @@ extension Shell {
         environment: Environment = .zsh,
         environmentVariables: [String: String] = [:],
         currentDirectoryURL: URL? = nil,
-        progressHandler: Shell.ProgressHandler = .print,
+        outputHandler: SystemShell.StandardOutputHandler = .print,
         options: [_AsyncProcessOption]? = nil
     ) async throws -> _ProcessResult {
         try await Shell(options: options).run(
@@ -38,7 +38,7 @@ extension Shell {
             environment: environment,
             environmentVariables: environmentVariables,
             currentDirectoryURL: currentDirectoryURL,
-            progressHandler: progressHandler
+            outputHandler: outputHandler
         )
     }
 }

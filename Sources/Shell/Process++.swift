@@ -8,13 +8,16 @@ import Foundation
 import Merge
 import System
 
-@available(macOS 12.0, iOS 15.0, watchOS 8.0, tvOS 15.0, *)
 extension Process {
-    public func runRedirectingAllOutput(
+    @available(macOS 12.0, iOS 15.0, watchOS 8.0, tvOS 15.0, *)
+    func _runRedirectingAllOutput(
         to sink: Process.StandardOutputSink
     ) throws {
+        _installSigintIfNeeded()
+        
         try self.redirectAllOutput(to: sink)
         try self.run()
+        
         self.waitUntilExit()
         
         if let terminationError = terminationError {
@@ -22,9 +25,12 @@ extension Process {
         }
     }
     
-    public func runRedirectingAllOutput(
+    @available(macOS 12.0, iOS 15.0, watchOS 8.0, tvOS 15.0, *)
+    func _runAsyncRedirectingAllOutput(
         to sink: Process.StandardOutputSink
     ) async throws {
+        _installSigintIfNeeded()
+        
         try await withCheckedThrowingContinuation { (continuation: CheckedContinuation<Void, Error>) in
             do {
                 try self.redirectAllOutput(to: sink)
@@ -50,83 +56,11 @@ extension Process {
         }
     }
     
-    @available(macOS 12.0, iOS 15.0, watchOS 8.0, tvOS 15.0, *)
-    private func redirectAllOutput(
-        to sink: Process.StandardOutputSink
-    ) throws {
-        switch sink {
-            case .terminal:
-                self.redirectAllOutputToTerminal()
-            case .file(path: let path):
-                try self.setStandardOutputAndError(filePath: path)
-            case .split(let out, err: let err):
-                try self.redirectAllOutputToFiles(out: out, err: err)
-            case .null:
-                self.redirectAllOutputToNullDevice()
-        }
-    }
-    
-    private func redirectAllOutputToTerminal() {
-        self.standardOutput = FileHandle.standardOutput
-        self.standardError = FileHandle.standardError
-    }
-    
-    private func redirectAllOutputToNullDevice() {
-        self.standardOutput = FileHandle.nullDevice
-        self.standardError = FileHandle.nullDevice
-    }
-    
-    @available(macOS 12.0, iOS 15.0, watchOS 8.0, tvOS 15.0, *)
-    private func setStandardOutputAndError(
-        filePath: String
-    ) throws {
-        let fileHandle = try self.createFile(atPath: filePath)
-        
-        self.standardOutput = fileHandle
-        self.standardError = fileHandle
-    }
-    
-    @available(macOS 12.0, iOS 15.0, watchOS 8.0, tvOS 15.0, *)
-    private func redirectAllOutputToFiles(
-        out: String,
-        err: String
-    ) throws {
-        self.standardOutput = try self.createFile(atPath: out)
-        self.standardError = try self.createFile(atPath: err)
-    }
-    
-    @available(macOS 12.0, iOS 15.0, watchOS 8.0, tvOS 15.0, *)
-    private func createFile(
-        atPath path: String
-    ) throws -> FileHandle {
-        let directories = FilePath(path).lexicallyNormalized().removingLastComponent()
-        
-        try FileManager.default.createDirectory(atPath: directories.string, withIntermediateDirectories: true)
-        
-        guard FileManager.default.createFile(atPath: path, contents: Data()) else {
-            struct CouldNotCreateFile: Error {
-                let path: String
-            }
-            
-            throw CouldNotCreateFile(path: path)
-        }
-        
-        guard let fileHandle = FileHandle(forWritingAtPath: path) else {
-            struct CouldNotOpenFileForWriting: Error {
-                let path: String
-            }
-            
-            throw CouldNotOpenFileForWriting(path: path)
-        }
-        
-        return fileHandle
-    }
-}
-
-extension Process {    
     public func _runSync() throws -> _ProcessResult {
-        let stdout = _UnsafePipeBuffer(id: .stdout)
-        let stderr = _UnsafePipeBuffer(id: .stderr)
+        _installSigintIfNeeded()
+        
+        let stdout = _UnsafeStandardOutputOrErrorPipeBuffer(id: .stdout)
+        let stderr = _UnsafeStandardOutputOrErrorPipeBuffer(id: .stderr)
         
         self.standardOutput = stdout.pipe
         self.standardError = stderr.pipe
@@ -144,13 +78,10 @@ extension Process {
     }
     
     public func _runAsync() async throws -> _ProcessResult {
-        signal(SIGINT, SIG_IGN)
-        let sigintSrc = DispatchSource.makeSignalSource(signal: SIGINT, queue: .main)
-        sigintSrc.setEventHandler { exit(0) }
-        sigintSrc.resume()
+        _installSigintIfNeeded()
         
-        let stdout = _AsyncUnsafePipeBuffer(id: .stdout)
-        let stderr = _AsyncUnsafePipeBuffer(id: .stderr)
+        let stdout = _UnsafeAsyncStandardOutputOrErrorPipeBuffer(id: .stdout)
+        let stderr = _UnsafeAsyncStandardOutputOrErrorPipeBuffer(id: .stderr)
         
         self.standardOutput = await stdout.pipe
         self.standardError = await stderr.pipe
@@ -190,6 +121,33 @@ extension Process {
             }
         }
     }
+}
+
+extension Process {
+    fileprivate static var _sigintSource: DispatchSourceSignal? = nil
+    fileprivate static var _sigintSourceProcesses: [Process] = []
+    
+    fileprivate func _installSigintIfNeeded() {
+        guard
+            Self._sigintSource == nil
+        else {
+            return
+        }
+        
+        signal(SIGINT, SIG_IGN)
+        
+        Self._sigintSource = DispatchSource.makeSignalSource(signal: SIGINT, queue: .main)
+        Self._sigintSource?.setEventHandler {
+            Self._sigintSourceProcesses.forEach {
+                $0.terminate()
+            }
+            
+            exit(-1)
+        }
+    
+        Self._sigintSource?.resume()
+    }
+    
 }
 
 #endif

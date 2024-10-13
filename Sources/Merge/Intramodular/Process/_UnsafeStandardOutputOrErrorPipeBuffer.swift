@@ -5,23 +5,15 @@
 import Foundation
 import Swift
 
-package enum _UnsafePipeStreamID: String {
-    case stdout
-    case stderr
-}
-
 @available(macOS 10.15.4, iOS 13.4, watchOS 6.2, tvOS 13.4, *)
-package class _UnsafePipeBuffer {
+package class _UnsafeStandardOutputOrErrorPipeBuffer {
     package let pipe = Pipe()
-    
     private var buffer: Data = .init()
     private let semaphore = DispatchGroup()
+    private let id: ID
     
-    private let id: _UnsafePipeStreamID
-    
-    package init(id: _UnsafePipeStreamID) {
+    package init(id: ID) {
         self.id = id
-        
         self.pipe.fileHandleForReading.readabilityHandler = { handler in
             self.semaphore.enter()
             
@@ -48,13 +40,12 @@ package class _UnsafePipeBuffer {
 }
 
 @available(macOS 10.15.4, iOS 13.4, watchOS 6.2, tvOS 13.4, *)
-package actor _AsyncUnsafePipeBuffer {
+package actor _UnsafeAsyncStandardOutputOrErrorPipeBuffer {
     package let pipe = Pipe()
-    
     private var buffer: Data = .init()
-    private let id: _UnsafePipeStreamID
+    private let id: ID
     
-    package init(id: _UnsafePipeStreamID) {
+    package init(id: ID) {
         self.id = id
         self.pipe.fileHandleForReading.readabilityHandler = { [weak self] handler in
             guard let self = self else {
@@ -107,5 +98,21 @@ package actor _AsyncUnsafePipeBuffer {
         buffer = Data()
         
         return data
+    }
+}
+
+@available(macOS 10.15.4, iOS 13.4, watchOS 6.2, tvOS 13.4, *)
+extension _UnsafeStandardOutputOrErrorPipeBuffer {
+    package enum ID: String {
+        case stdout
+        case stderr
+    }
+}
+
+@available(macOS 10.15.4, iOS 13.4, watchOS 6.2, tvOS 13.4, *)
+extension _UnsafeAsyncStandardOutputOrErrorPipeBuffer {
+    package enum ID: String {
+        case stdout
+        case stderr
     }
 }

@@ -50,16 +50,28 @@ public class _StandardOutputRewriter {
         _ pipe: FileHandle,
         isStdout: Bool
     ) {
-        NotificationCenter.default.addObserver(forName: .NSFileHandleDataAvailable, object: pipe, queue: nil) { notification in
-            guard let fileHandle = notification.object as? FileHandle else { return }
-            let data = fileHandle.availableData
-            if data.isEmpty { return }
+        NotificationCenter.default.addObserver(
+            forName: .NSFileHandleDataAvailable,
+            object: pipe,
+            queue: nil
+        ) { (notification: Notification) in
+            guard let fileHandle = notification.object as? FileHandle else {
+                return
+            }
             
-            let buffer = isStdout ? self.stdoutBuffer : self.stderrBuffer
+            let data: Data = fileHandle.availableData
+            
+            if data.isEmpty {
+                return
+            }
+            
+            let buffer: Data = isStdout ? self.stdoutBuffer : self.stderrBuffer
+         
             self.processData(data, buffer: buffer, isStdout: isStdout)
             
             pipe.waitForDataInBackgroundAndNotify()
         }
+        
         pipe.waitForDataInBackgroundAndNotify()
     }
     
@@ -68,7 +80,8 @@ public class _StandardOutputRewriter {
         buffer: Data,
         isStdout: Bool
     ) {
-        var buffer = buffer
+        var buffer: Data = buffer
+      
         buffer.append(data)
         
         while let range = buffer.range(of: Data("\n".utf8)) {
@@ -91,9 +104,11 @@ public class _StandardOutputRewriter {
         if let modifiedLine = modifyLine(String(data: stdoutBuffer, encoding: .utf8) ?? "") {
             FileHandle(fileDescriptor: self.originalSTDOUTDescriptor).write(modifiedLine.data(using: .utf8) ?? Data())
         }
+        
         if let modifiedLine = modifyLine(String(data: stderrBuffer, encoding: .utf8) ?? "") {
             FileHandle(fileDescriptor: self.originalSTDERRDescriptor).write(modifiedLine.data(using: .utf8) ?? Data())
         }
+        
         stdoutBuffer = Data()
         stderrBuffer = Data()
     }
@@ -102,6 +117,8 @@ public class _StandardOutputRewriter {
         stop()
     }
 }
+
+// MARK: - Helpers
 
 extension String {
     var _filteringAppleConsoleOutputCrap: String? {

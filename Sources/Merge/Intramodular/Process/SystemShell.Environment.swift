@@ -38,7 +38,7 @@ extension Shell {
                     try await Shell.run(
                         command: "echo " + commands[1...].joined(separator: " "),
                         environment: .bash,
-                        progressHandler: .block {
+                        outputHandler: .block {
                             arguments = $0.split(separator: " ").map(String.init)
                         }
                     )
@@ -55,7 +55,7 @@ extension Shell {
             
             try await Shell.run(
                 command: "which \(x)",
-                progressHandler: .block {
+                outputHandler: .block {
                     result = $0
                 }
             )

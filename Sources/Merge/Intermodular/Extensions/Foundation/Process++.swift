@@ -8,6 +8,7 @@ import Combine
 import Dispatch
 import Foundation
 import Swift
+import System
 
 extension Process {
     func pipeStandardOutput<S: Subject>(

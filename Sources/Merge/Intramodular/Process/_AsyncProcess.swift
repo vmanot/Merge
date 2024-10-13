@@ -30,7 +30,7 @@ extension _AsyncProcess {
 @available(macCatalyst, unavailable)
 public class _AsyncProcess: Logging {
     public typealias Option = _AsyncProcessOption
-    public typealias ProgressHandler = Shell.ProgressHandler
+    public typealias StandardOutputHandler = Shell.StandardOutputHandler
     
     struct _Publishers {
         let standardOutputPublisher = ReplaySubject<Data, Never>()
@@ -38,7 +38,7 @@ public class _AsyncProcess: Logging {
         let exitPublisher = ReplaySubject<Int32, Never>()
     }
     
-    public let progressHandler: _AsyncProcess.ProgressHandler
+    public let outputHandler: _AsyncProcess.StandardOutputHandler
     public let options: [Option]
     public let process: Process
     
@@ -84,7 +84,7 @@ public class _AsyncProcess: Logging {
     
     public init(
         existingProcess: Process?,
-        progressHandler: _AsyncProcess.ProgressHandler = .empty,
+        outputHandler: _AsyncProcess.StandardOutputHandler = .empty,
         options: [_AsyncProcess.Option]
     ) throws {
         if let existingProcess {
@@ -97,13 +97,13 @@ public class _AsyncProcess: Logging {
             } else if options.contains(._useAuthorizationExecuteWithPrivileges) {
                 self.process = _SecAuthorizedProcess()
             } else if options.contains(._useAppleScript) {
-                self.process = _OSAScriptProcess()
+                self.process = OSAScriptProcess()
             } else {
                 self.process = Process()
             }
         }
         
-        self.progressHandler = progressHandler
+        self.outputHandler = outputHandler
         self.options = options
         
         _registerAndSetUpIO(existingProcess: existingProcess)
@@ -114,7 +114,7 @@ public class _AsyncProcess: Logging {
         arguments: [String]?,
         environment: [String: String]?,
         currentDirectoryURL: URL?,
-        progressHandler: _AsyncProcess.ProgressHandler = .empty,
+        outputHandler: _AsyncProcess.StandardOutputHandler = .empty,
         options: [_AsyncProcess.Option]
     ) throws {
         if Set(options).isSuperset(of: [._useAppleScript, ._useAppleScript]) {
@@ -122,7 +122,7 @@ public class _AsyncProcess: Logging {
         } else if options.contains(._useAuthorizationExecuteWithPrivileges) {
             self.process = _SecAuthorizedProcess()
         } else if options.contains(._useAppleScript) {
-            self.process = _OSAScriptProcess()
+            self.process = OSAScriptProcess()
         } else {
             self.process = Process()
         }
@@ -132,7 +132,7 @@ public class _AsyncProcess: Logging {
         process.environment = environment
         process.currentDirectoryURL = currentDirectoryURL?._fromURLToFileURL() ?? process.currentDirectoryURL
 
-        self.progressHandler = progressHandler
+        self.outputHandler = outputHandler
         self.options = options
                 
         _registerAndSetUpIO(existingProcess: nil)
@@ -349,15 +349,15 @@ public class _AsyncProcess: Logging {
         
         self._standardOutputString += dataAsString
         
-        var progressHandler = self.progressHandler
+        var outputHandler = self.outputHandler
         
-        if case .print = progressHandler {
-            progressHandler = .block { text in
+        if case .print = outputHandler {
+            outputHandler = .block { text in
                 print(text)
             }
         }
 
-        switch progressHandler {
+        switch outputHandler {
             case let .block(output, error):
                 let progress = (pipe == self._standardOutputPipe ? output : error) ?? output
                 
@@ -410,7 +410,7 @@ public class _AsyncProcess: Logging {
     
     private func _run() async throws {
         do {
-            if case .print = progressHandler {
+            if case .print = outputHandler {
                 logger.info("\(self.process.executableURL!), args: \(self.process.arguments ?? [])")
             }
             
@@ -524,10 +524,10 @@ public class _AsyncProcess: Logging {
             $0.removeAll(where: { $0 === self })
         }
         
-        let progressHandler = self.progressHandler
+        let outputHandler = self.outputHandler
         let outputString = _standardOutputString.trimmingCharacters(in: options.trimmingCharacterSet)
 
-        switch progressHandler {
+        switch outputHandler {
             case let .block(outputCall, errorCall):
                 if options.reportCompletion {
                     if !outputString.isEmpty {
@@ -704,7 +704,7 @@ extension _AsyncProcess {
     ) throws {
         try self.init(
             existingProcess: nil,
-            progressHandler: .empty,
+            outputHandler: .empty,
             options: options
         )
         

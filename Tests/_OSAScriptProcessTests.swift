@@ -8,7 +8,7 @@ import XCTest
 class OSAScriptProcessTests: XCTestCase {
     
     func testPropertySettersAndGetters() {
-        let process = _OSAScriptProcess()
+        let process = OSAScriptProcess()
         
         let testURL = URL(fileURLWithPath: "/usr/bin")
         let testArgs = ["arg1", "arg2"]
@@ -31,7 +31,7 @@ class OSAScriptProcessTests: XCTestCase {
     }
     
    /* func testRunMethod() {
-        let process = _OSAScriptProcess()
+        let process = OSAScriptProcess()
         
         process.executableURL = URL(fileURLWithPath: "/usr/bin/say")
         process.arguments = ["hello"]
@@ -50,7 +50,7 @@ class OSAScriptProcessTests: XCTestCase {
     }*/
     
     func testRunMethodWithUnsetExecutableURLShouldThrow() {
-        let process = _OSAScriptProcess()
+        let process = OSAScriptProcess()
         // Not setting executableURL should lead to an error when trying to run the process
         XCTAssertThrowsError(try process.run(), "Expected to throw an error when executableURL is nil") { error in
             guard let err = error as NSError? else {
