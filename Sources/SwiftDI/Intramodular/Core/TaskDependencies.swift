@@ -43,17 +43,6 @@ public struct TaskDependencies: @unchecked Sendable {
         )
     }
     
-    func resolve<T>(
-        _ request: TaskDependencyResolutionRequest<T>
-    ) throws -> T? {
-        switch request {
-            case .unkeyed(let type):
-                return try unkeyedValues.firstAndOnly(ofType: type)
-            case .keyed(let key):
-                return self[key]
-        }
-    }
-    
     public subscript<T>(unkeyed type: T.Type) -> T? {
         get {
             unkeyedValues.first(ofType: type)

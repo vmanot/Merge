@@ -5,7 +5,7 @@
 import Foundation
 import Swallow
 
-extension Shell {
+extension SystemShell {
     public func run(
         executablePath: String,
         arguments: [String],
@@ -32,7 +32,7 @@ extension Shell {
         outputHandler: SystemShell.StandardOutputHandler = .print,
         options: [_AsyncProcessOption]? = nil
     ) async throws -> _ProcessResult {
-        try await Shell(options: options).run(
+        try await SystemShell(options: options).run(
             command: command,
             input: input,
             environment: environment,

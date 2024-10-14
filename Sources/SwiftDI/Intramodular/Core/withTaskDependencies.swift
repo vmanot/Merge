@@ -59,7 +59,7 @@ public func withTaskDependencies<Result>(
 #if swift(>=6)
 @_transparent
 @discardableResult
-public func withDependency<Dependency, Result>(
+public func withTaskDependency<Dependency, Result>(
     isolation: isolated (any Actor)? = #isolation,
     _ dependencyKey: WritableKeyPath<TaskDependencyValues, Dependency>,
     _ dependency: Dependency,
@@ -83,7 +83,7 @@ public func withTaskDependencies<Result>(
 #elseif canImport(Translation)
 @_transparent
 @discardableResult
-public func withDependency<Dependency, Result>(
+public func withTaskDependency<Dependency, Result>(
     _ dependencyKey: WritableKeyPath<TaskDependencyValues, Dependency>,
     _ dependency: Dependency,
     operation: () async throws -> Result
@@ -130,7 +130,7 @@ public func withTaskDependencies<Result>(
 
 @_transparent
 @discardableResult
-public func withDependency<Dependency, Result>(
+public func withTaskDependency<Dependency, Result>(
     _ dependencyKey: WritableKeyPath<TaskDependencyValues, Dependency>,
     _ dependency: Dependency,
     operation: () throws -> Result
@@ -149,7 +149,7 @@ public func withTaskDependencies<Subject, Result>(
     _ updateValuesForOperation: (inout TaskDependencies) throws -> Void,
     operation: () throws -> Result
 ) rethrows -> Result {
-    let dependencies = TaskDependencies(from: subject)
+    let dependencies = TaskDependencies(reflecting: subject)
     
     return try withTaskDependencies {
         $0 = dependencies.merging($0)
@@ -169,7 +169,7 @@ public func withTaskDependencies<Subject, Result>(
     _ updateValuesForOperation: (inout TaskDependencies) async throws -> Void,
     operation: () async throws -> Result
 ) async rethrows -> Result {
-    let dependencies = TaskDependencies(from: subject)
+    let dependencies = TaskDependencies(reflecting: subject)
     
     return try await withTaskDependencies {
         $0 = dependencies.merging($0)

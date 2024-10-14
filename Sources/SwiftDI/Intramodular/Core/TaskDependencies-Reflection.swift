@@ -8,7 +8,7 @@ import Swallow
 
 extension TaskDependencies {
     @usableFromInline
-    init<T>(from subject: T) {
+    init<T>(reflecting subject: T) {
         TODO.here(.optimize)
         
         self.init()

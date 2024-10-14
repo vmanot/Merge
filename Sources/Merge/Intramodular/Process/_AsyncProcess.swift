@@ -30,7 +30,6 @@ extension _AsyncProcess {
 @available(macCatalyst, unavailable)
 public class _AsyncProcess: Logging {
     public typealias Option = _AsyncProcessOption
-    public typealias StandardOutputHandler = Shell.StandardOutputHandler
     
     struct _Publishers {
         let standardOutputPublisher = ReplaySubject<Data, Never>()
@@ -38,7 +37,7 @@ public class _AsyncProcess: Logging {
         let exitPublisher = ReplaySubject<Int32, Never>()
     }
     
-    public let outputHandler: _AsyncProcess.StandardOutputHandler
+    public let outputHandler: SystemShell.StandardOutputHandler
     public let options: [Option]
     public let process: Process
     
@@ -84,7 +83,7 @@ public class _AsyncProcess: Logging {
     
     public init(
         existingProcess: Process?,
-        outputHandler: _AsyncProcess.StandardOutputHandler = .empty,
+        outputHandler: SystemShell.StandardOutputHandler = .empty,
         options: [_AsyncProcess.Option]
     ) throws {
         if let existingProcess {
@@ -114,7 +113,7 @@ public class _AsyncProcess: Logging {
         arguments: [String]?,
         environment: [String: String]?,
         currentDirectoryURL: URL?,
-        outputHandler: _AsyncProcess.StandardOutputHandler = .empty,
+        outputHandler: SystemShell.StandardOutputHandler = .empty,
         options: [_AsyncProcess.Option]
     ) throws {
         if Set(options).isSuperset(of: [._useAppleScript, ._useAppleScript]) {

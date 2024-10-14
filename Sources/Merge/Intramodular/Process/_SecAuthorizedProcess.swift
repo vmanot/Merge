@@ -12,16 +12,16 @@ import Security
 class _SecAuthorizedProcess: Process, @unchecked Sendable {
     private static var cachedAuthorizationRef: AuthorizationRef? = KeychainManager.shared.retrieveAuthorizationRef(forRight: .execute)
     
-    var _launchPath: String!
-    var _currentDirectoryURL: URL!
-    var _arguments: [String]!
-    var _environment: [String: String]!
-    var _standardInput: Pipe!
-    var _standardOutput: Pipe!
-    var _standardError: Pipe!
-    var _terminationHandler: (@Sendable (Process) -> Void)?
-    var _terminationStatus: Int32?
-    var _isRunning: Bool = false
+    private var _launchPath: String!
+    private var _currentDirectoryURL: URL!
+    private var _arguments: [String]!
+    private var _environment: [String: String]!
+    private var _standardInput: Pipe!
+    private var _standardOutput: Pipe!
+    private var _standardError: Pipe!
+    private var _terminationHandler: (@Sendable (Process) -> Void)?
+    private var _terminationStatus: Int32?
+    private var _isRunning: Bool = false
     
     override var launchPath: String? {
         get {
