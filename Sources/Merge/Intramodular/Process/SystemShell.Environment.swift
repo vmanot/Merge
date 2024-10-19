@@ -2,12 +2,22 @@
 // Copyright (c) Vatsal Manot
 //
 
+import Foundation
 import Combine
+import Swallow
 
 extension SystemShell {
     public struct Environment {
-        var launchPath: String?
-        var deriveArguments: (_ command: String) -> [String]
+        let launchPath: String?
+        let deriveArguments: (_ command: String) -> [String]
+        
+        var launchURL: URL? {
+            guard let launchPath else {
+                return nil
+            }
+            
+            return URL(fileURLWithPath: launchPath)
+        }
     }
 }
 
@@ -16,7 +26,12 @@ extension SystemShell.Environment {
         launchPath: String,
         arguments: [String]
     ) async throws -> (launchPath: String, arguments: [String]) {
-        try await resolve(command: "\(launchPath) \(arguments.joined(separator: " "))")
+        /// Handle the case where the the provide path and arguments are `"/bin/zsh"` and `["-l", "-c", "..."].
+        if launchPath == self.launchPath, let lastArgument = arguments.last, arguments == self.deriveArguments(arguments.last!) {
+            return try await resolve(command: lastArgument)
+        } else {
+            return try await resolve(command: "\(launchPath) \(arguments.joined(separator: " "))")
+        }
     }
     
     func resolve(
@@ -71,11 +86,17 @@ extension SystemShell.Environment {
 
 extension SystemShell.Environment {
     public static var bash: Self {
-        Self(launchPath: "/bin/bash", deriveArguments: { ["-c", $0] })
+        Self(
+            launchPath: "/bin/bash",
+            deriveArguments: { ["-c", $0] }
+        )
     }
     
     public static var zsh: Self {
-        Self(launchPath: "/bin/zsh", deriveArguments: { ["-l", "-c", $0] })
+        Self(
+            launchPath: "/bin/zsh",
+            deriveArguments: { ["-l", "-c", $0] }
+        )
     }
     
     public static var none: Self {

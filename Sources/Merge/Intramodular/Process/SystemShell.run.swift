@@ -7,6 +7,21 @@ import Swallow
 
 extension SystemShell {
     public func run(
+        shell: SystemShell.Environment,
+        command: String,
+        currentDirectoryURL: URL? = nil,
+        environmentVariables: [String: String] = [:]
+    ) async throws -> _ProcessResult {
+        try await run(
+            executableURL: shell.launchURL.unwrap(),
+            arguments: shell.deriveArguments(command),
+            currentDirectoryURL: nil,
+            environment: shell,
+            environmentVariables: [:]
+        )
+    }
+
+    public func run(m
         executablePath: String,
         arguments: [String],
         currentDirectoryURL: URL? = nil,
