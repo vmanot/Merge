@@ -34,8 +34,29 @@ public func withTaskDependencies<Result>(
     try withTaskDependencies({ _ in }, operation: operation)
 }
 
+#if swift(>=6)
 @_transparent
-@_unsafeInheritExecutor
+@discardableResult
+public func withTaskDependencies<Result>(
+    isolation: isolated (any Actor)? = #isolation,
+    _ updateValuesForOperation: (inout TaskDependencies) async throws -> Void,
+    operation: () async throws -> Result
+) async rethrows -> Result {
+    var dependencies = TaskDependencies._current
+    
+    try await updateValuesForOperation(&dependencies)
+    
+    return try await TaskDependencies.$_current.withValue(dependencies) {
+        let result = try await operation()
+        
+        #try(.optimistic) {
+            try dependencies._stashInOrProvideTo(result)
+        }
+        
+        return result
+    }
+}
+#else
 @discardableResult
 public func withTaskDependencies<Result>(
     _ updateValuesForOperation: (inout TaskDependencies) async throws -> Void,
@@ -55,6 +76,7 @@ public func withTaskDependencies<Result>(
         return result
     }
 }
+#endif
 
 #if swift(>=6)
 @_transparent
