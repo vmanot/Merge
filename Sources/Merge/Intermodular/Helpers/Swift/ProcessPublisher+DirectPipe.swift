@@ -83,7 +83,9 @@ extension ProcessPublisher where Failure == Error {
     ///
     /// Failures produced by this publisher will be passed through the resulting
     /// publisher, terminating its process.
-    public func directPipe(_ arguments: [String]) -> ProcessPublisher<Failure> {
+    public func directPipe(
+        _ arguments: [String]
+    ) -> ProcessPublisher<Failure> {
         validateArgumentsForEnv(arguments)
         return ProcessPublisher(envExecutableURL, arguments: arguments, input: self.autoconnect().eraseToAnyPublisher(), directInput: self.prepareForDirectPipe(), errorHandler: makeErrorCheckerForEnv(arguments) { $0 })
     }
@@ -100,7 +102,10 @@ extension ProcessPublisher where Failure == Error {
     ///
     /// Failures produced by this publisher will be passed through the resulting
     /// publisher, terminating its process.
-    public func directPipe(_ command: URL, arguments: [String] = []) -> ProcessPublisher<Failure> {
+    public func directPipe(
+        _ command: URL,
+        arguments: [String] = []
+    ) -> ProcessPublisher<Failure> {
         return ProcessPublisher(command, arguments: arguments, input: self.autoconnect().eraseToAnyPublisher(), directInput: self.prepareForDirectPipe(), errorHandler: { $0 })
     }
 }

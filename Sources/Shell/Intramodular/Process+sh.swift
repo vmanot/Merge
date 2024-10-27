@@ -20,7 +20,7 @@ public func shq(
         environment: environment,
         currentDirectoryPath: workingDirectory
     )
-    ._runSync()
+    ._runSynchronously()
 }
 
 @_disfavoredOverload
@@ -65,7 +65,7 @@ public func shq(
         environment: environment,
         currentDirectoryPath: workingDirectory
     )
-    ._runAsync()
+    ._runAsynchronously()
 }
 
 @_disfavoredOverload
@@ -110,7 +110,7 @@ public func shq<D: Decodable>(
         environment: environment,
         currentDirectoryPath: workingDirectory
     )
-    ._runSync()
+    ._runSynchronously()
     .stdout
     .decode(type, using: jsonDecoder)
 }
@@ -128,7 +128,7 @@ public func shq<D: Decodable>(
         currentDirectoryPath: workingDirectory
     )
     
-    return try await process._runAsync().stdout.decode(type, using: jsonDecoder)
+    return try await process._runAsynchronously().stdout.decode(type, using: jsonDecoder)
 }
 
 @available(macOS 12.0, iOS 15.0, watchOS 8.0, tvOS 15.0, *)
@@ -158,7 +158,7 @@ public func shq(
         environment: environment,
         currentDirectoryPath: workingDirectory
     )
-    ._runAsyncRedirectingAllOutput(to: sink)
+    ._runAsynchronouslyRedirectingAllOutput(to: sink)
 }
 
 @available(macOS 12.0, iOS 15.0, watchOS 8.0, tvOS 15.0, *)
@@ -219,7 +219,11 @@ public func sh(
 ) async throws -> _ProcessResult {
     await announce("Running `\(cmd)`")
     
-    return try await shq(cmd, environment: environment, workingDirectory: workingDirectory.path)
+    return try await shq(
+        cmd,
+        environment: environment,
+        workingDirectory: workingDirectory.path
+    )
 }
 
 @available(macOS 12.0, iOS 15.0, watchOS 8.0, tvOS 15.0, *)
@@ -268,28 +272,45 @@ public func sh(
     workingDirectory: String? = nil
 ) throws {
     switch sink {
-        case .terminal:
+        case .terminal: do {
             announce("Running `\(cmd)`")
             
-            try shq(sink, cmd, environment: environment, workingDirectory: workingDirectory)
-        case .null:
+            try shq(
+                sink,
+                cmd,
+                environment: environment,
+                workingDirectory: workingDirectory
+            )
+        }
+        case .null: do {
             announce("Running `\(cmd)`, discarding output")
-
-            try shq(sink, cmd, environment: environment, workingDirectory: workingDirectory)
-        case .split(let out, let err):
+            
+            try shq(
+                sink,
+                cmd,
+                environment: environment,
+                workingDirectory: workingDirectory
+            )
+        }
+        case .split(let out, let err): do {
             announce("Running `\(cmd)`, output to `\(out)`, error to `\(err)`")
-
-            try shq(sink, cmd, environment: environment, workingDirectory: workingDirectory)
-        case .filePath(let path):
+            
+            try shq(
+                sink,
+                cmd,
+                environment: environment,
+                workingDirectory: workingDirectory
+            )
+        }
+        case .filePath(let path): do {
             announce("Running `\(cmd)`, logging to `\(path)`")
-
+            
             do {
                 try shq(sink, cmd, environment: environment, workingDirectory: workingDirectory)
             } catch {
                 let underlyingError = error
                 
                 let logResult = Result {
-                    
                     guard let lastFewLines = try sh("tail -n 10 \(path)").stdoutString?
                         .trimmingCharacters(in: .whitespacesAndNewlines), !lastFewLines.isEmpty else {
                         return "<no content in log file>"
@@ -305,6 +326,7 @@ public func sh(
                         throw _ShellProcessExecutionError.openingLogError(failure, underlyingError: underlyingError)
                 }
             }
+        }
     }
 }
 
@@ -367,8 +389,39 @@ private func announce(_ text: String) async {
         ("[Sh] " + text + "\n")
             .data(using: .utf8)
             .map(FileHandle.standardError.write)
+        
         continuation.resume()
     }
 }
 
 #endif
+
+// MARK: - Error Handling
+
+public enum _ShellProcessExecutionError: CustomStringConvertible, LocalizedError {
+    case errorWithLogInfo(String, underlyingError: Error)
+    case openingLogError(Error, underlyingError: Error)
+    
+    public var errorDescription: String? {
+        description
+    }
+    
+    public var description: String {
+        switch self {
+            case .errorWithLogInfo(
+                let logInfo,
+                underlyingError: let underlyingError
+            ):
+                return """
+        An error occurred: \(underlyingError.localizedDescription). Here is the contents of the log file:
+        """ + logInfo
+                
+            case .openingLogError(let error, underlyingError: let underlyingError):
+                return """
+        An error occurred: \(underlyingError.localizedDescription)
+        
+        Also, an error occurred while attempting to open the log file: \(error.localizedDescription)
+        """
+        }
+    }
+}

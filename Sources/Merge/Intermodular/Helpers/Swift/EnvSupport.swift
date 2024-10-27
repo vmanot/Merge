@@ -31,7 +31,10 @@ internal func validateArgumentsForEnv(_ arguments: [String]) {
 ///
 /// If that *is* why it failed, it's considered a programmer error and the
 /// program will be aborted.
-internal func makeErrorCheckerForEnv<Failure>(_ arguments: [String], conversion: @escaping (ProcessExitFailure) -> Failure) -> (ProcessExitFailure) -> Failure {
+internal func makeErrorCheckerForEnv<Failure>(
+    _ arguments: [String],
+    conversion: @escaping (ProcessExitFailure) -> Failure
+) -> (ProcessExitFailure) -> Failure {
 	let command = arguments.first!
 	return { error in
 		let commandNotFoundByEnvStatus: CInt = 127
