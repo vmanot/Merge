@@ -5,28 +5,6 @@
 import Foundation
 import Swift
 
-open class AnyCommandLineTool {
-    public init() {
-        
-    }
-}
-
-/// A type that wraps a command line tool.
-public protocol CommandLineTool: AnyCommandLineTool {
-    typealias Parameter<T> = _CommandLineToolParameter<T>
-}
-
-extension AnyCommandLineTool: CommandLineTool {
-    
-}
-
-public enum CommandLineTools {
-    
-}
-
-public typealias CLT = CommandLineTools
-
-
 @propertyWrapper
 public struct _CommandLineToolParameter<WrappedValue> {
     var _wrappedValue: WrappedValue
@@ -38,7 +16,7 @@ public struct _CommandLineToolParameter<WrappedValue> {
             _wrappedValue = newValue
         }
     }
-
+    
     public init(wrappedValue: WrappedValue) {
         self._wrappedValue = wrappedValue
     }

@@ -14,6 +14,7 @@ var package = Package(
         .library(
             name: "Merge",
             targets: [
+                "CommandLineToolSupport",
                 "Shell",
                 "SwiftDI",
                 "Merge"
@@ -35,8 +36,19 @@ var package = Package(
             ]
         ),
         .target(
+            name: "CommandLineToolSupport",
+            dependencies: [
+                "Swallow",
+            ],
+            path: "Sources/CommandLineToolSupport",
+            swiftSettings: [
+                .enableExperimentalFeature("AccessLevelOnImport")
+            ]
+        ),
+        .target(
             name: "Merge",
             dependencies: [
+                "CommandLineToolSupport",
                 "Swallow",
                 .product(name: "SwallowMacrosClient", package: "Swallow"),
                 "SwiftDI"
