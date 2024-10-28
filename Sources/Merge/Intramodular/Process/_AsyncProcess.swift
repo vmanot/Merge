@@ -36,7 +36,7 @@ public class _AsyncProcess: Logging {
     #if os(macOS)
     public init(
         existingProcess: Process?,
-        options: [_AsyncProcess.Option]
+        options: [_AsyncProcess.Option]?
     ) throws {
         let options: Set<_AsyncProcess.Option> = Set(options ?? [])
 
@@ -287,35 +287,39 @@ extension _AsyncProcess {
                 try await readData()
             }
             
-            try? await withCheckedThrowingContinuation { (continuation: CheckedContinuation<Void, Error>) in
-                @MutexProtected
-                var didResume: Bool = false
-                
-                process.terminationHandler = { (process: Process) in
-                    Task<Void, Never>.detached(priority: .userInitiated) {
-                        await Task.yield()
-                        
-                        if let terminationError = process.terminationError {
-                            continuation.resume(throwing: terminationError)
-                        } else {
-                            assert(!process.isRunning)
-                            
-                            continuation.resume()
-                        }
-                        
-                        $didResume.assignedValue = true
-                    }
-                }
-                
-                do {
-                    _willRunRightAfterThis()
+            do {
+                try await withCheckedThrowingContinuation { (continuation: CheckedContinuation<Void, Error>) in
+                    @MutexProtected
+                    var didResume: Bool = false
                     
-                    try process.run()
-                } catch {
-                    continuation.resume(throwing: error)
+                    process.terminationHandler = { (process: Process) in
+                        Task<Void, Never>.detached(priority: .userInitiated) {
+                            await Task.yield()
+                            
+                            if let terminationError = process.terminationError {
+                                continuation.resume(throwing: terminationError)
+                            } else {
+                                assert(!process.isRunning)
+                                
+                                continuation.resume()
+                            }
+                            
+                            $didResume.assignedValue = true
+                        }
+                    }
+                    
+                    do {
+                        _willRunRightAfterThis()
+                        
+                        try process.run()
+                    } catch {
+                        continuation.resume(throwing: error)
+                    }
+                    
+                    _didJustExit(didResume: { didResume })
                 }
-                
-                _didJustExit(didResume: { didResume })
+            } catch {
+                runtimeIssue(error)
             }
             
             try await readStdoutStderrTask.value
@@ -451,7 +455,7 @@ extension _AsyncProcess {
     }
     
     private func __handleData(_ data: Data, forPipe pipe: Pipe) async throws {
-        guard data.isEmpty else {
+        guard !data.isEmpty else {
             return
         }
         
