@@ -26,7 +26,7 @@ extension SystemShell {
 @available(macOS 11.0, iOS 14.0, watchOS 7.0, tvOS 14.0, *)
 @available(macCatalyst, unavailable)
 extension SystemShell.Environment {
-    func resolve(
+    public func resolve(
         launchPath: String,
         arguments: [String]
     ) async throws -> (launchPath: String, arguments: [String]) {
@@ -38,7 +38,7 @@ extension SystemShell.Environment {
         }
     }
     
-    func resolve(
+    public func resolve(
         command: String
     ) async throws -> (launchPath: String, arguments: [String]) {
         if let launchPath = launchPath {
