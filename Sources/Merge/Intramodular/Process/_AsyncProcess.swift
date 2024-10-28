@@ -8,38 +8,13 @@ import Foundation
 @_spi(Internal) import Swallow
 import System
 
-public enum _AsyncProcessOption: Hashable {
-    case reportCompletion
-    case splitWithNewLine
-    case trimming(CharacterSet)
-    
-    case _useAppleScript
-    case _useAuthorizationExecuteWithPrivileges
-}
-
-#if os(macOS) || targetEnvironment(macCatalyst)
-
-@available(macOS 11.0, iOS 14.0, watchOS 7.0, tvOS 14.0, *)
-@available(macCatalyst, unavailable)
-extension _AsyncProcess {
-    @MutexProtected
-    public static var runningProcesses = [_AsyncProcess]()
-}
-
 @available(macOS 11.0, iOS 14.0, watchOS 7.0, tvOS 14.0, *)
 @available(macCatalyst, unavailable)
 public class _AsyncProcess: Logging {
-    public typealias Option = _AsyncProcessOption
-    
-    struct _Publishers {
-        let standardOutputPublisher = ReplaySubject<Data, Never>()
-        let standardErrorPublisher = ReplaySubject<Data, Never>()
-        let exitPublisher = ReplaySubject<Int32, Never>()
-    }
-    
-    public let outputHandler: SystemShell.StandardOutputHandler
     public let options: [Option]
+    #if os(macOS)
     public let process: Process
+    #endif
     
     private let _publishers = _Publishers()
     private let processDidStart = _AsyncGate(initiallyOpen: false)
@@ -47,48 +22,27 @@ public class _AsyncProcess: Logging {
     
     @_OSUnfairLocked
     private var isWaiting = false
-    private var _standardInputPipe: Pipe?
-    private var _standardOutputPipe: Pipe?
-    private var _standardErrorPipe: Pipe?
+    
+    package var _standardInputPipe: Pipe?
+    package var _standardOutputPipe: Pipe?
+    package var _standardErrorPipe: Pipe?
     
     private var standardOutputCache = ""
     
     @_OSUnfairLocked
-    private var _result: Result<_ProcessResult, Error>?
+    private var _resolvedRunResult: Result<_ProcessRunResult, Error>?
     
     public private(set) var _standardOutputString = ""
     public private(set) var _standardErrorString = ""
-    
-    var standardInputPipe: Pipe? {
-        if state == .notLaunch, _standardInputPipe == nil {
-            _standardInputPipe = Pipe()
-            process.standardInput = _standardInputPipe
-        }
-        return _standardInputPipe
-    }
-    
-    public enum State: Equatable {
-        case notLaunch
-        case running
-        case terminated(status: Int, reason: Process.TerminationReason)
         
-        public var isTerminated: Bool {
-            guard case .terminated = self else {
-                return false
-            }
-            
-            return true
-        }
-    }
-    
+    #if os(macOS)
     public init(
         existingProcess: Process?,
-        outputHandler: SystemShell.StandardOutputHandler = .empty,
         options: [_AsyncProcess.Option]
     ) throws {
         if let existingProcess {
             assert(!existingProcess.isRunning)
-
+            
             self.process = existingProcess
         } else {
             if Set(options).isSuperset(of: [._useAppleScript, ._useAppleScript]) {
@@ -102,7 +56,6 @@ public class _AsyncProcess: Logging {
             }
         }
         
-        self.outputHandler = outputHandler
         self.options = options
         
         _registerAndSetUpIO(existingProcess: existingProcess)
@@ -113,9 +66,10 @@ public class _AsyncProcess: Logging {
         arguments: [String]?,
         environment: [String: String]?,
         currentDirectoryURL: URL?,
-        outputHandler: SystemShell.StandardOutputHandler = .empty,
-        options: [_AsyncProcess.Option]
+        options: [_AsyncProcess.Option]? = nil
     ) throws {
+        let options: [_AsyncProcess.Option] = options ?? []
+        
         if Set(options).isSuperset(of: [._useAppleScript, ._useAppleScript]) {
             self.process = _SecAuthorizedProcess()
         } else if options.contains(._useAuthorizationExecuteWithPrivileges) {
@@ -125,15 +79,14 @@ public class _AsyncProcess: Logging {
         } else {
             self.process = Process()
         }
-
+        
         process.executableURL = executableURL
         process.arguments = arguments
         process.environment = environment
         process.currentDirectoryURL = currentDirectoryURL?._fromURLToFileURL() ?? process.currentDirectoryURL
-
-        self.outputHandler = outputHandler
+        
         self.options = options
-                
+        
         _registerAndSetUpIO(existingProcess: nil)
     }
     
@@ -142,10 +95,98 @@ public class _AsyncProcess: Logging {
             $0.append(self)
         }
         
-        _setUpStdoutStderr(existingProcess: existingProcess)
+        _setUpStdinStdoutStderr(existingProcess: existingProcess)
+    }
+    #else
+    public init() throws {
+        throw Never.Reason.unavailable
+    }
+    #endif
+}
+
+#if os(macOS) || targetEnvironment(macCatalyst)
+extension _AsyncProcess {
+    var standardInputPipe: Pipe? {
+        if state == .notLaunch, _standardInputPipe == nil {
+            _standardInputPipe = Pipe()
+            process.standardInput = _standardInputPipe
+        }
+        return _standardInputPipe
     }
 
-    private func _setUpStdoutStderr(
+    @discardableResult
+    public func run() async throws -> _ProcessRunResult {
+        if let _resolvedRunResult {
+            return try _resolvedRunResult.get()
+        }
+        
+        guard state != .running else {
+            try await processDidExit.enter()
+            
+            return try _resolvedRunResult.unwrap().get()
+        }
+        
+        do {
+            try Task.checkCancellation()
+            
+            try await _run()
+            
+            await _spinUntilProcessExit()
+            
+            return try _resolvedRunResult.unwrap().get()
+        } catch {
+            if !Task.isCancelled {
+                self._resolvedRunResult = .failure(error)
+            }
+            
+            throw error
+        }
+    }
+    
+    @_disfavoredOverload
+    public func run() {
+        Task.detached(priority: .userInitiated) {
+            do {
+                try await self.run()
+            } catch {
+                runtimeIssue(error)
+            }
+        }
+    }
+    
+    public func start() async throws {
+        let _: Void = run()
+        
+        try await processDidStart.enter()
+    }
+        
+    public func start(
+        completion: @escaping (Result<Void, Error>) -> Void
+    ) async throws {
+        Task.detached(priority: .userInitiated) {
+            let result = await Result(catching: {
+                try await self.start()
+            })
+            
+            completion(result)
+        }
+    }
+
+    public func terminate() async throws {
+        process.terminate()
+    }
+    
+    public func _terminate() {
+        Task {
+            try await terminate()
+        }
+    }
+}
+#endif
+
+#if os(macOS) || targetEnvironment(macCatalyst)
+extension _AsyncProcess {
+    private func _setUpStdinStdoutStderr(
         existingProcess: Process?
     ) {
         if let existingProcess {
@@ -170,15 +211,7 @@ public class _AsyncProcess: Logging {
             runtimeIssue("_standardOutputPipe is nil!")
         }
     }
-    
-    private func _readDataFromStdoutStderr() async throws {
-        if !options.contains(._useAuthorizationExecuteWithPrivileges) {
-            try await _readStdoutStderrUntilEnd()
-        } else {
-            try await _readStdoutStderrUntilEnd(ignoreStderr: true)
-        }
-    }
-    
+        
     private func _spinUntilProcessExit() async {
         while process.isRunning {
             runtimeIssue("The process is expected to have stopped running.")
@@ -199,7 +232,9 @@ public class _AsyncProcess: Logging {
         assert(!process.isRunning)
     }
     
-    private func _readStdoutStderrUntilEnd(ignoreStderr: Bool = false) async throws {
+    private func _readStdoutStderrUntilEnd(
+        ignoreStderr: Bool = false
+    ) async throws {
         guard let _standardOutputPipe, let _standardErrorPipe else {
             assertionFailure()
             
@@ -254,7 +289,7 @@ public class _AsyncProcess: Logging {
                 {
                     workItem?.cancel()
                     
-                    try await self.handle(data: data, forPipe: _standardOutputPipe)
+                    try await self.__handleData(data, forPipe: _standardOutputPipe)
                     
                     await Task.yield()
                 }
@@ -270,7 +305,7 @@ public class _AsyncProcess: Logging {
                     {
                         workItem?.cancel()
                         
-                        try await self.handle(data: data, forPipe: _standardErrorPipe)
+                        try await self.__handleData(data, forPipe: _standardErrorPipe)
                         
                         await Task.yield()
                     }
@@ -295,13 +330,13 @@ public class _AsyncProcess: Logging {
         try await withThrowingTaskGroup(of: Void.self) { group in
             group.addTask {
                 try await _standardOutputPipe._readToEnd(receiveData: { data in
-                    try await self.handle(data: data, forPipe: _standardOutputPipe)
+                    try await self.__handleData(data, forPipe: _standardOutputPipe)
                 })
             }
             
             group.addTask {
                 try await _standardErrorPipe._readToEnd(receiveData: { data in
-                    try await self.handle(data: data, forPipe: _standardErrorPipe)
+                    try await self.__handleData(data, forPipe: _standardErrorPipe)
                 })
             }
             
@@ -309,110 +344,38 @@ public class _AsyncProcess: Logging {
         }
     }
     
-    private func handle(
-        data: Data,
-        forPipe pipe: Pipe?
-    ) async throws {
-        switch pipe {
-            case self._standardOutputPipe:
+    private func __handleData(_ data: Data, forPipe pipe: Pipe) async throws {
+        guard data.isEmpty else {
+            return
+        }
+        
+        let pipeName: Process.PipeName = try self.name(of: pipe)
+        
+        switch pipeName {
+            case .standardOutput:
                 _publishers.standardOutputPublisher.send(data)
-            case self._standardErrorPipe:
+            case .standardError:
                 _publishers.standardErrorPublisher.send(data)
             default:
                 break
         }
         
-        guard var dataAsString = String(data: data, encoding: String.Encoding.utf8), !dataAsString.isEmpty else {
+        guard let dataAsString = String(data: data, encoding: String.Encoding.utf8), !dataAsString.isEmpty else {
             return
         }
         
-        if pipe == self._standardErrorPipe {
-            self._standardErrorString += dataAsString
-            
-            return
+        switch pipeName {
+            case .standardInput:
+                break
+            case .standardOutput:
+                self._standardOutputString += dataAsString
+            case .standardError:
+                self._standardErrorString += dataAsString
         }
-        
-        if dataAsString.hasSuffix("\n") {
-            dataAsString = self.standardOutputCache + dataAsString
-            
-            self.standardOutputCache = ""
-        } else {
-            self.standardOutputCache += dataAsString
-            
-            dataAsString = ""
-        }
-        
-        if dataAsString.isEmpty {
-            return
-        }
-        
-        self._standardOutputString += dataAsString
-        
-        var outputHandler = self.outputHandler
-        
-        if case .print = outputHandler {
-            outputHandler = .block { text in
-                print(text)
-            }
-        }
-
-        switch outputHandler {
-            case let .block(output, error):
-                let progress = (pipe == self._standardOutputPipe ? output : error) ?? output
-                
-                if self.options.splitWithNewLine {
-                    for str in dataAsString.split(separator: "\n") {
-                        progress(str.trimmingCharacters(in: self.options.trimmingCharacterSet))
-                    }
-                } else {
-                    progress(dataAsString.trimmingCharacters(in: self.options.trimmingCharacterSet))
-                }
-            case .print:
-                fatalError()
-        }
-    }
-    
-    @discardableResult
-    public func run() async throws -> _ProcessResult {
-        if let _result {
-            return try _result.get()
-        }
-        
-        guard state != .running else {
-            try await processDidExit.enter()
-            
-            return try _result.unwrap().get()
-        }
-        
-        do {
-            try Task.checkCancellation()
-            
-            try await _run()
-            
-            await _spinUntilProcessExit()
-            
-            return try _result.unwrap().get()
-        } catch {
-            if !Task.isCancelled {
-                self._result = .failure(error)
-            }
-            
-            throw error
-        }
-    }
-    
-    public func start() async throws {
-        let _: Void = run()
-        
-        try await processDidStart.enter()
     }
     
     private func _run() async throws {
         do {
-            if case .print = outputHandler {
-                logger.info("\(self.process.executableURL!), args: \(self.process.arguments ?? [])")
-            }
-            
             _dumpCallStackIfNeeded()
             
             guard !isWaiting else {
@@ -421,16 +384,24 @@ public class _AsyncProcess: Logging {
             
             isWaiting = true
             
-            let readStdoutStderrTask = Task.detached(priority: .high) {
-                try await self._readDataFromStdoutStderr()
+            func readData() async throws {
+                if !options.contains(._useAuthorizationExecuteWithPrivileges) {
+                    try await _readStdoutStderrUntilEnd()
+                } else {
+                    try await _readStdoutStderrUntilEnd(ignoreStderr: true)
+                }
+            }
+
+            let readStdoutStderrTask = Task<Void, Error>.detached(priority: .high) {
+                try await readData()
             }
             
             try? await withCheckedThrowingContinuation { (continuation: CheckedContinuation<Void, Error>) in
                 @MutexProtected
                 var didResume: Bool = false
                 
-                process.terminationHandler = { process in
-                    Task.detached(priority: .userInitiated) {
+                process.terminationHandler = { (process: Process) in
+                    Task<Void, Never>.detached(priority: .userInitiated) {
                         await Task.yield()
                         
                         if let terminationError = process.terminationError {
@@ -468,9 +439,9 @@ public class _AsyncProcess: Logging {
                 runtimeIssue("Failed to close a pipe.")
             }
             
-            _stashResultAndTeardown(error: nil)
+            _stashRunResultAndTeardown(error: nil)
         } catch {
-            _stashResultAndTeardown(error: error)
+            _stashRunResultAndTeardown(error: error)
             
             throw error
         }
@@ -503,6 +474,7 @@ public class _AsyncProcess: Logging {
         }
     }
     
+    /// Should be called prior to `_stashRunResultAndTeardown`.
     private func _didJustExit(didResume: @escaping () -> Bool) {
         Task {
             try await Task.sleep(.milliseconds(200))
@@ -516,40 +488,20 @@ public class _AsyncProcess: Logging {
     }
     
     @discardableResult
-    private func _stashResultAndTeardown(
+    private func _stashRunResultAndTeardown(
         error: Error?
-    ) -> Result<_ProcessResult, Error> {
+    ) -> Result<Process.RunResult, Error> {
         Self.$runningProcesses.withCriticalRegion {
             $0.removeAll(where: { $0 === self })
         }
         
-        let outputHandler = self.outputHandler
-        let outputString = _standardOutputString.trimmingCharacters(in: options.trimmingCharacterSet)
-
-        switch outputHandler {
-            case let .block(outputCall, errorCall):
-                if options.reportCompletion {
-                    if !outputString.isEmpty {
-                        outputCall(outputString)
-                    }
-                }
-                
-                let error = _standardErrorString.trimmingCharacters(in: options.trimmingCharacterSet)
-                
-                if !error.isEmpty {
-                    (errorCall ?? outputCall)(error)
-                }
-            case .print:
-                debugPrint(outputString)
-        }
-        
-        let result: Result<_ProcessResult, Error>
+        let result: Result<Process.RunResult, Error>
         
         if let error {
             result = .failure(error)
         } else {
             result = Result(catching: {
-                try _ProcessResult(
+                try Process.RunResult(
                     process: process,
                     stdout: self._standardOutputString,
                     stderr: self._standardErrorString,
@@ -558,7 +510,7 @@ public class _AsyncProcess: Logging {
             })
         }
         
-        self._result = result
+        self._resolvedRunResult = result
         
         _publishers.exitPublisher.send(process.terminationStatus)
         
@@ -566,12 +518,10 @@ public class _AsyncProcess: Logging {
         
         return result
     }
-    
-    public func terminate() async throws {
-        process.terminate()
-    }
 }
+#endif
 
+#if os(macOS) || targetEnvironment(macCatalyst)
 @available(macCatalyst, unavailable)
 extension _AsyncProcess {
     public func _standardOutputPublisher() -> AnyPublisher<Data, Never> {
@@ -597,39 +547,10 @@ extension _AsyncProcess {
     public func _send(data: Data) throws {
         runtimeIssue("Send not allowed")
     }
-    
-    public func _terminate() {
-        Task {
-            try await terminate()
-        }
-    }
 }
+#endif
 
-extension String {
-    /// Converts the string to an escaped version suitable for terminal emulators.
-    func toTerminalEscapedString() -> String {
-        var escapedString = self
-        
-        // Replace common special characters with their escape sequences
-        let replacements: [String: String] = [
-            "\u{1B}": "\\e",      // Escape character
-            "\u{07}": "\\a",      // Bell
-            "\u{08}": "\\b",      // Backspace
-            "\u{0C}": "\\f",      // Formfeed
-            "\u{0A}": "\\n",      // Newline
-            "\u{0D}": "\\r",      // Carriage return
-            "\u{09}": "\\t",      // Horizontal tab
-            "\u{0B}": "\\v"       // Vertical tab
-        ]
-        
-        for (character, escapeCode) in replacements {
-            escapedString = escapedString.replacingOccurrences(of: character, with: escapeCode)
-        }
-        
-        return escapedString
-    }
-}
-
+#if os(macOS) || targetEnvironment(macCatalyst)
 @available(macCatalyst, unavailable)
 extension _AsyncProcess {
     public var isRunning: Bool {
@@ -664,33 +585,12 @@ extension _AsyncProcess {
         
         return .notLaunch
     }
-    
-    @_disfavoredOverload
-    public func run() {
-        Task.detached(priority: .userInitiated) {
-            do {
-                try await self.run()
-            } catch {
-                runtimeIssue(error)
-            }
-        }
-    }
-    
-    public func start(
-        completion: @escaping (Result<Void, Error>) -> Void
-    ) async throws {
-        Task.detached(priority: .userInitiated) {
-            let result = await Result(catching: {
-                try await self.start()
-            })
-            
-            completion(result)
-        }
-    }
 }
+#endif
 
 // MARK: - Initializers
 
+#if os(macOS) || targetEnvironment(macCatalyst)
 @available(macOS 11.0, iOS 14.0, watchOS 7.0, tvOS 14.0, *)
 @available(macCatalyst, unavailable)
 extension _AsyncProcess {
@@ -703,7 +603,6 @@ extension _AsyncProcess {
     ) throws {
         try self.init(
             existingProcess: nil,
-            outputHandler: .empty,
             options: options
         )
         
@@ -729,6 +628,7 @@ extension _AsyncProcess {
         )
     }
 }
+#endif
 
 // MARK: - Conformances
 
@@ -736,49 +636,82 @@ extension _AsyncProcess {
 @available(macCatalyst, unavailable)
 extension _AsyncProcess: CustomStringConvertible {
     public var description: String {
+#if os(macOS) || targetEnvironment(macCatalyst)
         Process._makeDescriptionPrefix(
             launchPath: self.process.launchPath,
             arguments: self.process.arguments
         )
+#else
+        fatalError()
+#endif
     }
 }
 
-// MARK: - Internal
+// MARK: - Auxiliary
 
 @available(macOS 11.0, iOS 14.0, watchOS 7.0, tvOS 14.0, *)
 @available(macCatalyst, unavailable)
-extension Array where Element == _AsyncProcess.Option {
-    var splitWithNewLine: Bool {
-        self.contains {
-            if case .splitWithNewLine = $0 {
-                return true
+extension _AsyncProcess {
+    public enum State: Equatable {
+        case notLaunch
+        case running
+        case terminated(status: Int, reason: ProcessTerminationError.Reason)
+        
+        public var isTerminated: Bool {
+            guard case .terminated = self else {
+                return false
             }
-            return false
+            
+            return true
         }
     }
     
-    var reportCompletion: Bool {
-        self.contains {
-            if case .reportCompletion = $0 {
-                return true
-            }
-            return false
-        }
-    }
-    
-    var trimmingCharacterSet: CharacterSet {
-        var characterSet = CharacterSet()
-        self.compactMap { option -> CharacterSet? in
-            if case let .trimming(set) = option {
-                return set
-            }
-            return nil
-        }
-        .forEach {
-            characterSet.formUnion($0)
-        }
-        return characterSet
+    public enum Option: Hashable {
+        case _useAppleScript
+        case _useAuthorizationExecuteWithPrivileges
     }
 }
 
-#endif
+@available(macOS 11.0, iOS 14.0, watchOS 7.0, tvOS 14.0, *)
+@available(macCatalyst, unavailable)
+extension _AsyncProcess {
+    @MutexProtected
+    public static var runningProcesses = [_AsyncProcess]()
+}
+
+@available(macOS 11.0, iOS 14.0, watchOS 7.0, tvOS 14.0, *)
+@available(macCatalyst, unavailable)
+extension _AsyncProcess {
+    struct _Publishers {
+        let standardOutputPublisher = ReplaySubject<Data, Never>()
+        let standardErrorPublisher = ReplaySubject<Data, Never>()
+        let exitPublisher = ReplaySubject<Int32, Never>()
+    }
+}
+
+// MARK: - Helpers
+
+extension String {
+    /// Converts the string to an escaped version suitable for terminal emulators.
+    func toTerminalEscapedString() -> String {
+        var escapedString = self
+        
+        // Replace common special characters with their escape sequences
+        let replacements: [String: String] = [
+            "\u{1B}": "\\e",      // Escape character
+            "\u{07}": "\\a",      // Bell
+            "\u{08}": "\\b",      // Backspace
+            "\u{0C}": "\\f",      // Formfeed
+            "\u{0A}": "\\n",      // Newline
+            "\u{0D}": "\\r",      // Carriage return
+            "\u{09}": "\\t",      // Horizontal tab
+            "\u{0B}": "\\v"       // Vertical tab
+        ]
+        
+        for (character, escapeCode) in replacements {
+            escapedString = escapedString.replacingOccurrences(of: character, with: escapeCode)
+        }
+        
+        return escapedString
+    }
+}

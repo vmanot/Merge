@@ -7,15 +7,15 @@ import Swallow
 
 /// A type that represents the result of a running a `Process`.
 @Hashable
-public struct _ProcessResult: Logging, @unchecked Sendable {
-    #if os(macOS) || targetEnvironment(macCatalyst)
+public struct _ProcessRunResult: Logging, @unchecked Sendable {
+#if os(macOS) || targetEnvironment(macCatalyst)
     public let process: Process
-    #endif
+#endif
     public let stdout: Data
     public let stderr: Data
     public let terminationError: ProcessTerminationError?
     
-    #if os(macOS)
+#if os(macOS)
     package init(
         process: Process,
         stdout: Data,
@@ -27,8 +27,8 @@ public struct _ProcessResult: Logging, @unchecked Sendable {
         self.stderr = stderr
         self.terminationError = terminationError
     }
-    #endif
-        
+#endif
+    
     @_transparent
     public func validate() throws {
         if let terminationError {
@@ -41,7 +41,7 @@ public struct _ProcessResult: Logging, @unchecked Sendable {
     }
 }
 
-extension _ProcessResult {
+extension _ProcessRunResult {
     /// A convenience property to get lines of the standard output, whitespace and newline trimmed.
     public var lines: [String] {
         get throws {
@@ -75,7 +75,7 @@ extension _ProcessResult {
 #if os(macOS) || targetEnvironment(macCatalyst)
 @available(macOS 11.0, iOS 14.0, watchOS 7.0, tvOS 14.0, *)
 @available(macCatalyst, unavailable)
-extension _ProcessResult {
+extension Process.RunResult {
     package init(
         process: Process,
         stdout: String,
@@ -92,11 +92,23 @@ extension _ProcessResult {
 }
 #endif
 
-// MARK: - Deprecated
+// MARK: - Supplementary
 
 #if os(macOS)
 extension Process {
-    @available(*, deprecated, renamed: "_ProcessResult")
-    public typealias AllOutput = _ProcessResult
+    public typealias RunResult = _ProcessRunResult
 }
+#endif
+
+// MARK: - Deprecated
+
+@available(*, deprecated, renamed: "Process.RunResult")
+public typealias _ProcessResult = _ProcessRunResult
+
+#if os(macOS)
+extension Process {
+    @available(*, deprecated, renamed: "Process.RunResult")
+    public typealias AllOutput = Process.RunResult
+}
+
 #endif

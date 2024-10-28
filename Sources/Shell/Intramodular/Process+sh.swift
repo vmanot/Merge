@@ -7,13 +7,14 @@
 import Foundation
 import Merge
 internal import Swallow
+import Swift
 
 public func shq(
     _ cmd: String,
     arguments: [Process.ArgumentLiteral] = [],
     environment: [String: String] = [:],
     workingDirectory: String? = nil
-) throws -> _ProcessResult {
+) throws -> Process.RunResult {
     return try Process(
         command: cmd,
         arguments: arguments,
@@ -29,7 +30,7 @@ public func shq(
     arguments: [String],
     environment: [String: String] = [:],
     workingDirectory: String? = nil
-) throws -> _ProcessResult {
+) throws -> Process.RunResult {
     try shq(
         cmd,
         arguments: arguments.map(Process.ArgumentLiteral.init(stringLiteral:)),
@@ -58,7 +59,7 @@ public func shq(
     arguments: [Process.ArgumentLiteral] = [],
     environment: [String: String] = [:],
     workingDirectory: String? = nil
-) async throws -> _ProcessResult  {
+) async throws -> Process.RunResult  {
     return try await Process(
         command: cmd,
         arguments: arguments,
@@ -74,7 +75,7 @@ public func shq(
     arguments: [String],
     environment: [String: String] = [:],
     workingDirectory: String? = nil
-) async throws -> _ProcessResult {
+) async throws -> Process.RunResult {
     try await shq(
         cmd,
         arguments: arguments.map(Process.ArgumentLiteral.init(stringLiteral:)),
@@ -138,12 +139,13 @@ public func shq(
     environment: [String: String] = [:],
     workingDirectory: String? = nil
 ) throws {
-    try Process(
+    let process = Process(
         command: cmd,
         environment: environment,
         currentDirectoryPath: workingDirectory
     )
-    ._runRedirectingAllOutput(to: sink)
+    
+    try process._runSynchronouslyRedirectingAllOutput(to: sink)
 }
 
 @available(macOS 12.0, iOS 15.0, watchOS 8.0, tvOS 15.0, *)
@@ -166,7 +168,7 @@ public func sh(
     _ cmd: String,
     environment: [String: String] = [:],
     workingDirectory: String? = nil
-) throws -> _ProcessResult {
+) throws -> Process.RunResult {
     announce("Running `\(cmd)`")
     
     return try shq(cmd, environment: environment, workingDirectory: workingDirectory)
@@ -177,7 +179,7 @@ public func sh(
     _ cmd: String,
     environment: [String: String] = [:],
     workingDirectory: String? = nil
-) async throws -> _ProcessResult {
+) async throws -> Process.RunResult {
     await announce("Running `\(cmd)`")
     
     return try await shq(cmd, environment: environment, workingDirectory: workingDirectory)
@@ -188,7 +190,7 @@ public func sh(
     command: String,
     environment: [String: String] = [:],
     currentDirectoryURL: URL
-) async throws -> _ProcessResult {
+) async throws -> Process.RunResult {
     return try await sh(
         command,
         environment: environment,
@@ -216,7 +218,7 @@ public func sh(
     _ cmd: String,
     environment: [String: String] = [:],
     workingDirectory: URL
-) async throws -> _ProcessResult {
+) async throws -> Process.RunResult {
     await announce("Running `\(cmd)`")
     
     return try await shq(
@@ -398,7 +400,7 @@ private func announce(_ text: String) async {
 
 // MARK: - Error Handling
 
-public enum _ShellProcessExecutionError: CustomStringConvertible, LocalizedError {
+public enum _ShellProcessExecutionError: CustomStringConvertible {
     case errorWithLogInfo(String, underlyingError: Error)
     case openingLogError(Error, underlyingError: Error)
     
@@ -425,3 +427,9 @@ public enum _ShellProcessExecutionError: CustomStringConvertible, LocalizedError
         }
     }
 }
+
+#if os(macOS)
+extension _ShellProcessExecutionError: LocalizedError {
+    
+}
+#endif

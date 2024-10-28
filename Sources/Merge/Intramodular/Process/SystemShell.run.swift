@@ -5,38 +5,36 @@
 import Foundation
 import Swallow
 
+@available(macOS 11.0, iOS 14.0, watchOS 7.0, tvOS 14.0, *)
+@available(macCatalyst, unavailable)
 extension SystemShell {
     public func run(
         shell: SystemShell.Environment,
-        command: String,
-        currentDirectoryURL: URL? = nil,
-        environmentVariables: [String: String] = [:]
-    ) async throws -> _ProcessResult {
+        command: String
+    ) async throws -> _ProcessRunResult {
         try await run(
             executableURL: shell.launchURL.unwrap(),
             arguments: shell.deriveArguments(command),
-            currentDirectoryURL: nil,
-            environment: shell,
-            environmentVariables: [:]
-        )
-    }
-
-    public func run(m
-        executablePath: String,
-        arguments: [String],
-        currentDirectoryURL: URL? = nil,
-        environment: Environment = .zsh,
-        environmentVariables: [String: String] = [:]
-    ) async throws -> _ProcessResult {
-        try await run(
-            executableURL: try URL(string: executablePath).unwrap(),
-            arguments: arguments,
-            currentDirectoryURL: nil,
-            environment: environment,
-            environmentVariables: [:]
+            environment: shell
         )
     }
     
+    public func run(
+        executablePath: String,
+        arguments: [String],
+        environment: Environment = .zsh
+    ) async throws -> _ProcessRunResult {
+        try await run(
+            executableURL: try URL(string: executablePath).unwrap(),
+            arguments: arguments,
+            environment: environment
+        )
+    }
+}
+
+@available(macOS 11.0, iOS 14.0, watchOS 7.0, tvOS 14.0, *)
+@available(macCatalyst, unavailable)
+extension SystemShell {
     @discardableResult
     public static func run(
         command: String,
@@ -44,16 +42,19 @@ extension SystemShell {
         environment: Environment = .zsh,
         environmentVariables: [String: String] = [:],
         currentDirectoryURL: URL? = nil,
-        outputHandler: SystemShell.StandardOutputHandler = .print,
-        options: [_AsyncProcessOption]? = nil
-    ) async throws -> _ProcessResult {
-        try await SystemShell(options: options).run(
+        options: [_AsyncProcess.Option]? = nil
+    ) async throws -> _ProcessRunResult {
+        let shell = SystemShell(options: options)
+            
+        shell.environmentVariables.merge(environmentVariables, uniquingKeysWith: { lhs, rhs in rhs })
+        shell.currentDirectoryURL = currentDirectoryURL
+        
+        let result: _ProcessRunResult = try await shell.run(
             command: command,
             input: input,
-            environment: environment,
-            environmentVariables: environmentVariables,
-            currentDirectoryURL: currentDirectoryURL,
-            outputHandler: outputHandler
+            environment: environment
         )
+        
+        return result
     }
 }

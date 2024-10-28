@@ -5,33 +5,39 @@
 import Foundation
 import Swallow
 
+@available(macOS 11.0, iOS 14.0, watchOS 7.0, tvOS 14.0, *)
+@available(macCatalyst, unavailable)
 @available(*, deprecated, renamed: "SystemShell")
 public typealias Shell = SystemShell
 
+@available(macOS 11.0, iOS 14.0, watchOS 7.0, tvOS 14.0, *)
+@available(macCatalyst, unavailable)
 public final class SystemShell {
+    public var environmentVariables: [String: String]
     public var currentDirectoryURL: URL?
     
-    public let options: [_AsyncProcessOption]?
+    public let options: [_AsyncProcess.Option]?
     
-    private var environmentVariables: [String: String] {
-        ProcessInfo.processInfo.environment
-    }
-    
-    public init(currentDirectoryURL: URL? = nil, options: [_AsyncProcessOption]? = nil) {
+    public init(
+        environment: [String: String]? = nil,
+        currentDirectoryURL: URL? = nil,
+        options: [_AsyncProcess.Option]? = nil
+    ) {
+        self.environmentVariables = ProcessInfo.processInfo.environment.merging(environment ?? [:], uniquingKeysWith: { lhs, rhs in rhs })
         self.currentDirectoryURL = currentDirectoryURL
         self.options = options
     }
 }
 
 #if os(macOS)
+@available(macOS 11.0, iOS 14.0, watchOS 7.0, tvOS 14.0, *)
+@available(macCatalyst, unavailable)
 extension SystemShell {
     public func run(
         executableURL: URL,
         arguments: [String],
-        currentDirectoryURL: URL? = nil,
-        environment: Environment = .zsh,
-        environmentVariables: [String: String] = [:]
-    ) async throws -> _ProcessResult {
+        environment: Environment = .zsh
+    ) async throws -> Process.RunResult {
         let (launchPath, arguments) = try await environment.resolve(launchPath: executableURL.path, arguments: arguments)
         
         let process = try _AsyncProcess(
@@ -39,7 +45,7 @@ extension SystemShell {
             arguments: arguments,
             currentDirectoryURL: currentDirectoryURL?._fromURLToFileURL() ?? self.currentDirectoryURL,
             environmentVariables: self.environmentVariables.merging(environmentVariables, uniquingKeysWith: { $1 }),
-            options: options ?? [.reportCompletion]
+            options: options ?? []
         )
         
         return try await process.run()
@@ -49,17 +55,8 @@ extension SystemShell {
     public func run(
         command: String,
         input: String? = nil,
-        environment: Environment = .zsh,
-        environmentVariables: [String: String] = [:],
-        currentDirectoryURL: URL? = nil,
-        outputHandler: SystemShell.StandardOutputHandler = .print
-    ) async throws -> _ProcessResult {
-        let options: [_AsyncProcessOption] = options ?? [
-            .reportCompletion,
-            .trimming(.whitespacesAndNewlines),
-            .splitWithNewLine
-        ]
-        
+        environment: Environment = .zsh
+    ) async throws -> Process.RunResult {
         let (launchPath, arguments) = try await environment.resolve(command: command)
         
         let process = try _AsyncProcess(
@@ -67,7 +64,6 @@ extension SystemShell {
             arguments: arguments,
             environment: self.environmentVariables.merging(environmentVariables, uniquingKeysWith: { $1 }),
             currentDirectoryURL: currentDirectoryURL ?? self.currentDirectoryURL,
-            outputHandler: outputHandler,
             options: options
         )
         
@@ -80,14 +76,14 @@ extension SystemShell {
     }
 }
 #else
+@available(macOS 11.0, iOS 14.0, watchOS 7.0, tvOS 14.0, *)
+@available(macCatalyst, unavailable)
 extension SystemShell {
     public func run(
         executableURL: URL,
         arguments: [String],
-        currentDirectoryURL: URL? = nil,
-        environment: Environment = .zsh,
-        environmentVariables: [String: String] = [:]
-    ) async throws -> _ProcessResult {
+        environment: Environment = .zsh
+    ) async throws -> _ProcessRunResult {
         throw Never.Reason.unsupported
     }
     
@@ -95,33 +91,12 @@ extension SystemShell {
     public func run(
         command: String,
         input: String? = nil,
-        environment: Environment = .zsh,
-        environmentVariables: [String: String] = [:],
-        currentDirectoryURL: URL? = nil,
-        outputHandler: SystemShell.StandardOutputHandler = .print
-    ) async throws -> _ProcessResult {
+        environment: Environment = .zsh
+    ) async throws -> _ProcessRunResult {
         throw Never.Reason.unsupported
     }
 }
 #endif
-
-// MARK: - Auxiliary
-
-extension SystemShell {
-    public enum StandardOutputHandler {
-        public typealias Block = (_ text: String) -> Void
-        
-        case print
-        case block(
-            output: Block,
-            error: Block? = nil
-        )
-        
-        public static var empty: Self {
-            .block(output: { _ in }, error: nil)
-        }
-    }
-}
 
 // MARK: - Auxiliary
 

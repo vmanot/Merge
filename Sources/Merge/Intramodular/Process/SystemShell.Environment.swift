@@ -6,6 +6,8 @@ import Foundation
 import Combine
 import Swallow
 
+@available(macOS 11.0, iOS 14.0, watchOS 7.0, tvOS 14.0, *)
+@available(macCatalyst, unavailable)
 extension SystemShell {
     public struct Environment {
         let launchPath: String?
@@ -21,6 +23,8 @@ extension SystemShell {
     }
 }
 
+@available(macOS 11.0, iOS 14.0, watchOS 7.0, tvOS 14.0, *)
+@available(macCatalyst, unavailable)
 extension SystemShell.Environment {
     func resolve(
         launchPath: String,
@@ -53,13 +57,14 @@ extension SystemShell.Environment {
             var arguments = [String]()
             
             if commands.count > 1 {
-                try await SystemShell.run(
+                arguments = try await SystemShell.run(
                     command: "echo " + commands[1...].joined(separator: " "),
-                    environment: .bash,
-                    outputHandler: .block {
-                        arguments = $0.split(separator: " ").map(String.init)
-                    }
+                    environment: .bash
                 )
+                .stdoutString
+                .unwrap()
+                .split(separator: " ")
+                .map(String.init)
             }
             
             return (launchPath, arguments)
@@ -69,14 +74,7 @@ extension SystemShell.Environment {
     private func resolveLaunchPath(
         from x: String
     ) async throws -> String {
-        var result: String = ""
-        
-        try await SystemShell.run(
-            command: "which \(x)",
-            outputHandler: .block {
-                result = $0
-            }
-        )
+        let result: String = try await SystemShell.run(command: "which \(x)").stdoutString.unwrap()
         
         return result
     }
@@ -84,6 +82,8 @@ extension SystemShell.Environment {
 
 // MARK: - Initializers
 
+@available(macOS 11.0, iOS 14.0, watchOS 7.0, tvOS 14.0, *)
+@available(macCatalyst, unavailable)
 extension SystemShell.Environment {
     public static var bash: Self {
         Self(

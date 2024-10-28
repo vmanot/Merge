@@ -72,7 +72,7 @@ extension Process {
     public static func run(
         command: String,
         arguments: [String]
-    ) async throws -> _ProcessResult {
+    ) async throws -> Process.RunResult {
         let process = Process()
         
         process.executableURL = URL(fileURLWithPath: "/usr/bin/env")
@@ -82,7 +82,7 @@ extension Process {
     }
 
     @available(macOS 12.0, iOS 15.0, watchOS 8.0, tvOS 15.0, *)
-    package func _runRedirectingAllOutput(
+    package func _runSynchronouslyRedirectingAllOutput(
         to sink: Process.StandardOutputSink
     ) throws {
         _installSigintIfNeeded()
@@ -97,7 +97,7 @@ extension Process {
         }
     }
         
-    public func _runSynchronously() throws -> _ProcessResult {
+    public func _runSynchronously() throws -> Process.RunResult {
         _installSigintIfNeeded()
         
         let stdout = _UnsafeStandardOutputOrErrorPipeBuffer(id: .stdout)
@@ -110,7 +110,7 @@ extension Process {
         
         self.waitUntilExit()
         
-        return _ProcessResult(
+        return Process.RunResult(
             process: self,
             stdout: try stdout.closeReturningData(),
             stderr: try stderr.closeReturningData(),
@@ -118,7 +118,7 @@ extension Process {
         )
     }
     
-    public func _runAsynchronously() async throws -> _ProcessResult {
+    public func _runAsynchronously() async throws -> Process.RunResult {
         _installSigintIfNeeded()
         
         let stdout = _UnsafeAsyncStandardOutputOrErrorPipeBuffer(id: .stdout)
@@ -130,12 +130,12 @@ extension Process {
         let isRunning = _OSUnfairLocked<Bool>(wrappedValue: false)
         
         return try await withTaskCancellationHandler {
-            return try await withCheckedThrowingContinuation  { (continuation: CheckedContinuation<_ProcessResult, Error>) in
+            return try await withCheckedThrowingContinuation  { (continuation: CheckedContinuation<Process.RunResult, Error>) in
                 self.terminationHandler = { process in
                     _Concurrency.Task {
                         do {
                             continuation.resume(
-                                returning: _ProcessResult(
+                                returning: Process.RunResult(
                                     process: self,
                                     stdout: try await stdout.closeReturningData(),
                                     stderr: try await stderr.closeReturningData(),

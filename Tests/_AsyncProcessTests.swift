@@ -12,7 +12,7 @@ final class _AsyncProcessTests: XCTestCase {
         for _ in 0..<10 {
             let process = _AsyncProcess(existingProcess: Process(command: "echo hello"), options: [])
             
-            let result: _ProcessResult = try await process.run()
+            let result: Process.RunResult = try await process.run()
                         
             XCTAssert(result.stdoutString == "hello")
         }
@@ -22,7 +22,7 @@ final class _AsyncProcessTests: XCTestCase {
             
             try await process.start()
             
-            let result: _ProcessResult = try await process.run()
+            let result: Process.RunResult = try await process.run()
             
             XCTAssert(result.stdoutString == "hello")
         }
