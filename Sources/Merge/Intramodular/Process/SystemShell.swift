@@ -52,22 +52,41 @@ extension SystemShell {
         input: String? = nil,
         environment: Environment = .zsh
     ) async throws -> Process.RunResult {
-        let (launchPath, arguments) = try await environment.resolve(command: command)
-        
-        let process = try _AsyncProcess(
-            executableURL: URL(fileURLWithPath: launchPath),
-            arguments: arguments,
-            environment: self.environmentVariables.merging(environmentVariables, uniquingKeysWith: { $1 }),
-            currentDirectoryURL: currentDirectoryURL ?? self.currentDirectoryURL,
+        let process = try await _AsyncProcess(
+            command: command,
+            input: input,
+            environment: environmentVariables,
+            currentDirectoryURL: currentDirectoryURL,
             options: options
         )
         
-        if let input = input?.data(using: .utf8), !input.isEmpty, let handle = process.standardInputPipe?.fileHandleForWriting {
+        return try await process.run()
+    }
+}
+
+extension _AsyncProcess {
+    public convenience init(
+        command: String,
+        input: String? = nil,
+        shell: SystemShell.Environment = .zsh,
+        environment: [String: String]? = nil,
+        currentDirectoryURL: URL? = nil,
+        options: [_AsyncProcess.Option]?
+    ) async throws {
+        let (launchPath, arguments) = try await shell.resolve(command: command)
+
+        try self.init(
+            executableURL: URL(fileURLWithPath: launchPath),
+            arguments: arguments,
+            environment: environment ?? ProcessInfo.processInfo.environment,
+            currentDirectoryURL: currentDirectoryURL,
+            options: options
+        )
+        
+        if let input = input?.data(using: .utf8), !input.isEmpty, let handle = standardInputPipe?.fileHandleForWriting {
             try? handle.write(contentsOf: input)
             try? handle.close()
         }
-        
-        return try await process.run()
     }
 }
 #else

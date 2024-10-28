@@ -11,7 +11,7 @@ import System
 @available(macOS 11.0, iOS 14.0, watchOS 7.0, tvOS 14.0, *)
 @available(macCatalyst, unavailable)
 public class _AsyncProcess: Logging {
-    public let options: [Option]
+    public let options: Set<Option>
     #if os(macOS)
     public let process: Process
     #endif
@@ -27,8 +27,6 @@ public class _AsyncProcess: Logging {
     package var _standardOutputPipe: Pipe?
     package var _standardErrorPipe: Pipe?
     
-    private var standardOutputCache = ""
-    
     @_OSUnfairLocked
     private var _resolvedRunResult: Result<_ProcessRunResult, Error>?
     
@@ -40,12 +38,14 @@ public class _AsyncProcess: Logging {
         existingProcess: Process?,
         options: [_AsyncProcess.Option]
     ) throws {
+        let options: Set<_AsyncProcess.Option> = Set(options ?? [])
+
         if let existingProcess {
             assert(!existingProcess.isRunning)
             
             self.process = existingProcess
         } else {
-            if Set(options).isSuperset(of: [._useAppleScript, ._useAppleScript]) {
+            if options.isSuperset(of: [._useAppleScript, ._useAppleScript]) {
                 throw Never.Reason.unsupported
             } else if options.contains(._useAuthorizationExecuteWithPrivileges) {
                 self.process = _SecAuthorizedProcess()
@@ -56,7 +56,7 @@ public class _AsyncProcess: Logging {
             }
         }
         
-        self.options = options
+        self.options = Set(options)
         
         _registerAndSetUpIO(existingProcess: existingProcess)
     }
@@ -68,9 +68,9 @@ public class _AsyncProcess: Logging {
         currentDirectoryURL: URL?,
         options: [_AsyncProcess.Option]? = nil
     ) throws {
-        let options: [_AsyncProcess.Option] = options ?? []
+        let options: Set<_AsyncProcess.Option> = Set(options ?? [])
         
-        if Set(options).isSuperset(of: [._useAppleScript, ._useAppleScript]) {
+        if options.isSuperset(of: [._useAppleScript, ._useAppleScript]) {
             self.process = _SecAuthorizedProcess()
         } else if options.contains(._useAuthorizationExecuteWithPrivileges) {
             self.process = _SecAuthorizedProcess()
@@ -106,7 +106,40 @@ public class _AsyncProcess: Logging {
 
 #if os(macOS) || targetEnvironment(macCatalyst)
 extension _AsyncProcess {
-    var standardInputPipe: Pipe? {
+    public var isRunning: Bool {
+        state == .running
+    }
+    
+    public var state: State {
+        if process.isRunning {
+            return .running
+        }
+        
+        var terminationReason: ProcessTerminationError?
+        
+        if process is _SecAuthorizedProcess {
+            if !processDidStart.isOpen {
+                return .notLaunch
+            }
+        } else {
+            if !processDidStart.isOpen && process.processIdentifier == 0 {
+                return .notLaunch
+            }
+        }
+        
+        terminationReason = ProcessTerminationError(_from: process)
+        
+        if let terminationReason = terminationReason {
+            return .terminated(
+                status: Int(process.terminationStatus),
+                reason: terminationReason.reason
+            )
+        }
+        
+        return .notLaunch
+    }
+
+    public var standardInputPipe: Pipe? {
         if state == .notLaunch, _standardInputPipe == nil {
             _standardInputPipe = Pipe()
             process.standardInput = _standardInputPipe
@@ -231,6 +264,79 @@ extension _AsyncProcess {
         
         assert(!process.isRunning)
     }
+        
+    private func _run() async throws {
+        do {
+            _dumpCallStackIfNeeded()
+            
+            guard !isWaiting else {
+                return
+            }
+            
+            isWaiting = true
+            
+            func readData() async throws {
+                if !options.contains(._useAuthorizationExecuteWithPrivileges) {
+                    try await _readStdoutStderrUntilEnd()
+                } else {
+                    try await _readStdoutStderrUntilEnd(ignoreStderr: true)
+                }
+            }
+
+            let readStdoutStderrTask = Task<Void, Error>.detached(priority: .high) {
+                try await readData()
+            }
+            
+            try? await withCheckedThrowingContinuation { (continuation: CheckedContinuation<Void, Error>) in
+                @MutexProtected
+                var didResume: Bool = false
+                
+                process.terminationHandler = { (process: Process) in
+                    Task<Void, Never>.detached(priority: .userInitiated) {
+                        await Task.yield()
+                        
+                        if let terminationError = process.terminationError {
+                            continuation.resume(throwing: terminationError)
+                        } else {
+                            assert(!process.isRunning)
+                            
+                            continuation.resume()
+                        }
+                        
+                        $didResume.assignedValue = true
+                    }
+                }
+                
+                do {
+                    _willRunRightAfterThis()
+                    
+                    try process.run()
+                } catch {
+                    continuation.resume(throwing: error)
+                }
+                
+                _didJustExit(didResume: { didResume })
+            }
+            
+            try await readStdoutStderrTask.value
+            
+            assert(!process.isRunning)
+            
+            do {
+                try _standardOutputPipe?.fileHandleForReading.close()
+                try _standardErrorPipe?.fileHandleForReading.close()
+                try _standardInputPipe?.fileHandleForWriting.close()
+            } catch {
+                runtimeIssue("Failed to close a pipe.")
+            }
+            
+            _stashRunResultAndTeardown(error: nil)
+        } catch {
+            _stashRunResultAndTeardown(error: error)
+            
+            throw error
+        }
+    }
     
     private func _readStdoutStderrUntilEnd(
         ignoreStderr: Bool = false
@@ -351,11 +457,21 @@ extension _AsyncProcess {
         
         let pipeName: Process.PipeName = try self.name(of: pipe)
         
+        let forwardStdoutStderr: Bool = options.contains(._forwardStdoutStderr)
+        
         switch pipeName {
             case .standardOutput:
                 _publishers.standardOutputPublisher.send(data)
+                
+                if forwardStdoutStderr {
+                    FileHandle.standardOutput.write(data)
+                }
             case .standardError:
                 _publishers.standardErrorPublisher.send(data)
+                
+                if forwardStdoutStderr {
+                    FileHandle.standardOutput.write(data)
+                }
             default:
                 break
         }
@@ -373,80 +489,7 @@ extension _AsyncProcess {
                 self._standardErrorString += dataAsString
         }
     }
-    
-    private func _run() async throws {
-        do {
-            _dumpCallStackIfNeeded()
-            
-            guard !isWaiting else {
-                return
-            }
-            
-            isWaiting = true
-            
-            func readData() async throws {
-                if !options.contains(._useAuthorizationExecuteWithPrivileges) {
-                    try await _readStdoutStderrUntilEnd()
-                } else {
-                    try await _readStdoutStderrUntilEnd(ignoreStderr: true)
-                }
-            }
 
-            let readStdoutStderrTask = Task<Void, Error>.detached(priority: .high) {
-                try await readData()
-            }
-            
-            try? await withCheckedThrowingContinuation { (continuation: CheckedContinuation<Void, Error>) in
-                @MutexProtected
-                var didResume: Bool = false
-                
-                process.terminationHandler = { (process: Process) in
-                    Task<Void, Never>.detached(priority: .userInitiated) {
-                        await Task.yield()
-                        
-                        if let terminationError = process.terminationError {
-                            continuation.resume(throwing: terminationError)
-                        } else {
-                            assert(!process.isRunning)
-                            
-                            continuation.resume()
-                        }
-                        
-                        $didResume.assignedValue = true
-                    }
-                }
-                
-                do {
-                    _willRunRightAfterThis()
-                    
-                    try process.run()
-                } catch {
-                    continuation.resume(throwing: error)
-                }
-                
-                _didJustExit(didResume: { didResume })
-            }
-            
-            try await readStdoutStderrTask.value
-            
-            assert(!process.isRunning)
-            
-            do {
-                try _standardOutputPipe?.fileHandleForReading.close()
-                try _standardErrorPipe?.fileHandleForReading.close()
-                try _standardInputPipe?.fileHandleForWriting.close()
-            } catch {
-                runtimeIssue("Failed to close a pipe.")
-            }
-            
-            _stashRunResultAndTeardown(error: nil)
-        } catch {
-            _stashRunResultAndTeardown(error: error)
-            
-            throw error
-        }
-    }
-    
     private func _dumpCallStackIfNeeded() {
         do {
             if Thread._isMainThread {
@@ -550,44 +593,6 @@ extension _AsyncProcess {
 }
 #endif
 
-#if os(macOS) || targetEnvironment(macCatalyst)
-@available(macCatalyst, unavailable)
-extension _AsyncProcess {
-    public var isRunning: Bool {
-        state == .running
-    }
-    
-    public var state: State {
-        if process.isRunning {
-            return .running
-        }
-        
-        var terminationReason: ProcessTerminationError?
-        
-        if process is _SecAuthorizedProcess {
-            if !processDidStart.isOpen {
-                return .notLaunch
-            }
-        } else {
-            if !processDidStart.isOpen && process.processIdentifier == 0 {
-                return .notLaunch
-            }
-        }
-        
-        terminationReason = ProcessTerminationError(_from: process)
-        
-        if let terminationReason = terminationReason {
-            return .terminated(
-                status: Int(process.terminationStatus),
-                reason: terminationReason.reason
-            )
-        }
-        
-        return .notLaunch
-    }
-}
-#endif
-
 // MARK: - Initializers
 
 #if os(macOS) || targetEnvironment(macCatalyst)
@@ -669,6 +674,7 @@ extension _AsyncProcess {
     public enum Option: Hashable {
         case _useAppleScript
         case _useAuthorizationExecuteWithPrivileges
+        case _forwardStdoutStderr
     }
 }
 
