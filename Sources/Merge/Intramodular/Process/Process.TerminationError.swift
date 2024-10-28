@@ -12,7 +12,7 @@ public struct ProcessTerminationError: Error, Hashable, LocalizedError {
     public let reason: Reason
         
     @available(macCatalyst, unavailable)
-    fileprivate init(_from process: Process) {
+    public init(_from process: Process) {
         self.process = process
         self.status = process.terminationStatus
         self.reason = process.terminationReason.reason

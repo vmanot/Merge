@@ -562,7 +562,7 @@ extension _AsyncProcess {
             return .running
         }
         
-        var terminationReason: Process.TerminationReason?
+        var terminationReason: ProcessTerminationError?
         
         if process is _SecAuthorizedProcess {
             if !processDidStart.isOpen {
@@ -574,12 +574,12 @@ extension _AsyncProcess {
             }
         }
         
-        terminationReason = process.terminationReason
+        terminationReason = ProcessTerminationError(_from: process)
         
         if let terminationReason = terminationReason {
             return .terminated(
                 status: Int(process.terminationStatus),
-                reason: terminationReason
+                reason: terminationReason.reason
             )
         }
         
