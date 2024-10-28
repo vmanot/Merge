@@ -44,7 +44,7 @@ public enum TaskFailure<Error: Swift.Error>: _ErrorX, HashEquatable {
 // MARK: - Initializers
 
 extension TaskFailure {
-    public init?<Success>(_ status: TaskStatus<Success, Error>) {
+    public init?<Success>(_ status: ObservableTaskStatus<Success, Error>) {
         if let failure = status.failure {
             self = failure
         } else {

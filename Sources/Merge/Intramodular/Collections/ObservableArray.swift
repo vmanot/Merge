@@ -10,7 +10,7 @@ import Swallow
 ///
 /// `ObservableObject` subscribes to the `objectWillChange` publishers of all elements contained within it and forwards them to its own `objectWillChange` publisher.
 @propertyWrapper
-public final class ObservableArray<Element: ObservableObject>: MutablePropertyWrapper, Sequence, _ObservableObjectX {
+public final class ObservableArray<Element: ObservableObject>: MutablePropertyWrapper, Sequence, ObjectDidChangeObservableObject {
     public let objectWillChange = ObservableObjectPublisher()
     
     private var cancellables: [ObjectIdentifier: AnyCancellable] = [:]

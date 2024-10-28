@@ -10,7 +10,7 @@ extension ObservableTasks {
     public final class Map<Upstream: ObservableTask, Success>: ObservableTask {
         public typealias Success = Success
         public typealias Error = Upstream.Error
-        public typealias Status = TaskStatus<Success, Error>
+        public typealias Status = ObservableTaskStatus<Success, Error>
         
         private let upstream: Upstream
         private let transform: (Upstream.Success) -> Success
@@ -33,7 +33,7 @@ extension ObservableTasks {
             self.transform = transform
         }
         
-        public var status: TaskStatus<Success, Error> {
+        public var status: ObservableTaskStatus<Success, Error> {
             upstream.status.map(transform)
         }
                 

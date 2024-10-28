@@ -18,7 +18,7 @@ public enum TaskResult<Success, Error: Swift.Error> {
         }
     }
     
-    public init?(_ status: TaskStatus<Success, Error>) {
+    public init?(_ status: ObservableTaskStatus<Success, Error>) {
         switch status {
             case .idle:
                 return nil
@@ -91,7 +91,7 @@ extension TaskResult: Sendable where Success: Sendable {
 
 // MARK: - Supplementary
 
-extension TaskStatus {
+extension ObservableTaskStatus {
     public init(_ result: TaskResult<Success, Error>) {
         switch result {
             case .canceled:

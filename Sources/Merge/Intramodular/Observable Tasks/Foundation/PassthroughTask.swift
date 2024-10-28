@@ -11,7 +11,7 @@ import Swift
 /// A mutable task.
 open class PassthroughTask<Success, Error: Swift.Error>: ObservableTask {
     public typealias Body = (PassthroughTask) -> AnyCancellable
-    public typealias Status = TaskStatus<Success, Error>
+    public typealias Status = ObservableTaskStatus<Success, Error>
     
     private let lock = NSRecursiveLock()
     

@@ -16,7 +16,7 @@ public struct TaskButton<Success, Error: Swift.Error, Label: View>: View {
     @Environment(\.taskRestartable) package var taskRestartable
     
     package let action: () -> AnyTask<Success, Error>
-    package let label: (TaskStatus<Success, Error>) -> Label
+    package let label: (ObservableTaskStatus<Success, Error>) -> Label
     package var existingTask: (any ObservableTask<Success, Error>)?
     
     @State package var lastTask: AnyTask<Success, Error>?

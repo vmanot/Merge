@@ -6,15 +6,15 @@ import Combine
 import Foundation
 
 public final class EmptyObservableTask<Success, Error: Swift.Error>: ObservableTask {
-    public var status: TaskStatus<Success, Error> {
+    public var status: ObservableTaskStatus<Success, Error> {
         .idle
     }
 
-    public var objectWillChange: AnyPublisher<TaskStatus<Success, Error>, Never>  {
+    public var objectWillChange: AnyPublisher<ObservableTaskStatus<Success, Error>, Never>  {
         Empty().eraseToAnyPublisher()
     }
     
-    public var objectDidChange: AnyPublisher<TaskStatus<Success, Error>, Never>  {
+    public var objectDidChange: AnyPublisher<ObservableTaskStatus<Success, Error>, Never>  {
         Empty().eraseToAnyPublisher()
     }
 

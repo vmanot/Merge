@@ -64,7 +64,7 @@ open class TaskOperation<Base: ObservableTask>: Operation, @unchecked Sendable {
             .outputPublisher
             .toResultPublisher()
             .sink { status in
-                switch TaskStatus(status) {
+                switch ObservableTaskStatus(status) {
                     case .idle:
                         self._executing = false
                         self._finished = false

@@ -7,11 +7,6 @@ import Swallow
 
 @available(macOS 11.0, iOS 14.0, watchOS 7.0, tvOS 14.0, *)
 @available(macCatalyst, unavailable)
-@available(*, deprecated, renamed: "SystemShell")
-public typealias Shell = SystemShell
-
-@available(macOS 11.0, iOS 14.0, watchOS 7.0, tvOS 14.0, *)
-@available(macCatalyst, unavailable)
 public final class SystemShell {
     public var environmentVariables: [String: String]
     public var currentDirectoryURL: URL?
@@ -110,3 +105,10 @@ public actor _ShellActor {
     
     public static let shared: ActorType = ActorType()
 }
+
+// MARK: - Deprecated
+
+@available(macOS 11.0, iOS 14.0, watchOS 7.0, tvOS 14.0, *)
+@available(macCatalyst, unavailable)
+@available(*, deprecated, renamed: "SystemShell")
+public typealias Shell = SystemShell

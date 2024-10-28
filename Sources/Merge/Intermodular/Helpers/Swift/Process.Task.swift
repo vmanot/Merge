@@ -32,7 +32,7 @@ extension Process {
             process.processIdentifier
         }
         
-        public var status: TaskStatus<Success, Error> {
+        public var status: ObservableTaskStatus<Success, Error> {
             base.status
         }
         
@@ -40,7 +40,7 @@ extension Process {
             .init(from: base)
         }
         
-        public var objectDidChange: AnyPublisher<TaskStatus<Success, Error>, Never> {
+        public var objectDidChange: AnyPublisher<ObservableTaskStatus<Success, Error>, Never> {
             base.objectDidChange
         }
         

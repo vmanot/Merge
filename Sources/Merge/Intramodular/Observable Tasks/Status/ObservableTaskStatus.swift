@@ -5,14 +5,14 @@
 import Combine
 import Swallow
 
-public protocol TaskStatusType<Success, Error> {
+public protocol ObservableTaskStatusType<Success, Error> {
     associatedtype Success
     associatedtype Error 
 }
 
 /// The status of a task.
 @frozen
-public enum TaskStatus<Success, Error: Swift.Error>: TaskStatusType {
+public enum ObservableTaskStatus<Success, Error: Swift.Error>: ObservableTaskStatusType {
     case idle
     case active
     case paused
@@ -23,7 +23,7 @@ public enum TaskStatus<Success, Error: Swift.Error>: TaskStatusType {
 
 // MARK: - Extensions
 
-extension TaskStatus {
+extension ObservableTaskStatus {
     public var isTerminal: Bool {
         switch self {
             case .success, .canceled, .error:
@@ -46,7 +46,7 @@ extension TaskStatus {
     }
 }
 
-extension TaskStatus {
+extension ObservableTaskStatus {
     public var successValue: Success? {
         if case let .success(success) = self {
             return success
@@ -64,7 +64,7 @@ extension TaskStatus {
     }
 }
 
-extension TaskStatus {
+extension ObservableTaskStatus {
     public var output: TaskOutput<Success, Error>? {
         switch self {
             case .active:
@@ -106,8 +106,8 @@ extension TaskStatus {
     }
 }
 
-extension TaskStatus {
-    public func map<T>(_ transform: (Success) -> T) -> TaskStatus<T, Error> {
+extension ObservableTaskStatus {
+    public func map<T>(_ transform: (Success) -> T) -> ObservableTaskStatus<T, Error> {
         switch self {
             case .idle:
                 return .idle
@@ -124,7 +124,7 @@ extension TaskStatus {
         }
     }
     
-    public func mapError<T: Swift.Error>(_ transform: (Error) -> T) -> TaskStatus<Success, T> {
+    public func mapError<T: Swift.Error>(_ transform: (Error) -> T) -> ObservableTaskStatus<Success, T> {
         switch self {
             case .idle:
                 return .idle
@@ -144,15 +144,15 @@ extension TaskStatus {
 
 // MARK: - Conformances
 
-extension TaskStatus: Equatable where Success: Equatable, Error: Equatable {
+extension ObservableTaskStatus: Equatable where Success: Equatable, Error: Equatable {
     
 }
 
-extension TaskStatus: Hashable where Success: Hashable, Error: Hashable {
+extension ObservableTaskStatus: Hashable where Success: Hashable, Error: Hashable {
     
 }
 
-extension TaskStatus: Sendable where Success: Sendable {
+extension ObservableTaskStatus: Sendable where Success: Sendable {
     
 }
 
@@ -287,7 +287,7 @@ extension ObservableTask {
     }
 }
 
-extension TaskStatus {
+extension ObservableTaskStatus {
     public init(_ status: Result<Success, Error>) {
         switch status {
             case .success(let value):
@@ -320,7 +320,7 @@ extension TaskStatus {
 }
 
 extension Result {
-    public init?(_ status: TaskStatus<Success, Failure>) {
+    public init?(_ status: ObservableTaskStatus<Success, Failure>) {
         switch status {
             case .success(let success):
                 self = .success(success)
@@ -331,3 +331,10 @@ extension Result {
         }
     }
 }
+
+// MARK: - Deprecated
+
+@available(*, deprecated, renamed: "ObservableTaskStatusType")
+public typealias TaskStatusType = ObservableTaskStatusType
+@available(*, deprecated, renamed: "ObservableTaskStatus")
+public typealias TaskStatus<T, U: Error> = ObservableTaskStatus<T, U>

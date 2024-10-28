@@ -8,7 +8,7 @@ import Swift
 
 /// A base class to subclass when building observable tasks.
 open class ObservableTaskBase<Success, Error: Swift.Error>: ObservableTask {
-    public typealias Status = TaskStatus<Success, Error>
+    public typealias Status = ObservableTaskStatus<Success, Error>
     
     let statusValueSubject = CurrentValueSubject<Status, Never>(.idle)
     

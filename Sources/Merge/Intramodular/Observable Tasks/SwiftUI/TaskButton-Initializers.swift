@@ -9,7 +9,7 @@ import SwiftUI
 extension TaskButton {
     public init(
         action: @escaping () -> AnyTask<Success, Error>,
-        @ViewBuilder label: @escaping (TaskStatus<Success, Error>) -> Label
+        @ViewBuilder label: @escaping (ObservableTaskStatus<Success, Error>) -> Label
     ) {
         self.action = { action() }
         self.label = label
@@ -17,7 +17,7 @@ extension TaskButton {
     
     public init(
         action: @escaping () -> Task<Success, Error>,
-        @ViewBuilder label: @escaping (TaskStatus<Success, Error>) -> Label
+        @ViewBuilder label: @escaping (ObservableTaskStatus<Success, Error>) -> Label
     ) where Error == Swift.Error {
         self.init(
             action: { () -> AnyTask<Success, Error> in
@@ -55,7 +55,7 @@ extension TaskButton {
     public init(
         action: @escaping @MainActor @Sendable () async -> Success,
         priority: TaskPriority? = .userInitiated,
-        @ViewBuilder label: @escaping (TaskStatus<Success, Error>) -> Label
+        @ViewBuilder label: @escaping (ObservableTaskStatus<Success, Error>) -> Label
     ) where Error == Never {
         self.init {
             Task(priority: priority) { @MainActor in
@@ -85,7 +85,7 @@ extension TaskButton {
     public init(
         action: @escaping @MainActor @Sendable () async throws -> Success,
         priority: TaskPriority? = .userInitiated,
-        @ViewBuilder label: @escaping (TaskStatus<Success, Error>) -> Label
+        @ViewBuilder label: @escaping (ObservableTaskStatus<Success, Error>) -> Label
     ) where Error == Swift.Error {
         self.init {
             Task(priority: priority) { @MainActor in
@@ -115,7 +115,7 @@ extension TaskButton {
     public init(
         priority: TaskPriority?,
         action: @escaping @MainActor @Sendable () async throws -> Success,
-        @ViewBuilder label: @escaping (TaskStatus<Success, AnyError>) -> Label
+        @ViewBuilder label: @escaping (ObservableTaskStatus<Success, AnyError>) -> Label
     ) where Error == Swift.Error {
         self.init {
             Task(priority: priority) { @MainActor in
@@ -130,7 +130,7 @@ extension TaskButton {
     public init(
         priority: TaskPriority?,
         action: @escaping @MainActor @Sendable () async throws -> Success,
-        @ViewBuilder label: @escaping (TaskStatus<Swallow.EmptyValue, AnyError>) -> Label
+        @ViewBuilder label: @escaping (ObservableTaskStatus<Swallow.EmptyValue, AnyError>) -> Label
     ) where Success == Void, Error == Swift.Error {
         self.init {
             Task(priority: priority) { @MainActor in
@@ -138,7 +138,7 @@ extension TaskButton {
             }
             .convertToObservableTask()
         } label: { status in
-            let status: TaskStatus<Swallow.EmptyValue, AnyError> = status
+            let status: ObservableTaskStatus<Swallow.EmptyValue, AnyError> = status
                 .map({ _ in Swallow.EmptyValue() })
                 .mapError({ AnyError(erasing: $0) })
             
@@ -166,7 +166,7 @@ extension TaskButton {
 extension TaskButton {
     public init<P: SingleOutputPublisher>(
         action: @escaping () -> P,
-        @ViewBuilder label: @escaping (TaskStatus<Success, Error>) -> Label
+        @ViewBuilder label: @escaping (ObservableTaskStatus<Success, Error>) -> Label
     ) where P.Output == Success, P.Failure == Error {
         self.init(action: { action().convertToTask() }, label: label)
     }
@@ -198,7 +198,7 @@ extension TaskButton {
 extension TaskButton where Success == Void {
     public init<P: Publisher>(
         action: @escaping () -> P,
-        @ViewBuilder label: @escaping (TaskStatus<Success, Error>) -> Label
+        @ViewBuilder label: @escaping (ObservableTaskStatus<Success, Error>) -> Label
     ) where P.Output == Success, P.Failure == Error {
         self.init(action: { action().reduceAndMapTo(()).convertToTask() }, label: label)
     }
@@ -212,7 +212,7 @@ extension TaskButton where Success == Void {
     
     public init<P: SingleOutputPublisher>(
         action: @escaping () -> P,
-        @ViewBuilder label: @escaping (TaskStatus<Success, Error>) -> Label
+        @ViewBuilder label: @escaping (ObservableTaskStatus<Success, Error>) -> Label
     ) where P.Output == Success, P.Failure == Error {
         self.init(action: { action().reduceAndMapTo(()).convertToTask() }, label: label)
     }
@@ -277,7 +277,7 @@ extension TaskButton where Label == Text {
 extension TaskButton where Success == Void, Error == Swift.Error {
     public init(
         action: @escaping () throws -> Void,
-        @ViewBuilder label: @escaping (TaskStatus<Success, Error>) -> Label
+        @ViewBuilder label: @escaping (ObservableTaskStatus<Success, Error>) -> Label
     ) {
         self.init(
             action: { () -> AnySingleOutputPublisher<Void, Error> in

@@ -164,7 +164,7 @@ extension PublishedObject: Publisher {
         subscriber: S
     ) {
         _assignmentPublisher.flatMap { (value: Value) -> AnyPublisher<Value, Never> in
-            if let _value = value as? (any _ObservableObjectX) {
+            if let _value = value as? (any ObjectDidChangeObservableObject) {
                 return Publishers.MergeMany(Just(value).eraseToAnyPublisher(), _value._opaque_objectDidChange.mapTo(value).eraseToAnyPublisher()).eraseToAnyPublisher()
             } else {
                 return Just(value).eraseToAnyPublisher()

@@ -88,7 +88,7 @@ extension ObservableObject {
         }
     }
     
-    public func _onReceiveOfValueEmittedBy<T: _ObservableObjectX>(
+    public func _onReceiveOfValueEmittedBy<T: ObjectDidChangeObservableObject>(
         _ object: T,
         perform action: @escaping () -> Void
     ) {
@@ -97,7 +97,7 @@ extension ObservableObject {
         }
     }
     
-    public func _onReceiveOfValueEmittedBy<T: _ObservableObjectX>(
+    public func _onReceiveOfValueEmittedBy<T: ObjectDidChangeObservableObject>(
         _ object: T,
         perform action: @escaping () async throws -> Void
     ) {

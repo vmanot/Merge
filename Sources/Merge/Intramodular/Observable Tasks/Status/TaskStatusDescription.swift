@@ -88,7 +88,7 @@ extension TaskStatusDescription {
     }
     
     public init<Success, Error: Swift.Error>(
-        _ status: TaskStatus<Success, Error>
+        _ status: ObservableTaskStatus<Success, Error>
     ) {
         switch status {
             case .idle:
@@ -173,7 +173,7 @@ extension TaskStatusDescription {
     }
 }
 
-extension TaskStatus {
+extension ObservableTaskStatus {
     @_disfavoredOverload
     public static func == (lhs: Self, rhs: TaskStatusDescription.Comparison) -> Bool {
         TaskStatusDescription(lhs) == rhs

@@ -7,7 +7,7 @@ import Combine
 import Swallow
 
 /// A type of object with a publisher that emits after the object has changed.
-public protocol _ObservableObjectX: ObservableObject {
+public protocol ObjectDidChangeObservableObject: ObservableObject {
     associatedtype ObjectDidChangePublisher: Publisher = _ObjectDidChangePublisher where ObjectDidChangePublisher.Failure == Never
     
     /// A publisher that emits _after_ the object has changed.
@@ -18,7 +18,7 @@ public protocol _ObservableObjectX: ObservableObject {
 
 private var _objectDidChange_objcAssociationKey: UInt = 0
 
-extension _ObservableObjectX where ObjectDidChangePublisher == _ObjectDidChangePublisher {
+extension ObjectDidChangeObservableObject where ObjectDidChangePublisher == _ObjectDidChangePublisher {
     public var objectDidChange: ObjectDidChangePublisher {
         objc_sync_enter(self)
 
@@ -90,7 +90,7 @@ public final class _ObjectDidChangePublisher: Publisher, Subject, @unchecked Sen
 
 extension ObservableObject {
     public func _makeObjectDidChangePublisher() -> AnyPublisher<Void, Never> {
-        if let _self = self as? (any _ObservableObjectX) {
+        if let _self = self as? (any ObjectDidChangeObservableObject) {
             return _self._opaque_objectDidChange
         } else {
             return objectWillChange
@@ -101,8 +101,12 @@ extension ObservableObject {
     }
 }
 
-extension _ObservableObjectX {
+extension ObjectDidChangeObservableObject {
     public var _opaque_objectDidChange: AnyPublisher<Void, Never> {
         objectDidChange.mapTo(()).eraseToAnyPublisher()
     }
 }
+
+// MARK: - Deprecated
+
+public typealias _ObservableObjectX = ObjectDidChangeObservableObject

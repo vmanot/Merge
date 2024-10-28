@@ -17,7 +17,7 @@ public final class OpaqueObservableTask: CustomStringConvertible, ObjCObject, Ob
         (base as? CustomStringConvertible)?.description ?? "(Task)"
     }
     
-    public var status: TaskStatus<Success, Error> {
+    public var status: ObservableTaskStatus<Success, Error> {
         base._opaque_status
     }
     
@@ -25,7 +25,7 @@ public final class OpaqueObservableTask: CustomStringConvertible, ObjCObject, Ob
         .init(from: base)
     }
     
-    public var objectDidChange: AnyPublisher<TaskStatus<Success, Error>, Never>  {
+    public var objectDidChange: AnyPublisher<ObservableTaskStatus<Success, Error>, Never>  {
         base._opaque_objectDidChange
     }
 
@@ -98,11 +98,11 @@ extension OpaqueObservableTask: Equatable {
 // MARK: - Auxiliary
 
 extension ObservableTask {
-    fileprivate var _opaque_status: TaskStatus<Any, Swift.Error> {
+    fileprivate var _opaque_status: ObservableTaskStatus<Any, Swift.Error> {
         status.map({ $0 as Any }).mapError({ $0 as Swift.Error })
     }
             
-    fileprivate var _opaque_objectDidChange: AnyPublisher<TaskStatus<Any, Swift.Error>, Never> {
+    fileprivate var _opaque_objectDidChange: AnyPublisher<ObservableTaskStatus<Any, Swift.Error>, Never> {
         objectDidChange
             .map({ $0.map({ $0 as Any }).mapError({ $0 as Swift.Error }) })
             .eraseToAnyPublisher()

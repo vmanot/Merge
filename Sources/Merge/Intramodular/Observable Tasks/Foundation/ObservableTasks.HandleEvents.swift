@@ -14,7 +14,7 @@ extension ObservableTasks {
         private let receiveStart: (() -> Void)?
         private let receiveCancel: (() -> Void)?
                 
-        public var status: TaskStatus<Success, Error> {
+        public var status: ObservableTaskStatus<Success, Error> {
             base.status
         }
         
