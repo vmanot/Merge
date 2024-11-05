@@ -24,7 +24,7 @@ public struct TaskSuccessPublisher<Upstream: ObservableTask> {
 
 extension TaskSuccessPublisher: SingleOutputPublisher {
     public typealias Output = Upstream.Success
-    public typealias Failure = TaskFailure<Upstream.Error>
+    public typealias Failure = ObservableTaskFailure<Upstream.Error>
 }
 
 // MARK: - API

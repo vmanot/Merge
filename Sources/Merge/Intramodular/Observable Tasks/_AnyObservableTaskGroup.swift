@@ -6,7 +6,7 @@ import Combine
 import Swallow
 
 public protocol _ObservableTaskGroupType: _CancellablesProviding, ObservableObject {
-    typealias TaskHistory = [TaskStatusDescription]
+    typealias TaskHistory = [ObservableTaskStatusDescription]
     
     associatedtype Key
     
@@ -18,7 +18,7 @@ public protocol _ObservableTaskGroupType: _CancellablesProviding, ObservableObje
     @MainActor
     func _opaque_lastStatus(
         forCustomTaskIdentifier identifier: AnyHashable
-    ) throws -> TaskStatusDescription?
+    ) throws -> ObservableTaskStatusDescription?
 }
 
 public class _AnyObservableTaskGroup: ObservableObject {
@@ -31,7 +31,7 @@ extension _ObservableTaskGroup {
     @MainActor
     public func _opaque_lastStatus(
         forCustomTaskIdentifier identifier: AnyHashable
-    ) throws -> TaskStatusDescription? {
+    ) throws -> ObservableTaskStatusDescription? {
         self.lastStatus(forCustomTaskIdentifier: try cast(identifier.base, to: Key.self))
     }
 }

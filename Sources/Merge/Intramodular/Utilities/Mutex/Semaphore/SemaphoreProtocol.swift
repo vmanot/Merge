@@ -4,7 +4,7 @@
 
 import Swallow
 
-public protocol Semaphore: Mutex {
+public protocol SemaphoreProtocol: MutexProtocol {
     associatedtype WaitResult
     associatedtype SignalResult
 
@@ -14,3 +14,8 @@ public protocol Semaphore: Mutex {
     @discardableResult
     func signal() -> SignalResult
 }
+
+// MARK: - Deprecated
+
+@available(*, deprecated, renamed: "SemaphoreProtocol")
+public typealias Semaphore = SemaphoreProtocol

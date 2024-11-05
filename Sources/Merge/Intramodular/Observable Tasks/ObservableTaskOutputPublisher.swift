@@ -8,7 +8,7 @@ import Swallow
 
 public struct ObservableTaskOutputPublisher<Base: ObservableTask>: Publisher {
     public typealias Output = TaskOutput<Base.Success, Base.Error>
-    public typealias Failure = TaskFailure<Base.Error>
+    public typealias Failure = ObservableTaskFailure<Base.Error>
     
     private let base: Base
     

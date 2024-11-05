@@ -7,7 +7,7 @@ import Swallow
 import SwiftUI
 
 @frozen
-public enum TaskStatusDescription: CustomDebugStringConvertible, Hashable {
+public enum ObservableTaskStatusDescription: CustomDebugStringConvertible, Hashable {
     case idle
     case active
     case paused
@@ -33,7 +33,7 @@ public enum TaskStatusDescription: CustomDebugStringConvertible, Hashable {
     }
 }
 
-extension TaskStatusDescription {
+extension ObservableTaskStatusDescription {
     public var isTerminal: Bool {
         switch self {
             case .success, .canceled, .error:
@@ -66,7 +66,7 @@ extension TaskStatusDescription {
     }
 }
 
-extension TaskStatusDescription {
+extension ObservableTaskStatusDescription {
     public var isCompletion: Bool {
         switch self {
             case .idle, .active, .paused:
@@ -77,7 +77,7 @@ extension TaskStatusDescription {
     }
 }
 
-extension TaskStatusDescription {
+extension ObservableTaskStatusDescription {
     public var isActive: Bool {
         switch self {
             case .active:
@@ -124,7 +124,7 @@ extension TaskStatusDescription {
 
 // MARK: - Auxiliary
 
-extension TaskStatusDescription {
+extension ObservableTaskStatusDescription {
     public enum Comparison {
         case idle
         case active
@@ -132,7 +132,7 @@ extension TaskStatusDescription {
         case failure
         
         public static func == (
-            lhs: TaskStatusDescription?,
+            lhs: ObservableTaskStatusDescription?,
             rhs: Self
         ) -> Bool {
             if let lhs = lhs {
@@ -165,7 +165,7 @@ extension TaskStatusDescription {
         }
         
         public static func != (
-            lhs: TaskStatusDescription?,
+            lhs: ObservableTaskStatusDescription?,
             rhs: Self
         ) -> Bool {
             !(lhs == rhs)
@@ -175,12 +175,12 @@ extension TaskStatusDescription {
 
 extension ObservableTaskStatus {
     @_disfavoredOverload
-    public static func == (lhs: Self, rhs: TaskStatusDescription.Comparison) -> Bool {
-        TaskStatusDescription(lhs) == rhs
+    public static func == (lhs: Self, rhs: ObservableTaskStatusDescription.Comparison) -> Bool {
+        ObservableTaskStatusDescription(lhs) == rhs
     }
     
     @_disfavoredOverload
-    public static func != (lhs: Self, rhs: TaskStatusDescription.Comparison) -> Bool {
-        TaskStatusDescription(lhs) != rhs
+    public static func != (lhs: Self, rhs: ObservableTaskStatusDescription.Comparison) -> Bool {
+        ObservableTaskStatusDescription(lhs) != rhs
     }
 }

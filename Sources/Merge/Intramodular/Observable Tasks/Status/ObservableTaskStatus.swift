@@ -34,15 +34,15 @@ extension ObservableTaskStatus {
     }
     
     public var isOutput: Bool {
-        TaskStatusDescription(self).isOutput
+        ObservableTaskStatusDescription(self).isOutput
     }
     
     public var isFailure: Bool {
-        TaskStatusDescription(self).isFailure
+        ObservableTaskStatusDescription(self).isFailure
     }
     
     public var isCompletion: Bool {
-        TaskStatusDescription(self).isCompletion
+        ObservableTaskStatusDescription(self).isCompletion
     }
 }
 
@@ -85,7 +85,7 @@ extension ObservableTaskStatus {
         }
     }
     
-    public var failure: TaskFailure<Error>? {
+    public var failure: ObservableTaskFailure<Error>? {
         switch self {
             case .canceled:
                 return .canceled
@@ -96,7 +96,7 @@ extension ObservableTaskStatus {
         }
     }
     
-    public init(_ failure: TaskFailure<Error>) {
+    public init(_ failure: ObservableTaskFailure<Error>) {
         switch failure {
             case .canceled:
                 self = .canceled
@@ -297,7 +297,7 @@ extension ObservableTaskStatus {
         }
     }
     
-    public init(_ status: Result<TaskOutput<Success, Error>, TaskFailure<Error>>) {
+    public init(_ status: Result<TaskOutput<Success, Error>, ObservableTaskFailure<Error>>) {
         switch status {
             case .success(let output): do {
                 switch output {
@@ -331,10 +331,3 @@ extension Result {
         }
     }
 }
-
-// MARK: - Deprecated
-
-@available(*, deprecated, renamed: "ObservableTaskStatusType")
-public typealias TaskStatusType = ObservableTaskStatusType
-@available(*, deprecated, renamed: "ObservableTaskStatus")
-public typealias TaskStatus<T, U: Error> = ObservableTaskStatus<T, U>

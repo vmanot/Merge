@@ -35,7 +35,7 @@ public enum TaskResult<Success, Error: Swift.Error> {
         }
     }
     
-    public init?(from result: Result<TaskOutput<Success, Error>, TaskFailure<Error>>) {
+    public init?(from result: Result<TaskOutput<Success, Error>, ObservableTaskFailure<Error>>) {
         switch result {
             case .success(let output):
                 guard let success = output.value else {

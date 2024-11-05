@@ -141,8 +141,12 @@ extension OSAScriptProcess {
     public static func _osascript_launchPathAndArguments(
         for executableURLAndArguments: (executableURL: URL?, arguments: [String]?)
     ) throws -> (launchPath: String, arguments: [String]) {
+        enum Error: Swift.Error {
+            case executablePathMissing
+        }
+        
         guard let executablePath: String = executableURLAndArguments.executableURL?.path else {
-            throw NSError(domain: "OSAScriptProcessError", code: 0, userInfo: [NSLocalizedDescriptionKey: "Executable URL is not set."])
+            throw Error.executablePathMissing
         }
         
         let argumentsString: String?

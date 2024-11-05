@@ -4,18 +4,18 @@
 
 import Swallow
 
-public protocol Lock: ScopedMutex, Sendable {
+public protocol Lock: ScopedMutexProtocol, Sendable {
     func acquireOrBlock()
     func relinquish()
 }
 
-public protocol TestableLock: Lock, TestableScopedMutex {
+public protocol TestableLock: Lock, TestableScopedMutexProtocol {
     var hasBeenAcquired: Bool { get }
     
     func acquireOrFail() throws
 }
 
-public protocol ReentrantLock: Lock, ReentrantMutex {
+public protocol ReentrantLock: Lock, ReentrantMutexProtocol {
     
 }
 

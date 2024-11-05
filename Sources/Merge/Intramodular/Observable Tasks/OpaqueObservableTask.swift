@@ -6,7 +6,7 @@ import Runtime
 import Swallow
 
 public final class OpaqueObservableTask: CustomStringConvertible, ObjCObject, ObservableTask {
-    public typealias StatusDescription = TaskStatusDescription
+    public typealias StatusDescription = ObservableTaskStatusDescription
 
     public typealias Success = Any
     public typealias Error = Swift.Error

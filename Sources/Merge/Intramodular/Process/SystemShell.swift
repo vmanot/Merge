@@ -63,32 +63,6 @@ extension SystemShell {
         return try await process.run()
     }
 }
-
-extension _AsyncProcess {
-    public convenience init(
-        command: String,
-        input: String? = nil,
-        shell: SystemShell.Environment = .zsh,
-        environment: [String: String]? = nil,
-        currentDirectoryURL: URL? = nil,
-        options: [_AsyncProcess.Option]?
-    ) async throws {
-        let (launchPath, arguments) = try await shell.resolve(command: command)
-
-        try self.init(
-            executableURL: URL(fileURLWithPath: launchPath),
-            arguments: arguments,
-            environment: environment ?? ProcessInfo.processInfo.environment,
-            currentDirectoryURL: currentDirectoryURL,
-            options: options
-        )
-        
-        if let input = input?.data(using: .utf8), !input.isEmpty, let handle = standardInputPipe?.fileHandleForWriting {
-            try? handle.write(contentsOf: input)
-            try? handle.close()
-        }
-    }
-}
 #else
 @available(macOS 11.0, iOS 14.0, watchOS 7.0, tvOS 14.0, *)
 @available(macCatalyst, unavailable)
@@ -124,6 +98,34 @@ public actor _ShellActor {
     
     public static let shared: ActorType = ActorType()
 }
+
+#if os(macOS)
+extension _AsyncProcess {
+    public convenience init(
+        command: String,
+        input: String? = nil,
+        shell: SystemShell.Environment = .zsh,
+        environment: [String: String]? = nil,
+        currentDirectoryURL: URL? = nil,
+        options: [_AsyncProcess.Option]?
+    ) async throws {
+        let (launchPath, arguments) = try await shell.resolve(command: command)
+        
+        try self.init(
+            executableURL: URL(fileURLWithPath: launchPath),
+            arguments: arguments,
+            environment: environment ?? ProcessInfo.processInfo.environment,
+            currentDirectoryURL: currentDirectoryURL,
+            options: options
+        )
+        
+        if let input = input?.data(using: .utf8), !input.isEmpty, let handle = standardInputPipe?.fileHandleForWriting {
+            try? handle.write(contentsOf: input)
+            try? handle.close()
+        }
+    }
+}
+#endif
 
 // MARK: - Deprecated
 

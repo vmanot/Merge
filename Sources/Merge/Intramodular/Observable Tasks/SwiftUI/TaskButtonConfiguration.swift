@@ -13,5 +13,5 @@ public struct TaskButtonConfiguration {
     public let isInterruptible: Bool
     public let isRestartable: Bool
     
-    public let status: TaskStatusDescription
+    public let status: ObservableTaskStatusDescription
 }

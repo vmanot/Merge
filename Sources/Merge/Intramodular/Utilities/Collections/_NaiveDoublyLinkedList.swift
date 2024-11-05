@@ -6,7 +6,7 @@ import Combine
 import Swallow
 
 /// A doubly linked list.
-public final class _DoublyLinkedList<Element> {
+public final class _NaiveDoublyLinkedList<Element> {
     // first <-> node <-> ... <-> last
     private(set) var first: Node?
     private(set) var last: Node?

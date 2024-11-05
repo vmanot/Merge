@@ -6,12 +6,12 @@ import Combine
 import Swallow
 
 @_spi(Internal)
-public protocol _TaskSinkProtocol<_TaskFailureType> {
-    associatedtype _TaskFailureType: Error
+public protocol _TaskSinkProtocol<_ObservableTaskFailureType> {
+    associatedtype _ObservableTaskFailureType: Error
     associatedtype _ResultFailureType: Error
     
     func receive<Success: Sendable>(
-        _ task: Task<Success, _TaskFailureType>
+        _ task: Task<Success, _ObservableTaskFailureType>
     ) async -> Result<Success, _ResultFailureType>
 }
 
@@ -20,14 +20,14 @@ extension _TaskSinkProtocol {
     @discardableResult
     func _opaque_receive<Success: Sendable>(
         _ task: Task<Success, Never>
-    ) async -> Result<Success, Error> where _TaskFailureType == Never {
+    ) async -> Result<Success, Error> where _ObservableTaskFailureType == Never {
         await self.receive(task).mapError({ $0 as Error })
     }
     
     @discardableResult
     func _opaque_receive<Success: Sendable>(
         _ task: Task<Success, Error>
-    ) async -> Result<Success, Error> where _TaskFailureType == Swift.Error {
+    ) async -> Result<Success, Error> where _ObservableTaskFailureType == Swift.Error {
         await self.receive(task).mapError({ $0 as Error })
     }
 }
@@ -36,7 +36,7 @@ extension _TaskSinkProtocol {
 
 @_spi(Internal)
 extension TaskQueue: _TaskSinkProtocol {
-    public typealias _TaskFailureType = Never
+    public typealias _ObservableTaskFailureType = Never
     public typealias _ResultFailureType = CancellationError
     
     public func receive<Success: Sendable>(
@@ -50,7 +50,7 @@ extension TaskQueue: _TaskSinkProtocol {
 
 @_spi(Internal)
 extension ThrowingTaskQueue: _TaskSinkProtocol {
-    public typealias _TaskFailureType = Swift.Error
+    public typealias _ObservableTaskFailureType = Swift.Error
     public typealias _ResultFailureType = Swift.Error
     
     public func receive<Success: Sendable>(

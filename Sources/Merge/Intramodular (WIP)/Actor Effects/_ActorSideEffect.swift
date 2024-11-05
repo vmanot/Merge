@@ -39,17 +39,17 @@ extension _ActorSideEffectSpecification {
     }
 }
 
-public struct TaskEffectSpecifications {
-    public enum _TaskEffectSpecificationSymbol {
+public struct _ActorSideEffectsSpecifications {
+    public enum _ActorSideEffectSpecificationSymbol {
         case keyPath(AnyKeyPath)
     }
     
     /// Apply an effect on the change of something.
     public struct OnChange<Content: _ActorSideEffectSpecification>: _ActorSideEffectSpecification {
-        public let value: _TaskEffectSpecificationSymbol
+        public let value: _ActorSideEffectSpecificationSymbol
         public let content: Content
         
-        init(value: _TaskEffectSpecificationSymbol, content: Content) {
+        init(value: _ActorSideEffectSpecificationSymbol, content: Content) {
             self.value = value
             self.content = content
         }

@@ -34,7 +34,7 @@ open class AnyMutexProtected<Value> {
 /// Notes:
 /// - `MutexProtected` checks whether its enclosing self is a `_MutexProtectedType` and if so, uses the enclosing self's mutex to protect the stored value.
 @propertyWrapper
-public final class MutexProtected<Value, Mutex: ScopedMutex>: AnyMutexProtected<Value>, @unchecked Sendable {
+public final class MutexProtected<Value, Mutex: ScopedMutexProtocol>: AnyMutexProtected<Value>, @unchecked Sendable {
     public private(set) var mutex: Mutex
     
     override public var wrappedValue: Value {

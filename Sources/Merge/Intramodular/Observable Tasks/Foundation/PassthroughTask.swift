@@ -53,7 +53,7 @@ open class PassthroughTask<Success, Error: Swift.Error>: ObservableTask {
         status: Status,
         _objectWillChange: ObservableObjectPublisher
     ) {
-        guard TaskStatusDescription(status) != TaskStatusDescription(_status) else {
+        guard ObservableTaskStatusDescription(status) != ObservableTaskStatusDescription(_status) else {
             return
         }
         

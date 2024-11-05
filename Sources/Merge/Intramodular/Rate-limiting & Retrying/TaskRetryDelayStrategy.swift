@@ -13,7 +13,7 @@ public protocol TaskRetryDelayStrategy: Hashable, Sendable {
     ) -> Duration
 }
 
-// MARK: - Implemented Conformances
+// MARK: - Standard Implementations
 
 @available(macOS 13.0, iOS 16.0, watchOS 9.0, tvOS 16.0, *)
 public struct LinearBackoffStrategy: TaskRetryDelayStrategy {

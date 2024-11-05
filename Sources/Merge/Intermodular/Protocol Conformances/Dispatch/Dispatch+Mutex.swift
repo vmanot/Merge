@@ -5,7 +5,7 @@
 import Dispatch
 import Swallow
 
-public struct DispatchMutexDevice: ScopedReadWriteMutex, @unchecked Sendable {
+public struct DispatchMutexDevice: ScopedReadWriteMutexProtocol, @unchecked Sendable {
     @MutexProtected<DispatchQueue, OSUnfairLock>
     private var queue: DispatchQueue
     

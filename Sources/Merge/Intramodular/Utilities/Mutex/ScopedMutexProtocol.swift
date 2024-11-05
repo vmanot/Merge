@@ -5,7 +5,7 @@
 import Swallow
 
 /// A mutual exclusion device capable of scoping the execution of a function.
-public protocol ScopedMutex: Mutex {
+public protocol ScopedMutexProtocol: MutexProtocol {
     @discardableResult
     func withCriticalScope<T>(_: (() throws -> T)) rethrows -> T
     
@@ -16,26 +16,26 @@ public protocol ScopedMutex: Mutex {
 }
 
 /// An asynchronous mutual exclusion device capable of scoping the execution of a function.
-public protocol AsyncScopedMutex {
+public protocol AsyncScopedMutexProtocol {
     @discardableResult
     func withCriticalScope<T>(_: (() async throws -> T)) async rethrows -> T
 }
 
-public protocol ScopedReadWriteMutex: ScopedMutex {
+public protocol ScopedReadWriteMutexProtocol: ScopedMutexProtocol {
     @discardableResult
     func withCriticalScopeForReading<T>(_: (() throws -> T)) rethrows -> T
     @discardableResult
     func withCriticalScopeForWriting<T>(_: (() throws -> T)) rethrows -> T
 }
 
-public protocol TestableScopedMutex: ScopedMutex {
+public protocol TestableScopedMutexProtocol: ScopedMutexProtocol {
     @discardableResult
     func attemptWithCriticalScope<T>(_: (() throws -> T)) rethrows -> T?
 }
 
 // MARK: - Implementation
 
-extension ScopedMutex {
+extension ScopedMutexProtocol {
     @discardableResult
     public func _withCriticalScopeForReading<T>(_ f: (() throws -> T)) rethrows -> T {
         return try withCriticalScope(f)
@@ -47,7 +47,7 @@ extension ScopedMutex {
     }
 }
 
-extension ScopedReadWriteMutex {
+extension ScopedReadWriteMutexProtocol {
     @discardableResult
     public func withCriticalScope<T>(_ f: (() throws -> T)) rethrows -> T {
         return try withCriticalScopeForWriting(f)
@@ -66,7 +66,7 @@ extension ScopedReadWriteMutex {
 
 // MARK: - Extensions
 
-extension ScopedMutex {
+extension ScopedMutexProtocol {
     @discardableResult
     public func withCriticalScope<T>(if predicate: @autoclosure () -> Bool, _ body: (() throws -> T)) rethrows -> T? {
         return try withCriticalScope {
@@ -90,7 +90,7 @@ extension ScopedMutex {
     }
 }
 
-extension ScopedReadWriteMutex {
+extension ScopedReadWriteMutexProtocol {
     @discardableResult
     public func withCriticalScopeForReading<T>(execute work: @autoclosure () throws -> T) rethrows -> T {
         return try withCriticalScopeForReading(work)

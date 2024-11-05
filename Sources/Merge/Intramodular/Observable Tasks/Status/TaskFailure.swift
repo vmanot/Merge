@@ -8,7 +8,7 @@ import Swallow
 
 /// An enumeration that represents the source of task failure.
 @frozen
-public enum TaskFailure<Error: Swift.Error>: _ErrorX, HashEquatable {
+public enum ObservableTaskFailure<Error: Swift.Error>: _ErrorX, HashEquatable {
     case canceled
     case error(Error)
     
@@ -43,7 +43,7 @@ public enum TaskFailure<Error: Swift.Error>: _ErrorX, HashEquatable {
 
 // MARK: - Initializers
 
-extension TaskFailure {
+extension ObservableTaskFailure {
     public init?<Success>(_ status: ObservableTaskStatus<Success, Error>) {
         if let failure = status.failure {
             self = failure
@@ -56,7 +56,7 @@ extension TaskFailure {
 // MARK: - Supplementary
 
 extension AnyError {
-    public init(from failure: TaskFailure<Error>) {
+    public init(from failure: ObservableTaskFailure<Error>) {
         switch failure {
             case .canceled:
                 self.init(erasing: CancellationError())
@@ -69,7 +69,7 @@ extension AnyError {
 extension Subscribers.Completion {
     public static func failure<Error>(
         _ error: Error
-    ) -> Self where Failure == TaskFailure<Error> {
+    ) -> Self where Failure == ObservableTaskFailure<Error> {
         .failure(.error(error))
     }
 }

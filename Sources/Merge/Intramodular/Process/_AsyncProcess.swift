@@ -82,24 +82,37 @@ public class _AsyncProcess: Logging {
         
         process.executableURL = executableURL
         process.arguments = arguments
-        process.environment = environment
+        process.environment = environment ?? ProcessInfo.processInfo.environment
         process.currentDirectoryURL = currentDirectoryURL?._fromURLToFileURL() ?? process.currentDirectoryURL
-        
+
         self.options = options
         
         _registerAndSetUpIO(existingProcess: nil)
     }
+    #else
+    public init() throws {
+        throw Never.Reason.unavailable
+    }
     
+    
+    public init(
+        executableURL: URL?,
+        arguments: [String]?,
+        environment: [String: String]?,
+        currentDirectoryURL: URL?,
+        options: [_AsyncProcess.Option]? = nil
+    ) throws {
+        throw Never.Reason.unsupported
+    }
+    #endif
+    
+    #if os(macOS)
     private func _registerAndSetUpIO(existingProcess: Process?) {
         Self.$runningProcesses.withCriticalRegion {
             $0.append(self)
         }
         
         _setUpStdinStdoutStderr(existingProcess: existingProcess)
-    }
-    #else
-    public init() throws {
-        throw Never.Reason.unavailable
     }
     #endif
 }

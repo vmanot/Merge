@@ -66,7 +66,7 @@ public struct TaskButton<Success, Error: Swift.Error, Label: View>: View {
         }
     }
     
-    private var displayTaskStatus: TaskStatusDescription {
+    private var displayTaskStatus: ObservableTaskStatusDescription {
         if let status = task?.statusDescription {
             return status
         } else {

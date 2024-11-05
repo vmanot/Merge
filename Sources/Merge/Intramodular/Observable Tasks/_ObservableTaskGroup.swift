@@ -156,7 +156,7 @@ extension _ObservableTaskGroup {
     
     public func lastStatus(
         forCustomTaskIdentifier identifier: CustomIdentifier
-    ) -> TaskStatusDescription? {
+    ) -> ObservableTaskStatusDescription? {
         guard keepHistory else {
             assertionFailure()
             
@@ -194,7 +194,7 @@ extension _ObservableTaskGroup {
     @MainActor
     public func status(
         ofMostRecent action: Key
-    ) -> TaskStatusDescription? {
+    ) -> ObservableTaskStatusDescription? {
         if let status = self[customIdentifier: action].last?.statusDescription {
             return status
         } else {
@@ -205,8 +205,8 @@ extension _ObservableTaskGroup {
     @MainActor
     public func status<T>(
         ofMostRecent casePath: CasePath<Key, T>
-    ) -> TaskStatusDescription? {
-        return #try(.optimistic) { () -> TaskStatusDescription? in
+    ) -> ObservableTaskStatusDescription? {
+        return #try(.optimistic) { () -> ObservableTaskStatusDescription? in
             guard let id  = try _customIdentifier(ofMostRecent: casePath) else {
                 return nil
             }
@@ -233,7 +233,7 @@ extension _ObservableTaskGroup: Sequence {
         fileprivate var source: Weak<OpaqueObservableTask>?
         
         public let customIdentifier: Key?
-        public let status: TaskStatusDescription?
+        public let status: ObservableTaskStatusDescription?
         public let history: TaskHistory
         
         public init(

@@ -23,7 +23,7 @@ public protocol ObservableTask<Success, Error>: Cancellable, Identifiable, Objec
 }
 
 extension ObservableTask {
-    public var statusDescription: TaskStatusDescription {
+    public var statusDescription: ObservableTaskStatusDescription {
         .init(status)
     }
 }

@@ -21,7 +21,7 @@ public actor _TokenBucketRateLimiter: Sendable {
     // queue as it does for synchronization.
     
     private let bucket: TokenBucket
-    private let pending = _DoublyLinkedList<Work>() // fast append, fast remove first
+    private let pending = _NaiveDoublyLinkedList<Work>() // fast append, fast remove first
     private var isExecutingPendingTasks = false
     
     typealias Work = () -> Bool

@@ -6,5 +6,5 @@ import Combine
 import Swift
 
 public struct TaskButtonStatus: Hashable {
-    public let description: TaskStatusDescription
+    public let description: ObservableTaskStatusDescription
 }
