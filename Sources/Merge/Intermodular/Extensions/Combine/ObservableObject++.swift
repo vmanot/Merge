@@ -15,6 +15,10 @@ extension ObservableObject {
     public func _opaque_publishToObjectWillChange() throws {
         try cast(objectWillChange, to: (any _opaque_VoidSender).self).send()
     }
+    
+    public func _objectWillChange_send() where ObjectWillChangePublisher == ObservableObjectPublisher {
+        objectWillChange.send()
+    }
 }
 
 extension ObservableObject {

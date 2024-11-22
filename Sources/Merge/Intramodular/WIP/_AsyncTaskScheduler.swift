@@ -48,7 +48,7 @@ extension _AsyncTaskScheduler {
     }
 }
 
-// MARK: - Implemented Conformances
+// MARK: - Conformees
 
 public struct _DefaultAsyncScheduler {
     public func schedule(

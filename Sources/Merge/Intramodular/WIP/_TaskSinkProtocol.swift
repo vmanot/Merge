@@ -32,7 +32,7 @@ extension _TaskSinkProtocol {
     }
 }
 
-// MARK: - Implemented Conformances
+// MARK: - Conformees
 
 @_spi(Internal)
 extension TaskQueue: _TaskSinkProtocol {

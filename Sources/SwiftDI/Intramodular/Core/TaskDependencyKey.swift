@@ -31,7 +31,7 @@ public enum _TaskDependencyAttribute {
     case unstashable
 }
 
-// MARK: - Implemented Conformances
+// MARK: - Conformees
 
 public struct _OptionalTaskDependencyKey<T>: TaskDependencyKey {
     public typealias Domain = TaskDependencies

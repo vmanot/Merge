@@ -658,14 +658,14 @@ extension _AsyncProcess {
 @available(macCatalyst, unavailable)
 extension _AsyncProcess: CustomStringConvertible {
     public var description: String {
-#if os(macOS) || targetEnvironment(macCatalyst)
+        #if os(macOS) || targetEnvironment(macCatalyst)
         Process._makeDescriptionPrefix(
             launchPath: self.process.launchPath,
             arguments: self.process.arguments
         )
-#else
+        #else
         fatalError()
-#endif
+        #endif
     }
 }
 
