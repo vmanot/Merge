@@ -21,7 +21,7 @@ open class AnyCommandLineTool {
     ) async throws -> R {
         let shell = SystemShell(
             environment: environmentVariables.mapValues({ String(describing: $0) }),
-            currentDirectoryURL: currentDirectoryURL,
+            currentDirectoryURL: currentDirectoryURL ?? URL(fileURLWithPath: FileManager.default.currentDirectoryPath),
             options: [._forwardStdoutStderr]
         )
         
