@@ -12,11 +12,11 @@ open class AnyCommandLineTool {
     public init() {
         
     }
-}
-
-extension AnyCommandLineTool {
+    
+    @available(macOS 11.0, iOS 14.0, watchOS 7.0, tvOS 14.0, *)
+    @available(macCatalyst, unavailable)
     @discardableResult
-    public func withUnsafeSystemShell<R>(
+    open func withUnsafeSystemShell<R>(
         perform operation: (SystemShell) async throws -> R
     ) async throws -> R {
         let shell = SystemShell(
