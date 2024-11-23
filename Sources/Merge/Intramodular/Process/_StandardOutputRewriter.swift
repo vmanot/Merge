@@ -121,7 +121,7 @@ public class _StandardOutputRewriter {
 // MARK: - Helpers
 
 extension String {
-    var _filteringAppleConsoleOutputCrap: String? {
+    public var _filteringAppleConsoleOutputCrap: String? {
         if hasPrefix("_NSPersistentUIDeleteItemAtFileURL(NSURL *const __strong)") {
             return nil
         }
