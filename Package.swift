@@ -15,7 +15,7 @@ var package = Package(
             name: "Merge",
             targets: [
                 "CommandLineToolSupport",
-                "Shell",
+                "ShellScripting",
                 "SwiftDI",
                 "Merge"
             ]
@@ -36,19 +36,8 @@ var package = Package(
             ]
         ),
         .target(
-            name: "CommandLineToolSupport",
-            dependencies: [
-                "Swallow",
-            ],
-            path: "Sources/CommandLineToolSupport",
-            swiftSettings: [
-                .enableExperimentalFeature("AccessLevelOnImport")
-            ]
-        ),
-        .target(
             name: "Merge",
             dependencies: [
-                "CommandLineToolSupport",
                 "Swallow",
                 .product(name: "SwallowMacrosClient", package: "Swallow"),
                 "SwiftDI"
@@ -59,11 +48,23 @@ var package = Package(
             ]
         ),
         .target(
-            name: "Shell",
+            name: "ShellScripting",
             dependencies: [
                 "Merge"
             ],
-            path: "Sources/Shell",
+            path: "Sources/ShellScripting",
+            swiftSettings: [
+                .enableExperimentalFeature("AccessLevelOnImport")
+            ]
+        ),
+        .target(
+            name: "CommandLineToolSupport",
+            dependencies: [
+                "Merge",
+                "ShellScripting",
+                "Swallow",
+            ],
+            path: "Sources/CommandLineToolSupport",
             swiftSettings: [
                 .enableExperimentalFeature("AccessLevelOnImport")
             ]
@@ -71,11 +72,11 @@ var package = Package(
         .testTarget(
             name: "MergeTests",
             dependencies: [
+                "CommandLineToolSupport",
                 "Merge",
-                "Shell",
+                "ShellScripting",
             ],
             path: "Tests"
         )
-    ],
-    swiftLanguageVersions: [.v5]
+    ]
 )

@@ -2,7 +2,7 @@
 // Copyright (c) Vatsal Manot
 //
 
-@testable import Shell
+@testable import ShellScripting
 import XCTest
 
 class ShellProcessTests: XCTestCase {

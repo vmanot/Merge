@@ -9,6 +9,7 @@ import Merge
 internal import Swallow
 import Swift
 
+@available(*, deprecated)
 public func shq(
     _ cmd: String,
     arguments: [Process.ArgumentLiteral] = [],
@@ -24,6 +25,7 @@ public func shq(
     ._runSynchronously()
 }
 
+@available(*, deprecated)
 @_disfavoredOverload
 public func shq(
     _ cmd: String,
@@ -39,6 +41,7 @@ public func shq(
     )
 }
 
+@available(*, deprecated)
 public func shq(
     _ cmd: String,
     arguments: [String],
@@ -54,6 +57,7 @@ public func shq(
     .validate()
 }
 
+@available(*, deprecated)
 public func shq(
     _ cmd: String,
     arguments: [Process.ArgumentLiteral] = [],
@@ -69,6 +73,7 @@ public func shq(
     ._runAsynchronously()
 }
 
+@available(*, deprecated)
 @_disfavoredOverload
 public func shq(
     _ cmd: String,
@@ -84,6 +89,7 @@ public func shq(
     )
 }
 
+@available(*, deprecated)
 public func shq(
     _ cmd: String,
     arguments: [String],
@@ -99,6 +105,7 @@ public func shq(
     .validate()
 }
 
+@available(*, deprecated)
 public func shq<D: Decodable>(
     _ type: D.Type,
     decodedBy jsonDecoder: JSONDecoder = .init(),
@@ -116,6 +123,7 @@ public func shq<D: Decodable>(
     .decode(type, using: jsonDecoder)
 }
 
+@available(*, deprecated)
 public func shq<D: Decodable>(
     _ type: D.Type,
     decodedBy jsonDecoder: JSONDecoder = .init(),
@@ -132,6 +140,7 @@ public func shq<D: Decodable>(
     return try await process._runAsynchronously().stdout.decode(type, using: jsonDecoder)
 }
 
+@available(*, deprecated)
 @available(macOS 12.0, iOS 15.0, watchOS 8.0, tvOS 15.0, *)
 public func shq(
     _ sink: Process.StandardOutputSink,
@@ -148,6 +157,7 @@ public func shq(
     try process._runSynchronouslyRedirectingAllOutput(to: sink)
 }
 
+@available(*, deprecated)
 @available(macOS 12.0, iOS 15.0, watchOS 8.0, tvOS 15.0, *)
 public func shq(
     _ sink: Process.StandardOutputSink,
