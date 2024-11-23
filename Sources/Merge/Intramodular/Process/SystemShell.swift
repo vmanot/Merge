@@ -40,7 +40,7 @@ extension SystemShell {
             arguments: arguments,
             currentDirectoryURL: currentDirectoryURL?._fromURLToFileURL() ?? self.currentDirectoryURL,
             environmentVariables: self.environmentVariables.merging(environmentVariables, uniquingKeysWith: { $1 }),
-            options: options ?? []
+            options: options
         )
         
         return try await process.run()

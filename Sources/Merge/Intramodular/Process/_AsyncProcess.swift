@@ -621,7 +621,7 @@ extension _AsyncProcess {
         arguments: [String],
         currentDirectoryURL: URL? = nil,
         environmentVariables: [String: String] = [:],
-        options: [_AsyncProcess.Option]
+        options: [_AsyncProcess.Option]?
     ) throws {
         try self.init(
             existingProcess: nil,
@@ -639,7 +639,7 @@ extension _AsyncProcess {
         arguments: [String],
         currentDirectoryURL: URL? = nil,
         environmentVariables: [String: String] = [:],
-        options: [_AsyncProcess.Option]
+        options: [_AsyncProcess.Option]?
     ) throws {
         try self.init(
             executableURL: launchPath.map({ URL(fileURLWithPath: $0) }),
