@@ -118,11 +118,14 @@ public class _AsyncProcess: Logging {
 }
 
 #if os(macOS) || targetEnvironment(macCatalyst)
+@available(macOS 11.0, iOS 14.0, watchOS 7.0, tvOS 14.0, *)
+@available(macCatalyst, unavailable)
 extension _AsyncProcess {
     public var isRunning: Bool {
         state == .running
     }
     
+    #if os(macOS)
     public var state: State {
         if process.isRunning {
             return .running
@@ -151,17 +154,27 @@ extension _AsyncProcess {
         
         return .notLaunch
     }
+    #else
+    public var state: State {
+        return .notLaunch
+    }
+    #endif
 
     public var standardInputPipe: Pipe? {
+        #if os(macOS)
         if state == .notLaunch, _standardInputPipe == nil {
             _standardInputPipe = Pipe()
             process.standardInput = _standardInputPipe
         }
         return _standardInputPipe
+        #else
+        fatalError(.unsupported)
+        #endif
     }
 
     @discardableResult
     public func run() async throws -> _ProcessRunResult {
+        #if os(macOS)
         if let _resolvedRunResult {
             return try _resolvedRunResult.get()
         }
@@ -187,6 +200,9 @@ extension _AsyncProcess {
             
             throw error
         }
+        #else
+        fatalError(.unsupported)
+        #endif
     }
     
     @_disfavoredOverload
@@ -219,7 +235,11 @@ extension _AsyncProcess {
     }
 
     public func terminate() async throws {
+        #if os(macOS)
         process.terminate()
+        #else
+        fatalError(.unsupported)
+        #endif
     }
     
     public func _terminate() {
@@ -230,7 +250,9 @@ extension _AsyncProcess {
 }
 #endif
 
-#if os(macOS) || targetEnvironment(macCatalyst)
+#if os(macOS)
+@available(macOS 11.0, iOS 14.0, watchOS 7.0, tvOS 14.0, *)
+@available(macCatalyst, unavailable)
 extension _AsyncProcess {
     private func _setUpStdinStdoutStderr(
         existingProcess: Process?
@@ -623,6 +645,7 @@ extension _AsyncProcess {
         environmentVariables: [String: String] = [:],
         options: [_AsyncProcess.Option]?
     ) throws {
+        #if os(macOS)
         try self.init(
             existingProcess: nil,
             options: options
@@ -632,6 +655,9 @@ extension _AsyncProcess {
         self.process.arguments = arguments
         self.process.currentDirectoryURL = currentDirectoryURL?._fromURLToFileURL()
         self.process.environment = environmentVariables
+        #else
+        fatalError(.unsupported)
+        #endif
     }
     
     public convenience init(
@@ -658,13 +684,13 @@ extension _AsyncProcess {
 @available(macCatalyst, unavailable)
 extension _AsyncProcess: CustomStringConvertible {
     public var description: String {
-        #if os(macOS) || targetEnvironment(macCatalyst)
+        #if os(macOS)
         Process._makeDescriptionPrefix(
             launchPath: self.process.launchPath,
             arguments: self.process.arguments
         )
         #else
-        fatalError()
+        fatalError(.unsupported)
         #endif
     }
 }
