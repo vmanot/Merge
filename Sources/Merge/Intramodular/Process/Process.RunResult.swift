@@ -75,7 +75,7 @@ extension _ProcessRunResult {
 #if os(macOS) || targetEnvironment(macCatalyst)
 @available(macOS 11.0, iOS 14.0, watchOS 7.0, tvOS 14.0, *)
 @available(macCatalyst, unavailable)
-extension Process.RunResult {
+extension _ProcessRunResult {
     package init(
         process: Process,
         stdout: String,
