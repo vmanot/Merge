@@ -404,7 +404,7 @@ extension _AsyncProcess {
                     self.process.interrupt()
                 }
                 
-                DispatchQueue.global().asyncAfter(deadline: .now() + 90, execute: workItem!)
+                DispatchQueue.global().asyncAfter(deadline: .now() + 300, execute: workItem!)
                 
                 return true
             }
