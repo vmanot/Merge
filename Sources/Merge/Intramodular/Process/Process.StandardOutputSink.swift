@@ -8,7 +8,7 @@ import System
 
 #if os(macOS)
 extension Process {
-    public enum StandardOutputSink {
+    public enum StandardOutputSink: Hashable {
         /// Redirect output to the terminal.
         case terminal
         /// Redirect output to the file at the given path, creating if necessary.

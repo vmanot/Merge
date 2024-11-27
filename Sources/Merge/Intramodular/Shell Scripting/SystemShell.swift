@@ -11,7 +11,7 @@ public final class SystemShell {
     public var environmentVariables: [String: String]
     public var currentDirectoryURL: URL?
     
-    public let options: [_AsyncProcess.Option]?
+    public var options: [_AsyncProcess.Option]?
     
     public init(
         environment: [String: String]? = nil,

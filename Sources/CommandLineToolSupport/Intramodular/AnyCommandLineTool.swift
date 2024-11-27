@@ -30,3 +30,17 @@ open class AnyCommandLineTool {
         return result
     }
 }
+
+extension AnyCommandLineTool {
+    public func withUnsafeSystemShell<R>(
+        sink: Process.StandardOutputSink,
+        perform operation: (SystemShell) async throws -> R
+    ) async throws -> R {
+        try await withUnsafeSystemShell { shell in
+            shell.options ??= []
+            shell.options?.append(._forwardStdoutStderr(to: sink))
+            
+            return try await operation(shell)
+        }
+    }
+}

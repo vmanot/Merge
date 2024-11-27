@@ -489,33 +489,39 @@ extension _AsyncProcess {
         }
     }
     
-    private func __handleData(_ data: Data, forPipe pipe: Pipe) async throws {
+    private func __handleData(
+        _ data: Data,
+        forPipe pipe: Pipe
+    ) async throws {
         guard !data.isEmpty else {
             return
         }
         
         let pipeName: Process.PipeName = try self.name(of: pipe)
-        
-        let forwardStdoutStderr: Bool = options.contains(._forwardStdoutStderr)
-        
+                
         switch pipeName {
             case .standardOutput:
                 _publishers.standardOutputPublisher.send(data)
-                
-                if forwardStdoutStderr {
-                    FileHandle.standardOutput.write(data)
-                }
             case .standardError:
                 _publishers.standardErrorPublisher.send(data)
-                
-                if forwardStdoutStderr {
-                    FileHandle.standardOutput.write(data)
-                }
             default:
                 break
         }
         
-        guard let dataAsString = String(data: data, encoding: String.Encoding.utf8), !dataAsString.isEmpty else {
+        let forwardStdoutStderrToTerminal: Bool = options.contains(where: { $0._stdoutStderrSink == .terminal }) // FIXME: (@vmanot) unhandled cases
+
+        if forwardStdoutStderrToTerminal {
+            switch pipeName {
+                case .standardOutput:
+                    FileHandle.standardOutput.write(data)
+                case .standardError:
+                    FileHandle.standardOutput.write(data)
+                default:
+                    break
+            }
+        }
+        
+        guard let dataAsString: String = String(data: data, encoding: String.Encoding.utf8), !dataAsString.isEmpty else {
             return
         }
         
@@ -717,7 +723,19 @@ extension _AsyncProcess {
     public enum Option: Hashable {
         case _useAppleScript
         case _useAuthorizationExecuteWithPrivileges
-        case _forwardStdoutStderr
+        case _forwardStdoutStderr(to: Process.StandardOutputSink)
+        
+        public static var _forwardStdoutStderr: Self {
+            ._forwardStdoutStderr(to: .terminal)
+        }
+        
+        public var _stdoutStderrSink: Process.StandardOutputSink {
+            guard case let ._forwardStdoutStderr(sink) = self else {
+                return .null
+            }
+
+            return sink
+        }
     }
 }
 
