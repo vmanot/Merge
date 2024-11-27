@@ -6,6 +6,11 @@ import Foundation
 import Swift
 
 /// A type that wraps a command line tool.
+@available(macOS 11.0, *)
+@available(iOS, unavailable)
+@available(macCatalyst, unavailable)
+@available(tvOS, unavailable)
+@available(watchOS, unavailable)
 public protocol CommandLineTool: AnyCommandLineTool {
     associatedtype EnvironmentVariables = _CommandLineTool_DefaultEnvironmentVariables
     

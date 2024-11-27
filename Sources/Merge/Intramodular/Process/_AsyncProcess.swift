@@ -8,8 +8,11 @@ import Foundation
 @_spi(Internal) import Swallow
 import System
 
-@available(macOS 11.0, iOS 14.0, watchOS 7.0, tvOS 14.0, *)
+@available(macOS 11.0, *)
+@available(iOS, unavailable)
 @available(macCatalyst, unavailable)
+@available(tvOS, unavailable)
+@available(watchOS, unavailable)
 public class _AsyncProcess: Logging {
     public let options: Set<Option>
     #if os(macOS)
@@ -686,8 +689,11 @@ extension _AsyncProcess {
 
 // MARK: - Conformances
 
-@available(macOS 11.0, iOS 14.0, watchOS 7.0, tvOS 14.0, *)
+@available(macOS 11.0, *)
+@available(iOS, unavailable)
 @available(macCatalyst, unavailable)
+@available(tvOS, unavailable)
+@available(watchOS, unavailable)
 extension _AsyncProcess: CustomStringConvertible {
     public var description: String {
         #if os(macOS)
@@ -703,8 +709,11 @@ extension _AsyncProcess: CustomStringConvertible {
 
 // MARK: - Auxiliary
 
-@available(macOS 11.0, iOS 14.0, watchOS 7.0, tvOS 14.0, *)
+@available(macOS 11.0, *)
+@available(iOS, unavailable)
 @available(macCatalyst, unavailable)
+@available(tvOS, unavailable)
+@available(watchOS, unavailable)
 extension _AsyncProcess {
     public enum State: Equatable {
         case notLaunch
@@ -720,16 +729,20 @@ extension _AsyncProcess {
         }
     }
     
+    @available(iOS, unavailable)
+    @available(macCatalyst, unavailable)
+    @available(tvOS, unavailable)
+    @available(watchOS, unavailable)
     public enum Option: Hashable {
         case _useAppleScript
         case _useAuthorizationExecuteWithPrivileges
-        case _forwardStdoutStderr(to: Process.StandardOutputSink)
+        case _forwardStdoutStderr(to: _ProcessStandardOutputSink)
         
         public static var _forwardStdoutStderr: Self {
             ._forwardStdoutStderr(to: .terminal)
         }
         
-        public var _stdoutStderrSink: Process.StandardOutputSink {
+        public var _stdoutStderrSink: _ProcessStandardOutputSink {
             guard case let ._forwardStdoutStderr(sink) = self else {
                 return .null
             }
@@ -739,15 +752,21 @@ extension _AsyncProcess {
     }
 }
 
-@available(macOS 11.0, iOS 14.0, watchOS 7.0, tvOS 14.0, *)
+@available(macOS 11.0, *)
+@available(iOS, unavailable)
 @available(macCatalyst, unavailable)
+@available(tvOS, unavailable)
+@available(watchOS, unavailable)
 extension _AsyncProcess {
     @MutexProtected
     public static var runningProcesses = [_AsyncProcess]()
 }
 
-@available(macOS 11.0, iOS 14.0, watchOS 7.0, tvOS 14.0, *)
+@available(macOS 11.0, *)
+@available(iOS, unavailable)
 @available(macCatalyst, unavailable)
+@available(tvOS, unavailable)
+@available(watchOS, unavailable)
 extension _AsyncProcess {
     struct _Publishers {
         let standardOutputPublisher = ReplaySubject<Data, Never>()

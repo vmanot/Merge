@@ -30,6 +30,11 @@ extension CLT.EnvironmentVariable {
     }
 }
 
+@available(macOS 11.0, *)
+@available(iOS, unavailable)
+@available(macCatalyst, unavailable)
+@available(tvOS, unavailable)
+@available(watchOS, unavailable)
 extension CommandLineTool {
     public func setEnvironmentVariable<Variable: CLT._EnvironmentVariableProtocol>(
         _ keyPath: KeyPath<Self.EnvironmentVariables.Type, Variable>,

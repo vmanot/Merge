@@ -6,18 +6,20 @@ import FoundationX
 import Swift
 import System
 
+public enum _ProcessStandardOutputSink: Hashable {
+    /// Redirect output to the terminal.
+    case terminal
+    /// Redirect output to the file at the given path, creating if necessary.
+    case filePath(_ path: String)
+    /// Redirect output and error streams to the files at the given paths, creating if necessary.
+    case split(_ out: String, err: String)
+    /// The null device, also known as `/dev/null`.
+    case null
+}
+
 #if os(macOS)
 extension Process {
-    public enum StandardOutputSink: Hashable {
-        /// Redirect output to the terminal.
-        case terminal
-        /// Redirect output to the file at the given path, creating if necessary.
-        case filePath(_ path: String)
-        /// Redirect output and error streams to the files at the given paths, creating if necessary.
-        case split(_ out: String, err: String)
-        /// The null device, also known as `/dev/null`.
-        case null
-    }
+    public typealias StandardOutputSink = _ProcessStandardOutputSink
 }
 
 // MARK: - Initializers

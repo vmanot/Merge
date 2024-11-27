@@ -6,8 +6,11 @@ import Foundation
 import Combine
 import Swallow
 
-@available(macOS 11.0, iOS 14.0, watchOS 7.0, tvOS 14.0, *)
+@available(macOS 11.0, *)
+@available(iOS, unavailable)
 @available(macCatalyst, unavailable)
+@available(tvOS, unavailable)
+@available(watchOS, unavailable)
 extension SystemShell {
     public struct Environment {
         let launchPath: String?
@@ -23,8 +26,11 @@ extension SystemShell {
     }
 }
 
-@available(macOS 11.0, iOS 14.0, watchOS 7.0, tvOS 14.0, *)
+@available(macOS 11.0, *)
+@available(iOS, unavailable)
 @available(macCatalyst, unavailable)
+@available(tvOS, unavailable)
+@available(watchOS, unavailable)
 extension SystemShell.Environment {
     public func resolve(
         launchPath: String,
@@ -82,8 +88,11 @@ extension SystemShell.Environment {
 
 // MARK: - Initializers
 
-@available(macOS 11.0, iOS 14.0, watchOS 7.0, tvOS 14.0, *)
+@available(macOS 11.0, *)
+@available(iOS, unavailable)
 @available(macCatalyst, unavailable)
+@available(tvOS, unavailable)
+@available(watchOS, unavailable)
 extension SystemShell.Environment {
     public static var bash: Self {
         Self(

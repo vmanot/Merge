@@ -5,8 +5,11 @@
 import Foundation
 import Swallow
 
-@available(macOS 11.0, iOS 14.0, watchOS 7.0, tvOS 14.0, *)
+@available(macOS 11.0, *)
+@available(iOS, unavailable)
 @available(macCatalyst, unavailable)
+@available(tvOS, unavailable)
+@available(watchOS, unavailable)
 extension SystemShell {
     public func run(
         shell: SystemShell.Environment,
@@ -32,8 +35,11 @@ extension SystemShell {
     }
 }
 
-@available(macOS 11.0, iOS 14.0, watchOS 7.0, tvOS 14.0, *)
+@available(macOS 11.0, *)
+@available(iOS, unavailable)
 @available(macCatalyst, unavailable)
+@available(tvOS, unavailable)
+@available(watchOS, unavailable)
 extension SystemShell {
     @discardableResult
     public static func run(
