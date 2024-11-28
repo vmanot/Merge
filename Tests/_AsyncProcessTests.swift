@@ -38,4 +38,25 @@ final class _AsyncProcessTests: XCTestCase {
         
         XCTAssertEqual(result.stdoutString!, "Hello")
     }
+    
+    /// This test verifies that `_AsyncProcess` correctly handles long-running processes that have periods of silence
+    /// (no stdout/stderr output).
+    ///
+    /// Context:
+    /// `_AsyncProcess` has a built-in interrupt mechanism in `_readStdoutStderrUntilEnd()` that interrupts a process
+    /// if it doesn't produce output for a certain duration. This is controlled by the timeout in the `interruptLater()`
+    /// function where a `DispatchWorkItem` is scheduled with asyncAfter. The current timeout is `300` seconds.
+    ///
+    /// Failure Check:
+    /// - With the current timeout (300s), the test should pass as the process completes in 5s.
+    /// - To verify the interrupt mechanism, modify `_AsyncProcess.swift` and update the 300 second timeout to less than 5 seconds.
+    /// - The test should fail as the process will be interrupted before it can output "done".
+    func testLongSilentProcessInterrupt() async throws {
+        let command = "sleep 5 && echo done"
+        let process = try await _AsyncProcess(command: command, options: [])
+        let result = try await process.run()
+        
+        // If the process was interrupted, we wouldn't get "done" as output
+        XCTAssertEqual(result.stdoutString?.trimmingCharacters(in: .whitespacesAndNewlines), "done")
+    }
 }
