@@ -29,6 +29,10 @@ public class _StandardOutputRewriter {
     }
         
     public func start() {
+        guard originalSTDERRDescriptor == -1 && originalSTDERRDescriptor == -1 else {
+            return
+        }
+        
         originalSTDOUTDescriptor = dup(STDOUT_FILENO)
         originalSTDERRDescriptor = dup(STDERR_FILENO)
         
