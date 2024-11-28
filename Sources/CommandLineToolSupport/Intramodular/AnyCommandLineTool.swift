@@ -46,6 +46,9 @@ extension AnyCommandLineTool {
     ) async throws -> R {
         try await withUnsafeSystemShell { shell in
             shell.options ??= []
+            shell.options?.removeAll(where: {
+                $0._stdoutStderrSink != .null
+            })
             shell.options?.append(._forwardStdoutStderr(to: sink))
             
             return try await operation(shell)

@@ -16,46 +16,100 @@ public class _StandardOutputRewriter {
     private var stdoutBuffer = Data()
     private var stderrBuffer = Data()
     
+    private var runLoop: RunLoop?
+    private var isRunning = false
+    private var stopContinuation: CheckedContinuation<Void, Never>?
+    private let hasRunLoop: Bool
+    
     public init(modifyLine: @escaping (String) -> String?) {
         self.modifyLine = modifyLine
-        
+        self.hasRunLoop = _StandardOutputRewriter.checkRunLoopAvailability()
+
         start()
     }
-    
+        
     public func start() {
         originalSTDOUTDescriptor = dup(STDOUT_FILENO)
         originalSTDERRDescriptor = dup(STDERR_FILENO)
         
+        setvbuf(stdout, nil, _IONBF, 0)
+        setvbuf(stderr, nil, _IONBF, 0)
+        
         dup2(stdoutPipe.fileHandleForWriting.fileDescriptor, STDOUT_FILENO)
         dup2(stderrPipe.fileHandleForWriting.fileDescriptor, STDERR_FILENO)
         
-        observePipe(stdoutPipe.fileHandleForReading, isStdout: true)
-        observePipe(stderrPipe.fileHandleForReading, isStdout: false)
+        isRunning = true
+        
+        
+        if !hasRunLoop {
+            // Start a background thread for the RunLoop if we don't have one
+            DispatchQueue.global(qos: .utility).async { [weak self] in
+                guard let self = self else { return }
+                
+                self.runLoop = RunLoop.current
+                self.observePipe(self.stdoutPipe.fileHandleForReading, isStdout: true)
+                self.observePipe(self.stderrPipe.fileHandleForReading, isStdout: false)
+                
+                while self.isRunning {
+                    RunLoop.current.run(until: Date(timeIntervalSinceNow: 0.1))
+                }
+                
+                // Signal completion when the run loop exits
+                if let continuation = self.stopContinuation {
+                    self.stopContinuation = nil
+                    continuation.resume()
+                }
+            }
+        } else {
+            // Use existing run loop
+            observePipe(stdoutPipe.fileHandleForReading, isStdout: true)
+            observePipe(stderrPipe.fileHandleForReading, isStdout: false)
+        }
     }
     
-    public func stop() {
+    public func stop() async {
+        await withCheckedContinuation { (continuation: CheckedContinuation<Void, Never>) in
+            isRunning = false
+            
+            if !hasRunLoop {
+                // If we created our own run loop, wait for it to finish
+                stopContinuation = continuation
+            } else {
+                // If using existing run loop, clean up immediately
+                cleanup()
+                continuation.resume()
+            }
+        }
+    }
+    
+    private func cleanup() {
         flushBuffers()
         
         if originalSTDOUTDescriptor != -1 {
             dup2(originalSTDOUTDescriptor, STDOUT_FILENO)
             close(originalSTDOUTDescriptor)
+            originalSTDOUTDescriptor = -1
         }
         if originalSTDERRDescriptor != -1 {
             dup2(originalSTDERRDescriptor, STDERR_FILENO)
             close(originalSTDERRDescriptor)
+            originalSTDERRDescriptor = -1
         }
+        
+        stdoutPipe.fileHandleForReading.closeFile()
+        stdoutPipe.fileHandleForWriting.closeFile()
+        stderrPipe.fileHandleForReading.closeFile()
+        stderrPipe.fileHandleForWriting.closeFile()
     }
     
-    private func observePipe(
-        _ pipe: FileHandle,
-        isStdout: Bool
-    ) {
+    private func observePipe(_ pipe: FileHandle, isStdout: Bool) {
         NotificationCenter.default.addObserver(
             forName: .NSFileHandleDataAvailable,
             object: pipe,
             queue: nil
-        ) { (notification: Notification) in
-            guard let fileHandle = notification.object as? FileHandle else {
+        ) { [weak self] (notification: Notification) in
+            guard let self = self,
+                  let fileHandle = notification.object as? FileHandle else {
                 return
             }
             
@@ -66,10 +120,11 @@ public class _StandardOutputRewriter {
             }
             
             let buffer: Data = isStdout ? self.stdoutBuffer : self.stderrBuffer
-         
             self.processData(data, buffer: buffer, isStdout: isStdout)
             
-            pipe.waitForDataInBackgroundAndNotify()
+            if self.isRunning {
+                pipe.waitForDataInBackgroundAndNotify()
+            }
         }
         
         pipe.waitForDataInBackgroundAndNotify()
@@ -81,15 +136,16 @@ public class _StandardOutputRewriter {
         isStdout: Bool
     ) {
         var buffer: Data = buffer
-      
         buffer.append(data)
         
         while let range = buffer.range(of: Data("\n".utf8)) {
             let lineData = buffer.subdata(in: 0..<range.upperBound)
             buffer.removeSubrange(0..<range.upperBound)
             
-            if let line = String(data: lineData, encoding: .utf8), let modifiedLine = modifyLine(line) {
-                FileHandle(fileDescriptor: isStdout ? self.originalSTDOUTDescriptor : self.originalSTDERRDescriptor).write(modifiedLine.data(using: .utf8) ?? Data())
+            if let line = String(data: lineData, encoding: .utf8),
+               let modifiedLine = modifyLine(line) {
+                let fileHandle = FileHandle(fileDescriptor: isStdout ? originalSTDOUTDescriptor : originalSTDERRDescriptor)
+                fileHandle.write(modifiedLine.data(using: .utf8) ?? Data())
             }
         }
         
@@ -102,11 +158,11 @@ public class _StandardOutputRewriter {
     
     private func flushBuffers() {
         if let modifiedLine = modifyLine(String(data: stdoutBuffer, encoding: .utf8) ?? "") {
-            FileHandle(fileDescriptor: self.originalSTDOUTDescriptor).write(modifiedLine.data(using: .utf8) ?? Data())
+            FileHandle(fileDescriptor: originalSTDOUTDescriptor).write(modifiedLine.data(using: .utf8) ?? Data())
         }
         
         if let modifiedLine = modifyLine(String(data: stderrBuffer, encoding: .utf8) ?? "") {
-            FileHandle(fileDescriptor: self.originalSTDERRDescriptor).write(modifiedLine.data(using: .utf8) ?? Data())
+            FileHandle(fileDescriptor: originalSTDERRDescriptor).write(modifiedLine.data(using: .utf8) ?? Data())
         }
         
         stdoutBuffer = Data()
@@ -114,7 +170,47 @@ public class _StandardOutputRewriter {
     }
     
     deinit {
-        stop()
+        // Since deinit can't be async, we'll just do immediate cleanup
+        isRunning = false
+        cleanup()
+    }
+}
+
+extension _StandardOutputRewriter {
+    private static func checkRunLoopAvailability() -> Bool {
+        let currentRunLoop = CFRunLoopGetCurrent()
+        let result: Bool
+        
+        if let modes = CFRunLoopCopyAllModes(currentRunLoop) as? [String], !modes.isEmpty {
+            let observer = CFRunLoopObserverCreateWithHandler(kCFAllocatorDefault, CFRunLoopActivity.allActivities.rawValue, true, 0) { observer, activity in
+                CFRunLoopObserverInvalidate(observer)
+                CFRunLoopStop(CFRunLoopGetCurrent())
+            }
+            
+            if let observer = observer {
+                CFRunLoopAddObserver(currentRunLoop, observer, CFRunLoopMode.defaultMode)
+                
+                let ranLoop = CFRunLoopRunInMode(CFRunLoopMode.defaultMode, 0.1, true) != CFRunLoopRunResult.finished
+                
+                CFRunLoopRemoveObserver(currentRunLoop, observer, CFRunLoopMode.defaultMode)
+                
+                result = ranLoop
+            } else {
+                result = false
+            }
+        } else {
+            result = false
+        }
+        
+        return result
+    }
+    
+    public static func checkEnvironment() async -> Bool {
+        return await withCheckedContinuation { continuation in
+            DispatchQueue.global().async {
+                continuation.resume(returning: checkRunLoopAvailability())
+            }
+        }
     }
 }
 
