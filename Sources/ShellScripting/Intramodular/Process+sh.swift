@@ -173,6 +173,7 @@ public func shq(
     ._runAsynchronouslyRedirectingAllOutput(to: sink)
 }
 
+@available(*, deprecated)
 @available(macOS 12.0, iOS 15.0, watchOS 8.0, tvOS 15.0, *)
 public func sh(
     _ cmd: String,
@@ -184,6 +185,7 @@ public func sh(
     return try shq(cmd, environment: environment, workingDirectory: workingDirectory)
 }
 
+@available(*, deprecated)
 @available(macOS 12.0, iOS 15.0, watchOS 8.0, tvOS 15.0, *)
 public func sh(
     _ cmd: String,
@@ -195,6 +197,7 @@ public func sh(
     return try await shq(cmd, environment: environment, workingDirectory: workingDirectory)
 }
 
+@available(*, deprecated)
 @available(macOS 12.0, iOS 15.0, watchOS 8.0, tvOS 15.0, *)
 public func sh(
     command: String,
@@ -208,6 +211,7 @@ public func sh(
     )
 }
 
+@available(*, deprecated)
 @available(macOS 12.0, iOS 15.0, watchOS 8.0, tvOS 15.0, *)
 public func sh(
     _ sink: Process.StandardOutputSink,
@@ -223,6 +227,7 @@ public func sh(
     )
 }
 
+@available(*, deprecated)
 @available(macOS 12.0, iOS 15.0, watchOS 8.0, tvOS 15.0, *)
 public func sh(
     _ cmd: String,
@@ -238,6 +243,7 @@ public func sh(
     )
 }
 
+@available(*, deprecated)
 @available(macOS 12.0, iOS 15.0, watchOS 8.0, tvOS 15.0, *)
 public func sh<D: Decodable>(
     _ type: D.Type,
@@ -257,6 +263,7 @@ public func sh<D: Decodable>(
     )
 }
 
+@available(*, deprecated)
 @available(macOS 12.0, iOS 15.0, watchOS 8.0, tvOS 15.0, *)
 public func sh<D: Decodable>(
     _ type: D.Type,
@@ -276,6 +283,7 @@ public func sh<D: Decodable>(
     )
 }
 
+@available(*, deprecated)
 @available(macOS 12.0, iOS 15.0, watchOS 8.0, tvOS 15.0, *)
 public func sh(
     _ sink: Process.StandardOutputSink,

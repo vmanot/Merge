@@ -6,12 +6,12 @@ import Darwin
 import Foundation
 import Swift
 
-public class _StandardOutputRewriter {
+public class _StandardOutputRewriter: @unchecked Sendable {
     private var originalSTDOUTDescriptor: Int32 = -1
     private var originalSTDERRDescriptor: Int32 = -1
     private let stdoutPipe: Pipe = Pipe()
     private let stderrPipe: Pipe = Pipe()
-    private let modifyLine: (String) -> String?
+    private let modifyLine: @Sendable (String) -> String?
     
     private var stdoutBuffer = Data()
     private var stderrBuffer = Data()
@@ -21,7 +21,9 @@ public class _StandardOutputRewriter {
     private var stopContinuation: CheckedContinuation<Void, Never>?
     private let hasRunLoop: Bool
     
-    public init(modifyLine: @escaping (String) -> String?) {
+    public init(
+        modifyLine: @escaping @Sendable (String) -> String?
+    ) {
         self.modifyLine = modifyLine
         self.hasRunLoop = _StandardOutputRewriter.checkRunLoopAvailability()
 
