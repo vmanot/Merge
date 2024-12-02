@@ -126,6 +126,7 @@ public class _StandardOutputRewriter: @unchecked Sendable {
             }
             
             let buffer: Data = isStdout ? self.stdoutBuffer : self.stderrBuffer
+        
             self.processData(data, buffer: buffer, isStdout: isStdout)
             
             if self.isRunning {
@@ -151,6 +152,7 @@ public class _StandardOutputRewriter: @unchecked Sendable {
             if let line = String(data: lineData, encoding: .utf8),
                let modifiedLine = modifyLine(line) {
                 let fileHandle = FileHandle(fileDescriptor: isStdout ? originalSTDOUTDescriptor : originalSTDERRDescriptor)
+                
                 fileHandle.write(modifiedLine.data(using: .utf8) ?? Data())
             }
         }
