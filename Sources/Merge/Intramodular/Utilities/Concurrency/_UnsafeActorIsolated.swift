@@ -49,9 +49,10 @@ extension _UnsafeActorIsolated {
         try await mutex.acquireOrFail()
         
         let iteratorBox = ReferenceBox(await stream.makeAsyncIterator())
+        let iteratorBoxBox = _UncheckedSendable(iteratorBox)
         
         let stream = AsyncThrowingStream(unfolding: {
-            try await iteratorBox.wrappedValue.next()
+            try await iteratorBoxBox.wrappedValue.wrappedValue.next()
         })
         
         await mutex.relinquish()

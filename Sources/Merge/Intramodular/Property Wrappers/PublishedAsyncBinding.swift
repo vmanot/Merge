@@ -339,6 +339,14 @@ extension PublishedAsyncBinding {
         )
     }
     
+    public static func unwrapping<T: AnyObject>(
+        _ root: T,
+        _ keyPath: ReferenceWritableKeyPath<T, Value?>,
+        defaultValue: Value
+    ) -> PublishedAsyncBinding<Value> {
+        unsafelyUnwrapping(root, keyPath, initial: defaultValue)
+    }
+    
     public static func unwrapping<T: AnyObject, Result>(
         _ root: T,
         _ keyPath: ReferenceWritableKeyPath<T, Value?>,
