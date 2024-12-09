@@ -341,15 +341,16 @@ public func sh(
                 
                 switch logResult {
                     case .success(let success):
-                        throw _ShellProcessExecutionError.errorWithLogInfo(success, underlyingError: underlyingError)
+                        throw _SystemShellExecutionError.errorWithLogInfo(success, underlyingError: underlyingError)
                     case .failure(let failure):
-                        throw _ShellProcessExecutionError.openingLogError(failure, underlyingError: underlyingError)
+                        throw _SystemShellExecutionError.openingLogError(failure, underlyingError: underlyingError)
                 }
             }
         }
     }
 }
 
+@available(*, deprecated)
 @available(macOS 12.0, iOS 15.0, watchOS 8.0, tvOS 15.0, *)
 public func sh(
     _ sink: Process.StandardOutputSink,
@@ -384,9 +385,9 @@ public func sh(
                 
                 switch logResult {
                     case .success(let success):
-                        throw _ShellProcessExecutionError.errorWithLogInfo(success, underlyingError: underlyingError)
+                        throw _SystemShellExecutionError.errorWithLogInfo(success, underlyingError: underlyingError)
                     case .failure(let failure):
-                        throw _ShellProcessExecutionError.openingLogError(failure, underlyingError: underlyingError)
+                        throw _SystemShellExecutionError.openingLogError(failure, underlyingError: underlyingError)
                 }
             }
         case .split(let out, let err):
@@ -418,15 +419,15 @@ private func announce(_ text: String) async {
 
 // MARK: - Error Handling
 
-public enum _ShellProcessExecutionError: CustomStringConvertible {
+enum _SystemShellExecutionError: CustomStringConvertible {
     case errorWithLogInfo(String, underlyingError: Error)
     case openingLogError(Error, underlyingError: Error)
     
-    public var errorDescription: String? {
+    var errorDescription: String? {
         description
     }
     
-    public var description: String {
+    var description: String {
         switch self {
             case .errorWithLogInfo(
                 let logInfo,
@@ -447,7 +448,7 @@ public enum _ShellProcessExecutionError: CustomStringConvertible {
 }
 
 #if os(macOS)
-extension _ShellProcessExecutionError: LocalizedError {
+extension _SystemShellExecutionError: LocalizedError {
     
 }
 #endif
