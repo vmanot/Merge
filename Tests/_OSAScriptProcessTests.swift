@@ -53,13 +53,13 @@ class OSAScriptProcessTests: XCTestCase {
         let process = OSAScriptProcess()
         // Not setting executableURL should lead to an error when trying to run the process
         XCTAssertThrowsError(try process.run(), "Expected to throw an error when executableURL is nil") { error in
-            guard let err = error as NSError? else {
-                XCTFail("Error should be of type NSError")
+            guard let error = error as? OSAScriptProcess.Error else {
+                XCTFail("Error (\(error)) should be of type OSAScriptProcess.Error")
+                
                 return
             }
-            XCTAssertEqual(err.domain, "OSAScriptProcessError")
-            XCTAssertEqual(err.code, 0)
-            XCTAssertEqual(err.userInfo[NSLocalizedDescriptionKey] as? String, "Executable URL is not set.")
+            
+            XCTAssertEqual(error, OSAScriptProcess.Error.executablePathMissing)
         }
     }
     

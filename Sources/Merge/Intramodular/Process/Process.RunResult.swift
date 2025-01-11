@@ -8,14 +8,14 @@ import Swallow
 /// A type that represents the result of a running a `Process`.
 @Hashable
 public struct _ProcessRunResult: Logging, @unchecked Sendable {
-#if os(macOS) || targetEnvironment(macCatalyst)
+    #if os(macOS) || targetEnvironment(macCatalyst)
     public let process: Process
-#endif
+    #endif
     public let stdout: Data
     public let stderr: Data
     public let terminationError: ProcessTerminationError?
     
-#if os(macOS)
+    #if os(macOS)
     package init(
         process: Process,
         stdout: Data,
@@ -27,7 +27,7 @@ public struct _ProcessRunResult: Logging, @unchecked Sendable {
         self.stderr = stderr
         self.terminationError = terminationError
     }
-#endif
+    #endif
     
     @_transparent
     public func validate() throws {
@@ -67,6 +67,33 @@ extension _ProcessRunResult {
         try validate()
         
         return try stdoutString.unwrap()
+    }
+}
+
+// MARK: - Extensions
+
+extension _ProcessRunResult {
+    private enum DecodingError: Swift.Error {
+        case dataIsEmpty
+    }
+
+    public func decode<T: Decodable>(
+        _ type: T.Type,
+        using decoder: JSONDecoder = .init()
+    ) throws -> T {
+        do {
+            let data: Data = try stdout.data()
+            
+            guard !data.isEmpty else {
+                throw DecodingError.dataIsEmpty
+            }
+            
+            let result: T = try decoder.decode(type, from: data)
+            
+            return result
+        } catch {
+            throw error
+        }
     }
 }
 

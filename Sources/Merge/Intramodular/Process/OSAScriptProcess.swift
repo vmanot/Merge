@@ -141,17 +141,13 @@ extension OSAScriptProcess {
     public static func _osascript_launchPathAndArguments(
         for executableURLAndArguments: (executableURL: URL?, arguments: [String]?)
     ) throws -> (launchPath: String, arguments: [String]) {
-        enum Error: Swift.Error {
-            case executablePathMissing
-        }
-        
         guard let executablePath: String = executableURLAndArguments.executableURL?.path else {
             throw Error.executablePathMissing
         }
         
         let argumentsString: String?
         
-        if let arguments = executableURLAndArguments.arguments {
+        if let arguments: [String] = executableURLAndArguments.arguments {
             if arguments.contains(where: { $0.contains("'") }) {
                 argumentsString = arguments
                     .map({ $0.replacingOccurrences(of: "'", with: "'\\''") })
@@ -217,11 +213,14 @@ extension OSAScriptProcess {
         return escapedCode as String
     }
 }
-
-#elseif targetEnvironment(macCatalyst)
-
-public class OSAScriptProcess: Process, @unchecked Sendable {
+#else
+public class OSAScriptProcess: NSObject, @unchecked Sendable {
     
 }
-
 #endif
+
+extension OSAScriptProcess {
+    public enum Error: Swift.Error {
+        case executablePathMissing
+    }
+}

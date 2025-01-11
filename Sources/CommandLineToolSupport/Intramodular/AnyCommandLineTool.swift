@@ -2,6 +2,7 @@
 // Copyright (c) Vatsal Manot
 //
 
+import Diagnostics
 import Foundation
 import Merge
 
@@ -10,7 +11,9 @@ import Merge
 @available(macCatalyst, unavailable)
 @available(tvOS, unavailable)
 @available(watchOS, unavailable)
-open class AnyCommandLineTool {
+open class AnyCommandLineTool: Logging {
+    public lazy var logger = PassthroughLogger(source: self)
+    
     public var environmentVariables: [String: any CLT.EnvironmentVariableValue] = [:]
     public var currentDirectoryURL: URL? = nil
     

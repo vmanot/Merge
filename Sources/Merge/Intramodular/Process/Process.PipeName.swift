@@ -2,18 +2,20 @@
 // Copyright (c) Vatsal Manot
 //
 
-#if os(macOS)
-
 import FoundationX
 import Swift
 import System
 
+public enum _ProcessPipeName: Codable, Hashable, Sendable {
+    case standardInput
+    case standardOutput
+    case standardError
+}
+
+#if os(macOS)
+
 extension Process {
-    public enum PipeName: Codable, Hashable, Sendable {
-        case standardInput
-        case standardOutput
-        case standardError
-    }
+    public typealias PipeName = _ProcessPipeName
 }
 
 // MARK: - Supplementary

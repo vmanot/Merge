@@ -13,13 +13,27 @@ import System
 @available(macCatalyst, unavailable)
 @available(tvOS, unavailable)
 @available(watchOS, unavailable)
+extension _AsyncProcess {
+    @MutexProtected
+    public static var runningProcesses = [_AsyncProcess]()
+}
+
+@available(macOS 11.0, *)
+@available(iOS, unavailable)
+@available(macCatalyst, unavailable)
+@available(tvOS, unavailable)
+@available(watchOS, unavailable)
 public class _AsyncProcess: Logging {
     public let options: Set<Option>
     #if os(macOS)
     public let process: Process
     #endif
-    
-    private let _publishers = _Publishers()
+    private lazy var standardStreamsBuffer = _StandardStreamsBuffer(
+        publishers: publishers,
+        options: self.options
+    )
+
+    private let publishers = _Publishers()
     private let processDidStart = _AsyncGate(initiallyOpen: false)
     private let processDidExit = _AsyncGate(initiallyOpen: false)
     
@@ -32,10 +46,19 @@ public class _AsyncProcess: Logging {
     
     @_OSUnfairLocked
     private var _resolvedRunResult: Result<_ProcessRunResult, Error>?
+            
+    public var _standardOutputString: String {
+        get async throws {
+            try await standardStreamsBuffer._standardOutputStringUsingUTF8()
+        }
+    }
     
-    public private(set) var _standardOutputString = ""
-    public private(set) var _standardErrorString = ""
-        
+    public var _standardErrorString: String {
+        get async throws {
+            try await standardStreamsBuffer._standardErrorStringUsingUTF8()
+        }
+    }
+    
     #if os(macOS)
     public init(
         existingProcess: Process?,
@@ -191,7 +214,7 @@ extension _AsyncProcess {
         do {
             try Task.checkCancellation()
             
-            try await _run()
+            try await _runUnconditionally()
             
             await _spinUntilProcessExit()
             
@@ -268,6 +291,7 @@ extension _AsyncProcess {
             _standardOutputPipe = .some(existingStandardOutputPipe)
         } else {
             _standardOutputPipe = Pipe()
+            
             process.standardOutput = _standardOutputPipe
         }
         
@@ -275,11 +299,8 @@ extension _AsyncProcess {
             _standardErrorPipe = .some(existingStandardErrorPipe)
         } else {
             _standardErrorPipe = Pipe()
+            
             process.standardError = _standardErrorPipe
-        }
-        
-        if _standardOutputPipe == nil {
-            runtimeIssue("_standardOutputPipe is nil!")
         }
     }
         
@@ -303,10 +324,8 @@ extension _AsyncProcess {
         assert(!process.isRunning)
     }
         
-    private func _run() async throws {
+    private func _runUnconditionally() async throws {
         do {
-            _dumpCallStackIfNeeded()
-            
             guard !isWaiting else {
                 return
             }
@@ -347,14 +366,14 @@ extension _AsyncProcess {
                     }
                     
                     do {
-                        _willRunRightAfterThis()
+                        _processWillRun()
                         
                         try process.run()
                     } catch {
                         continuation.resume(throwing: error)
                     }
                     
-                    _didJustExit(didResume: { didResume })
+                    _processExited(didResume: { didResume })
                 }
             } catch {
                 runtimeIssue(error)
@@ -372,9 +391,9 @@ extension _AsyncProcess {
                 runtimeIssue("Failed to close a pipe.")
             }
             
-            _stashRunResultAndTeardown(error: nil)
+            await _stashRunResultAndTeardownProcess(error: nil)
         } catch {
-            _stashRunResultAndTeardown(error: error)
+            await _stashRunResultAndTeardownProcess(error: error)
             
             throw error
         }
@@ -407,7 +426,7 @@ extension _AsyncProcess {
                     self.process.interrupt()
                 }
                 
-                DispatchQueue.global().asyncAfter(deadline: .now() + 1800, execute: workItem!)
+                DispatchQueue.global().asyncAfter(deadline: .now() + 3000, execute: workItem!)
                 
                 return true
             }
@@ -433,7 +452,7 @@ extension _AsyncProcess {
                 while
                     checkTask(),
                     interruptLater(),
-                    let data = _standardOutputPipe.fileHandleForReading.availableData.nilIfEmpty()
+                    let data: Data = _standardOutputPipe.fileHandleForReading.availableData.nilIfEmpty()
                 {
                     workItem?.cancel()
                     
@@ -449,7 +468,7 @@ extension _AsyncProcess {
                         _standardErrorPipe._fileDescriptorForReading._isOpen,
                         checkTask(),
                         interruptLater(),
-                        let data = _standardErrorPipe.fileHandleForReading.availableData.nilIfEmpty()
+                        let data: Data = _standardErrorPipe.fileHandleForReading.availableData.nilIfEmpty()
                     {
                         workItem?.cancel()
                         
@@ -468,90 +487,16 @@ extension _AsyncProcess {
         workItem?.cancel()
     }
     
-    private func _readStdoutStderrUntilEnd2(ignoreStderr: Bool = false) async throws {
-        guard let _standardOutputPipe, let _standardErrorPipe else {
-            assertionFailure()
-            
-            return
-        }
-        
-        try await withThrowingTaskGroup(of: Void.self) { group in
-            group.addTask {
-                try await _standardOutputPipe._readToEnd(receiveData: { data in
-                    try await self.__handleData(data, forPipe: _standardOutputPipe)
-                })
-            }
-            
-            group.addTask {
-                try await _standardErrorPipe._readToEnd(receiveData: { data in
-                    try await self.__handleData(data, forPipe: _standardErrorPipe)
-                })
-            }
-            
-            try await group.waitForAll()
-        }
-    }
-    
     private func __handleData(
         _ data: Data,
         forPipe pipe: Pipe
-    ) async throws {
-        guard !data.isEmpty else {
-            return
-        }
-        
+    ) async throws {        
         let pipeName: Process.PipeName = try self.name(of: pipe)
-                
-        switch pipeName {
-            case .standardOutput:
-                _publishers.standardOutputPublisher.send(data)
-            case .standardError:
-                _publishers.standardErrorPublisher.send(data)
-            default:
-                break
-        }
         
-        let forwardStdoutStderrToTerminal: Bool = options.contains(where: { $0._stdoutStderrSink == .terminal }) // FIXME: (@vmanot) unhandled cases
-
-        if forwardStdoutStderrToTerminal {
-            switch pipeName {
-                case .standardOutput:
-                    FileHandle.standardOutput.write(data)
-                case .standardError:
-                    FileHandle.standardOutput.write(data)
-                default:
-                    break
-            }
-        }
-        
-        guard let dataAsString: String = String(data: data, encoding: String.Encoding.utf8), !dataAsString.isEmpty else {
-            return
-        }
-        
-        switch pipeName {
-            case .standardInput:
-                break
-            case .standardOutput:
-                self._standardOutputString += dataAsString
-            case .standardError:
-                self._standardErrorString += dataAsString
-        }
-    }
-
-    private func _dumpCallStackIfNeeded() {
-        do {
-            if Thread._isMainThread {
-                let stack = Thread.callStackSymbols
-                let tempFile = NSTemporaryDirectory() + "/" + UUID().uuidString
-                
-                try stack.joined(separator: "\n").write(toFile: tempFile, atomically: true, encoding: .utf8)
-            }
-        } catch {
-            runtimeIssue(error)
-        }
+        await standardStreamsBuffer.record(data: data, forPipe: pipe, pipeName: pipeName)
     }
     
-    private func _willRunRightAfterThis() {
+    private func _processWillRun() {
         assert(!process.isRunning)
         
         Task.detached(priority: .userInitiated) { @MainActor in
@@ -566,9 +511,11 @@ extension _AsyncProcess {
     }
     
     /// Should be called prior to `_stashRunResultAndTeardown`.
-    private func _didJustExit(didResume: @escaping () -> Bool) {
+    private func _processExited(
+        didResume: @escaping () -> Bool
+    ) {
         Task {
-            try await Task.sleep(.milliseconds(200))
+            try await Task.sleep(.milliseconds(300))
             
             await Task.yield()
             
@@ -579,9 +526,9 @@ extension _AsyncProcess {
     }
     
     @discardableResult
-    private func _stashRunResultAndTeardown(
+    private func _stashRunResultAndTeardownProcess(
         error: Error?
-    ) -> Result<Process.RunResult, Error> {
+    ) async -> Result<Process.RunResult, Error> {
         Self.$runningProcesses.withCriticalRegion {
             $0.removeAll(where: { $0 === self })
         }
@@ -591,11 +538,11 @@ extension _AsyncProcess {
         if let error {
             result = .failure(error)
         } else {
-            result = Result(catching: {
-                try Process.RunResult(
+            result = await Result(catching: {
+                try await Process.RunResult(
                     process: process,
-                    stdout: self._standardOutputString,
-                    stderr: self._standardErrorString,
+                    stdout: self.standardStreamsBuffer._standardOutputStringUsingUTF8(),
+                    stderr: self.standardStreamsBuffer._standardErrorStringUsingUTF8(),
                     terminationError: process.terminationError
                 )
             })
@@ -603,7 +550,7 @@ extension _AsyncProcess {
         
         self._resolvedRunResult = result
         
-        _publishers.exitPublisher.send(process.terminationStatus)
+        publishers.exitPublisher.send(process.terminationStatus)
         
         processDidExit.open()
         
@@ -616,7 +563,7 @@ extension _AsyncProcess {
 @available(macCatalyst, unavailable)
 extension _AsyncProcess {
     public func _standardOutputPublisher() -> AnyPublisher<Data, Never> {
-        _publishers.standardOutputPublisher
+        publishers.standardOutputPublisher
             .compactMap({ (data) -> [Just<String>]? in
                 String(data: data, encoding: .utf8)?.lines(omittingEmpty: false).map({
                     Just(String($0))
@@ -628,11 +575,11 @@ extension _AsyncProcess {
     }
     
     public func _standardErrorPublisher() -> AnyPublisher<Data, Never> {
-        _publishers.standardErrorPublisher.eraseToAnyPublisher()
+        publishers.standardErrorPublisher.eraseToAnyPublisher()
     }
     
     public func _exitPublisher() -> AnyPublisher<Int32, Never> {
-        _publishers.exitPublisher.eraseToAnyPublisher()
+        publishers.exitPublisher.eraseToAnyPublisher()
     }
     
     public func _send(data: Data) throws {
@@ -712,46 +659,9 @@ extension _AsyncProcess {
 @available(tvOS, unavailable)
 @available(watchOS, unavailable)
 extension _AsyncProcess {
-    @MutexProtected
-    public static var runningProcesses = [_AsyncProcess]()
-}
-
-@available(macOS 11.0, *)
-@available(iOS, unavailable)
-@available(macCatalyst, unavailable)
-@available(tvOS, unavailable)
-@available(watchOS, unavailable)
-extension _AsyncProcess {
     struct _Publishers {
         let standardOutputPublisher = ReplaySubject<Data, Never>()
         let standardErrorPublisher = ReplaySubject<Data, Never>()
         let exitPublisher = ReplaySubject<Int32, Never>()
-    }
-}
-
-// MARK: - Helpers
-
-extension String {
-    /// Converts the string to an escaped version suitable for terminal emulators.
-    func toTerminalEscapedString() -> String {
-        var escapedString = self
-        
-        // Replace common special characters with their escape sequences
-        let replacements: [String: String] = [
-            "\u{1B}": "\\e",      // Escape character
-            "\u{07}": "\\a",      // Bell
-            "\u{08}": "\\b",      // Backspace
-            "\u{0C}": "\\f",      // Formfeed
-            "\u{0A}": "\\n",      // Newline
-            "\u{0D}": "\\r",      // Carriage return
-            "\u{09}": "\\t",      // Horizontal tab
-            "\u{0B}": "\\v"       // Vertical tab
-        ]
-        
-        for (character, escapeCode) in replacements {
-            escapedString = escapedString.replacingOccurrences(of: character, with: escapeCode)
-        }
-        
-        return escapedString
     }
 }
