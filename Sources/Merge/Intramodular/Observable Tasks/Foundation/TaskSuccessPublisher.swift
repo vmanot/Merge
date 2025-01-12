@@ -41,7 +41,19 @@ extension ObservableTask {
     /// - throws: An error indicating task failure or task cancellation.
     public var value: Success {
         get async throws {
-            try await successPublisher.output()
+            do {
+                let result: Success = try await successPublisher.output()
+                
+                return result
+            } catch {
+                if let error = error as? ObservableTaskFailureProtocol {
+                    if let unwrappedError: any Swift.Error = error._opaque_error {
+                        throw unwrappedError
+                    }
+                }
+                
+                throw error
+            }
         }
     }
 }

@@ -6,6 +6,21 @@ import Diagnostics
 import Combine
 import Swallow
 
+protocol ObservableTaskFailureProtocol {
+    var _opaque_error: (any Swift.Error)? { get }
+}
+
+extension ObservableTaskFailure: ObservableTaskFailureProtocol {
+    public var _opaque_error: (any Swift.Error)? {
+        switch self {
+            case .canceled:
+                return nil
+            case .error(let error):
+                return error
+        }
+    }
+}
+
 /// An enumeration that represents the source of task failure.
 @frozen
 public enum ObservableTaskFailure<Error: Swift.Error>: _ErrorX, HashEquatable {
