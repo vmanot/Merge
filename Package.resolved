@@ -1,5 +1,5 @@
 {
-  "originHash" : "34cbc493f77f3125d8e5ee71eaf10a961a63d68471367996e3880e96a237e7f2",
+  "originHash" : "cf8aeb39140407ef260315e22535a122654246223b5c54a706505ceaaf72d6d2",
   "pins" : [
     {
       "identity" : "swallow",
@@ -7,7 +7,7 @@
       "location" : "https://github.com/vmanot/Swallow.git",
       "state" : {
         "branch" : "master",
-        "revision" : "6227a1114e341daf54e90df61e173599b187a9b1"
+        "revision" : "91ee5e11dc26618497e3e91a58fc96c010c592ce"
       }
     },
     {
@@ -24,8 +24,8 @@
       "kind" : "remoteSourceControl",
       "location" : "https://github.com/apple/swift-syntax.git",
       "state" : {
-        "revision" : "2bc86522d115234d1f588efe2bcb4ce4be8f8b82",
-        "version" : "510.0.3"
+        "revision" : "0687f71944021d616d34d922343dcef086855920",
+        "version" : "600.0.1"
       }
     }
   ],
