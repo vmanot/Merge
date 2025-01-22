@@ -10,7 +10,7 @@ concurrency:
 
 jobs:
   build:
-    runs-on: ghcr.io/cirruslabs/macos-runner:sonoma
+    runs-on: ghcr.io/cirruslabs/macos-runner:sequoia
     steps:
     - name: Checkout repository
       uses: actions/checkout@v3
