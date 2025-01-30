@@ -47,7 +47,7 @@ public enum _TaskRetryError: Error {
 @available(macOS 13.0, iOS 16.0, watchOS 9.0, tvOS 16.0, *)
 public func withTaskRetryPolicy<Result>(
     _ retryPolicy: _TaskRetryPolicy?,
-    operation: () async throws -> Result
+    operation: @Sendable () async throws -> Result
 ) async throws -> Result {
     guard let retryPolicy else {
         return try await operation()
