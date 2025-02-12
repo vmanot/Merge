@@ -2,6 +2,10 @@
 // Copyright (c) Vatsal Manot
 //
 
+import Combine
+#if canImport(Observation)
+import Observation
+#endif
 import Swallow
 
 public enum _ObservationRegistrarTrackedOperationKind {
