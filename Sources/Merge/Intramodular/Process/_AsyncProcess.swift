@@ -71,11 +71,13 @@ public class _AsyncProcess: Logging {
             
             self.process = existingProcess
         } else {
-            if options.isSuperset(of: [._useAppleScript, ._useAppleScript]) {
-                throw Never.Reason.unsupported
-            } else if options.contains(._useAuthorizationExecuteWithPrivileges) {
+            if options.contains(._useAuthorizationExecuteWithPrivileges) {
+                assert(!options.contains(._useAppleScript))
+                
                 self.process = _SecAuthorizedProcess()
             } else if options.contains(._useAppleScript) {
+                assert(!options.contains(._useAuthorizationExecuteWithPrivileges))
+                
                 self.process = OSAScriptProcess()
             } else {
                 self.process = Process()
