@@ -4,6 +4,7 @@
 
 @testable import Merge
 
+import SwiftDI
 import Swallow
 import XCTest
 
@@ -89,7 +90,7 @@ extension DependenciesTests {
     typealias Bar = _DependenciesTests_Bar
     
     struct Foo {
-        @Dependency() var baz: Bar
+        @TaskDependency() var baz: Bar
         
         @discardableResult
         func bongo() -> Int {

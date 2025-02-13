@@ -2,7 +2,7 @@
 // Copyright (c) Vatsal Manot
 //
 
-import Foundation
+import FoundationX
 import Swift
 import SwallowMacrosClient
 
@@ -157,13 +157,29 @@ extension OSAScriptProcess {
                 
                 argumentsString = "-c \\\"\(command)\\\""
             } else {
-                throw Never.Reason.unimplemented
+                argumentsString = arguments
+                    .map { (arg: String) -> String in
+                        let escaped: String = escaper(arg)
+
+                        if arg.contains(" ") || arg.contains("\"") || arg.contains("$") || arg.contains("`") {
+                            return "\\\"\(escaped)\\\""
+                        } else {
+                            return escaped
+                        }
+                    }
+                    .joined(separator: " ")
             }
         } else {
             argumentsString = nil
         }
         
-        let cmdStr = "do shell script \"\(executablePath) \(argumentsString ?? String())\" with administrator privileges"
+        let cmdStr: String
+        
+        if _AppSandboxManager.isAppSandboxed {
+            cmdStr = "do shell script \"\(executablePath) \(argumentsString ?? String())\""
+        } else {
+            cmdStr = "do shell script \"\(executablePath) \(argumentsString ?? String())\" with administrator privileges"
+        }
         
         let launchPath = "/usr/bin/osascript"
         let arguments = ["-e", cmdStr]

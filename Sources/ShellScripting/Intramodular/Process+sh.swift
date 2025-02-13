@@ -119,7 +119,6 @@ public func shq<D: Decodable>(
         currentDirectoryPath: workingDirectory
     )
     ._runSynchronously()
-    .stdout
     .decode(type, using: jsonDecoder)
 }
 
@@ -137,7 +136,7 @@ public func shq<D: Decodable>(
         currentDirectoryPath: workingDirectory
     )
     
-    return try await process._runAsynchronously().stdout.decode(type, using: jsonDecoder)
+    return try await process._runAsynchronously().decode(type, using: jsonDecoder)
 }
 
 @available(*, deprecated)

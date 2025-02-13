@@ -8,12 +8,20 @@ import Swallow
 #if os(macOS) || targetEnvironment(macCatalyst)
 public struct ProcessTerminationError: Error, Hashable, LocalizedError {
     public let process: Process
+    public let stdout: String?
+    public let stderr: String?
     public let status: Int32
     public let reason: Reason
         
     @available(macCatalyst, unavailable)
-    public init(_from process: Process) {
+    public init(
+        _from process: Process,
+        stdout: String? = nil,
+        stderr: String? = nil
+    ) {
         self.process = process
+        self.stdout = stdout
+        self.stderr = stderr
         self.status = process.terminationStatus
         self.reason = process.terminationReason.reason
     }
@@ -33,24 +41,23 @@ extension ProcessTerminationError: CustomStringConvertible {
     }
     
     public var errorDescription: String? {
-        var description = "\(process.launchPath ?? "Unknown command")"
+        var message = "Process terminated with status \(status)"
         
-        if let arguments = process.arguments {
-            description += " " + arguments.joined(separator: " ")
+        if let executablePath = process.executableURL?.path {
+            message += " (\(executablePath))"
         }
         
-        description += " failed because "
+        message += "\nReason: \(reason)"
         
-        switch reason {
-            case .exit:
-                description += "it exited with code \(status)."
-            case .uncaughtSignal:
-                description += "it received an uncaught signal with code \(status)."
-            case .unknownDefault:
-                description += "of an unknown termination reason with code \(status)."
+        if let stderr = stderr, !stderr.isEmpty {
+            message += "\nStandard Error: \(stderr.trimmingCharacters(in: .whitespacesAndNewlines))"
         }
         
-        return description
+        if let stdout = stdout, !stdout.isEmpty {
+            message += "\nStandard Output: \(stdout.trimmingCharacters(in: .whitespacesAndNewlines))"
+        }
+        
+        return message
     }
 }
 

@@ -30,7 +30,19 @@ class OSAScriptProcessTests: XCTestCase {
         XCTAssertEqual(process.standardError as? Pipe, testOutput)
     }
     
-   /* func testRunMethod() {
+    /*func testShit() {
+        let process = OSAScriptProcess()
+
+        process.executableURL = URL(fileURLWithPath: "/usr/bin/open")
+        process.arguments = [
+            "-n",
+            "/Applications/Google Chrome.app",
+            "--args",
+            "--load-extension=/Users/vatsal/Library/Developer/Xcode/DerivedData/All-bkitrutrdzcgrbeojryrrgfeapuk/Build/Products/Debug/BrowserExtensionContainer.app/Contents/Resources/chrome-mv3/"
+        ]
+    }*/
+    
+    func testSayHello() {
         let process = OSAScriptProcess()
         
         process.executableURL = URL(fileURLWithPath: "/usr/bin/say")
@@ -47,7 +59,27 @@ class OSAScriptProcessTests: XCTestCase {
         
         process.waitUntilExit()
         XCTAssertEqual(process.terminationStatus, 0)
-    }*/
+    }
+    
+    func testSayHelloUsingAsyncProcess() async throws {
+        let process = try _AsyncProcess(
+            executableURL: URL(fileURLWithPath: "/usr/bin/open"),
+            arguments: [
+                "-n",
+                "/Applications/Google Chrome.app",
+                "--args",
+                "--load-extension=/Users/vatsal/Library/Developer/Xcode/DerivedData/All-bkitrutrdzcgrbeojryrrgfeapuk/Build/Products/Debug/BrowserExtensionContainer.app/Contents/Resources/chrome-mv3/"
+            ],
+            options: [._useAppleScript]
+        )
+        
+        
+        do {
+            try await process.run()
+        } catch {
+            XCTFail("Process failed to run: \(error)")
+        }
+    }
     
     func testRunMethodWithUnsetExecutableURLShouldThrow() {
         let process = OSAScriptProcess()

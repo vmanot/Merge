@@ -40,7 +40,7 @@ class ShellProcessTests: XCTestCase {
         XCTAssertEqual(output, "Hello World with spaces")
     }
 
-    func testShellEnvironment() {
+    func testPreferredUNIXShellName() {
         let bashCommand = "echo 'Hello, World!'"
         let zshCommand = "ls -l"
         let noShellCommand = "/bin/ls"
@@ -105,26 +105,26 @@ class ShellProcessTests: XCTestCase {
     }
     
     func testBashShellPathAndArguments() {
-        let bash = Process.ShellEnvironment.bash
-        let result = bash.shellPathAndArguments(command: "echo Hello")
+        let bash = PreferredUNIXShell.Name.bash
+        let result = bash.deriveExecutableURLAndArguments(fromCommand: "echo Hello")
         
-        XCTAssertEqual(result.path, URL(fileURLWithPath: "/bin/bash"))
+        XCTAssertEqual(result.executableURL, URL(fileURLWithPath: "/bin/bash"))
         XCTAssertEqual(result.arguments, ["-l", "-c", "echo Hello"])
     }
     
     func testZshShellPathAndArguments() {
-        let zsh = Process.ShellEnvironment.zsh
-        let result = zsh.shellPathAndArguments(command: "echo Hello")
+        let zsh = PreferredUNIXShell.Name.zsh
+        let result = zsh.deriveExecutableURLAndArguments(fromCommand: "echo Hello")
         
-        XCTAssertEqual(result.path, URL(fileURLWithPath: "/bin/zsh"))
+        XCTAssertEqual(result.executableURL, URL(fileURLWithPath: "/bin/zsh"))
         XCTAssertEqual(result.arguments, ["-l", "-c", "echo Hello"])
     }
     
     func testNoneShellPathAndArguments() {
-        let none = Optional<Process.ShellEnvironment>.none
-        let result = none.shellPathAndArguments(command: "/usr/local/bin/custom")
+        let none = Optional<PreferredUNIXShell.Name>.none
+        let result = none.deriveExecutableURLAndArguments(fromCommand: "/usr/local/bin/custom")
         
-        XCTAssertEqual(result.path, URL(fileURLWithPath: "/usr/local/bin/custom"))
+        XCTAssertEqual(result.executableURL, URL(fileURLWithPath: "/usr/local/bin/custom"))
         XCTAssertTrue(result.arguments.isEmpty)
     }
     

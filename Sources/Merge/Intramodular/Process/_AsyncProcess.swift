@@ -237,7 +237,7 @@ extension _AsyncProcess {
     
     @_disfavoredOverload
     public func run() {
-        Task.detached(priority: .userInitiated) {
+        Task {
             do {
                 try await self.run()
             } catch {
@@ -542,13 +542,25 @@ extension _AsyncProcess {
         if let error {
             result = .failure(error)
         } else {
-            result = await Result(catching: {
-                try await Process.RunResult(
-                    process: process,
-                    stdout: self.standardStreamsBuffer._standardOutputStringUsingUTF8(),
-                    stderr: self.standardStreamsBuffer._standardErrorStringUsingUTF8(),
-                    terminationError: process.terminationError
+            result = await Result(
+                catching: { () -> Process.RunResult in
+                    let stdout: String? = try? await self.standardStreamsBuffer._standardOutputStringUsingUTF8()
+                    let stderr: String? = try? await self.standardStreamsBuffer._standardErrorStringUsingUTF8()
+                    
+                    let result = try Process.RunResult(
+                        process: process,
+                        stdout: stdout,
+                        stderr: stderr,
+                        terminationError: process.terminationError.map {
+                            ProcessTerminationError(
+                                _from: $0.process,
+                                stdout: stdout,
+                                stderr: stderr
+                            )
+                        }
                 )
+                
+                return result
             })
         }
         

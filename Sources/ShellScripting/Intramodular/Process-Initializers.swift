@@ -8,13 +8,6 @@ import Foundation
 import Swift
 
 extension Process {
-    /// Enum to represent different shell environments or direct execution.
-    public enum ShellEnvironment {
-        case bash
-        case zsh
-        case unspecified
-    }
-    
     public struct ArgumentLiteral: Hashable, ExpressibleByStringLiteral, Sendable {
         public enum Option: Hashable, Sendable {
             case escapeSpaces
@@ -41,14 +34,14 @@ extension Process {
             isQuoted: Bool = false
         ) {
             let value: String = value.isFileURL ? value.path : value.absoluteString
-          
+            
             self.init(
                 value,
                 options: options,
                 isQuoted: isQuoted
             )
         }
-
+        
         public init(
             stringLiteral value: String
         ) {
@@ -82,14 +75,14 @@ extension Process {
     /// Initializes a `Process` to run a command using a specified shell or directly, with given arguments and options.
     public convenience init(
         command: String,
-        shell: ShellEnvironment? = .unspecified,
+        shell: PreferredUNIXShell.Name? = .unspecified,
         arguments: [ArgumentLiteral] = [],
         environment: [String: String] = [:],
         currentDirectoryPath: String? = nil
     ) {
         self.init()
         
-        var shell: ShellEnvironment? = shell
+        var shell: PreferredUNIXShell.Name? = shell
         
         if shell == .unspecified {
             if command.hasPrefix("/bin") || command.hasPrefix("/usr/bin") {
@@ -99,7 +92,7 @@ extension Process {
             }
         }
         
-        let shellArguments = shell.shellPathAndArguments(command: command)
+        let shellArguments = shell.deriveExecutableURLAndArguments(fromCommand: command)
         
         self.executableURL = shellArguments.0
         
@@ -147,7 +140,7 @@ extension Process {
     
     public convenience init(
         command: String,
-        shell: ShellEnvironment? = .unspecified,
+        shell: PreferredUNIXShell.Name? = .unspecified,
         argumentString: String,
         environment: [String: String] = [:],
         currentDirectoryPath: String? = nil
@@ -157,7 +150,7 @@ extension Process {
         let arguments: [ArgumentLiteral] = splitArguments.map {
             ArgumentLiteral($0,  isQuoted: $0.contains("\"") || $0.contains("'"))
         }
-    
+        
         self.init(
             command: command,
             shell: shell,
@@ -169,34 +162,6 @@ extension Process {
 }
 
 // MARK: - Internal
-
-extension Process.ShellEnvironment {
-    /// Returns the shell executable path and initial arguments based on the environment.
-    func shellPathAndArguments(
-        command: String
-    ) -> (path: URL, arguments: [String]) {
-        switch self {
-            case .bash:
-                return (URL(fileURLWithPath: "/bin/bash"), ["-l", "-c", command])
-            case .zsh:
-                return (URL(fileURLWithPath: "/bin/zsh"), ["-l", "-c", command])
-            case .unspecified:
-                fatalError()
-        }
-    }
-}
-
-extension Optional where Wrapped == Process.ShellEnvironment {
-    func shellPathAndArguments(
-        command: String
-    ) -> (path: URL, arguments: [String]) {
-        guard let shell = self else {
-            return (URL(fileURLWithPath: command), [])
-        }
-        
-        return shell.shellPathAndArguments(command: command)
-    }
-}
 
 extension Process {
     private struct ArgumentStringSplitState {
