@@ -96,11 +96,13 @@ public class _AsyncProcess: Logging {
     ) throws {
         let options: Set<_AsyncProcess.Option> = Set(options ?? [])
         
-        if options.isSuperset(of: [._useAppleScript, ._useAppleScript]) {
-            self.process = _SecAuthorizedProcess()
-        } else if options.contains(._useAuthorizationExecuteWithPrivileges) {
+        if options.contains(._useAuthorizationExecuteWithPrivileges) {
+            assert(!options.contains(._useAppleScript))
+            
             self.process = _SecAuthorizedProcess()
         } else if options.contains(._useAppleScript) {
+            assert(!options.contains(._useAuthorizationExecuteWithPrivileges))
+
             self.process = OSAScriptProcess()
         } else {
             self.process = Process()
