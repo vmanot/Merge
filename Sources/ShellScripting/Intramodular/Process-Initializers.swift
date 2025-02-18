@@ -5,6 +5,7 @@
 #if os(macOS)
 
 import Foundation
+import Merge
 import Swift
 
 extension Process {
@@ -254,6 +255,20 @@ extension Process {
         _ state: inout ArgumentStringSplitState
     ) {
         state.currentPart.append(char)
+    }
+}
+
+extension SystemShell {
+    public func run(
+        executablePath: String,
+        arguments: [Process.ArgumentLiteral],
+        environment: Environment = .zsh
+    ) async throws -> Process.RunResult {
+        try await run(
+            executableURL: try URL(string: executablePath).unwrap(),
+            arguments: arguments.map({ $0.value }),
+            environment: environment
+        )
     }
 }
 
