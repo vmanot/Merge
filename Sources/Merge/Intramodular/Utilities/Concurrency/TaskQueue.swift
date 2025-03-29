@@ -74,7 +74,7 @@ public final class TaskQueue: Sendable {
     
     public func waitForAll() async {
         #try(.optimistic) {
-            try await queue.waitForAll()
+            try await self.queue.waitForAll()
         }
     }
 }

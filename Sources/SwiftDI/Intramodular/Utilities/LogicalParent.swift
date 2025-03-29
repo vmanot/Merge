@@ -113,7 +113,7 @@ extension LogicalParent: Hashable {
     
     public func hash(into hasher: inout Hasher) {
         #try(.optimistic) {
-            try hasher.combine(_hashableView)
+            try hasher.combine(self._hashableView)
         }
     }
 }

@@ -207,14 +207,14 @@ extension _ObservableTaskGroup {
         ofMostRecent casePath: CasePath<Key, T>
     ) -> ObservableTaskStatusDescription? {
         return #try(.optimistic) { () -> ObservableTaskStatusDescription? in
-            guard let id  = try _customIdentifier(ofMostRecent: casePath) else {
+            guard let id  = try self._customIdentifier(ofMostRecent: casePath) else {
                 return nil
             }
             
             if let status = self[customIdentifier: id].last?.statusDescription {
                 return status
             } else {
-                return lastStatus(forCustomTaskIdentifier: id)
+                return self.lastStatus(forCustomTaskIdentifier: id)
             }
         }
     }
