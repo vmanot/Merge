@@ -6,8 +6,7 @@ import FoundationX
 import Swallow
 
 /// A type that represents the result of a running a `Process`.
-@Hashable
-public struct _ProcessRunResult: Logging, @unchecked Sendable {
+public struct _ProcessRunResult: Hashable, Logging, @unchecked Sendable {
     #if os(macOS) || targetEnvironment(macCatalyst)
     public let process: Process
     #endif
