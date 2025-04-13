@@ -16,7 +16,7 @@ import Swallow
 /// The implementation supports quick bursts of requests which can be executed
 /// without any delays when "the bucket is full". This is important to prevent
 /// rate limiter from affecting "normal" requests flow.
-public actor _TokenBucketRateLimiter: Sendable {
+public actor _TokenBucketRateLimitingTaskScheduler: Sendable {
     // This type isn't really Sendable and requires the caller to use the same
     // queue as it does for synchronization.
     
@@ -86,7 +86,7 @@ public actor _TokenBucketRateLimiter: Sendable {
     }
 }
 
-extension _TokenBucketRateLimiter: _AsyncTaskScheduler {
+extension _TokenBucketRateLimitingTaskScheduler: _AsyncTaskScheduler {
     public nonisolated func schedule(
         _ task: @escaping () async -> Void
     ) {

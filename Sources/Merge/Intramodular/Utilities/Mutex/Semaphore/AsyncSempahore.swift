@@ -3,6 +3,7 @@
 //
 
 import Swallow
+import SwallowMacrosClient
 
 /// An asynchronous semaphore that limits access to a resource to a specified number of concurrent operations.
 ///
@@ -42,7 +43,7 @@ public actor _AsyncActorSemaphore: Sendable {
         if count < limit {
             count += 1
         } else {
-            throw _PlaceholderError()
+            #throw
         }
     }
     
@@ -65,7 +66,7 @@ public actor _AsyncActorSemaphore: Sendable {
     /// Throws an error if there are no tasks to signal.
     public func signalOrFail() throws {
         guard count > 0 else {
-            throw _PlaceholderError()
+            #throw
         }
         
         signal()

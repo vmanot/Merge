@@ -39,7 +39,7 @@ extension AsyncSequence {
         for try await element in self {
             if let match = try transform(element) {
                 guard result == nil else {
-                    throw _PlaceholderError()
+                    #throw
                 }
                 
                 result = match

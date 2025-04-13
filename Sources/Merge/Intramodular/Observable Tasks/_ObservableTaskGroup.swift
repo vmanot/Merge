@@ -121,7 +121,7 @@ extension _ObservableTaskGroup {
         
         defer {
             #try(.optimistic) {
-                try _tryAssert(filtered.isEmpty)
+                try #assert(filtered.isEmpty)
             }
         }
         
