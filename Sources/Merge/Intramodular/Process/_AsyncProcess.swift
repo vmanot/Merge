@@ -18,12 +18,18 @@ extension _AsyncProcess {
     public static var runningProcesses = [_AsyncProcess]()
 }
 
+public protocol _AsyncProcessDelegate {
+    
+}
+
 @available(macOS 11.0, *)
 @available(iOS, unavailable)
 @available(macCatalyst, unavailable)
 @available(tvOS, unavailable)
 @available(watchOS, unavailable)
 public class _AsyncProcess: Logging {
+    public typealias _StandardStreamsBuffer = _StandardInputOutputStreamsBuffer
+    
     public let options: Set<Option>
     #if os(macOS)
     public let process: Process

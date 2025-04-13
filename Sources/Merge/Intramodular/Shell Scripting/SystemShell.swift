@@ -2,6 +2,7 @@
 // Copyright (c) Vatsal Manot
 //
 
+import Diagnostics
 import Foundation
 import Swallow
 
@@ -10,7 +11,7 @@ import Swallow
 @available(macCatalyst, unavailable)
 @available(tvOS, unavailable)
 @available(watchOS, unavailable)
-public final class SystemShell {
+public final class SystemShell: Logging {
     public var environmentVariables: [String: String]
     public var currentDirectoryURL: URL?
     
