@@ -64,6 +64,17 @@ extension DispatchQueue {
             target: target
         )
     }
+    
+    public static func globalConcurrent(
+        label: String,
+        qos: DispatchQoS
+    ) -> DispatchQueue {
+        DispatchQueue(
+            label: label,
+            attributes: .concurrent,
+            target: .global(qos: qos.qosClass)
+        )
+    }
 }
 
 extension DispatchQueue {
