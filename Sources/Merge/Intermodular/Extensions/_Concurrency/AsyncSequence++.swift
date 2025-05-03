@@ -3,6 +3,7 @@
 //
 
 import Swallow
+import SwallowMacrosClient
 
 extension AsyncSequence {
     public func collect() async rethrows -> Array<Element> {
