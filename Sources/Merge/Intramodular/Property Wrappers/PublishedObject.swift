@@ -56,13 +56,13 @@ public final class PublishedObject<Value>: PropertyWrapper {
         get {
             let published = enclosingInstance[keyPath: storageKeyPath]
             
-            published.setUpObjectWillChangeRelays(from: published.wrappedValue, to: enclosingInstance)
+            published.setUpObjectWillChangeRelays(from: published.wrappedValue, toEnclosingInstance: enclosingInstance)
             
             return published.wrappedValue
         } set {
             let published = enclosingInstance[keyPath: storageKeyPath]
             
-            published.setUpObjectWillChangeRelays(from: newValue, to: enclosingInstance)
+            published.setUpObjectWillChangeRelays(from: newValue, toEnclosingInstance: enclosingInstance)
             
             published.wrappedValue = newValue
         }
@@ -70,11 +70,13 @@ public final class PublishedObject<Value>: PropertyWrapper {
     
     private func setUpObjectWillChangeRelays<T>(
         from value: WrappedValue,
-        to enclosingInstance: T
+        toEnclosingInstance enclosingInstance: T
     ) {
         if objectWillChangeRelay.isUninitialized {
             objectWillChangeRelay.source = value
             objectWillChangeRelay.destination = enclosingInstance
+        } else {
+            objectWillChangeRelay.source = value
         }
         
         if let wrappedBoxRelay = _wrappedValueBoxWillChangeRelay, wrappedBoxRelay.isUninitialized {
