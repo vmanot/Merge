@@ -6,17 +6,12 @@ import Foundation
 import Combine
 import Swallow
 
-@available(macOS 11.0, *)
-@available(iOS, unavailable)
-@available(macCatalyst, unavailable)
-@available(tvOS, unavailable)
-@available(watchOS, unavailable)
 extension SystemShell {
     public struct Environment {
-        let launchPath: String?
-        let deriveArguments: (_ command: String) -> [String]
+        public let launchPath: String?
+        public let deriveArguments: (_ command: String) -> [String]
         
-        var launchURL: URL? {
+        public var launchURL: URL? {
             guard let launchPath else {
                 return nil
             }
@@ -88,11 +83,6 @@ extension SystemShell.Environment {
 
 // MARK: - Initializers
 
-@available(macOS 11.0, *)
-@available(iOS, unavailable)
-@available(macCatalyst, unavailable)
-@available(tvOS, unavailable)
-@available(watchOS, unavailable)
 extension SystemShell.Environment {
     public static var bash: Self {
         Self(

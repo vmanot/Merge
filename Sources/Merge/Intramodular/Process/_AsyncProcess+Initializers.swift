@@ -52,4 +52,31 @@ extension _AsyncProcess {
         )
     }
 }
+#else
+@available(macOS 11.0, *)
+@available(iOS, unavailable)
+@available(macCatalyst, unavailable)
+@available(tvOS, unavailable)
+@available(watchOS, unavailable)
+extension _AsyncProcess {
+    public convenience init(
+        executableURL: URL?,
+        arguments: [String],
+        currentDirectoryURL: URL? = nil,
+        environmentVariables: [String: String] = [:],
+        options: [_AsyncProcess.Option]?
+    ) throws {
+        fatalError(.unavailable)
+    }
+    
+    public convenience init(
+        launchPath: String?,
+        arguments: [String],
+        currentDirectoryURL: URL? = nil,
+        environmentVariables: [String: String] = [:],
+        options: [_AsyncProcess.Option]?
+    ) throws {
+        fatalError(.unavailable)
+    }
+}
 #endif

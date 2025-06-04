@@ -6,21 +6,15 @@ import Diagnostics
 import Foundation
 import Swallow
 
-@available(macOS 11.0, *)
-@available(iOS, unavailable)
-@available(macCatalyst, unavailable)
-@available(tvOS, unavailable)
-@available(watchOS, unavailable)
 public final class SystemShell: Logging {
     public var environmentVariables: [String: String]
     public var currentDirectoryURL: URL?
-    
-    public var options: [_AsyncProcess.Option]?
+    public var options: [_AsyncProcessOption]?
     
     public init(
         environment: [String: String]? = nil,
         currentDirectoryURL: URL? = nil,
-        options: [_AsyncProcess.Option]? = nil
+        options: [_AsyncProcessOption]? = nil
     ) {
         self.environmentVariables = ProcessInfo.processInfo.environment.merging(environment ?? [:], uniquingKeysWith: { lhs, rhs in rhs })
         self.currentDirectoryURL = currentDirectoryURL
@@ -106,7 +100,12 @@ public actor _ShellActor {
     public static let shared: ActorType = ActorType()
 }
 
-#if os(macOS)
+@available(macOS 11.0, *)
+@available(iOS 13.4, *)
+@available(iOS, unavailable)
+@available(macCatalyst, unavailable)
+@available(tvOS, unavailable)
+@available(watchOS, unavailable)
 extension _AsyncProcess {
     public convenience init(
         command: String,
@@ -132,7 +131,6 @@ extension _AsyncProcess {
         }
     }
 }
-#endif
 
 // MARK: - Deprecated
 

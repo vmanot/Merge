@@ -7,7 +7,7 @@
 import Security
 import Swift
 
-public enum ProcessAuthorizationError: Error {
+public enum ProcessAuthorizationError: CustomStringConvertible, Error {
     case invalidSet
     case invalidRef
     case invalidTag
@@ -62,7 +62,7 @@ public enum ProcessAuthorizationError: Error {
         }
     }
     
-    var description: String {
+    public var description: String {
         switch self {
             case .invalidSet:
                 return "The authorization rights are invalid."

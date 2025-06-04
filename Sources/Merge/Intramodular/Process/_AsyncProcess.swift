@@ -53,6 +53,18 @@ public class _AsyncProcess: Logging {
     @_OSUnfairLocked
     private var _resolvedRunResult: Result<_ProcessRunResult, Error>?
             
+    public var standardInputPipe: Pipe? {
+#if os(macOS)
+        if state == .notLaunch, _standardInputPipe == nil {
+            _standardInputPipe = Pipe()
+            process.standardInput = _standardInputPipe
+        }
+        return _standardInputPipe
+#else
+        fatalError(.unsupported)
+#endif
+    }
+
     public var _standardOutputString: String {
         get async throws {
             try await standardStreamsBuffer._standardOutputStringUsingUTF8()
@@ -196,18 +208,6 @@ extension _AsyncProcess {
     }
     #endif
 
-    public var standardInputPipe: Pipe? {
-        #if os(macOS)
-        if state == .notLaunch, _standardInputPipe == nil {
-            _standardInputPipe = Pipe()
-            process.standardInput = _standardInputPipe
-        }
-        return _standardInputPipe
-        #else
-        fatalError(.unsupported)
-        #endif
-    }
-
     @discardableResult
     public func run() async throws -> _ProcessRunResult {
         #if os(macOS)
@@ -282,6 +282,21 @@ extension _AsyncProcess {
         Task {
             try await terminate()
         }
+    }
+}
+#else
+@available(macOS 11.0, *)
+@available(iOS, unavailable)
+@available(macCatalyst, unavailable)
+@available(tvOS, unavailable)
+@available(watchOS, unavailable)
+extension _AsyncProcess {
+    @available(iOS, unavailable)
+    @available(macCatalyst, unavailable)
+    @available(tvOS, unavailable)
+    @available(watchOS, unavailable)
+    public func run() async throws -> _ProcessRunResult {
+        fatalError(.unavailable)
     }
 }
 #endif
@@ -651,28 +666,33 @@ extension _AsyncProcess {
             return true
         }
     }
-    
-    @available(iOS, unavailable)
-    @available(macCatalyst, unavailable)
-    @available(tvOS, unavailable)
-    @available(watchOS, unavailable)
-    public enum Option: Hashable {
-        case _useAppleScript
-        case _useAuthorizationExecuteWithPrivileges
-        case _forwardStdoutStderr(to: _ProcessStandardOutputSink)
-        
-        public static var _forwardStdoutStderr: Self {
-            ._forwardStdoutStderr(to: .terminal)
-        }
-        
-        public var _stdoutStderrSink: _ProcessStandardOutputSink {
-            guard case let ._forwardStdoutStderr(sink) = self else {
-                return .null
-            }
+}
 
-            return sink
-        }
+public enum _AsyncProcessOption: Hashable {
+    case _useAppleScript
+    case _useAuthorizationExecuteWithPrivileges
+    case _forwardStdoutStderr(to: _ProcessStandardOutputSink)
+    
+    public static var _forwardStdoutStderr: Self {
+        ._forwardStdoutStderr(to: .terminal)
     }
+    
+    public var _stdoutStderrSink: _ProcessStandardOutputSink {
+        guard case let ._forwardStdoutStderr(sink) = self else {
+            return .null
+        }
+        
+        return sink
+    }
+}
+
+@available(macOS 11.0, *)
+@available(iOS, unavailable)
+@available(macCatalyst, unavailable)
+@available(tvOS, unavailable)
+@available(watchOS, unavailable)
+extension _AsyncProcess {
+    public typealias Option = _AsyncProcessOption
 }
 
 @available(macOS 11.0, *)
