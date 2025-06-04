@@ -7,7 +7,16 @@
       "location" : "https://github.com/vmanot/Swallow.git",
       "state" : {
         "branch" : "master",
-        "revision" : "91ee5e11dc26618497e3e91a58fc96c010c592ce"
+        "revision" : "6a996c765a000e6c744276300ac5c01c86070fe1"
+      }
+    },
+    {
+      "identity" : "swift-atomics",
+      "kind" : "remoteSourceControl",
+      "location" : "https://github.com/apple/swift-atomics.git",
+      "state" : {
+        "revision" : "cd142fd2f64be2100422d658e7411e39489da985",
+        "version" : "1.2.0"
       }
     },
     {
@@ -15,17 +24,17 @@
       "kind" : "remoteSourceControl",
       "location" : "https://github.com/apple/swift-collections",
       "state" : {
-        "revision" : "671108c96644956dddcd89dd59c203dcdb36cec7",
-        "version" : "1.1.4"
+        "revision" : "c1805596154bb3a265fd91b8ac0c4433b4348fb0",
+        "version" : "1.2.0"
       }
     },
     {
       "identity" : "swift-syntax",
       "kind" : "remoteSourceControl",
-      "location" : "https://github.com/apple/swift-syntax.git",
+      "location" : "https://github.com/swift-precompiled/swift-syntax",
       "state" : {
-        "revision" : "0687f71944021d616d34d922343dcef086855920",
-        "version" : "600.0.1"
+        "branch" : "release/6.1",
+        "revision" : "fc197a24fb2e77609fbe3d94624e36f84d758099"
       }
     }
   ],
