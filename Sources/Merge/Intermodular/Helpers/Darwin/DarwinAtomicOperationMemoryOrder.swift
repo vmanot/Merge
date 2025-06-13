@@ -2,6 +2,8 @@
 // Copyright (c) Vatsal Manot
 //
 
+#if !canImport(PermissionKit)
+
 import Darwin
 import Swallow
 
@@ -78,3 +80,5 @@ extension memory_order: Codable {
         try rawValue.encode(to: encoder)
     }
 }
+
+#endif
