@@ -4,8 +4,8 @@
 
 #if os(macOS)
 
-import Foundation
 import Combine
+import Foundation
 
 public enum ProcessExitFailure: Error, Hashable {
     /// The process exited with a non-zero exit status.

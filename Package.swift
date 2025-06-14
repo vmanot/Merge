@@ -1,4 +1,4 @@
-// swift-tools-version:5.10
+// swift-tools-version:6.0
 
 import PackageDescription
 
@@ -18,7 +18,7 @@ var package = Package(
                 "ShellScripting",
                 "SwiftDI",
                 "Merge"
-            ]
+            ],
         )
     ],
     dependencies: [
@@ -32,7 +32,8 @@ var package = Package(
             ],
             path: "Sources/SwiftDI",
             swiftSettings: [
-                .enableExperimentalFeature("AccessLevelOnImport")
+                .enableExperimentalFeature("AccessLevelOnImport"),
+                .swiftLanguageMode(.v5),
             ]
         ),
         .target(
@@ -44,7 +45,8 @@ var package = Package(
             ],
             path: "Sources/Merge",
             swiftSettings: [
-                .enableExperimentalFeature("AccessLevelOnImport")
+                .enableExperimentalFeature("AccessLevelOnImport"),
+                .swiftLanguageMode(.v5),
             ]
         ),
         .target(
@@ -54,7 +56,8 @@ var package = Package(
             ],
             path: "Sources/ShellScripting",
             swiftSettings: [
-                .enableExperimentalFeature("AccessLevelOnImport")
+                .enableExperimentalFeature("AccessLevelOnImport"),
+                .swiftLanguageMode(.v5),
             ]
         ),
         .target(
@@ -66,7 +69,8 @@ var package = Package(
             ],
             path: "Sources/CommandLineToolSupport",
             swiftSettings: [
-                .enableExperimentalFeature("AccessLevelOnImport")
+                .enableExperimentalFeature("AccessLevelOnImport"),
+                .swiftLanguageMode(.v5),
             ]
         ),
         .testTarget(
@@ -76,7 +80,10 @@ var package = Package(
                 "Merge",
                 "ShellScripting",
             ],
-            path: "Tests"
+            path: "Tests",
+            swiftSettings: [
+                .swiftLanguageMode(.v5)
+            ]
         )
     ]
 )

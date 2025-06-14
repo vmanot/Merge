@@ -2,8 +2,8 @@
 // Copyright (c) Vatsal Manot
 //
 
-import Dispatch
 import Combine
+import Dispatch
 import Swift
 
 extension Future {

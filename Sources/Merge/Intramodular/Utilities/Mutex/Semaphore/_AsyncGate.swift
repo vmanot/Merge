@@ -1,4 +1,7 @@
-//  Created by Wade Tregaskis on 2024-03-05.
+//
+// Copyright (c) Vatsal Manot
+//
+
 import Foundation // For NSRecursiveLock.  TODO: remove this dependency on Foundation (extract the `NSRecursiveLock` implementation into a standalone package?).  TODO: make this `@usableFromInline internal` once `@usableFromInline` is correctly supported.  https://forums.swift.org/t/usablefrominline-not-supported-on-imports-in-swift-6/72379/2
 
 /// Controls execution of async task(s) like a gate that can be opened or closed, with tasks having to wait to enter while it's closed.

@@ -11,8 +11,8 @@ import UIKit
 #elseif os(macOS)
 import AppKit
 #elseif os(watchOS)
-import WatchKit
 import UIKit
+import WatchKit
 #endif
 
 extension AppRunningState {

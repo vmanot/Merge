@@ -2,8 +2,8 @@
 // Copyright (c) Vatsal Manot
 //
 
-import Foundation
 import Combine
+import Foundation
 import Swallow
 
 /// A type of object with a publisher that emits after the object has changed.

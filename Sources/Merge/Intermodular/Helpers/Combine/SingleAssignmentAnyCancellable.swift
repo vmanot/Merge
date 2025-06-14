@@ -2,8 +2,8 @@
 // Copyright (c) Vatsal Manot
 //
 
-import Dispatch
 import Combine
+import Dispatch
 import Swift
 
 public final class SingleAssignmentAnyCancellable: Cancellable, @unchecked Sendable {

@@ -2,8 +2,8 @@
 // Copyright (c) Vatsal Manot
 //
 
-import Diagnostics
 import Combine
+import Diagnostics
 import Swallow
 
 protocol ObservableTaskFailureProtocol {

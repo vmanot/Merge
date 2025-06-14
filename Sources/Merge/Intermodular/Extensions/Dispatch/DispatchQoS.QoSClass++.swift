@@ -2,8 +2,8 @@
 // Copyright (c) Vatsal Manot
 //
 
-import Foundation
 import Dispatch
+import Foundation
 import Swallow
 
 extension DispatchQoS.QoSClass {

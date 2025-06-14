@@ -4,8 +4,8 @@
 
 private import Combine
 import Diagnostics
-import SwiftUI
 import Swallow
+import SwiftUI
 
 protocol _TaskDependencyPropertyWrapperType: PropertyWrapper {
     var initialTaskDependencies: TaskDependencies { get }

@@ -2,9 +2,9 @@
 // Copyright (c) Vatsal Manot
 //
 
+import Combine
 import Dispatch
 import Foundation
-import Combine
 import Swallow
 
 public struct MainThreadScheduler: Scheduler, @unchecked Sendable {

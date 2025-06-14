@@ -2,8 +2,8 @@
 // Copyright (c) Vatsal Manot
 //
 
-import Foundation
 import Combine
+import Foundation
 import Swallow
 
 /// A type that forwards updates published from the `ObservableObject` annotated with this wrapper.

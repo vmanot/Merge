@@ -3,8 +3,8 @@
 //
 
 import Dispatch
-import FoundationX
 import Foundation
+import FoundationX
 import Swallow
 
 extension DispatchQueue {

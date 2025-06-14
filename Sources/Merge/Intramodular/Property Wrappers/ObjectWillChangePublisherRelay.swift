@@ -2,8 +2,8 @@
 // Copyright (c) Vatsal Manot
 //
 
-import Foundation
 import Combine
+import Foundation
 import Swallow
 
 public final class ObjectWillChangePublisherRelay<Source, Destination>: ObservableObject {

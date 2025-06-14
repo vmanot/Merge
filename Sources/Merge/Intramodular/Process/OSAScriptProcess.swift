@@ -3,8 +3,8 @@
 //
 
 import FoundationX
-import Swift
 import SwallowMacrosClient
+import Swift
 
 #if os(macOS)
 /// A `Process` subclass that internally uses `AppleScript` to execute itself.
