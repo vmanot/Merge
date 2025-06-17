@@ -24,7 +24,9 @@ public final class Cancellables: @unchecked Sendable, Cancellable {
     }
     
     /// Adds the given cancellable object to the set.
-    public func insert<C: Cancellable>(_ cancellable: C) {
+    public func insert<C: Cancellable>(
+        _ cancellable: C
+    ) {
         queue.async {
             cancellable.store(in: &self.cancellables)
         }

@@ -6,7 +6,7 @@ var package = Package(
     name: "Merge",
     platforms: [
         .iOS(.v13),
-        .macOS(.v11),
+        .macOS(.v13),
         .tvOS(.v13),
         .watchOS(.v6)
     ],
@@ -22,7 +22,8 @@ var package = Package(
         )
     ],
     dependencies: [
-        .package(url: "https://github.com/vmanot/Swallow.git", branch: "master")
+        .package(url: "https://github.com/vmanot/Swallow.git", branch: "master"),
+        .package(url: "https://github.com/preternatural-fork/swift-subprocess.git", branch: "main")
     ],
     targets: [
         .target(
@@ -52,7 +53,8 @@ var package = Package(
         .target(
             name: "ShellScripting",
             dependencies: [
-                "Merge"
+                "Merge",
+                .product(name: "Subprocess", package: "swift-subprocess")
             ],
             path: "Sources/ShellScripting",
             swiftSettings: [
