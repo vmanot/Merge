@@ -1,4 +1,4 @@
-// swift-tools-version:6.0
+// swift-tools-version:6.1
 
 import PackageDescription
 
@@ -87,5 +87,6 @@ var package = Package(
                 .swiftLanguageMode(.v5)
             ]
         ),
-    ]
+    ],
+    swiftLanguageModes: [.v5]
 )
