@@ -23,7 +23,8 @@ extension EnvironmentValues {
     public var _observableTaskGroup: (any _ObservableTaskGroupType)? {
         get {
             self[_ObservableTaskGroupKey.self]
-        } set {
+        }
+        set {
             self[_ObservableTaskGroupKey.self] = newValue
         }
     }

@@ -61,7 +61,7 @@ extension _ProcessRunResult {
     public var stderrString: String? {
         stderr?.toStringTrimmingWhitespacesAndNewlines().nilIfEmpty()
     }
-
+    
     public func toString() throws -> String {
         try validate()
         
@@ -75,7 +75,7 @@ extension _ProcessRunResult {
     private enum DecodingError: Swift.Error {
         case dataIsEmpty
     }
-
+    
     public func decode<T: Decodable>(
         _ type: T.Type,
         using decoder: JSONDecoder = .init()

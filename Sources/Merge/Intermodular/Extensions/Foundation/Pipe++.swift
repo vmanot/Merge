@@ -66,7 +66,7 @@ extension Pipe {
         var didExit: Bool = false
         @MutexProtected
         var result = Data()
-
+        
         await withCheckedContinuation { (continuation: CheckedContinuation<Void, Never>) in
             fileHandle.readabilityHandler = { fileHandle in
                 guard !$didExit.assignedValue else {
@@ -92,7 +92,7 @@ extension Pipe {
         }
         
         fileHandle.readabilityHandler = nil
-
+        
         try await queue.waitForAll()
         
         return result

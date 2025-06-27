@@ -17,11 +17,11 @@ extension NSLockProtocol where Self: TestableLock {
     public func acquireOrBlock() {
         lock()
     }
-
+    
     public func acquireOrFail() throws {
         try `try`().orThrow()
     }
-
+    
     public func relinquish() {
         unlock()
     }
@@ -30,9 +30,9 @@ extension NSLockProtocol where Self: TestableLock {
 // MARK: - Conformances
 
 extension NSLock: NSLockProtocol {
-
+    
 }
 
 extension NSRecursiveLock: NSLockProtocol {
-
+    
 }

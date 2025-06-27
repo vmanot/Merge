@@ -21,7 +21,7 @@ extension Publisher {
     public func flatMapAsync<T>(
         _ transform: @escaping (Output) async throws -> T
     ) -> Publishers.FlatMap<Future<T, any Swift.Error>, Publishers.MapError<Self, any Swift.Error>> {
-        mapError({ $0 as Error}).flatMap { value in
+        mapError({ $0 as Error }).flatMap { value in
             Future { promise in
                 Task {
                     do {

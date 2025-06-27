@@ -36,7 +36,7 @@ extension DispatchSource {
             
             sink.send(availableString)
         }
-                
+        
         return readSource
     }
 }

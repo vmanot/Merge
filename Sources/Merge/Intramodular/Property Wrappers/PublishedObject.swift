@@ -29,7 +29,8 @@ public final class PublishedObject<Value>: PropertyWrapper {
     public var wrappedValue: Value {
         get {
             _wrappedValue
-        } set {
+        }
+        set {
             objectWillChangeRelay.send()
             
             _wrappedValue = newValue
@@ -59,7 +60,8 @@ public final class PublishedObject<Value>: PropertyWrapper {
             published.setUpObjectWillChangeRelays(from: published.wrappedValue, toEnclosingInstance: enclosingInstance)
             
             return published.wrappedValue
-        } set {
+        }
+        set {
             let published = enclosingInstance[keyPath: storageKeyPath]
             
             published.setUpObjectWillChangeRelays(from: newValue, toEnclosingInstance: enclosingInstance)
@@ -106,7 +108,7 @@ public final class PublishedObject<Value>: PropertyWrapper {
     
     public init<WrappedValue: ObservableObject>(
         wrappedValue: WrappedValue?
-    ) where Optional<WrappedValue> == Value  {
+    ) where Optional<WrappedValue> == Value {
         self._wrappedValue = wrappedValue
         self._wrappedValueBoxWillChangeRelay = nil
     }

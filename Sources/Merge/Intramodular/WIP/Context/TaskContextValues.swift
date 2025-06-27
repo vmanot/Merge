@@ -30,7 +30,7 @@ public func withTaskContextValues<Result>(
     operation: (TaskContextValues) throws -> Result
 ) rethrows -> Result {
     let result = try operation(_TaskContextValues_TaskLocalValues.taskContextValues)
-        
+    
     return result
 }
 
@@ -77,17 +77,18 @@ final class _MutableTaskContextValues: TaskContextValues {
             }
             
             return base[key]
-        } set {
+        }
+        set {
             guard !invalidated else {
                 assertionFailure()
-    
+                
                 return
             }
-
+            
             base[key] = newValue
         }
     }
-
+    
     @usableFromInline
     func invalidate() {
         invalidated = true
@@ -111,11 +112,12 @@ public struct _ResolvedTaskContextValues: TaskContextValues {
     ) -> Key.Value {
         get {
             base[key] ?? key.defaultValue
-        } set {
+        }
+        set {
             base[key] = newValue
         }
     }
-
+    
     public func snapshot() -> _ResolvedTaskContextValues {
         self
     }

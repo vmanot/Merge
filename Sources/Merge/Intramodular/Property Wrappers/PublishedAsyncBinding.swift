@@ -28,7 +28,8 @@ public final class PublishedAsyncBinding<Value>: ObservableObject {
     private var _wrappedValue: Value {
         get {
             value
-        } set {
+        }
+        set {
             value = newValue
             
             _wrappedValueObjectWillChangeRelay.source = value
@@ -40,7 +41,8 @@ public final class PublishedAsyncBinding<Value>: ObservableObject {
     public var wrappedValue: Value {
         get {
             value
-        } set {
+        }
+        set {
             if let animation {
                 withAnimation(animation) {
                     value = newValue
@@ -135,7 +137,8 @@ public final class PublishedAsyncBinding<Value>: ObservableObject {
             }
             
             return propertyWrapper.wrappedValue
-        } set {
+        }
+        set {
             let propertyWrapper = enclosingInstance[keyPath: storageKeyPath]
             
             propertyWrapper._enclosingInstanceObjectWillChangeRelay.source = propertyWrapper
@@ -242,7 +245,7 @@ extension PublishedAsyncBinding {
                         
                         return Just(root[keyPath: keyPath] ?? currentValue)
                     }
-                        .eraseToAnyPublisher(),
+                    .eraseToAnyPublisher(),
                     push: { [weak root] in
                         guard let root = `root` else {
                             assertionFailure()
@@ -279,7 +282,7 @@ extension PublishedAsyncBinding {
                         
                         return Just(root[keyPath: keyPath])
                     }
-                        .eraseToAnyPublisher(),
+                    .eraseToAnyPublisher(),
                     push: { [weak root] in
                         guard let root = `root` else {
                             assertionFailure()
@@ -320,7 +323,7 @@ extension PublishedAsyncBinding {
                         
                         return Just(root[keyPath: keyPath] as! Value)
                     }
-                        .eraseToAnyPublisher(),
+                    .eraseToAnyPublisher(),
                     push: { [weak root] (newValue: Value) in
                         guard let root = `root` else {
                             assertionFailure()

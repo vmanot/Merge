@@ -7,7 +7,7 @@ import Swallow
 
 public final class OpaqueObservableTask: CustomStringConvertible, ObjCObject, ObservableTask {
     public typealias StatusDescription = ObservableTaskStatusDescription
-
+    
     public typealias Success = Any
     public typealias Error = Swift.Error
     
@@ -21,18 +21,18 @@ public final class OpaqueObservableTask: CustomStringConvertible, ObjCObject, Ob
         base._opaque_status
     }
     
-    public var objectWillChange: AnyObjectWillChangePublisher  {
+    public var objectWillChange: AnyObjectWillChangePublisher {
         .init(from: base)
     }
     
-    public var objectDidChange: AnyPublisher<ObservableTaskStatus<Success, Error>, Never>  {
+    public var objectDidChange: AnyPublisher<ObservableTaskStatus<Success, Error>, Never> {
         base._opaque_objectDidChange
     }
-
+    
     public var statusDescription: StatusDescription {
         base.statusDescription
     }
-        
+    
     fileprivate init<T: ObservableTask>(erasing base: T) {
         if base is OpaqueObservableTask {
             assertionFailure()
@@ -61,11 +61,12 @@ extension ObservableTask {
     var _opaqueRepresentation: OpaqueObservableTask? {
         get {
             objc_getAssociatedObject(self, &_ObservableTask__opaqueRepresentationKey) as? OpaqueObservableTask
-        }  set {
+        }
+        set {
             objc_setAssociatedObject(self, &_ObservableTask__opaqueRepresentationKey, newValue, .OBJC_ASSOCIATION_RETAIN_NONATOMIC)
         }
     }
-
+    
     public func eraseToOpaqueObservableTask() -> OpaqueObservableTask {
         _opaqueRepresentation.unwrapOrInitializeInPlace {
             OpaqueObservableTask(erasing: self)
@@ -101,7 +102,7 @@ extension ObservableTask {
     fileprivate var _opaque_status: ObservableTaskStatus<Any, Swift.Error> {
         status.map({ $0 as Any }).mapError({ $0 as Swift.Error })
     }
-            
+    
     fileprivate var _opaque_objectDidChange: AnyPublisher<ObservableTaskStatus<Any, Swift.Error>, Never> {
         objectDidChange
             .map({ $0.map({ $0 as Any }).mapError({ $0 as Swift.Error }) })

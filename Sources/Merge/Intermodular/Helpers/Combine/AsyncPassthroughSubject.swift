@@ -36,7 +36,7 @@ public actor AsyncPassthroughSubject<Element>: Initiable, Publisher {
     
     nonisolated public func receive<S>(
         subscriber: S
-    ) where S : Subscriber, Never == S.Failure, Element == S.Input {
+    ) where S: Subscriber, Never == S.Failure, Element == S.Input {
         let subscription = CombineBridge(self, AnySubscriber(subscriber))
         
         subscriber.receive(subscription: subscription)

@@ -23,7 +23,7 @@ open class AnyMutexProtected<Value> {
     open func withCriticalRegion<T>(_ mutate: ((inout Value) throws -> T)) rethrows -> T {
         Never.materialize(reason: .abstract)
     }
-
+    
     public final func mutate<T>(_ mutate: ((inout Value) throws -> T)) rethrows -> T {
         try withCriticalRegion(mutate)
     }
@@ -46,7 +46,8 @@ public final class MutexProtected<Value, Mutex: ScopedMutexProtocol>: AnyMutexPr
     public var assignedValue: Value {
         get {
             wrappedValue
-        } set {
+        }
+        set {
             mutate({ $0 = newValue })
         }
     }
@@ -58,7 +59,7 @@ public final class MutexProtected<Value, Mutex: ScopedMutexProtocol>: AnyMutexPr
     ) -> Value {
         get {
             if let _instance = instance as? any _MutexProtectedType {
-                assert(Mutex.self == AnyLock.self) // using the enclosing instance's mutex is only supported when `Mutex` is a type-erased lock.
+                assert(Mutex.self == AnyLock.self)  // using the enclosing instance's mutex is only supported when `Mutex` is a type-erased lock.
                 
                 guard let mutex = _instance.mutex as? Mutex else {
                     assertionFailure()
@@ -104,7 +105,7 @@ public final class MutexProtected<Value, Mutex: ScopedMutexProtocol>: AnyMutexPr
             try read(unsafelyAccessedValue)
         }
     }
-
+    
     override public func withCriticalRegion<T>(_ mutate: ((inout Value) throws -> T)) rethrows -> T {
         try mutex._withCriticalScopeForWriting {
             try mutate(&unsafelyAccessedValue)

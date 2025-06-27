@@ -14,11 +14,12 @@ extension EnvironmentValues {
     struct TaskRestartableEnvironmentKey: EnvironmentKey {
         static let defaultValue: Bool = true
     }
-        
+    
     var taskInterruptible: Bool {
         get {
             self[TaskInterruptibleEnvironmentKey.self]
-        } set {
+        }
+        set {
             self[TaskInterruptibleEnvironmentKey.self] = newValue
         }
     }
@@ -26,7 +27,8 @@ extension EnvironmentValues {
     var taskRestartable: Bool {
         get {
             self[TaskRestartableEnvironmentKey.self]
-        } set {
+        }
+        set {
             self[TaskRestartableEnvironmentKey.self] = newValue
         }
     }

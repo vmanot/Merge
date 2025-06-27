@@ -138,10 +138,11 @@ extension TaskButton {
             }
             .convertToObservableTask()
         } label: { status in
-            let status: ObservableTaskStatus<Swallow.EmptyValue, AnyError> = status
+            let status: ObservableTaskStatus<Swallow.EmptyValue, AnyError> =
+                status
                 .map({ _ in Swallow.EmptyValue() })
                 .mapError({ AnyError(erasing: $0) })
-            
+
             label(status)
         }
     }

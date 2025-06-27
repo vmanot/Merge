@@ -89,12 +89,13 @@ extension TaskStreamed {
                 assert(task.status == .idle)
             }
             
-            let result: Result<Success?, Error> = await self.sink._opaque_receive(Task {
-                #try(.optimistic) {
-                    try await task.value
-                }
-            })
-            
+            let result: Result<Success?, Error> = await self.sink._opaque_receive(
+                Task {
+                    #try(.optimistic) {
+                        try await task.value
+                    }
+                })
+
             switch result {
                 case .success(let success):
                     if let success {
@@ -123,12 +124,13 @@ extension TaskStreamed {
                 assert(task.status == .idle)
             }
             
-            let result: Result<Success, Error> = await sink._opaque_receive(Task {
-                try await _warnOnThrow {
-                    try await task.value
-                }
-            })
-            
+            let result: Result<Success, Error> = await sink._opaque_receive(
+                Task {
+                    try await _warnOnThrow {
+                        try await task.value
+                    }
+                })
+
             self.publish(result)
         }
     }
@@ -163,11 +165,12 @@ extension TaskStreamed {
                 assert(task.status == .idle)
             }
             
-            await sink._opaque_receive(Task {
-                #try(.optimistic) {
-                    try await task.value
-                }
-            })
+            await sink._opaque_receive(
+                Task {
+                    #try(.optimistic) {
+                        try await task.value
+                    }
+                })
         }
     }
     

@@ -76,7 +76,7 @@ extension AsyncThrowingStream where Failure == Error {
             }
         }
     }
-
+    
     public static func finished(throwing error: Failure? = nil) -> Self {
         Self {
             $0.finish(throwing: error)

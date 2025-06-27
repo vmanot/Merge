@@ -51,7 +51,7 @@ extension SystemShell {
         options: [_AsyncProcess.Option]? = nil
     ) async throws -> _ProcessRunResult {
         let shell = SystemShell(options: options)
-            
+        
         shell.environmentVariables.merge(environmentVariables, uniquingKeysWith: { lhs, rhs in rhs })
         shell.currentDirectoryURL = currentDirectoryURL
         
@@ -60,7 +60,7 @@ extension SystemShell {
             input: input,
             environment: environment
         )
-        
+
         return result
     }
 }

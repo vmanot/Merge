@@ -38,8 +38,8 @@ public final class _NaiveDoublyLinkedList<Element> {
     }
     
     public func remove(_ node: Node) {
-        node.next?.previous = node.previous // node.previous is nil if node=first
-        node.previous?.next = node.next // node.next is nil if node=last
+        node.next?.previous = node.previous  // node.previous is nil if node=first
+        node.previous?.next = node.next  // node.next is nil if node=last
         if node === last {
             last = node.previous
         }

@@ -25,7 +25,7 @@ extension _MultiReaderSubject: Publisher {
         
         base
             .filter({ $0.sender != rootID })
-            .tryMap({ try  $0.payload.get() })
+            .tryMap({ try $0.payload.get() })
             .mapError({ $0 as! Failure })
             .receive(subscriber: subscriber)
     }
@@ -67,7 +67,7 @@ extension _MultiReaderSubject {
             
             parent.base
                 .filter({ $0.sender != id })
-                .tryMap({try  $0.payload.get() })
+                .tryMap({ try $0.payload.get() })
                 .mapError({ $0 as! Failure })
                 .receive(subscriber: subscriber)
         }

@@ -11,13 +11,13 @@ import Swallow
 public protocol ObservableTask<Success, Error>: Cancellable, Identifiable, ObjectDidChangeObservableObject where ObjectDidChangePublisher.Output == ObservableTaskStatus<Self.Success, Self.Error> {
     associatedtype Success
     associatedtype Error: Swift.Error
-
+    
     /// The status of this task.
     var status: ObservableTaskStatus<Success, Error> { get }
     
     /// Start the task.
     func start()
-        
+    
     /// Cancel the task.
     func cancel()
 }

@@ -68,12 +68,13 @@ extension Cancellables {
         
         insert(cancellable)
         
-        let cancelOrCompletionHandler = publisher
+        let cancelOrCompletionHandler =
+            publisher
             .handleCancelOrCompletion { [weak self, weak cancellable] _ in
                 guard let cancellable = cancellable else {
                     return
                 }
-
+                
                 self?.remove(cancellable)
             }
             .sink()
@@ -89,7 +90,8 @@ extension Cancellables {
         
         insert(cancellable)
         
-        let cancelOrCompletionHandler = publisher
+        let cancelOrCompletionHandler =
+            publisher
             .handleCancelOrCompletion { [weak self, weak cancellable] _ in
                 guard let cancellable = cancellable else {
                     return
@@ -98,7 +100,7 @@ extension Cancellables {
                 self?.remove(cancellable)
             }
             .subscribe(subject)
-
+        
         queue.sync {
             innerCancellable.set(cancelOrCompletionHandler)
         }
@@ -170,7 +172,7 @@ extension Publisher {
             .handleOutput(receiveValue)
             .subscribe(in: cancellables)
     }
-
+    
     public func sink(
         in cancellables: Cancellables,
         receiveValue: @escaping (Output) -> Void
@@ -212,7 +214,8 @@ extension EnvironmentValues {
     public var cancellables: Cancellables {
         get {
             self[Cancellables.EnvironmentKey.self]
-        } set {
+        }
+        set {
             self[Cancellables.EnvironmentKey.self] = newValue
         }
     }

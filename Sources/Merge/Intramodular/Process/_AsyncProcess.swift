@@ -38,7 +38,7 @@ public class _AsyncProcess: Logging {
         publishers: publishers,
         options: self.options
     )
-
+    
     private let publishers = _Publishers()
     private let processDidStart = _AsyncGate(initiallyOpen: false)
     private let processDidExit = _AsyncGate(initiallyOpen: false)
@@ -52,19 +52,19 @@ public class _AsyncProcess: Logging {
     
     @_OSUnfairLocked
     private var _resolvedRunResult: Result<_ProcessRunResult, Error>?
-            
+    
     public var standardInputPipe: Pipe? {
-#if os(macOS)
+        #if os(macOS)
         if state == .notLaunch, _standardInputPipe == nil {
             _standardInputPipe = Pipe()
             process.standardInput = _standardInputPipe
         }
         return _standardInputPipe
-#else
+        #else
         fatalError(.unsupported)
-#endif
+        #endif
     }
-
+    
     public var _standardOutputString: String {
         get async throws {
             try await standardStreamsBuffer._standardOutputStringUsingUTF8()
@@ -83,7 +83,7 @@ public class _AsyncProcess: Logging {
         options: [_AsyncProcess.Option]?
     ) throws {
         let options: Set<_AsyncProcess.Option> = Set(options ?? [])
-
+        
         if let existingProcess {
             assert(!existingProcess.isRunning)
             
@@ -122,7 +122,7 @@ public class _AsyncProcess: Logging {
             self.process = _SecAuthorizedProcess()
         } else if options.contains(._useAppleScript) {
             assert(!options.contains(._useAuthorizationExecuteWithPrivileges))
-
+            
             self.process = OSAScriptProcess()
         } else {
             self.process = Process()
@@ -132,7 +132,7 @@ public class _AsyncProcess: Logging {
         process.arguments = arguments
         process.environment = environment ?? ProcessInfo.processInfo.environment
         process.currentDirectoryURL = currentDirectoryURL?._fromURLToFileURL() ?? process.currentDirectoryURL
-
+        
         self.options = options
         
         _registerAndSetUpIO(existingProcess: nil)
@@ -207,7 +207,7 @@ extension _AsyncProcess {
         return .notLaunch
     }
     #endif
-
+    
     @discardableResult
     public func run() async throws -> _ProcessRunResult {
         #if os(macOS)
@@ -257,7 +257,7 @@ extension _AsyncProcess {
         
         try await processDidStart.enter()
     }
-        
+    
     public func start(
         completion: @escaping (Result<Void, Error>) -> Void
     ) async throws {
@@ -269,7 +269,7 @@ extension _AsyncProcess {
             completion(result)
         }
     }
-
+    
     public func terminate() async throws {
         #if os(macOS)
         process.terminate()
@@ -328,7 +328,7 @@ extension _AsyncProcess {
             process.standardError = _standardErrorPipe
         }
     }
-        
+    
     private func _spinUntilProcessExit() async {
         while process.isRunning {
             runtimeIssue("The process is expected to have stopped running.")
@@ -348,7 +348,7 @@ extension _AsyncProcess {
         
         assert(!process.isRunning)
     }
-        
+    
     private func _runUnconditionally() async throws {
         do {
             guard !isWaiting else {
@@ -364,7 +364,7 @@ extension _AsyncProcess {
                     try await _readStdoutStderrUntilEnd(ignoreStderr: true)
                 }
             }
-
+            
             let readStdoutStderrTask = Task<Void, Error>.detached(priority: .high) {
                 try await readData()
             }
@@ -474,8 +474,7 @@ extension _AsyncProcess {
         
         try await withThrowingTaskGroup(of: Void.self) { group in
             group.addTask {
-                while
-                    checkTask(),
+                while checkTask(),
                     interruptLater(),
                     let data: Data = _standardOutputPipe.fileHandleForReading.availableData.nilIfEmpty()
                 {
@@ -489,8 +488,7 @@ extension _AsyncProcess {
             
             if !ignoreStderr {
                 group.addTask {
-                    while
-                        _standardErrorPipe._fileDescriptorForReading._isOpen,
+                    while _standardErrorPipe._fileDescriptorForReading._isOpen,
                         checkTask(),
                         interruptLater(),
                         let data: Data = _standardErrorPipe.fileHandleForReading.availableData.nilIfEmpty()
@@ -515,7 +513,7 @@ extension _AsyncProcess {
     private func __handleData(
         _ data: Data,
         forPipe pipe: Pipe
-    ) async throws {        
+    ) async throws {
         let pipeName: Process.PipeName = try self.name(of: pipe)
         
         await standardStreamsBuffer.record(data: data, forPipe: pipe, pipeName: pipeName)
@@ -579,10 +577,10 @@ extension _AsyncProcess {
                                 stderr: stderr
                             )
                         }
-                )
-                
-                return result
-            })
+                    )
+                    
+                    return result
+                })
         }
         
         self._resolvedRunResult = result

@@ -126,10 +126,10 @@ extension Publisher {
     public func onOutput(_ action: @escaping () -> Void) -> Publishers.HandleEvents<Self> {
         handleOutput({ _ in action() })
     }
-
+    
     public func handleCancelOrCompletion(
         _ receiveCancelOrCompletion: @escaping (Subscribers.Completion<Failure>?) -> ()
-    )  -> Publishers.HandleEvents<Self> {
+    ) -> Publishers.HandleEvents<Self> {
         handleEvents(
             receiveCompletion: { receiveCancelOrCompletion($0) },
             receiveCancel: { receiveCancelOrCompletion(nil) }

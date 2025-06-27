@@ -7,10 +7,10 @@ import Swallow
 public protocol SemaphoreProtocol: MutexProtocol {
     associatedtype WaitResult
     associatedtype SignalResult
-
+    
     @discardableResult
     func wait() -> WaitResult
-
+    
     @discardableResult
     func signal() -> SignalResult
 }

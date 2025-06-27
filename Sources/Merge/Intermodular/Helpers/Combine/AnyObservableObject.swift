@@ -11,22 +11,21 @@ public final class AnyObservableObject<Output, Failure: Error>: ObservableObject
     
     public init<T: ObservableObject>(
         _ base: T
-    ) where T.ObjectWillChangePublisher.Output == Output, T.ObjectWillChangePublisher.Failure == Failure
-    {
+    ) where T.ObjectWillChangePublisher.Output == Output, T.ObjectWillChangePublisher.Failure == Failure {
         self.base = base
         self.objectWillChange = base.objectWillChange.eraseToAnyPublisher()
     }
     
     public init(
         _ base: any _opaque_ObservableObject
-    ) where Output == AnyObjectWillChangePublisher.Output, Failure == AnyObjectWillChangePublisher.Failure  {
+    ) where Output == AnyObjectWillChangePublisher.Output, Failure == AnyObjectWillChangePublisher.Failure {
         self.base = base as (any ObservableObject)
         self.objectWillChange = base._opaque_objectWillChange.eraseToAnyPublisher()
     }
     
     fileprivate init<T: ObservableObject>(
         _erasing base: T
-    ) where Output == AnyObjectWillChangePublisher.Output, Failure == AnyObjectWillChangePublisher.Failure  {
+    ) where Output == AnyObjectWillChangePublisher.Output, Failure == AnyObjectWillChangePublisher.Failure {
         self.base = base as (any ObservableObject)
         self.objectWillChange = base._opaque_objectWillChange.eraseToAnyPublisher()
     }

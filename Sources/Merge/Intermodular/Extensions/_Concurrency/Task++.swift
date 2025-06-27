@@ -39,7 +39,7 @@ extension Task {
         
         return task
     }
-
+    
     public static func _withUnsafeThrowingContinuation(
         _ fn: @escaping (UnsafeContinuation<Void, Error>) async throws -> Success
     ) async throws -> Task<Success, Failure> where Failure == Error {
@@ -118,15 +118,17 @@ extension Task where Failure == Never, Success == Void {
         priority: TaskPriority? = nil,
         perform fn: @escaping () async -> Success
     ) -> Task<Success, Failure> {
-        self.init(priority: priority, operation: {
-            do {
-                try await Task<Never, Never>.sleep(for: duration)
-            } catch {
-                assertionFailure()
-            }
-            
-            return await fn()
-        })
+        self.init(
+            priority: priority,
+            operation: {
+                do {
+                    try await Task<Never, Never>.sleep(for: duration)
+                } catch {
+                    assertionFailure()
+                }
+                
+                return await fn()
+            })
     }
 }
 
@@ -141,15 +143,17 @@ extension Task where Failure == Never, Success == Void {
         animation: Animation,
         perform fn: @escaping @MainActor () async -> Success
     ) -> Task<Success, Failure> {
-        self.init(priority: .userInitiated, operation: { @MainActor in
-            do {
-                try await Task<Never, Never>.sleep(for: duration)
-            } catch {
-                assertionFailure()
-            }
-            
-            return await fn()
-        })
+        self.init(
+            priority: .userInitiated,
+            operation: { @MainActor in
+                do {
+                    try await Task<Never, Never>.sleep(for: duration)
+                } catch {
+                    assertionFailure()
+                }
+                
+                return await fn()
+            })
     }
 }
 #endif
@@ -166,13 +170,13 @@ extension Task where Failure == Error {
             for _ in 0...maxRetryCount {
                 do {
                     try Task<Never, Never>.checkCancellation()
-
+                    
                     let result = try await operation()
                     
                     return result
                 } catch {
                     await Task<Never, Never>.yield()
-
+                    
                     if let retryDelay = retryDelay {
                         try await Task<Never, Never>.sleep(retryDelay)
                         

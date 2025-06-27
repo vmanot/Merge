@@ -14,7 +14,7 @@ extension AnyPublisher {
                 return Just(output)
                     .setFailureType(to: Failure.self)
                     .eraseToAnyPublisher()
-                
+
         }
     }
     

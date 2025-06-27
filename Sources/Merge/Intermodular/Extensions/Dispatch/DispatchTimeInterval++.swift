@@ -22,11 +22,11 @@ extension DispatchTimeInterval {
             case .seconds(let value):
                 result = Double(value)
             case .milliseconds(let value):
-                result = Double(value)*0.001
+                result = Double(value) * 0.001
             case .microseconds(let value):
-                result = Double(value)*0.000001
+                result = Double(value) * 0.000001
             case .nanoseconds(let value):
-                result = Double(value)*0.000000001
+                result = Double(value) * 0.000000001
             case .never:
                 throw ConversionError.failedToConvertNever
             @unknown default:

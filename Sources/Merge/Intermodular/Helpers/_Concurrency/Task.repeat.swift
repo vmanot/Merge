@@ -18,7 +18,7 @@ extension Task where Success == Void, Failure == Error {
         Task {
             var numberOfRepetitions: Int = 0
             
-            while try numberOfRepetitions <= maxRepetitions && (try predicate())  {
+            while try numberOfRepetitions <= maxRepetitions && (try predicate()) {
                 try await operation()
                 
                 numberOfRepetitions += 1
@@ -68,7 +68,7 @@ extension Task where Success == Void, Failure == Error {
                 
                 return
             }
-
+            
             try _Concurrency.Task.checkCancellation()
             
             for await _ in Timer.publish(every: interval, on: _runLoop.wrappedValue, in: .default).autoconnect().values {

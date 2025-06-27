@@ -9,7 +9,7 @@ extension Publishers {
     public struct With<Value, Mutation: Publisher>: SingleOutputPublisher {
         public typealias Output = Value
         public typealias Failure = Mutation.Failure
-                
+        
         public let initial: Value
         public let mutation: (_: Inout<Value>) -> Mutation
         
@@ -56,20 +56,24 @@ extension Publishers {
                 
                 if demand == .unlimited {
                     mutationSubscription = mutation(stateAccessor)
-                        .sink(receiveCompletion: { completion in
-                            switch completion {
-                                case .finished: do {
-                                    _ = subscriber.receive(self.state.assignedValue)
-                                    
-                                    subscriber.receive(completion: .finished)
+                        .sink(
+                            receiveCompletion: { completion in
+                                switch completion {
+                                    case .finished:
+                                        do {
+                                            _ = subscriber.receive(self.state.assignedValue)
+                                            
+                                            subscriber.receive(completion: .finished)
+                                        }
+                                    case .failure(let error):
+                                        do {
+                                            subscriber.receive(completion: .failure(error))
+                                        }
                                 }
-                                case .failure(let error): do {
-                                    subscriber.receive(completion: .failure(error))
-                                }
-                            }
-                        }, receiveValue: { _ in
-                            
-                        })
+                            },
+                            receiveValue: { _ in
+                                
+                            })
                 }
             }
             

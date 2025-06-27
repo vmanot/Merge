@@ -21,11 +21,11 @@ private var _objectDidChange_objcAssociationKey: UInt = 0
 extension ObjectDidChangeObservableObject where ObjectDidChangePublisher == _ObjectDidChangePublisher {
     public var objectDidChange: ObjectDidChangePublisher {
         objc_sync_enter(self)
-
+        
         defer {
             objc_sync_exit(self)
         }
-
+        
         if let result = objc_getAssociatedObject(self, &_objectDidChange_objcAssociationKey) as? ObjectDidChangePublisher {
             return result
         } else {
@@ -65,7 +65,7 @@ public final class _ObjectDidChangePublisher: Publisher, Subject, @unchecked Sen
             base.receive(subscriber: subscriber)
         }
     }
-
+    
     public func send(_ value: Void) {
         lock.withCriticalScope {
             base.send(())
@@ -93,7 +93,8 @@ extension ObservableObject {
         if let _self = self as? (any ObjectDidChangeObservableObject) {
             return _self._opaque_objectDidChange
         } else {
-            return objectWillChange
+            return
+                objectWillChange
                 .receive(on: DispatchQueue.main)
                 .mapTo(())
                 .eraseToAnyPublisher()

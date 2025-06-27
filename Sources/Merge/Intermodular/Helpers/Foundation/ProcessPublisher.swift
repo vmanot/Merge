@@ -148,16 +148,18 @@ public struct ProcessPublisher<Failure: Error>: ConnectablePublisher {
         
         self.process.launch()
         
-        let subscription = self.inputPublisher?.sink(receiveCompletion: { [manualStdin] result in
-            try! manualStdin?.close() // This one can't fail; we opened the pipe.
-            if case .failure(let error) = result {
-                self.process.terminationHandler = nil
-                self.process.terminate()
-                self.output.send(completion: .failure(error))
-            }
-        }, receiveValue: { [manualStdin] data in
-            manualStdin?.write(data)
-        })
+        let subscription = self.inputPublisher?.sink(
+            receiveCompletion: { [manualStdin] result in
+                try! manualStdin?.close()  // This one can't fail; we opened the pipe.
+                if case .failure(let error) = result {
+                    self.process.terminationHandler = nil
+                    self.process.terminate()
+                    self.output.send(completion: .failure(error))
+                }
+            },
+            receiveValue: { [manualStdin] data in
+                manualStdin?.write(data)
+            })
         
         return AnyCancellable {
             self.process.terminate()

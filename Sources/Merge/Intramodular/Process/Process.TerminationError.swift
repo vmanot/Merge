@@ -12,7 +12,7 @@ public struct ProcessTerminationError: Error, Hashable, LocalizedError {
     public let stderr: String?
     public let status: Int32
     public let reason: Reason
-        
+    
     @available(macCatalyst, unavailable)
     public init(
         _from process: Process,

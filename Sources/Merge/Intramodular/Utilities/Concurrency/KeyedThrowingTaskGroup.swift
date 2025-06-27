@@ -81,7 +81,7 @@ public actor KeyedThrowingTaskGroup<Key: Hashable & Sendable>: Sendable {
         
         return result
     }
-            
+    
     @discardableResult
     public nonisolated func insert<T: Sendable>(
         _ key: Key,
@@ -112,7 +112,7 @@ public actor KeyedThrowingTaskGroup<Key: Hashable & Sendable>: Sendable {
     }
     
     public func wait(on key: Key) async throws {
-        _ = try await tasks.assignedValue[key]?.value // TODO: Track as a suspension elswhere
+        _ = try await tasks.assignedValue[key]?.value  // TODO: Track as a suspension elswhere
     }
 }
 

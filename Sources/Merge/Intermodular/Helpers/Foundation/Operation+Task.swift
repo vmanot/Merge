@@ -14,7 +14,8 @@ extension Operation {
             result.send(status: .success(()))
         }
         
-        return result
+        return
+            result
             .handleEvents(receiveStart: { self.start() })
             .eraseToAnyTask()
     }

@@ -26,10 +26,10 @@ public class _StandardOutputRewriter: @unchecked Sendable {
     ) {
         self.modifyLine = modifyLine
         self.hasRunLoop = _StandardOutputRewriter.checkRunLoopAvailability()
-
+        
         start()
     }
-        
+    
     public func start() {
         guard originalSTDERRDescriptor == -1 && originalSTDERRDescriptor == -1 else {
             return
@@ -115,7 +115,8 @@ public class _StandardOutputRewriter: @unchecked Sendable {
             queue: nil
         ) { [weak self] (notification: Notification) in
             guard let self = self,
-                  let fileHandle = notification.object as? FileHandle else {
+                let fileHandle = notification.object as? FileHandle
+            else {
                 return
             }
             
@@ -126,7 +127,7 @@ public class _StandardOutputRewriter: @unchecked Sendable {
             }
             
             let buffer: Data = isStdout ? self.stdoutBuffer : self.stderrBuffer
-        
+            
             self.processData(data, buffer: buffer, isStdout: isStdout)
             
             if self.isRunning {
@@ -150,7 +151,8 @@ public class _StandardOutputRewriter: @unchecked Sendable {
             buffer.removeSubrange(0..<range.upperBound)
             
             if let line = String(data: lineData, encoding: .utf8),
-               let modifiedLine = modifyLine(line) {
+                let modifiedLine = modifyLine(line)
+            {
                 let fileHandle = FileHandle(fileDescriptor: isStdout ? originalSTDOUTDescriptor : originalSTDERRDescriptor)
                 
                 fileHandle.write(modifiedLine.data(using: .utf8) ?? Data())

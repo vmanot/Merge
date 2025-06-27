@@ -103,7 +103,7 @@ extension Future where Output == Void, Failure == Never {
 
 extension Future where Failure == Swift.Error {
     @_disfavoredOverload
-    public convenience init(_ attemptToFulfill: @escaping (Promise) throws -> Void)  {
+    public convenience init(_ attemptToFulfill: @escaping (Promise) throws -> Void) {
         self.init { promise in
             do {
                 try attemptToFulfill(promise)

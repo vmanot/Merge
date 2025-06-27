@@ -7,7 +7,7 @@ import Swallow
 protocol ReadWriteLockProtocol: Lock {
     func acquireOrBlockForReading()
     func relinquishForReading()
-
+    
     func acquireOrBlockForWriting()
     func relinquishForWriting()
 }
@@ -15,7 +15,7 @@ protocol ReadWriteLockProtocol: Lock {
 protocol ReentrantReadWriteLockProtocol: ReentrantLock {
     func acquireOrBlockForReading()
     func relinquishForReading()
-
+    
     func acquireOrBlockForWriting()
     func relinquishForWriting()
 }

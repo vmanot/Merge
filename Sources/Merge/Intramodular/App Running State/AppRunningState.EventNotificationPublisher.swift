@@ -26,9 +26,9 @@ extension AppRunningState {
             case didBecomeInactive
             case willTerminate
         }
-
+        
         public typealias Failure = Never
-
+        
         public init() {
             
         }
@@ -37,7 +37,7 @@ extension AppRunningState {
             subscriber: S
         ) where S.Input == Output, S.Failure == Failure {
             let notificationCenter = NotificationCenter.default
-
+            
             #if os(iOS) || os(tvOS)
             Publishers.MergeMany(
                 notificationCenter.publisher(for: UIApplication.didFinishLaunchingNotification).mapTo(Output.didFinishLaunching),

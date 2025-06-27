@@ -16,7 +16,8 @@ public final class _RuntimeConditionalObservationTrackedValue<T>: _ObservationRe
     public var wrappedValue: T {
         get {
             wrappedValueBox.wrappedValue
-        } set {
+        }
+        set {
             wrappedValueBox.wrappedValue = newValue
         }
     }

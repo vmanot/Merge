@@ -13,7 +13,7 @@ extension ObservableTasks {
         private let base: Base
         private let receiveStart: (() -> Void)?
         private let receiveCancel: (() -> Void)?
-                
+        
         public var status: ObservableTaskStatus<Success, Error> {
             base.status
         }
@@ -25,7 +25,7 @@ extension ObservableTasks {
         public var objectDidChange: Base.ObjectDidChangePublisher {
             base.objectDidChange
         }
-
+        
         public init(
             base: Base,
             receiveStart: (() -> Void)? = nil,

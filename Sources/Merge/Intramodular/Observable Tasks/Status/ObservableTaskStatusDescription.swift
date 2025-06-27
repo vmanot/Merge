@@ -42,7 +42,7 @@ extension ObservableTaskStatusDescription {
                 return false
         }
     }
-
+    
     public var isOutput: Bool {
         switch self {
             case .idle:

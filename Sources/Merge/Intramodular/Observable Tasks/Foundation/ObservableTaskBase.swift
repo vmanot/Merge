@@ -19,11 +19,11 @@ open class ObservableTaskBase<Success, Error: Swift.Error>: ObservableTask {
     public var objectDidChange: AnyPublisher<Status, Never> {
         statusValueSubject.eraseToAnyPublisher()
     }
-
+    
     public var status: Status {
         statusValueSubject.value
     }
-        
+    
     public init() {
         
     }

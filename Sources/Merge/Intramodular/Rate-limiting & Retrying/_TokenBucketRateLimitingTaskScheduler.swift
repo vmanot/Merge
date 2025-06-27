@@ -21,7 +21,7 @@ public actor _TokenBucketRateLimitingTaskScheduler: Sendable {
     // queue as it does for synchronization.
     
     private let bucket: TokenBucket
-    private let pending = _NaiveDoublyLinkedList<Work>() // fast append, fast remove first
+    private let pending = _NaiveDoublyLinkedList<Work>()  // fast append, fast remove first
     private var isExecutingPendingTasks = false
     
     typealias Work = () -> Bool
@@ -41,7 +41,7 @@ public actor _TokenBucketRateLimitingTaskScheduler: Sendable {
     
     /// - parameter closure: Returns `true` if the close was executed, `false`
     /// if the work was cancelled.
-    func schedule( _ work: @escaping Work) async {
+    func schedule(_ work: @escaping Work) async {
         if !pending.isEmpty || !bucket.execute(work) {
             pending.append(work)
             
@@ -61,7 +61,7 @@ public actor _TokenBucketRateLimitingTaskScheduler: Sendable {
         // pending task. With a rate of 80 tasks we expect a refill every ~26 ms
         // or as soon as the new tasks are added.
         let bucketRate = 1000.0 / bucket.rate
-        let delay = Int(2.1 * bucketRate) // 14 ms for rate 80 (default)
+        let delay = Int(2.1 * bucketRate)  // 14 ms for rate 80 (default)
         let bounds = min(100, max(15, delay))
         
         do {
@@ -80,7 +80,7 @@ public actor _TokenBucketRateLimitingTaskScheduler: Sendable {
         
         isExecutingPendingTasks = false
         
-        if !pending.isEmpty { // Not all pending items were executed
+        if !pending.isEmpty {  // Not all pending items were executed
             await setNeedsExecutePendingTasks()
         }
     }
@@ -104,9 +104,9 @@ extension _TokenBucketRateLimitingTaskScheduler: _AsyncTaskScheduler {
 
 private final class TokenBucket {
     let rate: Double
-    private let burst: Double // maximum bucket size
+    private let burst: Double  // maximum bucket size
     private var bucket: Double
-    private var timestamp: TimeInterval // last refill timestamp
+    private var timestamp: TimeInterval  // last refill timestamp
     
     /// - parameter rate: Rate (tokens/second) at which bucket is refilled.
     /// - parameter burst: Bucket size (maximum number of tokens).
@@ -122,11 +122,11 @@ private final class TokenBucket {
         refill()
         
         guard bucket >= 1.0 else {
-            return false // bucket is empty
+            return false  // bucket is empty
         }
         
         if work() {
-            bucket -= 1.0 // work was cancelled, no need to reduce the bucket
+            bucket -= 1.0  // work was cancelled, no need to reduce the bucket
         }
         
         return true
@@ -134,9 +134,9 @@ private final class TokenBucket {
     
     private func refill() {
         let now = CFAbsoluteTimeGetCurrent()
-        bucket += rate * max(0, now - timestamp) // rate * (time delta)
+        bucket += rate * max(0, now - timestamp)  // rate * (time delta)
         timestamp = now
-        if bucket > burst { // prevent bucket overflow
+        if bucket > burst {  // prevent bucket overflow
             bucket = burst
         }
     }

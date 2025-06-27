@@ -29,4 +29,3 @@ public struct TaskResultPublisher<Upstream: ObservableTask>: SingleOutputPublish
         }
     }
 }
-

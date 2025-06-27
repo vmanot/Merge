@@ -147,7 +147,7 @@ internal class NonSynchronousOperatorBase<Input, Downstream: Subscriber>: Subscr
             self.upstreamSubscription = subscription
             return self.upstreamDemand
         }
-        
+
         switch initialUpstreamDemand {
             case nil:
                 // Already cancelled!
@@ -221,8 +221,9 @@ internal class NonSynchronousOperatorBase<Input, Downstream: Subscriber>: Subscr
         }
         
         if let completion: Subscribers.Completion<Downstream.Failure> = self.completion,
-           !self.hasBeenCancelled,
-           (hasFailureCompletionToSendImmediately() || self.hasSentAllValuesLocked) {
+            !self.hasBeenCancelled,
+            (hasFailureCompletionToSendImmediately() || self.hasSentAllValuesLocked)
+        {
             // Only send the completion if we haven't been cancelled
             // *and* if there are no outstanding values to send.
             assert(!self.hasDeliveredCompletion)
@@ -256,7 +257,7 @@ internal class NonSynchronousOperatorBase<Input, Downstream: Subscriber>: Subscr
             self.upstreamDemand = latestUpstreamDemand
             return latestUpstreamDemand
         }
-        
+
         if latestUpstreamDemand != .none {
             // This request is performed unlocked because it may be satisfied
             // synchronously. This is safe because we either request one

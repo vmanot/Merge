@@ -81,7 +81,8 @@ extension DispatchQueue {
     public subscript<T>(_ key: DispatchSpecificKey<T>) -> T? {
         get {
             return getSpecific(key: key)
-        } set {
+        }
+        set {
             setSpecific(key: key, value: newValue)
         }
     }

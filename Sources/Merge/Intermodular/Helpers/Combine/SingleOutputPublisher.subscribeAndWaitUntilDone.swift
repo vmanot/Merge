@@ -15,7 +15,7 @@ extension SingleOutputPublisher {
     ) -> Result<Output, Failure>? {
         var result: Result<Output, Failure>?
         let queue = queue ?? DispatchQueue(qosClass: .current)
-        let done = DispatchWorkItem(qos: .unspecified, flags: .inheritQoS, block: { })
+        let done = DispatchWorkItem(qos: .unspecified, flags: .inheritQoS, block: {})
         
         self
             .handleEvents(receiveCancel: { queue.async(execute: done) })

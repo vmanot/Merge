@@ -40,7 +40,7 @@ public func _withContinuousObservationTrackingIfAvailable(
             isolation: isolation
         )
     } else {
-        return _ContinuousObservationTrackingSubscription(onCancel: { })
+        return _ContinuousObservationTrackingSubscription(onCancel: {})
     }
 }
 

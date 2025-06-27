@@ -26,7 +26,8 @@ class _SecAuthorizedProcess: Process, @unchecked Sendable {
     override var launchPath: String? {
         get {
             _launchPath
-        } set {
+        }
+        set {
             _launchPath = newValue
         }
     }
@@ -34,7 +35,8 @@ class _SecAuthorizedProcess: Process, @unchecked Sendable {
     override var currentDirectoryURL: URL? {
         get {
             _currentDirectoryURL
-        } set {
+        }
+        set {
             _currentDirectoryURL = newValue
         }
     }
@@ -42,15 +44,17 @@ class _SecAuthorizedProcess: Process, @unchecked Sendable {
     override var arguments: [String]? {
         get {
             _arguments
-        } set {
+        }
+        set {
             _arguments = newValue
         }
     }
     
-    override var environment: [String : String]? {
+    override var environment: [String: String]? {
         get {
             _environment
-        } set {
+        }
+        set {
             _environment = newValue
         }
     }
@@ -58,7 +62,8 @@ class _SecAuthorizedProcess: Process, @unchecked Sendable {
     override var standardInput: Any? {
         get {
             _standardInput
-        } set {
+        }
+        set {
             _standardInput = newValue as? Pipe
         }
     }
@@ -66,7 +71,8 @@ class _SecAuthorizedProcess: Process, @unchecked Sendable {
     override var standardOutput: Any? {
         get {
             _standardOutput
-        } set {
+        }
+        set {
             _standardOutput = newValue as? Pipe
         }
     }
@@ -74,7 +80,8 @@ class _SecAuthorizedProcess: Process, @unchecked Sendable {
     override var standardError: Any? {
         get {
             _standardError
-        } set {
+        }
+        set {
             _standardError = newValue as? Pipe
         }
     }
@@ -82,7 +89,8 @@ class _SecAuthorizedProcess: Process, @unchecked Sendable {
     override var terminationHandler: (@Sendable (Process) -> Void)? {
         get {
             _terminationHandler
-        } set {
+        }
+        set {
             _terminationHandler = newValue
         }
     }
@@ -127,11 +135,11 @@ class _SecAuthorizedProcess: Process, @unchecked Sendable {
             UnsafeMutablePointer<FILE>?
         ) -> OSStatus).self
     )
-            
+    
     private func _authorizationRef() throws -> AuthorizationRef {
         var status: OSStatus = noErr
         var authorizationRef: AuthorizationRef?
-
+        
         if let cachedAuthRef = _SecAuthorizedProcess.cachedAuthorizationRef {
             authorizationRef = cachedAuthRef
         } else {
@@ -187,12 +195,12 @@ class _SecAuthorizedProcess: Process, @unchecked Sendable {
     
     var lastAuthorizationExecuteStatus: OSStatus = noErr
     var outputFilePointer: UnsafeMutablePointer<FILE>?
-
+    
     private func _executeAuthorizedWithPrivileges(
         executableURL: URL
     ) {
         _isRunning = true
-                                
+        
         let toolPath = executableURL.path.cString(using: .utf8)!
         
         self.outputFilePointer = _standardOutput.filePointer(mode: "w")
@@ -203,9 +211,9 @@ class _SecAuthorizedProcess: Process, @unchecked Sendable {
         func execute() throws {
             let authorization: AuthorizationRef = try _authorizationRef()
             var arguments: [UnsafeMutablePointer<CChar>?] = (self.arguments ?? []).map { strdup($0) }
-           
+            
             arguments.append(nil)
-
+            
             self.lastAuthorizationExecuteStatus = Self._AuthorizationExecuteWithPrivileges(
                 authorization,
                 toolPath,
@@ -232,7 +240,7 @@ class _SecAuthorizedProcess: Process, @unchecked Sendable {
         }
         
         _isRunning = false
-
+        
         _exit()
     }
     
@@ -250,7 +258,7 @@ class _SecAuthorizedProcess: Process, @unchecked Sendable {
         }
         
         try? _standardOutput.fileHandleForWriting.write(contentsOf: " ".data(using: .utf8)!)
-
+        
         fclose(outputFilePointer)
         
         _terminationHandler?(self)
@@ -261,7 +269,7 @@ class _SecAuthorizedProcess: Process, @unchecked Sendable {
             Thread.sleep(forTimeInterval: 0.1)
         }
     }
-
+    
     private func clearCachedAuthorizationRef() {
         if let authorizationRef = _SecAuthorizedProcess.cachedAuthorizationRef {
             AuthorizationFree(authorizationRef, [])
@@ -298,7 +306,7 @@ extension _SecAuthorizedProcess {
                 kSecAttrService as String: "\(bundleIdentifier).\(right)",
                 kSecValueData as String: authorizationRefData
             ]
-            
+
             let status = SecItemAdd(queryDictionary as CFDictionary, nil)
             if status == errSecDuplicateItem {
                 try updateAuthorizationRef(authorizationRef, forRight: right)
@@ -316,13 +324,14 @@ extension _SecAuthorizedProcess {
                 kSecAttrService as String: "\(bundleIdentifier).\(right.rawValue)",
                 kSecReturnData as String: true
             ]
-            
+
             var result: AnyObject?
             let status = SecItemCopyMatching(queryDictionary as CFDictionary, &result)
             
             if status == errSecSuccess {
                 if let authorizationRefData = result as? Data,
-                   authorizationRefData.count == MemoryLayout<AuthorizationRef>.size {
+                    authorizationRefData.count == MemoryLayout<AuthorizationRef>.size
+                {
                     let authorizationRef = authorizationRefData.withUnsafeBytes { $0.load(as: AuthorizationRef.self) }
                     return authorizationRef
                 }
@@ -344,11 +353,11 @@ extension _SecAuthorizedProcess {
                 kSecAttrAccount as String: "AuthorizationRef",
                 kSecAttrService as String: "\(bundleIdentifier).\(right.rawValue)"
             ]
-            
+
             let updateDictionary: [String: Any] = [
                 kSecValueData as String: authorizationRefData
             ]
-            
+
             let status = SecItemUpdate(queryDictionary as CFDictionary, updateDictionary as CFDictionary)
             if status != errSecSuccess {
                 throw _Error.error(status)
@@ -361,7 +370,7 @@ extension _SecAuthorizedProcess {
                 kSecAttrAccount as String: "AuthorizationRef",
                 kSecAttrService as String: "\(bundleIdentifier).\(right)"
             ]
-            
+
             SecItemDelete(queryDictionary as CFDictionary)
         }
     }
@@ -386,7 +395,7 @@ fileprivate enum _AuthorizationRightName: String, CaseIterable {
         }
         return mapping
     }()
-    
+
     var cString: UnsafeMutablePointer<CChar> {
         return Self.cStringMapping[self]!
     }
@@ -418,15 +427,15 @@ fileprivate func withUnsafeMutablePointerAsync<T, ResultType>(
     
     do {
         let result = try await operation(pointer)
-                
+        
         pointer.deinitialize(count: 1)
         pointer.deallocate()
-
+        
         return result
     } catch {
         pointer.deinitialize(count: 1)
         pointer.deallocate()
-
+        
         throw error
     }
 }

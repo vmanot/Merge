@@ -19,7 +19,7 @@ public struct AsyncSequencePublisher<Base: AsyncSequence, Failure: Error>: Combi
     
     public func receive<_S: Subscriber<Output, Failure>>(
         subscriber: _S
-    )  {
+    ) {
         subscriber.receive(
             subscription: Subscription(subscriber: subscriber, sequence: sequence)
         )
@@ -107,7 +107,7 @@ public struct AsyncSequencePublisher<Base: AsyncSequence, Failure: Error>: Combi
                     let newDemand = lock.withCriticalScope {
                         subscriber
                     }.receive(element)
-                                        
+                    
                     lock.withCriticalScope {
                         demand += newDemand
                     }

@@ -16,7 +16,8 @@ public final class PublishedBinding<Value>: ObservableObject {
         var wrappedValue: T {
             get {
                 get()
-            } nonmutating set {
+            }
+            nonmutating set {
                 set(newValue)
             }
         }
@@ -37,7 +38,8 @@ public final class PublishedBinding<Value>: ObservableObject {
             }
             
             return base.wrappedValue ?? lastNonNilValue!
-        } set {
+        }
+        set {
             objectWillChange.send()
             
             guard !baseWasDestroyed else {
@@ -81,7 +83,7 @@ public final class PublishedBinding<Value>: ObservableObject {
         unsafelyUnwrapping binding: _Binding<Value?>
     ) {
         self.init(binding: binding, cacheLastNonNilValue: true)
-
+        
         self.lastNonNilValue = binding.wrappedValue
     }
     
@@ -94,7 +96,8 @@ public final class PublishedBinding<Value>: ObservableObject {
             let result = object[keyPath: storageKeyPath].wrappedValue
             
             return result
-        } set {
+        }
+        set {
             if let object = (object as? (any ObservableObject)) {
                 if let objectWillChange = ((object.objectWillChange as any Publisher) as? _opaque_VoidSender) {
                     objectWillChange.send()

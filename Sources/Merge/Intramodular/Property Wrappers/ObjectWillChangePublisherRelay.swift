@@ -98,7 +98,8 @@ public final class ObjectWillChangePublisherRelay<Source, Destination>: Observab
         
         assert(source !== destination)
         
-        subscription = source
+        subscription =
+            source
             .eraseObjectWillChangePublisher()
             .publish(to: _objectWillChange)
             .publish(to: destinationObjectWillChange)

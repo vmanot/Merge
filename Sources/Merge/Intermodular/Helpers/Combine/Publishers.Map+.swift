@@ -30,7 +30,7 @@ extension Publisher {
         map({ _ in value() })
     }
     
-    public func reduceAndMapTo<T>(_ value: T) -> Publishers.Map<Publishers.Reduce<Self, ()>, T>{
+    public func reduceAndMapTo<T>(_ value: T) -> Publishers.Map<Publishers.Reduce<Self, ()>, T> {
         reduce((), { _, _ in () }).mapTo(value)
     }
 }

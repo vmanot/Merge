@@ -95,7 +95,7 @@ public final class ThrowingTaskQueue: @unchecked Sendable {
         let result: T = try await semaphore.withCriticalScope {
             return try resultBox.wrappedValue.wrappedValue!.get()
         }
-        
+
         return result
     }
     

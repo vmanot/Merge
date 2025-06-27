@@ -137,8 +137,9 @@ extension ObservableTask {
 extension Task {
     /// Returns a type-erased version of self.
     public func eraseToAnyTask() -> AnyTask<Success, Error> {
-        .init(erasing: PassthroughTask {
-            try await value
-        })
+        .init(
+            erasing: PassthroughTask {
+                try await value
+            })
     }
 }

@@ -33,7 +33,7 @@ extension Publisher {
     public func flatMapLatest<NewPublisher: Publisher>(
         _ transform: @escaping (Output) -> NewPublisher
     ) -> Publishers.FlatMapLatest<NewPublisher, Self>
-        where NewPublisher.Failure == Failure {
-            return .init(upstream: self, transform: transform)
+    where NewPublisher.Failure == Failure {
+        return .init(upstream: self, transform: transform)
     }
 }

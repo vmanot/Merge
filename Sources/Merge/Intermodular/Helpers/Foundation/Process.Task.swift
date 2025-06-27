@@ -71,7 +71,7 @@ extension Process {
                 }
             }
             
-            do {                
+            do {
                 try process.run()
                 
                 base.send(status: .active)

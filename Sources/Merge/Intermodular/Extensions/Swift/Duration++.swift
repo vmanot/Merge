@@ -9,7 +9,7 @@ import Swift
 extension Swift.Duration {
     @_spi(Internal)
     public var _timeInterval: TimeInterval {
-        TimeInterval(components.seconds) + Double(components.attoseconds)/1e18
+        TimeInterval(components.seconds) + Double(components.attoseconds) / 1e18
     }
     
     @_spi(Internal)
@@ -22,4 +22,3 @@ extension Swift.Duration {
         )
     }
 }
-

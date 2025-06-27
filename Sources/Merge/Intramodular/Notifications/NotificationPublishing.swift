@@ -20,7 +20,7 @@ extension NotificationPublishing where Self: ObservableObject {
             action()
         }
     }
-
+    
     public func onNotification(
         _ type: NotificationPublisherType.Output.TypeDiscriminator,
         perform action: @escaping () -> Void

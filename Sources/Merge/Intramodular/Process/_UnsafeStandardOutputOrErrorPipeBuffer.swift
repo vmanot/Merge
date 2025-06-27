@@ -76,7 +76,7 @@ package actor _UnsafeAsyncStandardOutputOrErrorPipeBuffer {
                 continuation.resume(throwing: error)
             }
         }
-        
+
         let data: Data = await withTaskGroup(of: Data.self) { group -> Data in
             group.addTask {
                 await self.buffer
@@ -94,7 +94,7 @@ package actor _UnsafeAsyncStandardOutputOrErrorPipeBuffer {
             
             return combinedData
         }
-        
+
         buffer = Data()
         
         return data

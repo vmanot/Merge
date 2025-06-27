@@ -120,7 +120,7 @@ extension TaskResult {
                     return true
                 case (.error, .error):
                     return true
-                    
+
                 default:
                     return false
             }

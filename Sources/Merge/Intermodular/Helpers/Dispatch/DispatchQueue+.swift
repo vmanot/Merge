@@ -131,7 +131,7 @@ extension DispatchQueue {
         flags: DispatchWorkItemFlags = [],
         _ work: (@escaping @convention(block) () -> ())
     ) {
-        switch style  {
+        switch style {
             case .asynchronous:
                 async(group: group, qos: qos, flags: flags, execute: work)
             case .synchronous:
@@ -145,7 +145,7 @@ extension DispatchQueue {
         style: DispatchWorkExecutionStyle,
         workItem: DispatchWorkItem
     ) {
-        switch style  {
+        switch style {
             case .asynchronous:
                 async(execute: workItem)
             case .synchronous:
@@ -161,7 +161,7 @@ extension DispatchQueue {
         flags: DispatchWorkItemFlags = [],
         _ work: (@escaping @convention(block) () -> ())
     ) {
-        switch style  {
+        switch style {
             case .asynchronous:
                 group?.enter()
                 asyncAfter(deadline: deadline, qos: qos, flags: flags) {
@@ -181,7 +181,7 @@ extension DispatchQueue {
         style: DispatchWorkExecutionStyle,
         workItem: DispatchWorkItem
     ) {
-        switch style  {
+        switch style {
             case .asynchronous:
                 asyncAfter(deadline: deadline, execute: workItem)
             case .synchronous:
@@ -198,7 +198,7 @@ extension DispatchQueue {
         flags: DispatchWorkItemFlags = [],
         _ work: (@escaping @convention(block) () -> ())
     ) {
-        switch style  {
+        switch style {
             case .asynchronous:
                 group?.enter()
                 asyncAfter(wallDeadline: wallDeadline, qos: qos, flags: flags) {
@@ -218,7 +218,7 @@ extension DispatchQueue {
         style: DispatchWorkExecutionStyle,
         workItem: DispatchWorkItem
     ) {
-        switch style  {
+        switch style {
             case .asynchronous:
                 asyncAfter(wallDeadline: wallDeadline, execute: workItem)
             case .synchronous:
@@ -232,8 +232,7 @@ extension DispatchQueue {
         style: DispatchWorkExecutionStyle,
         group: DispatchGroup? = nil,
         qos: DispatchQoS = .default,
-        flags: DispatchWorkItemFlags = [], _
-        work: (@escaping @convention(block) () -> ())
+        flags: DispatchWorkItemFlags = [], _ work: (@escaping @convention(block) () -> ())
     ) {
         switch delay {
             case .none:

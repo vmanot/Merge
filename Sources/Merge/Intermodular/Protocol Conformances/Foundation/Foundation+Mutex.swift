@@ -6,9 +6,9 @@ import Foundation
 import Swallow
 
 extension NSLock: TestableLock {
-
+    
 }
 
 extension NSRecursiveLock: ReentrantLock, TestableLock {
-
+    
 }

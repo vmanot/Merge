@@ -49,7 +49,7 @@ public enum _AsyncElementAccessor<Element>: Publisher {
                 upstream: Deferred {
                     Just(wrapper.wrappedValue)
                 }
-                    .eraseToAnyPublisher(),
+                .eraseToAnyPublisher(),
                 push: {
                     var wrapper = wrapper
                     

@@ -177,14 +177,16 @@ extension _ObservableTaskGroup {
     @MainActor
     private func _customIdentifier<T>(
         ofMostRecent casePath: CasePath<Key, T>
-    ) throws -> Key?  {
-        guard let element = try firstAndOnly(where: {
-            guard let customIdentifier = $0.customIdentifier else {
-                return false
-            }
-            
-            return try casePath._opaque_extract(from: customIdentifier) != nil
-        }) else {
+    ) throws -> Key? {
+        guard
+            let element = try firstAndOnly(where: {
+                guard let customIdentifier = $0.customIdentifier else {
+                    return false
+                }
+                
+                return try casePath._opaque_extract(from: customIdentifier) != nil
+            })
+        else {
             return nil
         }
         
@@ -207,7 +209,7 @@ extension _ObservableTaskGroup {
         ofMostRecent casePath: CasePath<Key, T>
     ) -> ObservableTaskStatusDescription? {
         return #try(.optimistic) { () -> ObservableTaskStatusDescription? in
-            guard let id  = try self._customIdentifier(ofMostRecent: casePath) else {
+            guard let id = try self._customIdentifier(ofMostRecent: casePath) else {
                 return nil
             }
             
@@ -260,7 +262,7 @@ extension _ObservableTaskGroup: Sequence {
     
     public func makeIterator() -> AnyIterator<Element> {
         let allKnownCustomIdentifiers: Set<CustomIdentifier> = Set(taskHistoriesByCustomIdentifier.keys)
-        let activeCustomIdentifiers: Set<CustomIdentifier>  = Set(activeTasksByCustomIdentifier.lazy.filter({ !$0.value.isEmpty }).map(\.key))
+        let activeCustomIdentifiers: Set<CustomIdentifier> = Set(activeTasksByCustomIdentifier.lazy.filter({ !$0.value.isEmpty }).map(\.key))
         let tomstonedCustomIdentifiers: Set<CustomIdentifier> = allKnownCustomIdentifiers.subtracting(activeCustomIdentifiers)
         
         let active: [Element] = activeTasks.map { task in
@@ -272,7 +274,7 @@ extension _ObservableTaskGroup: Sequence {
                 history: identifier.flatMap({ self.taskHistoriesByCustomIdentifier[$0] })
             )
         }
-        
+
         let tombstoned: [Element] = tomstonedCustomIdentifiers.map {
             return Element(
                 source: nil,
@@ -280,7 +282,7 @@ extension _ObservableTaskGroup: Sequence {
                 history: self.taskHistoriesByCustomIdentifier[$0]
             )
         }
-        
+
         return (active + tombstoned).makeIterator().eraseToAnyIterator()
     }
 }

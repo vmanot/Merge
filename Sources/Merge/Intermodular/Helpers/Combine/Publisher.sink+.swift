@@ -17,15 +17,17 @@ extension SingleOutputPublisher {
     public func sinkResult(
         _ receiveValue: @escaping (Result<Output, Failure>) -> ()
     ) -> AnyCancellable {
-        sink(receiveCompletion: { completion in
-            switch completion {
-                case .finished:
-                    break
-                case .failure(let error):
-                    receiveValue(.failure(error))
-            }
-        }, receiveValue: { value in
-            receiveValue(.success(value))
-        })
+        sink(
+            receiveCompletion: { completion in
+                switch completion {
+                    case .finished:
+                        break
+                    case .failure(let error):
+                        receiveValue(.failure(error))
+                }
+            },
+            receiveValue: { value in
+                receiveValue(.success(value))
+            })
     }
 }

@@ -15,11 +15,12 @@ public final class ObservableArray<Element: ObservableObject>: MutablePropertyWr
     
     private var cancellables: [ObjectIdentifier: AnyCancellable] = [:]
     private let objectWillChangeRelay = ObjectWillChangePublisherRelay()
-
+    
     fileprivate var storage: [Element] {
         willSet {
             objectWillChange.send()
-        } didSet {
+        }
+        didSet {
             resubscribeToAll(oldValue: oldValue)
             
             objectDidChange.send()
@@ -29,7 +30,8 @@ public final class ObservableArray<Element: ObservableObject>: MutablePropertyWr
     public var wrappedValue: [Element] {
         get {
             storage
-        } set {
+        }
+        set {
             storage = newValue
         }
     }
@@ -49,9 +51,10 @@ public final class ObservableArray<Element: ObservableObject>: MutablePropertyWr
             if propertyWrapper.objectWillChangeRelay.isUninitialized {
                 propertyWrapper.setUpObjectWillChangeRelay(to: enclosingInstance)
             }
-
+            
             return propertyWrapper.wrappedValue
-        } set {
+        }
+        set {
             let propertyWrapper = enclosingInstance[keyPath: storageKeyPath]
             
             if propertyWrapper.objectWillChangeRelay.isUninitialized {
@@ -61,7 +64,7 @@ public final class ObservableArray<Element: ObservableObject>: MutablePropertyWr
             propertyWrapper.wrappedValue = newValue
         }
     }
-
+    
     private init(storage: [Element]) {
         self.storage = storage
         
@@ -84,7 +87,7 @@ public final class ObservableArray<Element: ObservableObject>: MutablePropertyWr
         guard !self.storage.isEmpty else {
             return
         }
-                
+        
         for element in storage {
             subscribe(to: element, resubscribeIfNeeded: true)
         }
@@ -107,7 +110,7 @@ public final class ObservableArray<Element: ObservableObject>: MutablePropertyWr
         objectWillChangeRelay.source = self
         objectWillChangeRelay.destination = enclosingInstance
     }
-
+    
     private func subscribe(
         to element: Element,
         resubscribeIfNeeded: Bool = false
@@ -119,7 +122,7 @@ public final class ObservableArray<Element: ObservableObject>: MutablePropertyWr
                 return
             }
         }
-            
+        
         cancellables[id] = element.objectWillChange.sink { [weak self, weak element] _ in
             self?._forwardObjectWillChangeEvent(from: element)
         }
@@ -189,7 +192,8 @@ extension ObservableArray: MutableCollection, RandomAccessCollection {
     public subscript(index: Index) -> Element {
         get {
             storage[index]
-        } set {
+        }
+        set {
             storage[index] = newValue
         }
     }

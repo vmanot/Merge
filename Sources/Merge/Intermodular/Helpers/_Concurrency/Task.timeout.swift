@@ -167,8 +167,7 @@ extension Task where Failure == Error {
                     if await timeoutActor.markCompleted() {
                         continuation.resume(returning: operationResult)
                     }
-                }
-                catch {
+                } catch {
                     if await timeoutActor.markCompleted() {
                         continuation.resume(throwing: error)
                     }
@@ -181,8 +180,7 @@ extension Task where Failure == Error {
                     if await timeoutActor.markCompleted() {
                         continuation.resume(throwing: Task<Success, Error>.TimeoutError())
                     }
-                }
-                catch {
+                } catch {
                     if await timeoutActor.markCompleted() {
                         continuation.resume(throwing: error)
                     }

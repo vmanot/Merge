@@ -7,7 +7,7 @@ import Swallow
 
 public protocol ObservableTaskStatusType<Success, Error> {
     associatedtype Success
-    associatedtype Error 
+    associatedtype Error
 }
 
 /// The status of a task.
@@ -177,7 +177,7 @@ extension AnyTask {
                     return true
                 case (.inactive, .error):
                     return true
-                    
+
                 case (.finished, .idle):
                     return false
                 case (.finished, .active):
@@ -299,22 +299,24 @@ extension ObservableTaskStatus {
     
     public init(_ status: Result<TaskOutput<Success, Error>, ObservableTaskFailure<Error>>) {
         switch status {
-            case .success(let output): do {
-                switch output {
-                    case .started:
-                        self = .active
-                    case .success(let value):
-                        self = .success(value)
+            case .success(let output):
+                do {
+                    switch output {
+                        case .started:
+                            self = .active
+                        case .success(let value):
+                            self = .success(value)
+                    }
                 }
-            }
-            case .failure(let failure): do {
-                switch failure {
-                    case .canceled:
-                        self = .canceled
-                    case .error(let error):
-                        self = .error(error)
+            case .failure(let failure):
+                do {
+                    switch failure {
+                        case .canceled:
+                            self = .canceled
+                        case .error(let error):
+                            self = .error(error)
+                    }
                 }
-            }
         }
     }
 }

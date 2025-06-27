@@ -54,28 +54,29 @@ public func withTaskRetryPolicy<Result>(
     }
     
     switch retryPolicy.strategy {
-        case .delay(let delay, let initial): do {
-            var attempt = 1
-            
-            while true {
-                try Task.checkCancellation()
+        case .delay(let delay, let initial):
+            do {
+                var attempt = 1
                 
-                do {
-                    return try await operation()
-                } catch {
-                    try retryPolicy.onFailure(error, attempt)
+                while true {
+                    try Task.checkCancellation()
+                    
+                    do {
+                        return try await operation()
+                    } catch {
+                        try retryPolicy.onFailure(error, attempt)
+                    }
+                    
+                    if let maxRetryCount = retryPolicy.maxRetryCount, (attempt - 1) > maxRetryCount {
+                        throw _TaskRetryError.maximumRetriesExceeded(maxRetryCount)
+                    }
+                    
+                    let delay = delay.delay(forAttempt: attempt, withInitialDelay: initial)
+                    
+                    try await Task.sleep(for: delay)
+                    
+                    attempt += 1
                 }
-                
-                if let maxRetryCount = retryPolicy.maxRetryCount, (attempt - 1) > maxRetryCount {
-                    throw _TaskRetryError.maximumRetriesExceeded(maxRetryCount)
-                }
-                
-                let delay = delay.delay(forAttempt: attempt, withInitialDelay: initial)
-                
-                try await Task.sleep(for: delay)
-                
-                attempt += 1
             }
-        }
     }
 }

@@ -32,7 +32,8 @@ extension EnvironmentValues {
     var _taskButtonStyle: (any TaskButtonStyle)? {
         get {
             self[TaskButtonStyleEnvironmentKey.self]
-        } set {
+        }
+        set {
             self[TaskButtonStyleEnvironmentKey.self] = newValue
         }
     }
@@ -75,15 +76,15 @@ public struct ActivityIndicatorTaskButtonStyle: TaskButtonStyle {
     public func makeBody(configuration: TaskButtonConfiguration) -> some View {
         Group {
             if configuration.status == .active {
-#if os(macOS)
+                #if os(macOS)
                 ProgressView()
                     .controlSize(.small)
-#elseif os(iOS) || os(visionOS)
+                #elseif os(iOS) || os(visionOS)
                 ProgressView()
                     .controlSize(.regular)
-#else
+                #else
                 ProgressView()
-#endif
+                #endif
             } else if configuration.status == .failure {
                 Image(systemName: "exclamationmark.triangle.fill")
                     .foregroundColor(.yellow)

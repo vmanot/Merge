@@ -12,7 +12,7 @@ final class DemandBuffer<S: Subscriber> {
     private let lock = NSRecursiveLock()
     private var buffer = [S.Input]()
     private var demandState = Demand()
-
+    
     /// Initialize a new demand buffer for a provided downstream subscriber.
     ///
     /// - Parameter subscriber: The downstream subscriber demanding events.
@@ -22,7 +22,7 @@ final class DemandBuffer<S: Subscriber> {
 }
 
 extension DemandBuffer {
-
+    
     /// Buffer an upstream value to later be forwarded to the downstream subscriber, once it demands it.
     ///
     /// - Parameter value: Upstream value to buffer.
@@ -30,11 +30,11 @@ extension DemandBuffer {
     func buffer(value: S.Input) -> Subscribers.Demand {
         precondition(self.completion == nil, "A completed publisher cannot send further values.")
         lock.acquireOrBlock()
-
+        
         defer {
             lock.relinquish()
         }
-
+        
         switch demandState.requested {
             case .unlimited:
                 return subscriber.receive(value)
@@ -43,7 +43,7 @@ extension DemandBuffer {
                 return flush()
         }
     }
-
+    
     /// Complete the demand buffer with an upstream completion event.
     ///
     /// This method will deplete the buffer immediately, based on the currently accumulated demand, and relay the completion event down as soon as demand is fulfilled.
@@ -51,12 +51,12 @@ extension DemandBuffer {
     /// - Parameter completion: Completion event.
     func complete(completion: Subscribers.Completion<S.Failure>) {
         precondition(self.completion == nil, "A completion has already occured.")
-
+        
         self.completion = completion
-
+        
         flush()
     }
-
+    
     /// Signal to the buffer that the downstream requested new demand.
     ///
     /// - Note: The buffer will attempt to flush as many events rqeuested by the downstream at this point.
@@ -74,39 +74,39 @@ extension DemandBuffer {
     @discardableResult
     private func flush(adding newDemand: Subscribers.Demand? = nil) -> Subscribers.Demand {
         lock.acquireOrBlock()
-
+        
         defer {
             lock.relinquish()
         }
-
+        
         if let newDemand = newDemand {
             demandState.requested += newDemand
         }
-
+        
         // If the buffer isn't ready for flushing, return immediately.
         guard demandState.requested > 0 || newDemand == Subscribers.Demand.none else { return .none }
-
+        
         while !buffer.isEmpty && demandState.processed < demandState.requested {
             demandState.requested += subscriber.receive(buffer.remove(at: 0))
             demandState.processed += 1
         }
-
+        
         if let completion = completion {
             // A completion event was already sent.
             buffer = []
             demandState = .init()
-
+            
             self.completion = nil
-
+            
             subscriber.receive(completion: completion)
-
+            
             return .none
         }
-
+        
         let sentDemand = demandState.requested - demandState.sent
-
+        
         demandState.sent += sentDemand
-
+        
         return sentDemand
     }
 }

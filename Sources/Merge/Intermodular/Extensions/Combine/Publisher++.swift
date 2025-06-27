@@ -61,7 +61,7 @@ extension Publisher {
     public func _asyncSink(
         receiveValue: @escaping (Output) -> Void
     ) async throws {
-       try await sinkAsync(receiveValue: receiveValue)
+        try await sinkAsync(receiveValue: receiveValue)
     }
     
     public func sinkAsync(
@@ -84,7 +84,7 @@ extension Publisher {
                 )
             )
         }
-        
+
         try Task.checkCancellation()
         
         return result
@@ -93,11 +93,13 @@ extension Publisher {
     public func sendValues<E>(
         to subject: some Subject<Output, E>
     ) -> AnyCancellable {
-        sink(receiveCompletion: { _ in
-            
-        }, receiveValue: {
-            subject.send($0)
-        })
+        sink(
+            receiveCompletion: { _ in
+                
+            },
+            receiveValue: {
+                subject.send($0)
+            })
     }
 }
 

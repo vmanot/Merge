@@ -24,7 +24,7 @@ extension _MutexProtectedType where Mutex: ScopedMutexProtocol {
     @discardableResult
     public func withMutexProtectedCriticalScope<T>(
         _ body: (
-    () throws -> T
+            () throws -> T
         )
     ) rethrows -> T {
         return try mutex.withCriticalScope(body)
@@ -53,7 +53,7 @@ extension _MutexProtectedType where Mutex: ScopedReadWriteMutexProtocol {
     @discardableResult
     public func withMutexProtectedCriticalScopeForReading<T>(
         _ body: (
-    () throws -> T
+            () throws -> T
         )
     ) rethrows -> T {
         return try mutex.withCriticalScopeForReading(body)

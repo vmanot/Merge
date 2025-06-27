@@ -14,10 +14,10 @@ public final class OSUnfairLock: Initiable, @unchecked Sendable, TestableLock {
         let base = os_unfair_lock_t.allocate(capacity: 1)
         
         base.initialize(repeating: os_unfair_lock_s(), count: 1)
-
+        
         self.base = base
     }
-
+    
     @inlinable
     public func acquireOrBlock() {
         os_unfair_lock_lock(base)
@@ -31,7 +31,7 @@ public final class OSUnfairLock: Initiable, @unchecked Sendable, TestableLock {
             throw AcquisitionError.failedToAcquireLock
         }
     }
-
+    
     @inlinable
     public func relinquish() {
         os_unfair_lock_unlock(base)

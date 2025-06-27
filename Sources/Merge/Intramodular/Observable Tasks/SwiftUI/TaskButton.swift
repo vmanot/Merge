@@ -43,7 +43,8 @@ public struct TaskButton<Success, Error: Swift.Error, Label: View>: View {
     public var currentTask: AnyTask<Success, Error>? {
         get {
             currentTaskBox.wrappedValue
-        } nonmutating set {
+        }
+        nonmutating set {
             currentTaskBox.wrappedValue = newValue
         }
     }
@@ -80,7 +81,7 @@ public struct TaskButton<Success, Error: Swift.Error, Label: View>: View {
             || (currentTask?.status == .finished && !taskRestartable)
             || (currentTask?.status == .active && !taskInterruptible)
     }
-        
+    
     public var body: some View {
         Group {
             _button
@@ -93,7 +94,7 @@ public struct TaskButton<Success, Error: Swift.Error, Label: View>: View {
             setCurrentTask(task)
         }
     }
-        
+    
     @ViewBuilder
     private var _button: some View {
         if let taskButtonStyle {
@@ -137,7 +138,7 @@ public struct TaskButton<Success, Error: Swift.Error, Label: View>: View {
     private var _buttonLabel: AnyView {
         AnyView(label(task?.status ?? .idle))
     }
-
+    
     private func trigger() {
         if currentTask != nil {
             guard taskRestartable else {

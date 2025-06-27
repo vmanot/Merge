@@ -7,7 +7,7 @@ import Swift
 
 public struct PublisherQueue<Upstream: Publisher, Context: Scheduler>: Publisher {
     public typealias Output = Upstream.Output
-    public typealias Failure =  Upstream.Failure
+    public typealias Failure = Upstream.Failure
     
     private let cancellables = Cancellables()
     private let scheduler: Context
@@ -23,14 +23,16 @@ public struct PublisherQueue<Upstream: Publisher, Context: Scheduler>: Publisher
     
     public func send(_ publisher: Upstream) {
         scheduler.schedule {
-            publisher.receive(on: scheduler).sinkResult(in: cancellables, receiveValue: {
-                switch $0 {
-                    case .success(let value):
-                        output.send(value)
-                    case .failure(let error):
-                        output.send(completion: .failure(error))
-                }
-            })
+            publisher.receive(on: scheduler).sinkResult(
+                in: cancellables,
+                receiveValue: {
+                    switch $0 {
+                        case .success(let value):
+                            output.send(value)
+                        case .failure(let error):
+                            output.send(completion: .failure(error))
+                    }
+                })
         }
     }
 }

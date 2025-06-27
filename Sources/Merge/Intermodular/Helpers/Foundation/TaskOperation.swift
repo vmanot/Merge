@@ -16,7 +16,8 @@ open class TaskOperation<Base: ObservableTask>: Operation, @unchecked Sendable {
     private var _isCancelled = false {
         willSet {
             willChangeValue(forKey: "isCancelled")
-        } didSet {
+        }
+        didSet {
             didChangeValue(forKey: "isCancelled")
         }
     }
@@ -28,7 +29,8 @@ open class TaskOperation<Base: ObservableTask>: Operation, @unchecked Sendable {
     private var _executing = false {
         willSet {
             willChangeValue(forKey: "isExecuting")
-        } didSet {
+        }
+        didSet {
             didChangeValue(forKey: "isExecuting")
         }
     }
@@ -40,7 +42,8 @@ open class TaskOperation<Base: ObservableTask>: Operation, @unchecked Sendable {
     private var _finished = false {
         willSet {
             willChangeValue(forKey: "isFinished")
-        } didSet {
+        }
+        didSet {
             didChangeValue(forKey: "isFinished")
         }
     }

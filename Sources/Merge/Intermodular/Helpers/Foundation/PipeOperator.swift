@@ -45,7 +45,7 @@ extension Publisher where Output == Data, Failure == ProcessExitFailure {
         _ arguments: [String]
     ) -> ProcessPublisher<ProcessExitFailure> {
         validateArgumentsForEnv(arguments)
-       
+        
         return ProcessPublisher(
             envExecutableURL,
             arguments: arguments,
@@ -91,7 +91,7 @@ extension Publisher where Output == Data, Failure == Error {
         _ arguments: [String]
     ) -> ProcessPublisher<Error> {
         validateArgumentsForEnv(arguments)
-       
+        
         return ProcessPublisher(
             envExecutableURL,
             arguments: arguments,

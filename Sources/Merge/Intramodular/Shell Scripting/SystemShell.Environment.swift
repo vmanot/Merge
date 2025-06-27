@@ -54,7 +54,7 @@ extension SystemShell.Environment {
                 
                 return result
             }
-            
+
             var arguments = [String]()
             
             if commands.count > 1 {

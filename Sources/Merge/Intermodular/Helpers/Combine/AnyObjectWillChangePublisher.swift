@@ -30,13 +30,13 @@ public final class AnyObjectWillChangePublisher: Publisher {
     ) {
         self.init(publisher: publisher)
     }
-
+    
     public convenience init<Object: ObservableObject>(
         from object: Object
     ) {
         self.init(publisher: object.objectWillChange)
     }
-        
+    
     public func receive<S: Subscriber>(
         subscriber: S
     ) where S.Input == Output, S.Failure == Failure {
@@ -77,4 +77,3 @@ extension AnyObjectWillChangePublisher: _opaque_VoidSender {
         _send()
     }
 }
-

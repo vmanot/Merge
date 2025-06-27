@@ -49,16 +49,16 @@ extension Publisher {
         
         return cancellable
     }
-
+    
     @discardableResult
     @inlinable
     public func retainSink() -> RetainUntilCancel<SingleAssignmentAnyCancellable> {
         retainSink(
             receiveCompletion: { _ in },
-            receiveValue: { _  in }
+            receiveValue: { _ in }
         )
     }
-
+    
     @discardableResult
     @inlinable
     public func retainSink(

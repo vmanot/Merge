@@ -32,7 +32,7 @@ extension Subscriptions {
 }
 
 // MARK: - API
- 
+
 extension Subscription {
     public func add(_ cancellable: Cancellable) -> Subscription {
         Subscriptions.AddCancellable(base: self, cancellable: cancellable)

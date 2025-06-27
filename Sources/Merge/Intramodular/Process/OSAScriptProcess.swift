@@ -26,7 +26,8 @@ public class OSAScriptProcess: Process, @unchecked Sendable {
     override public var launchPath: String? {
         get {
             underlyingTask.launchPath
-        } set {
+        }
+        set {
             underlyingTask.launchPath = newValue
         }
     }
@@ -34,7 +35,8 @@ public class OSAScriptProcess: Process, @unchecked Sendable {
     override public var currentDirectoryURL: URL? {
         get {
             underlyingTask.currentDirectoryURL
-        } set {
+        }
+        set {
             underlyingTask.currentDirectoryURL = newValue
         }
     }
@@ -42,15 +44,17 @@ public class OSAScriptProcess: Process, @unchecked Sendable {
     override public var arguments: [String]? {
         get {
             underlyingTask.arguments
-        } set {
+        }
+        set {
             underlyingTask.arguments = newValue
         }
     }
     
-    override public var environment: [String : String]? {
+    override public var environment: [String: String]? {
         get {
             underlyingTask.environment
-        } set {
+        }
+        set {
             underlyingTask.environment = newValue
         }
     }
@@ -58,7 +62,8 @@ public class OSAScriptProcess: Process, @unchecked Sendable {
     override public var standardInput: Any? {
         get {
             underlyingTask.standardInput
-        } set {
+        }
+        set {
             underlyingTask.standardInput = newValue
         }
     }
@@ -66,7 +71,8 @@ public class OSAScriptProcess: Process, @unchecked Sendable {
     override public var standardOutput: Any? {
         get {
             underlyingTask.standardOutput
-        } set {
+        }
+        set {
             underlyingTask.standardOutput = newValue
         }
     }
@@ -74,7 +80,8 @@ public class OSAScriptProcess: Process, @unchecked Sendable {
     override public var standardError: Any? {
         get {
             underlyingTask.standardError
-        } set {
+        }
+        set {
             underlyingTask.standardError = newValue
         }
     }
@@ -98,11 +105,12 @@ public class OSAScriptProcess: Process, @unchecked Sendable {
     override public var terminationHandler: (@Sendable (Process) -> Void)? {
         get {
             _terminationHandler
-        } set {
+        }
+        set {
             _terminationHandler = newValue
         }
     }
-        
+    
     override public func run() throws {
         let (launchPath, arguments) = try OSAScriptProcess._osascript_launchPathAndArguments(for: (executableURL, arguments))
         
@@ -149,7 +157,8 @@ extension OSAScriptProcess {
         
         if let arguments: [String] = executableURLAndArguments.arguments {
             if arguments.contains(where: { $0.contains("'") }) {
-                argumentsString = arguments
+                argumentsString =
+                    arguments
                     .map({ $0.replacingOccurrences(of: "'", with: "'\\''") })
                     .joined(separator: " ")
             } else if arguments.first == "-c", arguments.count == 2 {
@@ -157,10 +166,11 @@ extension OSAScriptProcess {
                 
                 argumentsString = "-c \\\"\(command)\\\""
             } else {
-                argumentsString = arguments
+                argumentsString =
+                    arguments
                     .map { (arg: String) -> String in
                         let escaped: String = escaper(arg)
-
+                        
                         if arg.contains(" ") || arg.contains("\"") || arg.contains("$") || arg.contains("`") {
                             return "\\\"\(escaped)\\\""
                         } else {

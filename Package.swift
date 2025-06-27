@@ -8,7 +8,7 @@ var package = Package(
         .iOS(.v13),
         .macOS(.v13),
         .tvOS(.v13),
-        .watchOS(.v6)
+        .watchOS(.v6),
     ],
     products: [
         .library(
@@ -17,13 +17,13 @@ var package = Package(
                 "CommandLineToolSupport",
                 "ShellScripting",
                 "SwiftDI",
-                "Merge"
+                "Merge",
             ],
         )
     ],
     dependencies: [
         .package(url: "https://github.com/vmanot/Swallow.git", branch: "master"),
-        .package(url: "https://github.com/preternatural-fork/swift-subprocess.git", branch: "main")
+        .package(url: "https://github.com/preternatural-fork/swift-subprocess.git", branch: "main"),
     ],
     targets: [
         .target(
@@ -42,7 +42,7 @@ var package = Package(
             dependencies: [
                 "Swallow",
                 .product(name: "SwallowMacrosClient", package: "Swallow"),
-                "SwiftDI"
+                "SwiftDI",
             ],
             path: "Sources/Merge",
             swiftSettings: [
@@ -54,7 +54,7 @@ var package = Package(
             name: "ShellScripting",
             dependencies: [
                 "Merge",
-                .product(name: "Subprocess", package: "swift-subprocess")
+                .product(name: "Subprocess", package: "swift-subprocess"),
             ],
             path: "Sources/ShellScripting",
             swiftSettings: [
@@ -86,6 +86,6 @@ var package = Package(
             swiftSettings: [
                 .swiftLanguageMode(.v5)
             ]
-        )
+        ),
     ]
 )

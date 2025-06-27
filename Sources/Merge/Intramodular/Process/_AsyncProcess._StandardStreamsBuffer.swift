@@ -48,7 +48,7 @@ public actor _StandardInputOutputStreamsBuffer {
         data: Data,
         forPipe pipe: _ProcessPipeName
     ) async {
-        let forwardStdoutStderrToTerminal: Bool = options.contains(where: { $0._stdoutStderrSink == .terminal }) // FIXME: (@vmanot) unhandled cases
+        let forwardStdoutStderrToTerminal: Bool = options.contains(where: { $0._stdoutStderrSink == .terminal })  // FIXME: (@vmanot) unhandled cases
         
         if forwardStdoutStderrToTerminal {
             switch pipe {

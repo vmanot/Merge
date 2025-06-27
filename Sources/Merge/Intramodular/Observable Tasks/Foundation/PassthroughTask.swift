@@ -68,13 +68,13 @@ open class PassthroughTask<Success, Error: Swift.Error>: ObservableTask {
             self._status = status
             self._objectDidChange.send(status)
         }
-                
+        
         let exitEarly = lock.withCriticalScope {
             guard !isEvaluatingBody else {
                 isEvaluatingBody = false
-            
+                
                 _unsafeCommitStatus()
-                                                
+                
                 return true
             }
             
@@ -91,10 +91,10 @@ open class PassthroughTask<Success, Error: Swift.Error>: ObservableTask {
             
             if let body = self.body {
                 self.isEvaluatingBody = true
-
+                
                 _unsafeCommitStatus()
                 
-                lock.relinquish() // relinquish before running `body`
+                lock.relinquish()  // relinquish before running `body`
                 
                 let cancellable = SingleAssignmentAnyCancellable()
                 
@@ -126,7 +126,7 @@ open class PassthroughTask<Success, Error: Swift.Error>: ObservableTask {
             }
         } else {
             var cancellable: Cancellable?
-
+            
             lock.withCriticalScope {
                 cancellable = self.bodyCancellable
                 
@@ -136,7 +136,7 @@ open class PassthroughTask<Success, Error: Swift.Error>: ObservableTask {
                 
                 _unsafeCommitStatus()
             }
-                
+            
             if status == .canceled {
                 cancellable?.cancel()
             }
@@ -244,15 +244,18 @@ open class PassthroughTask<Success, Error: Swift.Error>: ObservableTask {
     ) where Error == Never {
         let dependencies = TaskDependencies.current
         
-        self.init(publisher: Deferred {
-            Future.async(priority: priority, execute: {
-                await withTaskDependencies {
-                    $0.mergeInPlace(with: dependencies)
-                } operation: {
-                    await operation()
-                }
+        self.init(
+            publisher: Deferred {
+                Future.async(
+                    priority: priority,
+                    execute: {
+                        await withTaskDependencies {
+                            $0.mergeInPlace(with: dependencies)
+                        } operation: {
+                            await operation()
+                        }
+                    })
             })
-        })
     }
     
     required convenience public init(
@@ -260,16 +263,19 @@ open class PassthroughTask<Success, Error: Swift.Error>: ObservableTask {
         operation: @escaping @Sendable () async throws -> Success
     ) where Error == Swift.Error {
         let dependencies = TaskDependencies.current
-
-        self.init(publisher: Deferred {
-            Future.async(priority: priority, execute: {
-                try await withTaskDependencies {
-                    $0.mergeInPlace(with: dependencies)
-                } operation: {
-                    try await operation()
-                }
+        
+        self.init(
+            publisher: Deferred {
+                Future.async(
+                    priority: priority,
+                    execute: {
+                        try await withTaskDependencies {
+                            $0.mergeInPlace(with: dependencies)
+                        } operation: {
+                            try await operation()
+                        }
+                    })
             })
-        })
     }
 }
 
@@ -353,7 +359,7 @@ extension Task {
     /// Convert this `Task` into an observable task.
     public func convertToObservableTask<T, U>(
         priority: TaskPriority? = nil
-    ) -> AnyTask<T, U> where Success == Result<T, U>, Failure == Never  {
+    ) -> AnyTask<T, U> where Success == Result<T, U>, Failure == Never {
         publisher(priority: priority).flatMap({ $0.publisher }).convertToTask()
     }
 }

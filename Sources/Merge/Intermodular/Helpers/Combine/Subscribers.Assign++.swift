@@ -125,7 +125,7 @@ extension Publisher where Failure == Error {
             receiveRequest: nil
         )
     }
-
+    
     @inlinable
     public func publish<Root>(
         to keyPath: ReferenceWritableKeyPath<Root, Result<Output, Error>?>,

@@ -36,7 +36,7 @@ extension ObservableTasks {
         public var status: ObservableTaskStatus<Success, Error> {
             upstream.status.map(transform)
         }
-                
+        
         public func start() {
             upstream.start()
         }

@@ -102,7 +102,7 @@ extension SingleOutputPublisher {
             }
         )
     }
-
+    
     @_disfavoredOverload
     public func then<S: Scheduler>(
         on scheduler: S,
@@ -112,4 +112,3 @@ extension SingleOutputPublisher {
         receive(on: scheduler, options: options).then(action)
     }
 }
-

@@ -80,7 +80,7 @@ extension Process {
         
         return try await process._runAsynchronously()
     }
-
+    
     @available(macOS 12.0, iOS 15.0, watchOS 8.0, tvOS 15.0, *)
     package func _runSynchronouslyRedirectingAllOutput(
         to sink: Process.StandardOutputSink
@@ -96,7 +96,7 @@ extension Process {
             throw terminationError
         }
     }
-        
+    
     public func _runSynchronously() throws -> Process.RunResult {
         _installSigintIfNeeded()
         
@@ -130,7 +130,7 @@ extension Process {
         let isRunning = _OSUnfairLocked<Bool>(wrappedValue: false)
         
         return try await withTaskCancellationHandler {
-            return try await withCheckedThrowingContinuation  { (continuation: CheckedContinuation<Process.RunResult, Error>) in
+            return try await withCheckedThrowingContinuation { (continuation: CheckedContinuation<Process.RunResult, Error>) in
                 self.terminationHandler = { process in
                     _Concurrency.Task {
                         do {

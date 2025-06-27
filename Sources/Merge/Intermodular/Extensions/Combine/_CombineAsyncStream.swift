@@ -21,24 +21,27 @@ public class _CombineAsyncStream<Upstream: Publisher>: AsyncSequence {
                 self?.cancellable?.cancel()
             }
             
-            cancellable = upstream
+            cancellable =
+                upstream
                 .handleEvents(
                     receiveCancel: { [weak self] in
                         continuation.finish(throwing: nil)
                         self?.cancellable = nil
                     }
                 )
-                .sink(receiveCompletion: { [weak self] completion in
-                    switch completion {
-                        case .failure(let error):
-                            continuation.finish(throwing: error)
-                        case .finished:
-                            continuation.finish(throwing: nil)
-                    }
-                    self?.cancellable = nil
-                }, receiveValue: { value in
-                    continuation.yield(value)
-                })
+                .sink(
+                    receiveCompletion: { [weak self] completion in
+                        switch completion {
+                            case .failure(let error):
+                                continuation.finish(throwing: error)
+                            case .finished:
+                                continuation.finish(throwing: nil)
+                        }
+                        self?.cancellable = nil
+                    },
+                    receiveValue: { value in
+                        continuation.yield(value)
+                    })
         }
     }
     
@@ -56,7 +59,8 @@ extension _CombineAsyncStream: AsyncIteratorProtocol {
 extension Publisher {
     public func toAsyncStream() -> AsyncStream<Output> where Failure == Never {
         if #available(macOS 12.0, iOS 15.0, tvOS 15.0, watchOS 8.0, *) {
-            return self
+            return
+                self
                 .buffer(size: 1, prefetch: .byRequest, whenFull: .dropOldest)
                 .values
                 .eraseToStream()
