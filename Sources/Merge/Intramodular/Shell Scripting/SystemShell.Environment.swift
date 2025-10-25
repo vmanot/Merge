@@ -18,6 +18,11 @@ extension SystemShell {
             
             return URL(fileURLWithPath: launchPath)
         }
+        
+        public init(launchPath: String?, deriveArguments: @escaping (_ command: String) -> [String]) {
+            self.launchPath = launchPath
+            self.deriveArguments = deriveArguments
+        }
     }
 }
 
