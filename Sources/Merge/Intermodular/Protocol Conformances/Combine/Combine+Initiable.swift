@@ -11,8 +11,6 @@ extension CurrentValueSubject where Output: Swallow.Initiable {
     }
 }
 
-extension PassthroughSubject: @retroactive _ThrowingInitiable {}
-extension PassthroughSubject: Swallow.Initiable {
+extension PassthroughSubject: Swallow._ThrowingInitiable, Swallow.Initiable {
     
 }
-
