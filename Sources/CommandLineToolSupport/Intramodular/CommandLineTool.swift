@@ -13,8 +13,6 @@ import Swift
 @available(watchOS, unavailable)
 public protocol CommandLineTool: AnyCommandLineTool {
     associatedtype EnvironmentVariables = _CommandLineTool_DefaultEnvironmentVariables
-    
-    typealias Parameter<T> = _CommandLineToolParameter<T>
 }
 
 public enum CommandLineTools {
