@@ -5,6 +5,10 @@
 import Foundation
 import Swallow
 
+extension CommandLineTool {
+    public typealias Parameter<T> = _CommandLineToolParameter<T>
+}
+
 public protocol _CommandLineToolParameterProtocol: PropertyWrapper {
     /// The name of the parameter as it will be passed in the actual command being invoked.
     var key: _CommandLineToolParameterOptionKey? { get }
@@ -13,14 +17,18 @@ public protocol _CommandLineToolParameterProtocol: PropertyWrapper {
     ///
     /// For example, `--output <path>`, or `--output=value`.
     var keyValueSeparator: _CommandLineToolParameterKeyValueSeparator { get }
+    
+    /// Defines how multi-value parameter is converted into argument(s) that would be passed in the actual command being invoked.
+    var multiValueEncodingStrategy: MultiValueParameterEncodingStrategy? { get }
 }
 
 @propertyWrapper
-public struct _CommandLineToolParameter<WrappedValue: CLT.ArgumentValueConvertible>: _CommandLineToolParameterProtocol {
+public struct _CommandLineToolParameter<WrappedValue>: _CommandLineToolParameterProtocol {
     var _wrappedValue: WrappedValue
 
     public var key: _CommandLineToolParameterOptionKey?
     public var keyValueSeparator: _CommandLineToolParameterKeyValueSeparator
+    public var multiValueEncodingStrategy: MultiValueParameterEncodingStrategy?
     
     public var wrappedValue: WrappedValue {
         get {
@@ -30,6 +38,42 @@ public struct _CommandLineToolParameter<WrappedValue: CLT.ArgumentValueConvertib
         }
     }
     
+    public init(
+        wrappedValue: WrappedValue,
+        key: _CommandLineToolParameterOptionKey?,
+        separator: _CommandLineToolParameterKeyValueSeparator = .space
+    ) where WrappedValue : CLT.ArgumentValueConvertible {
+        self._wrappedValue = wrappedValue
+        self.key = key
+        self.keyValueSeparator = separator
+    }
+    
+    public init<T>(
+        wrappedValue: WrappedValue,
+        key: _CommandLineToolParameterOptionKey?,
+        separator: _CommandLineToolParameterKeyValueSeparator = .space,
+        encoding: MultiValueParameterEncodingStrategy = .singleValue
+    ) where WrappedValue == [T]?, T : CLT.ArgumentValueConvertible {
+        self._wrappedValue = wrappedValue
+        self.key = key
+        self.keyValueSeparator = separator
+        self.multiValueEncodingStrategy = encoding
+    }
+    
+    public init<T>(
+        wrappedValue: WrappedValue,
+        key: _CommandLineToolParameterOptionKey?,
+        separator: _CommandLineToolParameterKeyValueSeparator = .space,
+        encoding: MultiValueParameterEncodingStrategy = .singleValue
+    ) where WrappedValue == [T], T : CLT.ArgumentValueConvertible {
+        self._wrappedValue = wrappedValue
+        self.key = key
+        self.keyValueSeparator = separator
+        self.multiValueEncodingStrategy = encoding
+    }
+    
+    @available(*, deprecated, message: "This parameter will be ignored. Make sure `WrappedValue` conforms to `CLT.ArgumentValueConvertible`.")
+    @_disfavoredOverload
     public init(
         wrappedValue: WrappedValue,
         key: _CommandLineToolParameterOptionKey?,
@@ -86,6 +130,15 @@ public enum _CommandLineToolParameterKeyValueSeparator: String, Hashable, Sendab
     case colon = ":"
 }
 
-extension CommandLineTool {
-    public typealias Parameter<T: CLT.ArgumentValueConvertible> = _CommandLineToolParameter<T>
+/// Describes how multi-value parameters are encoded on the command line.
+public enum MultiValueParameterEncodingStrategy {
+    /// Each parameter value is attached to an independent key.
+    ///
+    /// For example: `-Xcc -fmodule-map-file=foo.modulemap -Xcc -fmodules` for `xcrun_swiftc`
+    case singleValue
+    
+    /// Multiple values are attached to the same option key and joined with a whitespace.
+    ///
+    /// For example: `--platform ios macOS watchOS` for `crowbar-tool`
+    case spaceSeparated
 }
