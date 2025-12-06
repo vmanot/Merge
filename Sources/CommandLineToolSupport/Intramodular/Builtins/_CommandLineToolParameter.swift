@@ -12,15 +12,15 @@ public protocol _CommandLineToolParameterProtocol: PropertyWrapper {
     /// Defines how the parameter’s value is joined with its key when constructing the final command-line invocation.
     ///
     /// For example, `--output <path>`, or `--output=value`.
-    var keyValueSeparator: _CommandLineToolParameterKeyValueSeparator? { get }
+    var keyValueSeparator: _CommandLineToolParameterKeyValueSeparator { get }
 }
 
 @propertyWrapper
-public struct _CommandLineToolParameter<WrappedValue>: _CommandLineToolParameterProtocol {
+public struct _CommandLineToolParameter<WrappedValue: CLT.ArgumentValueConvertible>: _CommandLineToolParameterProtocol {
     var _wrappedValue: WrappedValue
 
     public var key: _CommandLineToolParameterOptionKey?
-    public var keyValueSeparator: _CommandLineToolParameterKeyValueSeparator?
+    public var keyValueSeparator: _CommandLineToolParameterKeyValueSeparator
     
     public var wrappedValue: WrappedValue {
         get {
@@ -33,15 +33,15 @@ public struct _CommandLineToolParameter<WrappedValue>: _CommandLineToolParameter
     public init(
         wrappedValue: WrappedValue,
         key: _CommandLineToolParameterOptionKey?,
-        keyValueSeparator: _CommandLineToolParameterKeyValueSeparator? = .space
+        separator: _CommandLineToolParameterKeyValueSeparator = .space
     ) {
         self._wrappedValue = wrappedValue
         self.key = key
-        self.keyValueSeparator = keyValueSeparator
+        self.keyValueSeparator = separator
     }
 }
 
-public enum _CommandLineToolParameterOptionKey: Hashable, Sendable {
+public enum _CommandLineToolParameterOptionKey: CLT.ArgumentValueConvertible, Hashable, Sendable {
     /// A parameter name prefixed with one hyphen, for example: `-o`, `-output`, etc.
     case hyphenPrefixed(String)
     /// A parameter name prefixed with two hyphens, for example: `--output`, etc.
@@ -50,6 +50,17 @@ public enum _CommandLineToolParameterOptionKey: Hashable, Sendable {
     ///
     /// Commonly used in some Windows CLIs.
     case slashPrefixed(String)
+    
+    public var argumentValue: String {
+        switch self {
+            case .doubleHyphenPrefixed(let name):
+                "--\(name)"
+            case .hyphenPrefixed(let name):
+                "-\(name)"
+            case .slashPrefixed(let name):
+                "/\(name)"
+        }
+    }
 }
 
 public enum _CommandLineToolParameterKeyValueSeparator: String, Hashable, Sendable {
@@ -76,5 +87,5 @@ public enum _CommandLineToolParameterKeyValueSeparator: String, Hashable, Sendab
 }
 
 extension CommandLineTool {
-    public typealias Parameter<T> = _CommandLineToolParameter<T>
+    public typealias Parameter<T: CLT.ArgumentValueConvertible> = _CommandLineToolParameter<T>
 }
