@@ -15,6 +15,19 @@ import Runtime
 open class AnyCommandLineTool: Logging {
     public lazy var logger = PassthroughLogger(source: self)
     
+    /// The name of the command-line tool or subcommand being used.
+    ///
+    /// By default, the lowercased version of the type name would be used if you don't override it.
+    ///
+    /// Ideally, it should only contain one argument without whitespaces, for example:
+    /// - `xcrun` / `swiftc` / `simctl` / etc.
+    /// - `git` / `commit` / `push`, etc.
+    ///
+    /// But, you can also specify to be `xcrun swiftc`, etc., if you want to.
+    open class var commandName: String {
+        "\(Self.self)".lowercased()
+    }
+    
     public var environmentVariables: [String: any CLT.EnvironmentVariableValue] = [:]
     public var currentDirectoryURL: URL? = nil
     
@@ -39,11 +52,53 @@ open class AnyCommandLineTool: Logging {
         return result
     }
     
+    /// Makes the command invocation as it would be passed into system shell.
+    ///
+    /// - parameter operation: An optional operation after the ``commandName``. It typically serves as mode selection. For example: `xcrun --show-sdk-path -sdk <sdk>` where `--show-sdk-path` is the operation.
+    open func makeCommand(operation: String? = nil) -> String {
+        ([Self.commandName, operation].compactMap(\.self) + _serializedCommandParameters).joined(separator: " ")
+    }
+    
+    /// Makes the command invocation and runs in the system shell
+    ///
+    /// - parameter operation: An optional operation after the ``commandName``. It typically serves as mode selection. For example: `xcrun --show-sdk-path -sdk <sdk>` where `--show-sdk-path` is the operation.
+    open func run(operation: String? = nil) async throws -> Process.RunResult {
+        try await withUnsafeSystemShell { shell in
+            try await shell.run(command: makeCommand(operation: operation))
+        }
+    }
+}
+
+@available(macOS 11.0, *)
+@available(iOS, unavailable)
+@available(macCatalyst, unavailable)
+@available(tvOS, unavailable)
+@available(watchOS, unavailable)
+extension AnyCommandLineTool {
+    public func withUnsafeSystemShell<R>(
+        sink: _ProcessStandardOutputSink,
+        perform operation: (SystemShell) async throws -> R
+    ) async throws -> R {
+        try await withUnsafeSystemShell { shell in
+            shell.options ??= []
+            shell.options?.removeAll(where: {
+                $0._stdoutStderrSink != .null
+            })
+            shell.options?.append(._forwardStdoutStderr(to: sink))
+            
+            return try await operation(shell)
+        }
+    }
+}
+
+// MARK: - Auxiliary
+
+extension AnyCommandLineTool {
     /// Resolves the full list of environment variables by combining manually set environment variables with runtime-reflected variables that are defined via the `@EnvironmentVariable` property wrapper.
     private func _resolveEnvironmentVariables() -> [String: any CLT.EnvironmentVariableValue] {
         var result: [String: any CLT.EnvironmentVariableValue] = environmentVariables
         
-        let mirror = InstanceMirror(self)!
+        let mirror = Mirror(reflecting: self)
         
         for child in mirror.children {
             guard let propertyWrapper = child.value as? (any _CommandLineToolEnvironmentVariableProtocol) else {
@@ -63,21 +118,10 @@ open class AnyCommandLineTool: Logging {
         return result
     }
     
-    /// The foundational list of command-line arguments that identify and invoke the underlying system tool.
-    ///
-    /// These arguments always appear at the beginning of the serialized command, for example:
-    /// - `["xcrun", "swiftc"]`
-    /// - `["xcrun"]`
-    /// - `["xcodebuild"]`
-    open var baseArguments: [String] {
-        fatalError(.abstract)
-    }
-    
-    open func serializedCommand(actionOrSubCommand: String) -> String {
-        let mirror = InstanceMirror(self)!
+    private var _serializedCommandParameters: [String] {
+        let mirror = Mirror(reflecting: self)
         
-        var components = baseArguments
-        components.append(actionOrSubCommand)
+        var components = [String]()
         
         for child in mirror.children {
             let parameter = child.value as? (any _CommandLineToolParameterProtocol)
@@ -143,28 +187,6 @@ open class AnyCommandLineTool: Logging {
             components.append(argument)
         }
         
-        return components.joined(separator: " ")
-    }
-}
-
-@available(macOS 11.0, *)
-@available(iOS, unavailable)
-@available(macCatalyst, unavailable)
-@available(tvOS, unavailable)
-@available(watchOS, unavailable)
-extension AnyCommandLineTool {
-    public func withUnsafeSystemShell<R>(
-        sink: _ProcessStandardOutputSink,
-        perform operation: (SystemShell) async throws -> R
-    ) async throws -> R {
-        try await withUnsafeSystemShell { shell in
-            shell.options ??= []
-            shell.options?.removeAll(where: {
-                $0._stdoutStderrSink != .null
-            })
-            shell.options?.append(._forwardStdoutStderr(to: sink))
-            
-            return try await operation(shell)
-        }
+        return components
     }
 }
