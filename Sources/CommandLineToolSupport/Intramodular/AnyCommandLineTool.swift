@@ -62,6 +62,89 @@ open class AnyCommandLineTool: Logging {
         
         return result
     }
+    
+    /// The foundational list of command-line arguments that identify and invoke the underlying system tool.
+    ///
+    /// These arguments always appear at the beginning of the serialized command, for example:
+    /// - `["xcrun", "swiftc"]`
+    /// - `["xcrun"]`
+    /// - `["xcodebuild"]`
+    open var baseArguments: [String] {
+        fatalError(.abstract)
+    }
+    
+    open func serializedCommand(actionOrSubCommand: String) -> String {
+        let mirror = InstanceMirror(self)!
+        
+        var components = baseArguments
+        components.append(actionOrSubCommand)
+        
+        for child in mirror.children {
+            let parameter = child.value as? (any _CommandLineToolParameterProtocol)
+            guard let parameter else { continue }
+            
+            if let optionalValue = parameter.wrappedValue as? (any OptionalProtocol),
+                optionalValue.isNil {
+                continue // Skip this parameter if the value is empty.
+            }
+            
+            var argument = ""
+            
+            func _singleValueArgument(
+                key: _CommandLineToolParameterOptionKey?,
+                keyValueSeparator: _CommandLineToolParameterKeyValueSeparator,
+                value: any CLT.ArgumentValueConvertible,
+            ) -> String {
+                var argument = ""
+                if let key {
+                    argument += key.argumentValue
+                }
+                argument += keyValueSeparator.rawValue
+                argument += value.argumentValue
+                return argument
+            }
+            
+            if let multiValueEncodingStrategy = parameter.multiValueEncodingStrategy {
+                let array = parameter.wrappedValue as? Array<(any CLT.ArgumentValueConvertible)>
+                guard let array else { continue }
+                
+                switch multiValueEncodingStrategy {
+                    case .singleValue:
+                        argument = array
+                            .map {
+                                _singleValueArgument(
+                                    key: parameter.key,
+                                    keyValueSeparator: parameter.keyValueSeparator,
+                                    value: $0
+                                )
+                            }
+                            .joined(separator: " ")
+                    case .spaceSeparated:
+                        assert(
+                            parameter.keyValueSeparator == .space,
+                            "key value separator conflicts with the multi value encoding strategy. You must specify set both to `.space`."
+                        )
+                        if let key = parameter.key {
+                            argument += key.argumentValue
+                        }
+                        argument += array.map(\.argumentValue).joined(separator: " ")
+                }
+            } else {
+                let value = parameter.wrappedValue as? (any CLT.ArgumentValueConvertible)
+                guard let value else { continue }
+                
+                argument = _singleValueArgument(
+                    key: parameter.key,
+                    keyValueSeparator: parameter.keyValueSeparator,
+                    value: value
+                )
+            }
+
+            components.append(argument)
+        }
+        
+        return components.joined(separator: " ")
+    }
 }
 
 @available(macOS 11.0, *)
