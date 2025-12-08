@@ -14,6 +14,7 @@ import Runtime
 @available(watchOS, unavailable)
 open class AnyCommandLineTool: Logging {
     public lazy var logger = PassthroughLogger(source: self)
+    open var parent: AnyCommandLineTool?
     
     /// The name of the command-line tool or subcommand being used.
     ///
@@ -56,7 +57,17 @@ open class AnyCommandLineTool: Logging {
     ///
     /// - parameter operation: An optional operation after the ``commandName``. It typically serves as mode selection. For example: `xcrun --show-sdk-path -sdk <sdk>` where `--show-sdk-path` is the operation.
     open func makeCommand(operation: String? = nil) -> String {
-        ([Self.commandName, operation].compactMap(\.self) + _serializedCommandParameters).joined(separator: " ")
+        var invocationComponents = [Self.commandName]
+        if let operation {
+            invocationComponents.append(operation)
+        }
+        invocationComponents.append(contentsOf: _serializedCommandParameters)
+        
+        if let parent {
+            invocationComponents.insert(parent.makeCommand(operation: nil), at: 0)
+        }
+        
+        return invocationComponents.joined(separator: " ")
     }
     
     /// Makes the command invocation and runs in the system shell
