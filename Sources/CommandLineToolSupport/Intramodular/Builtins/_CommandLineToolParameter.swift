@@ -11,7 +11,7 @@ extension CommandLineTool {
 
 public protocol _CommandLineToolParameterProtocol: PropertyWrapper {
     /// The name of the parameter as it will be passed in the actual command being invoked.
-    var key: _CommandLineToolParameterOptionKey? { get }
+    var key: _CommandLineToolOptionKey? { get }
     
     /// Defines how the parameter’s value is joined with its key when constructing the final command-line invocation.
     ///
@@ -26,7 +26,7 @@ public protocol _CommandLineToolParameterProtocol: PropertyWrapper {
 public struct _CommandLineToolParameter<WrappedValue>: _CommandLineToolParameterProtocol {
     var _wrappedValue: WrappedValue
 
-    public var key: _CommandLineToolParameterOptionKey?
+    public var key: _CommandLineToolOptionKey?
     public var keyValueSeparator: _CommandLineToolParameterKeyValueSeparator
     public var multiValueEncodingStrategy: MultiValueParameterEncodingStrategy?
     
@@ -41,7 +41,7 @@ public struct _CommandLineToolParameter<WrappedValue>: _CommandLineToolParameter
     /// Creates a property that reads its value from a labeled option or an argument.
     public init(
         wrappedValue: WrappedValue,
-        key: _CommandLineToolParameterOptionKey?,
+        key: _CommandLineToolOptionKey?,
         separator: _CommandLineToolParameterKeyValueSeparator = .space
     ) where WrappedValue : CLT.ArgumentValueConvertible {
         self._wrappedValue = wrappedValue
@@ -53,7 +53,7 @@ public struct _CommandLineToolParameter<WrappedValue>: _CommandLineToolParameter
     @available(*, deprecated, message: "Use @Flag instead.")
     public init(
         wrappedValue: WrappedValue,
-        key: _CommandLineToolParameterOptionKey?,
+        key: _CommandLineToolOptionKey?,
         separator: _CommandLineToolParameterKeyValueSeparator = .space
     ) where WrappedValue == Swift.Bool {
         self._wrappedValue = wrappedValue
@@ -64,7 +64,7 @@ public struct _CommandLineToolParameter<WrappedValue>: _CommandLineToolParameter
     /// Creates an array that reads its value from zero or more labeled options or arguments.
     public init<T>(
         wrappedValue: WrappedValue,
-        key: _CommandLineToolParameterOptionKey?,
+        key: _CommandLineToolOptionKey?,
         separator: _CommandLineToolParameterKeyValueSeparator = .space,
         encoding: MultiValueParameterEncodingStrategy = .singleValue
     ) where WrappedValue == [T]?, T : CLT.ArgumentValueConvertible {
@@ -77,7 +77,7 @@ public struct _CommandLineToolParameter<WrappedValue>: _CommandLineToolParameter
     /// Creates an array that reads its value from zero or more labeled options or arguments.
     public init<T>(
         wrappedValue: WrappedValue,
-        key: _CommandLineToolParameterOptionKey?,
+        key: _CommandLineToolOptionKey?,
         separator: _CommandLineToolParameterKeyValueSeparator = .space,
         encoding: MultiValueParameterEncodingStrategy = .singleValue
     ) where WrappedValue == [T], T : CLT.ArgumentValueConvertible {
@@ -91,7 +91,7 @@ public struct _CommandLineToolParameter<WrappedValue>: _CommandLineToolParameter
     @_disfavoredOverload
     public init(
         wrappedValue: WrappedValue,
-        key: _CommandLineToolParameterOptionKey?,
+        key: _CommandLineToolOptionKey?,
         separator: _CommandLineToolParameterKeyValueSeparator = .space
     ) {
         self._wrappedValue = wrappedValue
@@ -100,7 +100,7 @@ public struct _CommandLineToolParameter<WrappedValue>: _CommandLineToolParameter
     }
 }
 
-public enum _CommandLineToolParameterOptionKey: CLT.ArgumentValueConvertible, Hashable, Sendable {
+public enum _CommandLineToolOptionKey: CLT.ArgumentValueConvertible, Hashable, Sendable {
     /// A parameter name prefixed with one hyphen, for example: `-o`, `-output`, etc.
     case hyphenPrefixed(String)
     /// A parameter name prefixed with two hyphens, for example: `--output`, etc.

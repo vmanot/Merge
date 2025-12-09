@@ -61,7 +61,7 @@ open class AnyCommandLineTool: Logging {
         if let operation {
             invocationComponents.append(operation)
         }
-        invocationComponents.append(contentsOf: _serializedCommandParameters)
+        invocationComponents.append(contentsOf: _serializedCommandArguments)
         
         if let parent {
             invocationComponents.insert(parent.makeCommand(operation: nil), at: 0)
@@ -119,84 +119,30 @@ extension AnyCommandLineTool {
             
             let environmentVariableName = propertyWrapper.name
             let environmentVariableValue: any CLT.EnvironmentVariableValue = propertyWrapper.wrappedValue
-
+            
             if environmentVariables.contains(key: environmentVariableName) {
                 fatalError("conflict for \(environmentVariableName)")
             }
-        
+            
             result[environmentVariableName] = environmentVariableValue
         }
         
         return result
     }
     
-    private var _serializedCommandParameters: [String] {
+    private var _serializedCommandArguments: [String] {
         let mirror = Mirror(reflecting: self)
         
         var components = [String]()
         
         for child in mirror.children {
-            let parameter = child.value as? (any _CommandLineToolParameterProtocol)
-            guard let parameter else { continue }
-            
-            if let optionalValue = parameter.wrappedValue as? (any OptionalProtocol),
-                optionalValue.isNil {
-                continue // Skip this parameter if the value is empty.
+            if let parameter = child.value as? (any _CommandLineToolParameterProtocol),
+               let component = _CommandLineToolArgumentSerializer.serialize(parameter) {
+                components.append(component)
+            } else if let flag = child.value as? (any _CommandLineToolFlagProtocol),
+                      let component = _CommandLineToolArgumentSerializer.serialize(flag) {
+                components.append(component)
             }
-            
-            var argument = ""
-            
-            func _singleValueArgument(
-                key: _CommandLineToolParameterOptionKey?,
-                keyValueSeparator: _CommandLineToolParameterKeyValueSeparator,
-                value: any CLT.ArgumentValueConvertible,
-            ) -> String {
-                var argument = ""
-                if let key {
-                    argument += key.argumentValue
-                }
-                argument += keyValueSeparator.rawValue
-                argument += value.argumentValue
-                return argument
-            }
-            
-            if let multiValueEncodingStrategy = parameter.multiValueEncodingStrategy {
-                let array = parameter.wrappedValue as? Array<(any CLT.ArgumentValueConvertible)>
-                guard let array else { continue }
-                
-                switch multiValueEncodingStrategy {
-                    case .singleValue:
-                        argument = array
-                            .map {
-                                _singleValueArgument(
-                                    key: parameter.key,
-                                    keyValueSeparator: parameter.keyValueSeparator,
-                                    value: $0
-                                )
-                            }
-                            .joined(separator: " ")
-                    case .spaceSeparated:
-                        assert(
-                            parameter.keyValueSeparator == .space,
-                            "key value separator conflicts with the multi value encoding strategy. You must specify set both to `.space`."
-                        )
-                        if let key = parameter.key {
-                            argument += key.argumentValue
-                        }
-                        argument += array.map(\.argumentValue).joined(separator: " ")
-                }
-            } else {
-                let value = parameter.wrappedValue as? (any CLT.ArgumentValueConvertible)
-                guard let value else { continue }
-                
-                argument = _singleValueArgument(
-                    key: parameter.key,
-                    keyValueSeparator: parameter.keyValueSeparator,
-                    value: value
-                )
-            }
-
-            components.append(argument)
         }
         
         return components
