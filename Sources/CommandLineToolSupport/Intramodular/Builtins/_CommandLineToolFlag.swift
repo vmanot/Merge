@@ -14,7 +14,7 @@ extension CommandLineTool {
 
 public protocol _CommandLineToolFlagProtocol: PropertyWrapper where WrappedValue : Equatable {
     /// The name of the parameter as it will be passed in the actual command being invoked.
-    var key: _CommandLineToolOptionKey { get }
+    var key: _CommandLineToolOptionKey? { get }
     
     var inversion: _CommandLineToolFlagInversion? { get }
     
@@ -25,7 +25,7 @@ public protocol _CommandLineToolFlagProtocol: PropertyWrapper where WrappedValue
 public struct _CommandLineToolFlag<WrappedValue: Equatable>: _CommandLineToolFlagProtocol {
     var _wrappedValue: WrappedValue
     
-    public var key: _CommandLineToolOptionKey
+    public var key: _CommandLineToolOptionKey?
     public var inversion: _CommandLineToolFlagInversion?
     public var defaultValue: WrappedValue
   
@@ -55,6 +55,14 @@ public struct _CommandLineToolFlag<WrappedValue: Equatable>: _CommandLineToolFla
         self._wrappedValue = wrappedValue
         self.defaultValue = wrappedValue
         self.key = key
+    }
+    
+    public init(
+        wrappedValue: WrappedValue
+    ) where WrappedValue : CLT.OptionKeyConvertible {
+        self._wrappedValue = wrappedValue
+        self.defaultValue = wrappedValue
+        self.key = nil
     }
     
     @available(*, deprecated, message: "This flag will be ignored. Make sure `WrappedValue` conforms to `CLT.ArgumentValueConvertible`.")

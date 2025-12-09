@@ -86,11 +86,12 @@ extension _CommandLineToolArgumentSerializer {
             return nil // Skip this flag if the value is empty.
         }
         
-        var argument = flag.key.argumentValue
+        var argument = flag.key?.argumentValue ?? ""
         
         if let booleanValue = flag.wrappedValue as? Bool {
             if let inversion = flag.inversion,
                let inserted = inversion.insertionText(flagValue: booleanValue) {
+                // support inversion, we can safely add argument.
                 switch flag.key {
                     case .doubleHyphenPrefixed:
                         argument.insert(
@@ -106,12 +107,15 @@ extension _CommandLineToolArgumentSerializer {
                         break
                 }
             } else if flag.wrappedValue.eraseToAnyEquatable() == flag.defaultValue.eraseToAnyEquatable() {
-                return nil // Skip this flag if the value is default.
+                // does not support inversion, only emit the flag if it's not equal to the default value.
+                return nil
             }
         } else if let repeatCount = flag.wrappedValue as? Int {
             argument = [String](repeating: argument, count: repeatCount)
                 .joined(separator: " ")
-        } /*else if let enumeratableFlagValue = flag.wrappedValue as? (any En)*/
+        } else if let argumentConvertibleFlag = flag.wrappedValue as? (any CLT.OptionKeyConvertible) {
+            argument = argumentConvertibleFlag.optionKey.argumentValue
+        }
         
         return argument
     }
