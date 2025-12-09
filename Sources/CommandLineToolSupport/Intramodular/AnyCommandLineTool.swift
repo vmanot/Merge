@@ -73,6 +73,7 @@ open class AnyCommandLineTool: Logging {
     /// Makes the command invocation and runs in the system shell
     ///
     /// - parameter operation: An optional operation after the ``commandName``. It typically serves as mode selection. For example: `xcrun --show-sdk-path -sdk <sdk>` where `--show-sdk-path` is the operation.
+    @discardableResult
     open func run(operation: String? = nil) async throws -> Process.RunResult {
         try await withUnsafeSystemShell { shell in
             try await shell.run(command: makeCommand(operation: operation))
