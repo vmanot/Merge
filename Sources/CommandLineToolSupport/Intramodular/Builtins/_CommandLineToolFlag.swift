@@ -65,6 +65,22 @@ public struct _CommandLineToolFlag<WrappedValue: Equatable>: _CommandLineToolFla
         self.key = nil
     }
     
+    public init<T>(
+        wrappedValue: [T]
+    ) where WrappedValue == [T], T : CLT.OptionKeyConvertible {
+        self._wrappedValue = wrappedValue
+        self.defaultValue = wrappedValue
+        self.key = nil
+    }
+    
+    public init<T>(
+        wrappedValue: [T]?
+    ) where WrappedValue == [T]?, T : CLT.OptionKeyConvertible {
+        self._wrappedValue = wrappedValue
+        self.defaultValue = wrappedValue
+        self.key = nil
+    }
+    
     @available(*, deprecated, message: "This flag will be ignored. Make sure `WrappedValue` conforms to `CLT.ArgumentValueConvertible`.")
     @_disfavoredOverload
     public init(

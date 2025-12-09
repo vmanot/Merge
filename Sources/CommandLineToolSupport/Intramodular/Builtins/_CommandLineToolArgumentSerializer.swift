@@ -113,6 +113,8 @@ extension _CommandLineToolArgumentSerializer {
         } else if let repeatCount = flag.wrappedValue as? Int {
             argument = [String](repeating: argument, count: repeatCount)
                 .joined(separator: " ")
+        } else if let flagSet = flag.wrappedValue as? Array<(any CLT.OptionKeyConvertible)> {
+            argument = flagSet.map(\.optionKey.argumentValue).joined(separator: " ")
         } else if let argumentConvertibleFlag = flag.wrappedValue as? (any CLT.OptionKeyConvertible) {
             argument = argumentConvertibleFlag.optionKey.argumentValue
         }
