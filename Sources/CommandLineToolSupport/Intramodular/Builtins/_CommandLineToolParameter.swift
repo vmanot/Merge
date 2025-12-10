@@ -50,17 +50,6 @@ public struct _CommandLineToolParameter<WrappedValue>: _CommandLineToolParameter
         self.multiValueEncodingStrategy = nil
     }
     
-    @available(*, deprecated, message: "Use @Flag instead.")
-    public init(
-        wrappedValue: WrappedValue,
-        key: _CommandLineToolOptionKey?,
-        separator: _CommandLineToolParameterKeyValueSeparator = .space
-    ) where WrappedValue == Swift.Bool {
-        self._wrappedValue = wrappedValue
-        self.key = key
-        self.keyValueSeparator = separator
-    }
-    
     /// Creates an array that reads its value from zero or more labeled options or arguments.
     public init<T>(
         wrappedValue: WrappedValue,

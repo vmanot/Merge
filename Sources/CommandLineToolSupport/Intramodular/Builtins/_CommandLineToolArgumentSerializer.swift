@@ -106,7 +106,7 @@ extension _CommandLineToolArgumentSerializer {
                     default:
                         break
                 }
-            } else if flag.wrappedValue.eraseToAnyEquatable() == flag.defaultValue.eraseToAnyEquatable() {
+            } else if flag.wrappedValue.eraseToAnyEquatable() == flag._defaultValue.eraseToAnyEquatable() {
                 // does not support inversion, only emit the flag if it's not equal to the default value.
                 return nil
             }

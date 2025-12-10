@@ -13,12 +13,26 @@ extension CommandLineTool {
 }
 
 public protocol _CommandLineToolFlagProtocol: PropertyWrapper where WrappedValue : Equatable {
-    /// The name of the parameter as it will be passed in the actual command being invoked.
+    /// The name of the flag as it will be passed in the actual command being invoked.
     var key: _CommandLineToolOptionKey? { get }
     
+    /// The options for converting a flag into `true` and `false` pair that would be pass in the actual command being invoked.
+    ///
+    /// If this value is set, whether it's `true` or `false`, it would always be emitted as a command lint tool argument.
     var inversion: _CommandLineToolFlagInversion? { get }
     
-    var defaultValue: WrappedValue { get }
+    /// The default value of the flag.
+    ///
+    /// If the flag is a non-optional boolean value, this value will be used to check if it is the default value. The flag will only be emitted as CLT argument if it's not the default value.
+    ///
+    /// For example, in the example below, `-v` is generated only when `verbose == true`.
+    ///
+    /// Since the `verbose` flag does not have a inversion representation, `defaultValue` would be useful to determine whether this flag should be emitted or not.
+    ///
+    /// ```swift
+    /// @Flag(key: .hyphenPrefixed("v")) var verbose: Bool = false
+    /// ```
+    var _defaultValue: WrappedValue { get }
 }
 
 @propertyWrapper
@@ -27,7 +41,7 @@ public struct _CommandLineToolFlag<WrappedValue: Equatable>: _CommandLineToolFla
     
     public var key: _CommandLineToolOptionKey?
     public var inversion: _CommandLineToolFlagInversion?
-    public var defaultValue: WrappedValue
+    public var _defaultValue: WrappedValue
   
     public var wrappedValue: WrappedValue {
         get {
@@ -37,48 +51,76 @@ public struct _CommandLineToolFlag<WrappedValue: Equatable>: _CommandLineToolFla
         }
     }
 
+    /// Creates a flag from a non-optional boolean value.
+    ///
+    /// - parameter key: The option key that would be emitted if necessary as a command argument.
+    /// - parameter inversion: The option that converts a flag into `true` / `false` pair. The default value is `nil`, and the flag is only converted into command argument when it's not equal to default value.
+    ///
+    /// For example:
+    ///
+    /// ```swift
+    /// @Flag(key: .hyphenPrefixed("v")) var verbose: Bool = false
+    /// ```
     public init(
         wrappedValue: WrappedValue,
         key: _CommandLineToolOptionKey,
         inversion: _CommandLineToolFlagInversion? = nil
     ) where WrappedValue == Bool {
         self._wrappedValue = wrappedValue
-        self.defaultValue = wrappedValue
+        self._defaultValue = wrappedValue
         self.key = key
         self.inversion = inversion
     }
     
+    /// Creates a flag from an optional boolean value.
+    ///
+    /// - parameter key: The option key that would be emitted as a command argument.
+    /// - parameter inversion: The option that converts a flag into `true` / `false` pair.
+    public init(
+        wrappedValue: WrappedValue,
+        key: _CommandLineToolOptionKey,
+        inversion: _CommandLineToolFlagInversion
+    ) where WrappedValue == Bool? {
+        self._wrappedValue = wrappedValue
+        self._defaultValue = wrappedValue
+        self.key = key
+        self.inversion = inversion
+    }
+    
+    /// Creates a counter flag from an integer value.
+    /// - parameter key: The option key that would be emitted if necessary as a command argument.
     public init(
         wrappedValue: WrappedValue,
         key: _CommandLineToolOptionKey
     ) where WrappedValue == Int {
         self._wrappedValue = wrappedValue
-        self.defaultValue = wrappedValue
+        self._defaultValue = wrappedValue
         self.key = key
+        self.inversion = nil
     }
     
-    public init(
-        wrappedValue: WrappedValue
-    ) where WrappedValue : CLT.OptionKeyConvertible {
+    /// Creates a custom flag from any `OptionKeyConvertible`.
+    public init(wrappedValue: WrappedValue) where WrappedValue : CLT.OptionKeyConvertible {
         self._wrappedValue = wrappedValue
-        self.defaultValue = wrappedValue
+        self._defaultValue = wrappedValue
         self.key = nil
+        self.inversion = nil
     }
     
-    public init<T>(
-        wrappedValue: [T]
-    ) where WrappedValue == [T], T : CLT.OptionKeyConvertible {
+    /// Creates an array of custom flags from any `OptionKeyConvertible`.
+    public init<T>(wrappedValue: [T]) where WrappedValue == [T], T : CLT.OptionKeyConvertible {
         self._wrappedValue = wrappedValue
-        self.defaultValue = wrappedValue
+        self._defaultValue = wrappedValue
         self.key = nil
+        self.inversion = nil
     }
     
-    public init<T>(
-        wrappedValue: [T]?
-    ) where WrappedValue == [T]?, T : CLT.OptionKeyConvertible {
+    /// Creates an array of custom flags from any `OptionKeyConvertible`.
+    public init<T>(wrappedValue: [T]?) where WrappedValue == [T]?, T : CLT.OptionKeyConvertible {
         self._wrappedValue = wrappedValue
-        self.defaultValue = wrappedValue
+        self._defaultValue = wrappedValue
         self.key = nil
+        self.inversion = nil
     }
     
     @available(*, deprecated, message: "This flag will be ignored. Make sure `WrappedValue` conforms to `CLT.ArgumentValueConvertible`.")
@@ -89,12 +131,13 @@ public struct _CommandLineToolFlag<WrappedValue: Equatable>: _CommandLineToolFla
         inversion: _CommandLineToolFlagInversion? = nil
     ) {
         self._wrappedValue = wrappedValue
-        self.defaultValue = wrappedValue
+        self._defaultValue = wrappedValue
         self.key = key
         self.inversion = inversion
     }
 }
 
+/// The option for converting a flag into `true` / `false` pair.
 public enum _CommandLineToolFlagInversion: Hashable, Sendable {
     /// Emit `--no-<name>` when the value is `false`.
     case prefixedNo
