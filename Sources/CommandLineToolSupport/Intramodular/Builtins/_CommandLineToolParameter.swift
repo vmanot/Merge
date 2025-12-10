@@ -109,6 +109,17 @@ public enum _CommandLineToolOptionKey: CLT.ArgumentValueConvertible, Hashable, S
                 "/\(name)"
         }
     }
+    
+    package var name: String {
+        switch self {
+            case .hyphenPrefixed(let string):
+                string
+            case .doubleHyphenPrefixed(let string):
+                string
+            case .slashPrefixed(let string):
+                string
+        }
+    }
 }
 
 public enum _CommandLineToolParameterKeyValueSeparator: String, Hashable, Sendable {

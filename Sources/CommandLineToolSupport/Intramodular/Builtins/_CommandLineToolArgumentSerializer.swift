@@ -82,43 +82,46 @@ extension _CommandLineToolArgumentSerializer {
 extension _CommandLineToolArgumentSerializer {
     static func serialize(_ flag: any _CommandLineToolFlagProtocol) -> String? {
         if let optionalValue = flag.wrappedValue as? (any OptionalProtocol),
-            optionalValue.isNil {
+           optionalValue.isNil {
             return nil // Skip this flag if the value is empty.
         }
         
-        var argument = flag.key?.argumentValue ?? ""
-        
-        if let booleanValue = flag.wrappedValue as? Bool {
-            if let inversion = flag.inversion,
-               let inserted = inversion.insertionText(flagValue: booleanValue) {
-                // support inversion, we can safely add argument.
-                switch flag.key {
-                    case .doubleHyphenPrefixed:
-                        argument.insert(
-                            contentsOf: "\(inserted)-",
-                            at: argument.index(atDistance: /* -- */ 2)
-                        )
-                    case .hyphenPrefixed:
-                        argument.insert(
-                            contentsOf: "\(inserted)-",
-                            at: argument.index(atDistance: /* - */ 1)
-                        )
-                    default:
-                        break
+        var argument: String?
+        switch flag._representaton {
+            case .custom:
+                if let array = flag.wrappedValue as? Array<any CLT.OptionKeyConvertible> {
+                    argument = array.map(\.optionKey.argumentValue).joined(separator: " ")
+                } else if let optionKeyConvertible = flag.wrappedValue as? any CLT.OptionKeyConvertible {
+                    argument = optionKeyConvertible.optionKey.argumentValue
+                } else {
+                    preconditionFailure("Custom type must conform to CLT.OptionKeyConvertible.")
                 }
-            } else if flag.wrappedValue.eraseToAnyEquatable() == flag._defaultValue.eraseToAnyEquatable() {
-                // does not support inversion, only emit the flag if it's not equal to the default value.
-                return nil
-            }
-        } else if let repeatCount = flag.wrappedValue as? Int {
-            argument = [String](repeating: argument, count: repeatCount)
-                .joined(separator: " ")
-        } else if let flagSet = flag.wrappedValue as? Array<(any CLT.OptionKeyConvertible)> {
-            argument = flagSet.map(\.optionKey.argumentValue).joined(separator: " ")
-        } else if let argumentConvertibleFlag = flag.wrappedValue as? (any CLT.OptionKeyConvertible) {
-            argument = argumentConvertibleFlag.optionKey.argumentValue
+            case .counter(let key):
+                assert(flag.wrappedValue is Int, "Flag value type conflicts with the representation. Expect: Int, got: \(flag.wrappedValue.self)")
+                let count = flag.wrappedValue as! Int
+                if count > 0 {
+                    argument = (0 ..< count).map({ _ in key.name }).joined()
+                    switch key {
+                        case .doubleHyphenPrefixed:
+                            argument!.insert(contentsOf: "--", at: argument!.startIndex)
+                        case .hyphenPrefixed:
+                            argument!.insert(contentsOf: "-", at: argument!.startIndex)
+                        case .slashPrefixed:
+                            argument!.insert(contentsOf: "/", at: argument!.startIndex)
+                    }
+                }
+            case .optionalBoolean(let key, let inversion): // always emits the flag based on inversion, nil value has already filtered at the very beginning.
+                assert(flag.wrappedValue is Optional<Bool>, "Flag value type conflicts with the representation. Expect: Optional<Bool>, got: \(flag.wrappedValue.self)")
+                let boolValue = (flag.wrappedValue as! Optional<Bool>)! // since nil value has been filtered at the beginning, it would be safe to unwrap it here
+                argument = inversion.argument(key, value: boolValue)
+            case .boolean(let key, let defaultValue): // only emits the flag if current value is not default
+                assert(flag.wrappedValue is Bool, "Flag value type conflicts with the representation. Expect: Bool, got: \(flag.wrappedValue.self)")
+                let boolValue = flag.wrappedValue as! Bool
+                if boolValue != defaultValue {
+                    argument = key.argumentValue
+                }
         }
         
-        return argument
+        return argument ?? ""
     }
 }
