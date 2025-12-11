@@ -11,7 +11,9 @@ extension CommandLineTool {
 
 public protocol _CommandLineToolParameterProtocol: PropertyWrapper {
     /// The name of the parameter as it will be passed in the actual command being invoked.
-    var key: _CommandLineToolOptionKey? { get }
+    var name: String? { get }
+    
+    var optionKeyConversion: _CommandLineToolOptionKeyConversion? { get }
     
     /// Defines how the parameter’s value is joined with its key when constructing the final command-line invocation.
     ///
@@ -26,7 +28,8 @@ public protocol _CommandLineToolParameterProtocol: PropertyWrapper {
 public struct _CommandLineToolParameter<WrappedValue>: _CommandLineToolParameterProtocol {
     var _wrappedValue: WrappedValue
 
-    public var key: _CommandLineToolOptionKey?
+    public var name: String?
+    public var optionKeyConversion: _CommandLineToolOptionKeyConversion?
     public var keyValueSeparator: _CommandLineToolParameterKeyValueSeparator
     public var multiValueEncodingStrategy: MultiValueParameterEncodingStrategy?
     
@@ -38,122 +41,103 @@ public struct _CommandLineToolParameter<WrappedValue>: _CommandLineToolParameter
         }
     }
     
-    /// Creates a property that reads its value from a labeled option or an argument.
-    public init(
-        wrappedValue: WrappedValue,
-        key: _CommandLineToolOptionKey?,
-        separator: _CommandLineToolParameterKeyValueSeparator = .space
-    ) where WrappedValue : CLT.ArgumentValueConvertible {
-        self._wrappedValue = wrappedValue
-        self.key = key
-        self.keyValueSeparator = separator
-        self.multiValueEncodingStrategy = nil
-    }
-    
-    /// Creates an array that reads its value from zero or more labeled options or arguments.
-    public init<T>(
-        wrappedValue: WrappedValue,
-        key: _CommandLineToolOptionKey?,
-        separator: _CommandLineToolParameterKeyValueSeparator = .space,
-        encoding: MultiValueParameterEncodingStrategy = .singleValue
-    ) where WrappedValue == [T]?, T : CLT.ArgumentValueConvertible {
-        self._wrappedValue = wrappedValue
-        self.key = key
-        self.keyValueSeparator = separator
-        self.multiValueEncodingStrategy = encoding
-    }
-    
-    /// Creates an array that reads its value from zero or more labeled options or arguments.
-    public init<T>(
-        wrappedValue: WrappedValue,
-        key: _CommandLineToolOptionKey?,
-        separator: _CommandLineToolParameterKeyValueSeparator = .space,
-        encoding: MultiValueParameterEncodingStrategy = .singleValue
-    ) where WrappedValue == [T], T : CLT.ArgumentValueConvertible {
-        self._wrappedValue = wrappedValue
-        self.key = key
-        self.keyValueSeparator = separator
-        self.multiValueEncodingStrategy = encoding
-    }
-    
     @available(*, deprecated, message: "This parameter will be ignored. Make sure `WrappedValue` conforms to `CLT.ArgumentValueConvertible`.")
     @_disfavoredOverload
     public init(
         wrappedValue: WrappedValue,
-        key: _CommandLineToolOptionKey?,
+        name: String?,
         separator: _CommandLineToolParameterKeyValueSeparator = .space
     ) {
         self._wrappedValue = wrappedValue
-        self.key = key
+        self.name = name
         self.keyValueSeparator = separator
     }
 }
 
-public enum _CommandLineToolOptionKey: CLT.ArgumentValueConvertible, Hashable, Sendable {
-    /// A parameter name prefixed with one hyphen, for example: `-o`, `-output`, etc.
-    case hyphenPrefixed(String)
-    /// A parameter name prefixed with two hyphens, for example: `--output`, etc.
-    case doubleHyphenPrefixed(String)
-    /// A parameter name prefixed with a slash, for example: `/out`, etc.
-    ///
-    /// Commonly used in some Windows CLIs.
-    case slashPrefixed(String)
-    
-    public var argumentValue: String {
-        switch self {
-            case .doubleHyphenPrefixed(let name):
-                "--\(name)"
-            case .hyphenPrefixed(let name):
-                "-\(name)"
-            case .slashPrefixed(let name):
-                "/\(name)"
-        }
+extension _CommandLineToolParameter where WrappedValue : CLT.ArgumentValueConvertible {
+    /// Creates a property that reads its value from a labeled option or an argument.
+    public init(
+        wrappedValue: WrappedValue,
+        name: String?,
+        separator: _CommandLineToolParameterKeyValueSeparator = .space
+    ) {
+        self._wrappedValue = wrappedValue
+        self.name = name
+        self.keyValueSeparator = separator
+        self.multiValueEncodingStrategy = nil
     }
     
-    package var name: String {
-        switch self {
-            case .hyphenPrefixed(let string):
-                string
-            case .doubleHyphenPrefixed(let string):
-                string
-            case .slashPrefixed(let string):
-                string
-        }
+    /// Creates a property that reads its value from a labeled option or an argument.
+    public init(
+        wrappedValue: WrappedValue,
+        conversion: _CommandLineToolOptionKeyConversion,
+        name: String?,
+        separator: _CommandLineToolParameterKeyValueSeparator = .space
+    ) {
+        self._wrappedValue = wrappedValue
+        self.name = name
+        self.optionKeyConversion = conversion
+        self.keyValueSeparator = separator
+        self.multiValueEncodingStrategy = nil
     }
 }
 
-public enum _CommandLineToolParameterKeyValueSeparator: String, Hashable, Sendable {
-    /// Uses a space character as separator between key and value.
-    ///
-    /// For example: `-o <path>`
-    case space = " "
-    /// Uses an equal character as separator between key and value.
-    ///
-    /// For example: `-cxx-interoperability-mode=default` for `xcrun swiftc`
-    case equal = "="
+extension _CommandLineToolParameter {
+    /// Creates an array that reads its value from zero or more labeled options or arguments.
+    public init<T>(
+        wrappedValue: WrappedValue,
+        name: String?,
+        separator: _CommandLineToolParameterKeyValueSeparator = .space,
+        encoding: MultiValueParameterEncodingStrategy = .singleValue
+    ) where WrappedValue == [T]?, T : CLT.ArgumentValueConvertible {
+        self._wrappedValue = wrappedValue
+        self.name = name
+        self.keyValueSeparator = separator
+        self.multiValueEncodingStrategy = encoding
+    }
     
-    /// Uses a plus character as separator between key and value.
-    ///
-    /// For example: `-framework+UIKit` for legacy `Id` CLT.
-    ///
-    /// - warning: This is a legacy value style and may not support in the mordern toolchain.
-    case plus = "+"
-    
-    /// Uses a colon character as separator between key and value.
-    ///
-    /// Commonly used in some Windows CLIs, for example: `/out:program.exe`.
-    case colon = ":"
+    /// Creates an array that reads its value from zero or more labeled options or arguments.
+    public init<T>(
+        wrappedValue: WrappedValue,
+        conversion: _CommandLineToolOptionKeyConversion,
+        name: String?,
+        separator: _CommandLineToolParameterKeyValueSeparator = .space,
+        encoding: MultiValueParameterEncodingStrategy = .singleValue
+    ) where WrappedValue == [T]?, T : CLT.ArgumentValueConvertible {
+        self._wrappedValue = wrappedValue
+        self.name = name
+        self.keyValueSeparator = separator
+        self.multiValueEncodingStrategy = encoding
+    }
 }
 
-/// Describes how multi-value parameters are encoded on the command line.
-public enum MultiValueParameterEncodingStrategy {
-    /// Each parameter value is attached to an independent key.
-    ///
-    /// For example: `-Xcc -fmodule-map-file=foo.modulemap -Xcc -fmodules` for `xcrun_swiftc`
-    case singleValue
-    
-    /// Multiple values are attached to the same option key and joined with a whitespace.
-    ///
-    /// For example: `--platform ios macOS watchOS` for `crowbar-tool`
-    case spaceSeparated
+extension _CommandLineToolParameter {
+    /// Creates an array that reads its value from zero or more labeled options or arguments.
+    public init<T>(
+        wrappedValue: WrappedValue,
+        name: String?,
+        separator: _CommandLineToolParameterKeyValueSeparator = .space,
+        encoding: MultiValueParameterEncodingStrategy = .singleValue
+    ) where WrappedValue == [T], T : CLT.ArgumentValueConvertible {
+        self._wrappedValue = wrappedValue
+        self.name = name
+        self.keyValueSeparator = separator
+        self.multiValueEncodingStrategy = encoding
+    }
+
+    /// Creates an array that reads its value from zero or more labeled options or arguments.
+    public init<T>(
+        wrappedValue: WrappedValue,
+        conversion: _CommandLineToolOptionKeyConversion,
+        name: String?,
+        separator: _CommandLineToolParameterKeyValueSeparator = .space,
+        encoding: MultiValueParameterEncodingStrategy = .singleValue
+    ) where WrappedValue == [T], T : CLT.ArgumentValueConvertible {
+        self._wrappedValue = wrappedValue
+        self.name = name
+        self.optionKeyConversion = conversion
+        self.keyValueSeparator = separator
+        self.multiValueEncodingStrategy = encoding
+    }
 }
+

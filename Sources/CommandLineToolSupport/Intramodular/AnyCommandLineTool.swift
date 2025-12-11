@@ -16,6 +16,10 @@ open class AnyCommandLineTool: Logging {
     public lazy var logger = PassthroughLogger(source: self)
     open var parent: AnyCommandLineTool?
     
+    open var keyConversion: _CommandLineToolOptionKeyConversion? {
+        nil
+    }
+    
     /// The name of the command-line tool or subcommand being used.
     ///
     /// By default, the lowercased version of the type name would be used if you don't override it.
@@ -137,14 +141,18 @@ extension AnyCommandLineTool {
         
         for child in mirror.children {
             if let parameter = child.value as? (any _CommandLineToolParameterProtocol),
-               let component = _CommandLineToolArgumentSerializer.serialize(parameter) {
+               let component = _CommandLineToolArgumentResolver.serialize(parameter) {
                 components.append(component)
             } else if let flag = child.value as? (any _CommandLineToolFlagProtocol),
-                      let component = _CommandLineToolArgumentSerializer.serialize(flag) {
+                      let component = _CommandLineToolArgumentResolver.serialize(flag) {
                 components.append(component)
             }
         }
         
         return components.filter({ !$0.isEmpty })
+    }
+    
+    func resolve(in: _CommandLineToolResolutionContext) -> _ResolvedCommandLineToolDescription {
+        fatalError(.unimplemented)
     }
 }

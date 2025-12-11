@@ -11,16 +11,30 @@ import Swallow
 
 extension CLT {
     public protocol OptionKeyConvertible {
-        var optionKey: _CommandLineToolOptionKey { get }
+        var conversion: _CommandLineToolOptionKeyConversion? { get }
+        var name: String { get }
+    }
+}
+
+extension CLT.OptionKeyConvertible {
+    public var conversion: _CommandLineToolOptionKeyConversion? {
+        nil
     }
 }
 
 extension Optional: CLT.OptionKeyConvertible where Wrapped: CLT.OptionKeyConvertible {
-    public var optionKey: _CommandLineToolOptionKey {
+    public var name: String {
         if let self {
-            self.optionKey
+            self.name
         } else {
             fatalError(.impossible) // flags with nil should never try to call this.
         }
+    }
+    
+    public var conversion: _CommandLineToolOptionKeyConversion? {
+        if let self {
+            return self.conversion
+        }
+        return nil
     }
 }
