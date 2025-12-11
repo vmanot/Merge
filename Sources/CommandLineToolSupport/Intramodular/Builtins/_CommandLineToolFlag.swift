@@ -13,13 +13,34 @@ extension CommandLineTool {
 }
 
 public protocol _CommandLineToolFlagProtocol: PropertyWrapper {
+    /// The representation of the `_CommandLineToolFlag`.
+    ///
+    /// This must aligned with the `WrappedValue`, for example: `.counter(key:)` assumes `WrappedValue` is `Int`, etc.
     var _representaton: _CommandLineToolFlagRepresentation { get }
 }
 
+/// The representation of a command line tool flag that controls how to convert it into command argument.
 public enum _CommandLineToolFlagRepresentation {
+    /// A counter flag whose value is derived from how many times the option key appears in the command line.
+    ///
+    /// - Parameter key: The name of the flag as it will be passed in the actual command being invoked.
     case counter(key: _CommandLineToolOptionKey)
+    
+    /// A non-optional Boolean flag that is only emitted when its value differs from the default.
+    ///
+    /// - Parameters:
+    ///   - key: The name of the flag as it will be passed in the actual command being invoked.
+    ///   - defaultValue: The default value of the flag used to determine whether the flag should be emitted.
     case boolean(key: _CommandLineToolOptionKey, defaultValue: Bool)
+    
+    /// An optional Boolean flag that is always emitted and encoded using an inversion strategy.
+    ///
+    /// - Parameters:
+    ///   - key: The name of the flag as it will be passed in the actual command being invoked.
+    ///   - inversion: The options for converting a flag into a `true` / `false` pair that will be passed in the actual command being invoked.
     case optionalBoolean(key: _CommandLineToolOptionKey, inversion: _CommandLineToolFlagInversion)
+    
+    /// A flag uses custom data type that conforms to `CLT.OptionKeyConvertible`.
     case custom
 }
 
@@ -120,7 +141,7 @@ public enum _CommandLineToolFlagInversion: Hashable, Sendable {
     /// Emit `--enable-<name>` when `true` and `--disable-<name>` when `false`.
     case prefixedEnableDisable
     
-    func argument(_ key: _CommandLineToolOptionKey, value: Bool) -> String {
+    package func argument(_ key: _CommandLineToolOptionKey, value: Bool) -> String {
         let insertionText = switch self {
             case .prefixedNo:
                 value ? nil : "no"
@@ -148,26 +169,3 @@ public enum _CommandLineToolFlagInversion: Hashable, Sendable {
         return argument
     }
 }
-
-/*
- /// The name of the flag as it will be passed in the actual command being invoked.
- var key: _CommandLineToolOptionKey? { get }
- 
- /// The options for converting a flag into `true` and `false` pair that would be pass in the actual command being invoked.
- ///
- /// If this value is set, whether it's `true` or `false`, it would always be emitted as a command lint tool argument.
- var inversion: _CommandLineToolFlagInversion? { get }
- 
- /// The default value of the flag.
- ///
- /// If the flag is a non-optional boolean value, this value will be used to check if it is the default value. The flag will only be emitted as CLT argument if it's not the default value.
- ///
- /// For example, in the example below, `-v` is generated only when `verbose == true`.
- ///
- /// Since the `verbose` flag does not have a inversion representation, `defaultValue` would be useful to determine whether this flag should be emitted or not.
- ///
- /// ```swift
- /// @Flag(key: .hyphenPrefixed("v")) var verbose: Bool = false
- /// ```
- var _defaultValue: WrappedValue { get }
- */
