@@ -13,27 +13,61 @@ extension CommandLineTool {
 }
 
 public protocol _CommandLineToolSubcommandProtocol: PropertyWrapper {
+    associatedtype Subcommand : CommandLineToolCommand
+    associatedtype Result
     
+    var name: String? { get }
 }
 
 @propertyWrapper
-public struct _CommandLineToolSubcommand<Parent, AdditionalArguments, Result>: _CommandLineToolSubcommandProtocol where AdditionalArguments : CommandLineToolOptionGroup {
-    public typealias WrappedValue = GenericSubcommand<Parent, AdditionalArguments, Result>
-    var _wrappedValue: WrappedValue
-    
+public struct _CommandLineToolSubcommand<Parent, Subcommand, Result> where Subcommand: CommandLineToolCommand {
+    public var name: String?
+    public var subcommand: Subcommand
+
+    public typealias WrappedValue = GenericSubcommand<Parent, Subcommand, Result>
+    @available(*, deprecated, message: "This must never be accessed directly. Use this property inside a `class` instead.")
     public var wrappedValue: WrappedValue {
-        get {
-            _wrappedValue
-        } set {
-            _wrappedValue = newValue
-        }
+        fatalError(.unavailable)
     }
     
-    public init(of: Parent.Type, optionGroup: AdditionalArguments, resultType: Result.Type = Void.self) {
-        self._wrappedValue = .init(optionGroup: optionGroup)
+    public static subscript(
+        _enclosingInstance parent: Parent,
+        wrapped wrappedKeyPath: KeyPath<Parent, WrappedValue>,
+        storage storageKeyPath: KeyPath<Parent, Self>
+    ) -> WrappedValue {
+        let subcommandPropertyWrapper = parent[keyPath: storageKeyPath]
+        
+        return GenericSubcommand(
+            parent: parent,
+            name: subcommandPropertyWrapper.name ?? deriveSubcommandName(from: storageKeyPath),
+            subcommand: subcommandPropertyWrapper.subcommand
+        )
+    }
+
+    private static func deriveSubcommandName(
+        from keyPath: AnyKeyPath
+    ) -> String {
+        // describing a keypath would be `\.command._subcommand`, the prefix `_` is becuase property wrappper uses `_` as prefix.
+        String(describing: keyPath)
+            .dropPrefixIfPresent("\\\(Parent.self)._")
     }
     
-    public init(of: Parent.Type, resultType: Result.Type = Void.self) where AdditionalArguments == EmptyCommandLineToolOptionGroup {
-        self._wrappedValue = .init(optionGroup: EmptyCommandLineToolOptionGroup())
+    public init(
+        of parent: Parent.Type,
+        name: String? = nil,
+        subcommand: Subcommand,
+        resultType: Result.Type = Void.self
+    ) {
+        self.name = name
+        self.subcommand = subcommand
+    }
+    
+    public init(
+        of parent: Parent.Type,
+        name: String? = nil,
+        resultType: Result.Type = Void.self
+    ) where Subcommand == EmptyCommandLineToolSubcommand {
+        self.name = name
+        self.subcommand = .init()
     }
 }

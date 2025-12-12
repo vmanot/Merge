@@ -12,7 +12,7 @@ import Runtime
 @available(macCatalyst, unavailable)
 @available(tvOS, unavailable)
 @available(watchOS, unavailable)
-open class AnyCommandLineTool: Logging {
+open class AnyCommandLineTool: CommandLineToolCommand, Logging {
     public lazy var logger = PassthroughLogger(source: self)
     @available(*, deprecated, message: "Use `@Subcommand` to declare a subcommand.")
     open var parent: AnyCommandLineTool?
@@ -21,25 +21,8 @@ open class AnyCommandLineTool: Logging {
         nil
     }
     
-    /// The name of the command-line tool or subcommand being used.
-    ///
-    /// By default, the lowercased version of the type name would be used if you don't override it.
-    ///
-    /// Ideally, it should only contain one argument without whitespaces, for example:
-    /// - `xcrun` / `swiftc` / `simctl` / etc.
-    /// - `git` / `commit` / `push`, etc.
-    ///
-    /// But, you can also specify to be `xcrun swiftc`, etc., if you want to.
-    open class var commandName: String {
-        "\(Self.self)".lowercased()
-    }
-    
     public var environmentVariables: [String: any CLT.EnvironmentVariableValue] = [:]
     public var currentDirectoryURL: URL? = nil
-    
-    public init() {
-        
-    }
     
     @discardableResult
     open func withUnsafeSystemShell<R>(

@@ -10,6 +10,8 @@ import Swallow
 
 /// The most granular and "resolved" representation of a command-line tool within some context.
 public struct _ResolvedCommandLineToolDescription {
+    public typealias ResolvedArguments = IdentifierIndexingArrayOf<_AnyResolvedCommandLineToolArgument>
+    
     /// A resolved argument.
     public struct Argument: _ResolvedCommandLineToolArgument {
         public let id: _AnyResolvedCommandLineToolArgument.ID
@@ -39,12 +41,12 @@ public struct _ResolvedCommandLineToolDescription {
     public struct Subcommand: _ResolvedCommandLineToolArgument {
         public let id: _AnyResolvedCommandLineToolArgument.ID
         public let name: String
-        public let optionGroup: CommandLineToolOptionGroup
+        public let resolvedArguments: ResolvedArguments
         public let returnType: Any.Type
     }
     
     public let mainCommandName: String
-    public let arguments: IdentifierIndexingArrayOf<_AnyResolvedCommandLineToolArgument>
+    public let arguments: ResolvedArguments
 }
 
 public protocol _ResolvedCommandLineToolArgument {
