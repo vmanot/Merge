@@ -14,6 +14,7 @@ import Runtime
 @available(watchOS, unavailable)
 open class AnyCommandLineTool: Logging {
     public lazy var logger = PassthroughLogger(source: self)
+    @available(*, deprecated, message: "Use `@Subcommand` to declare a subcommand.")
     open var parent: AnyCommandLineTool?
     
     open var keyConversion: _CommandLineToolOptionKeyConversion? {
@@ -61,22 +62,28 @@ open class AnyCommandLineTool: Logging {
     ///
     /// - parameter operation: An optional operation after the ``commandName``. It typically serves as mode selection. For example: `xcrun --show-sdk-path -sdk <sdk>` where `--show-sdk-path` is the operation.
     open func makeCommand(operation: String? = nil) -> String {
-        var invocationComponents = [Self.commandName]
+        let resolved = resolve(
+            in: _CommandLineToolResolutionContext(defaultKeyConversion: keyConversion)
+        )
+        
+        var invocationComponents = [resolved.mainCommandName]
         if let operation {
             invocationComponents.append(operation)
         }
-        invocationComponents.append(contentsOf: _serializedCommandArguments)
         
-        if let parent {
-            invocationComponents.insert(parent.makeCommand(operation: nil), at: 0)
-        }
+        invocationComponents.append(
+            contentsOf: resolved.arguments.map(\.id.argument)
+        )
         
-        return invocationComponents.joined(separator: " ")
+        return invocationComponents
+            .filter({ !$0.isEmpty })
+            .joined(separator: " ")
     }
     
     /// Makes the command invocation and runs in the system shell
     ///
     /// - parameter operation: An optional operation after the ``commandName``. It typically serves as mode selection. For example: `xcrun --show-sdk-path -sdk <sdk>` where `--show-sdk-path` is the operation.
+    @available(*, deprecated, message: "Waiting for @vatsal's `SystemShell` design and this would be an error in the future. Use `withUnsafeSystemShell` instead.")
     @discardableResult
     open func run(operation: String? = nil) async throws -> Process.RunResult {
         try await withUnsafeSystemShell { shell in
@@ -134,25 +141,4 @@ extension AnyCommandLineTool {
         return result
     }
     
-    private var _serializedCommandArguments: [String] {
-        let mirror = Mirror(reflecting: self)
-        
-        var components = [String]()
-        
-        for child in mirror.children {
-            if let parameter = child.value as? (any _CommandLineToolParameterProtocol),
-               let component = _CommandLineToolArgumentResolver.serialize(parameter) {
-                components.append(component)
-            } else if let flag = child.value as? (any _CommandLineToolFlagProtocol),
-                      let component = _CommandLineToolArgumentResolver.serialize(flag) {
-                components.append(component)
-            }
-        }
-        
-        return components.filter({ !$0.isEmpty })
-    }
-    
-    func resolve(in: _CommandLineToolResolutionContext) -> _ResolvedCommandLineToolDescription {
-        fatalError(.unimplemented)
-    }
 }

@@ -5,7 +5,12 @@
 //  Created by Yanan Li on 2025/12/12.
 //
 
+import Foundation
 
 public struct _CommandLineToolResolutionContext {
     var defaultKeyConversion: _CommandLineToolOptionKeyConversion?
+    
+    public init(defaultKeyConversion: _CommandLineToolOptionKeyConversion? = nil) {
+        self.defaultKeyConversion = defaultKeyConversion
+    }
 }

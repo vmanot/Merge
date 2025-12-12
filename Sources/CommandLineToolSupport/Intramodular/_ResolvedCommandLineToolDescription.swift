@@ -22,7 +22,8 @@ public struct _ResolvedCommandLineToolDescription {
         public let convertion: _CommandLineToolOptionKeyConversion
         public let name: String
         public let separator: _CommandLineToolParameterKeyValueSeparator
-        public let value: CLT.ArgumentValueConvertible
+        public let value: Either<[CLT.ArgumentValueConvertible], CLT.ArgumentValueConvertible>
+        public let isVariadic: Bool
     }
     
     /// A resolved flag.
@@ -34,7 +35,16 @@ public struct _ResolvedCommandLineToolDescription {
         public let isOn: Bool
     }
     
-    public var arguments: IdentifierIndexingArrayOf<_AnyResolvedCommandLineToolArgument> = []
+    /// A resolved subcommand.
+    public struct Subcommand: _ResolvedCommandLineToolArgument {
+        public let id: _AnyResolvedCommandLineToolArgument.ID
+        public let name: String
+        public let optionGroup: CommandLineToolOptionGroup
+        public let returnType: Any.Type
+    }
+    
+    public let mainCommandName: String
+    public let arguments: IdentifierIndexingArrayOf<_AnyResolvedCommandLineToolArgument>
 }
 
 public protocol _ResolvedCommandLineToolArgument {
@@ -45,7 +55,8 @@ public struct _AnyResolvedCommandLineToolArgument: _UnwrappableTypeEraser, Ident
     public typealias _UnwrappedBaseType = any _ResolvedCommandLineToolArgument
     
     public struct ID: Hashable, Sendable {
-        public let rawValue: String
+        public let index: Int
+        public let argument: String
     }
     
     public let base: any _ResolvedCommandLineToolArgument

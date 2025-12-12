@@ -17,3 +17,20 @@ public enum _CommandLineToolOptionKeyConversion: Hashable, Sendable {
     /// Commonly used in some Windows CLIs.
     case slashPrefixed
 }
+
+extension _CommandLineToolOptionKeyConversion {
+    public var prefix: String {
+        switch self {
+            case .hyphenPrefixed:
+                return "-"
+            case .doubleHyphenPrefixed:
+                return "--"
+            case .slashPrefixed:
+                return "/"
+        }
+    }
+    
+    public func argumentKey(for name: String) -> String {
+        prefix + name
+    }
+}

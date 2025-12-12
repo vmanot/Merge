@@ -149,33 +149,23 @@ public enum _CommandLineToolFlagInversion: Hashable, Sendable {
     /// Emit `--enable-<name>` when `true` and `--disable-<name>` when `false`.
     case prefixedEnableDisable
     
-    package func argument(_ key: _CommandLineToolOptionKeyConversion, value: Bool) -> String {
+    package func argument(
+        conversion: _CommandLineToolOptionKeyConversion,
+        name: String,
+        value: Bool
+    ) -> String {
         let insertionText = switch self {
             case .prefixedNo:
                 value ? nil : "no"
             case .prefixedEnableDisable:
                 value ? "enable" : "disable"
         }
+
+        let base = conversion.argumentKey(for: name)
+        guard let insertionText else {
+            return base
+        }
         
-        fatalError(.unimplemented)
-        
-//        var argument = key.argumentValue
-//        guard let insertionText else { return argument }
-//        
-//        switch key {
-//            case .doubleHyphenPrefixed:
-//                argument.insert(
-//                    contentsOf: "\(insertionText)-",
-//                    at: argument.index(atDistance: /* -- */ 2)
-//                )
-//            case .hyphenPrefixed:
-//                argument.insert(
-//                    contentsOf: "\(insertionText)-",
-//                    at: argument.index(atDistance: /* - */ 1)
-//                )
-//            default:
-//                break
-//        }
-//        return argument
+        return conversion.prefix + insertionText + "-" + name
     }
 }
