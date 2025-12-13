@@ -15,6 +15,14 @@ public protocol CommandLineTool: AnyCommandLineTool {
     associatedtype EnvironmentVariables = _CommandLineTool_DefaultEnvironmentVariables
 }
 
+extension CommandLineTool {
+    public func with<T>(_ keyPath: WritableKeyPath<Self, T>, _ newValue: T) -> Self {
+        var copy = self
+        copy[keyPath: keyPath] = newValue
+        return copy
+    }
+}
+
 public enum CommandLineTools {
     
 }
