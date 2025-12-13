@@ -12,21 +12,22 @@ extension CommandLineTool {
     public typealias Subcommand = _CommandLineToolSubcommand
 }
 
-public protocol _CommandLineToolSubcommandProtocol: PropertyWrapper {
+public protocol _CommandLineToolSubcommandProtocol /* PropertyWrapper */ {
     associatedtype Subcommand : CommandLineToolCommand
     associatedtype Result
     
     var name: String { get }
-    var subcommand: Subcommand { get }
+    var command: Subcommand { get }
 }
 
 @propertyWrapper
-public struct _CommandLineToolSubcommand<Parent, Subcommand, Result> where Subcommand: CommandLineToolCommand {
+public struct _CommandLineToolSubcommand<Parent, Command, Result>: _CommandLineToolSubcommandProtocol where Command: CommandLineToolCommand {
     public var name: String
-    public var subcommand: Subcommand
+    public var command: Command
 
-    public typealias WrappedValue = GenericSubcommand<Parent, Subcommand, Result>
-    @available(*, deprecated, message: "This must never be accessed directly. Use this property inside a `class` instead.")
+    public typealias WrappedValue = GenericSubcommand<Parent, Command, Result>
+    
+    @available(*, unavailable, message: "This must never be accessed directly. Use this property inside a `class` instead.")
     public var wrappedValue: WrappedValue {
         fatalError(.unavailable)
     }
@@ -41,7 +42,7 @@ public struct _CommandLineToolSubcommand<Parent, Subcommand, Result> where Subco
         return GenericSubcommand(
             parent: parent,
             name: subcommandPropertyWrapper.name,
-            subcommand: subcommandPropertyWrapper.subcommand
+            subcommand: subcommandPropertyWrapper.command
         )
     }
 
@@ -56,19 +57,19 @@ public struct _CommandLineToolSubcommand<Parent, Subcommand, Result> where Subco
     public init(
         of parent: Parent.Type,
         name: String,
-        subcommand: Subcommand,
+        command: Command,
         resultType: Result.Type = Void.self
     ) {
         self.name = name
-        self.subcommand = subcommand
+        self.command = command
     }
     
     public init(
         of parent: Parent.Type,
         name: String,
         resultType: Result.Type = Void.self
-    ) where Subcommand == EmptyCommandLineToolSubcommand {
+    ) where Command == EmptyCommandLineToolSubcommand {
         self.name = name
-        self.subcommand = .init()
+        self.command = .init()
     }
 }

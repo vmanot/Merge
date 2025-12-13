@@ -14,6 +14,7 @@ extension CommandLineToolCommand {
         let mirror = try InstanceMirror(reflecting: self)
         
         var _resolvedArguments: _ResolvedCommandLineToolDescription.ResolvedArguments = []
+        var _resolvedSubcommmands: _ResolvedCommandLineToolDescription.ResolvedSubcommands = []
         
         for (key, value) in mirror.children {
             let resolvingID = _ResolvedCommandLineToolDescription.ArgumentID(
@@ -35,34 +36,40 @@ extension CommandLineToolCommand {
                     into: &_resolvedArguments
                 )
             } else if let subcommand = value as? (any _CommandLineToolSubcommandProtocol) {
-//                _resolveFlag(
-//                    subcommand,
-//                    resolvingID: resolvingID,
-//                    context: context,
-//                    into: &_resolvedArguments
-//                )
+                try _resolveSubcommand(
+                    subcommand,
+                    resolvingID: resolvingID,
+                    context: context,
+                    into: &_resolvedSubcommmands
+                )
             }
         }
         
         return _ResolvedCommandLineToolDescription(
             toolName: _commandName,
-            arguments: _resolvedArguments
+            arguments: _resolvedArguments,
+            subcommands: _resolvedSubcommmands
         )
     }
     
-//    private func _resolveSubcommand(
-//        _ subcommand: any _CommandLineToolSubcommandProtocol,
-//        in context: _CommandLineToolResolutionContext
-//    ) -> _ResolvedArgument {
-//        func returnType<S: _CommandLineToolSubcommandProtocol>(of subcommand: S) -> S.Result.Type {
-//            S.Result.self
-//        }
-//        return .subcommand(
-//            name: subcommand.name,
-//            resolvedArguments: subcommand.subcommand.resolve(in: context).arguments,
-//            returnType: _openExistential(subcommand, do: returnType(of:))
-//        )
-//    }
+    private func _resolveSubcommand(
+        _ subcommand: any _CommandLineToolSubcommandProtocol,
+        resolvingID: _ResolvedCommandLineToolDescription.ArgumentID,
+        context: _CommandLineToolResolutionContext,
+        into resolved: inout _ResolvedCommandLineToolDescription.ResolvedSubcommands
+    ) throws {
+        func returnType<S: _CommandLineToolSubcommandProtocol>(of subcommand: S) -> S.Result.Type {
+            S.Result.self
+        }
+        try resolved.append(
+            _ResolvedCommandLineToolDescription.Subcommand(
+                id: resolvingID,
+                name: subcommand.name,
+                _resolvedDescription: subcommand.command.resolve(in: context),
+                returnType: _openExistential(subcommand, do: returnType(of:))
+            ).erasedToAnyResolvedCommandLineToolMetadata()
+        )
+    }
 
     private func _resolveFlag(
         _ flag: any _CommandLineToolFlagProtocol,
@@ -77,7 +84,7 @@ extension CommandLineToolCommand {
                         id: resolvingID,
                         value: flag.wrappedValue,
                         valueType: type(of: flag.wrappedValue),
-                    ).erasedToAnyResolvedCommandLineToolArgument()
+                    ).erasedToAnyResolvedCommandLineToolMetadata()
                 )
             case .counter(let conversion, let name):
                 resolved.append(
@@ -86,8 +93,9 @@ extension CommandLineToolCommand {
                         conversion: conversion ?? defaultKeyConversion(name),
                         name: name,
                         inversion: nil,
+                        defaultBooleanValue: nil,
                         isOn: (flag.wrappedValue as! Int) > 0
-                    ).erasedToAnyResolvedCommandLineToolArgument()
+                    ).erasedToAnyResolvedCommandLineToolMetadata()
                 )
             case .boolean(let conversion, let name, let defaultValue):
                 resolved.append(
@@ -96,8 +104,9 @@ extension CommandLineToolCommand {
                         conversion: conversion ?? defaultKeyConversion(name),
                         name: name,
                         inversion: nil, // only be able to switch to another state (true / false)
+                        defaultBooleanValue: defaultValue,
                         isOn: (flag.wrappedValue as! Bool)
-                    ).erasedToAnyResolvedCommandLineToolArgument()
+                    ).erasedToAnyResolvedCommandLineToolMetadata()
                 )
             case .optionalBoolean(let conversion, let name, let inversion):
                 resolved.append(
@@ -106,8 +115,9 @@ extension CommandLineToolCommand {
                         conversion: conversion ?? defaultKeyConversion(name),
                         name: name,
                         inversion: inversion,
+                        defaultBooleanValue: nil,
                         isOn: flag.wrappedValue as! Optional<Bool>
-                    ).erasedToAnyResolvedCommandLineToolArgument()
+                    ).erasedToAnyResolvedCommandLineToolMetadata()
                 )
         }
     }
@@ -131,7 +141,7 @@ extension CommandLineToolCommand {
                     multiValueEncoding: parameter.multiValueEncodingStrategy,
                     value: parameter.wrappedValue,
                     valueType: type(of: parameter.wrappedValue)
-                ).erasedToAnyResolvedCommandLineToolArgument()
+                ).erasedToAnyResolvedCommandLineToolMetadata()
             )
         } else {
             resolved.append(
@@ -139,7 +149,7 @@ extension CommandLineToolCommand {
                     id: resolvingID,
                     value: parameter.wrappedValue,
                     valueType: type(of: parameter.wrappedValue)
-                ).erasedToAnyResolvedCommandLineToolArgument()
+                ).erasedToAnyResolvedCommandLineToolMetadata()
             )
         }
     }

@@ -10,3 +10,14 @@ import Foundation
 public struct _CommandLineToolResolutionContext {
 
 }
+
+/* FYI: SwiftUI.Font.Context
+ 
+ struct FontResolutionContext {
+     var sizeCategory: DynamicTypeSize = .large
+     var legibilityWeight: Any?
+     var fontDefinition: Any
+     var watchDisplayVariant: Any
+     var shouldRedacrContebt: Bool = false
+ }
+ */
