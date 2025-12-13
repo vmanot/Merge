@@ -20,60 +20,82 @@ open class CommandLineToolCommand {
         "\(Self.self)".lowercased()
     }
     
-    open class var keyConversion: _CommandLineToolOptionKeyConversion? {
+    open var keyConversion: _CommandLineToolOptionKeyConversion? {
         nil
     }
     
+    /// Makes the command invocation as it would be passed into system shell.
+    ///
+    /// - parameter operation: An optional operation after the ``commandName``. It typically serves as mode selection. For example: `xcrun --show-sdk-path -sdk <sdk>` where `--show-sdk-path` is the operation.
+    open func makeCommand(operation: String? = nil) -> String {
+        _CommandLineToolArgumentBuilder(command: self).buildCommandInvocation(operation: operation)
+    }
+
     public init() {
         
     }
 }
 
 public class EmptyCommandLineToolSubcommand: CommandLineToolCommand {
+    var name: String
+    
+    init(name: String) {
+        self.name = name
+    }
+    
     public override var _commandName: String {
-        "Empty Subcommand"
+        name
     }
 }
 
 public protocol _GenericSubcommandProtocol {
     associatedtype Parent
-    
     var parent: Parent { get }
-    var name: String { get }
+    
+    func makeCommand(operation: String?) -> String
 }
 
 @dynamicMemberLookup
-public struct GenericSubcommand<Parent, Subcommand, Result>: _GenericSubcommandProtocol where Subcommand: CommandLineToolCommand {
+public struct GenericSubcommand<Parent, Command, Result>: _GenericSubcommandProtocol where Command: CommandLineToolCommand {
     public let parent: Parent
-    public let name: String
-    public var subcommand: Subcommand
+    public var command: Command
 
     public subscript<SubSubcommand: CommandLineToolCommand, ChildResult>(
-        dynamicMember keyPath: KeyPath<Subcommand, GenericSubcommand<Subcommand, SubSubcommand, ChildResult>>
-    ) -> GenericSubcommand<GenericSubcommand<Parent, Subcommand, Result>, SubSubcommand, ChildResult> {
-        let subSubcommand = subcommand[keyPath: keyPath]
+        dynamicMember keyPath: KeyPath<Command, GenericSubcommand<Command, SubSubcommand, ChildResult>>
+    ) -> GenericSubcommand<Self, SubSubcommand, ChildResult> {
+        let subSubcommand = command[keyPath: keyPath]
         
-        return GenericSubcommand<GenericSubcommand<Parent, Subcommand, Result>, SubSubcommand, ChildResult>(
+        return GenericSubcommand<Self, SubSubcommand, ChildResult>(
             parent: self,
-            name: subSubcommand.name,
-            subcommand: subSubcommand.subcommand
+            command: subSubcommand.command
         )
     }
     
     public func resolve(
         in context: _CommandLineToolResolutionContext
     ) throws -> _ResolvedCommandLineToolDescription {
-        try subcommand.resolve(in: context)
+        try command.resolve(in: context)
     }
     
-    public init(
-        parent: Parent,
-        name: String,
-        subcommand: Subcommand
-    ) {
+    public func makeCommand(
+        operation: String? = nil
+    ) -> String {
+        var invocationComponents = [String]()
+        
+        if let parent = parent as? AnyCommandLineTool {
+            invocationComponents.append(parent.makeCommand())
+        } else if let parent = parent as? (any _GenericSubcommandProtocol) {
+            invocationComponents.append(parent.makeCommand(operation: nil))
+        }
+        
+        invocationComponents.append(command.makeCommand(operation: operation))
+        
+        return invocationComponents.joined(separator: " ")
+    }
+    
+    public init(parent: Parent, command: Command) {
         self.parent = parent
-        self.name = name
-        self.subcommand = subcommand
+        self.command = command
     }
     
     @discardableResult
@@ -81,9 +103,9 @@ public struct GenericSubcommand<Parent, Subcommand, Result>: _GenericSubcommandP
         fatalError(.unimplemented)
     }
     
-    public func with<T>(_ keyPath: WritableKeyPath<Subcommand, T>, _ newValue: T) -> Self {
+    public func with<T>(_ keyPath: WritableKeyPath<Command, T>, _ newValue: T) -> Self {
         var copy = self
-        copy.subcommand[keyPath: keyPath] = newValue
+        copy.command[keyPath: keyPath] = newValue
         return copy
     }
 }

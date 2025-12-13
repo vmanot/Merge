@@ -37,29 +37,6 @@ open class AnyCommandLineTool: CommandLineToolCommand, Logging {
         return result
     }
     
-    /// Makes the command invocation as it would be passed into system shell.
-    ///
-    /// - parameter operation: An optional operation after the ``commandName``. It typically serves as mode selection. For example: `xcrun --show-sdk-path -sdk <sdk>` where `--show-sdk-path` is the operation.
-    open func makeCommand(operation: String? = nil) -> String {
-//        let resolved = resolve(
-//            in: _CommandLineToolResolutionContext(defaultKeyConversion: keyConversion)
-//        )
-//        
-//        var invocationComponents = [resolved.toolName]
-//        if let operation {
-//            invocationComponents.append(operation)
-//        }
-//        
-//        invocationComponents.append(
-//            contentsOf: resolved.arguments.map(\.id.argument)
-//        )
-//        
-//        return invocationComponents
-//            .filter({ !$0.isEmpty })
-//            .joined(separator: " ")
-        fatalError(.unimplemented)
-    }
-    
     /// Makes the command invocation and runs in the system shell
     ///
     /// - parameter operation: An optional operation after the ``commandName``. It typically serves as mode selection. For example: `xcrun --show-sdk-path -sdk <sdk>` where `--show-sdk-path` is the operation.

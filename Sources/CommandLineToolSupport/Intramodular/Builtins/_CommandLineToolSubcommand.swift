@@ -41,8 +41,7 @@ public struct _CommandLineToolSubcommand<Parent, Command, Result>: _CommandLineT
         
         return GenericSubcommand(
             parent: parent,
-            name: subcommandPropertyWrapper.name,
-            subcommand: subcommandPropertyWrapper.command
+            command: subcommandPropertyWrapper.command
         )
     }
 
@@ -70,6 +69,6 @@ public struct _CommandLineToolSubcommand<Parent, Command, Result>: _CommandLineT
         resultType: Result.Type = Void.self
     ) where Command == EmptyCommandLineToolSubcommand {
         self.name = name
-        self.command = .init()
+        self.command = .init(name: name)
     }
 }

@@ -8,7 +8,9 @@
 import Foundation
 
 public struct _CommandLineToolResolutionContext {
-
+    public init() {
+        
+    }
 }
 
 /* FYI: SwiftUI.Font.Context

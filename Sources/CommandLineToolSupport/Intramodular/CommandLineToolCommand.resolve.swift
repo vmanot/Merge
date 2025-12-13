@@ -64,7 +64,7 @@ extension CommandLineToolCommand {
         try resolved.append(
             _ResolvedCommandLineToolDescription.Subcommand(
                 id: resolvingID,
-                name: subcommand.name,
+                name: subcommand.command._commandName,
                 _resolvedDescription: subcommand.command.resolve(in: context),
                 returnType: _openExistential(subcommand, do: returnType(of:))
             ).erasedToAnyResolvedCommandLineToolMetadata()
@@ -158,23 +158,11 @@ extension CommandLineToolCommand {
 // MARK: - Helpers
 
 extension CommandLineToolCommand {
-    /// Unwraps the optional if the value is an optional value and returns it.
-    private func _valueIfPresent(_ value: Any) -> Any? {
-        if let optionalValue = value as? (any OptionalProtocol) {
-            if optionalValue.isNil {
-                return nil
-            }
-            return optionalValue._wrapped
-        }
-        
-        return value
-    }
-    
     private func _effectiveKeyConversion(
         explicit: _CommandLineToolOptionKeyConversion?,
         nameOfKey: String
     ) -> _CommandLineToolOptionKeyConversion {
-        explicit ?? Self.keyConversion ?? defaultKeyConversion(nameOfKey)
+        explicit ?? keyConversion ?? defaultKeyConversion(nameOfKey)
     }
     
     private func defaultKeyConversion(_ name: String) -> _CommandLineToolOptionKeyConversion {
