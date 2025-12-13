@@ -42,6 +42,13 @@ public enum _CommandLineToolFlagRepresentation {
     
     /// A flag uses custom data type that conforms to `CLT.OptionKeyConvertible`.
     case custom
+    
+    package var inversion: _CommandLineToolFlagInversion? {
+        if case .optionalBoolean(_, _, let inversion) = self {
+            return inversion
+        }
+        return nil
+    }
 }
 
 @propertyWrapper

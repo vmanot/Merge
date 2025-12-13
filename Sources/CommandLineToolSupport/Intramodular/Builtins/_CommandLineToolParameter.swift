@@ -41,7 +41,7 @@ public struct _CommandLineToolParameter<WrappedValue>: _CommandLineToolParameter
         }
     }
     
-    @available(*, deprecated, message: "This parameter will be ignored. Make sure `WrappedValue` conforms to `CLT.ArgumentValueConvertible`.")
+    @available(*, unavailable, message: "This parameter will be ignored. Make sure `WrappedValue` conforms to `CLT.ArgumentValueConvertible`.")
     @_disfavoredOverload
     public init(
         wrappedValue: WrappedValue,

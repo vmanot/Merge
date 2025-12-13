@@ -16,12 +16,13 @@ public protocol _CommandLineToolSubcommandProtocol: PropertyWrapper {
     associatedtype Subcommand : CommandLineToolCommand
     associatedtype Result
     
-    var name: String? { get }
+    var name: String { get }
+    var subcommand: Subcommand { get }
 }
 
 @propertyWrapper
 public struct _CommandLineToolSubcommand<Parent, Subcommand, Result> where Subcommand: CommandLineToolCommand {
-    public var name: String?
+    public var name: String
     public var subcommand: Subcommand
 
     public typealias WrappedValue = GenericSubcommand<Parent, Subcommand, Result>
@@ -39,7 +40,7 @@ public struct _CommandLineToolSubcommand<Parent, Subcommand, Result> where Subco
         
         return GenericSubcommand(
             parent: parent,
-            name: subcommandPropertyWrapper.name ?? deriveSubcommandName(from: storageKeyPath),
+            name: subcommandPropertyWrapper.name,
             subcommand: subcommandPropertyWrapper.subcommand
         )
     }
@@ -54,7 +55,7 @@ public struct _CommandLineToolSubcommand<Parent, Subcommand, Result> where Subco
     
     public init(
         of parent: Parent.Type,
-        name: String? = nil,
+        name: String,
         subcommand: Subcommand,
         resultType: Result.Type = Void.self
     ) {
@@ -64,7 +65,7 @@ public struct _CommandLineToolSubcommand<Parent, Subcommand, Result> where Subco
     
     public init(
         of parent: Parent.Type,
-        name: String? = nil,
+        name: String,
         resultType: Result.Type = Void.self
     ) where Subcommand == EmptyCommandLineToolSubcommand {
         self.name = name

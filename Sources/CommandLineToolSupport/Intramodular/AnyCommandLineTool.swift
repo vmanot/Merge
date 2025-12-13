@@ -16,11 +16,7 @@ open class AnyCommandLineTool: CommandLineToolCommand, Logging {
     public lazy var logger = PassthroughLogger(source: self)
     @available(*, deprecated, message: "Use `@Subcommand` to declare a subcommand.")
     open var parent: AnyCommandLineTool?
-    
-    open var keyConversion: _CommandLineToolOptionKeyConversion? {
-        nil
-    }
-    
+
     public var environmentVariables: [String: any CLT.EnvironmentVariableValue] = [:]
     public var currentDirectoryURL: URL? = nil
     
@@ -45,22 +41,23 @@ open class AnyCommandLineTool: CommandLineToolCommand, Logging {
     ///
     /// - parameter operation: An optional operation after the ``commandName``. It typically serves as mode selection. For example: `xcrun --show-sdk-path -sdk <sdk>` where `--show-sdk-path` is the operation.
     open func makeCommand(operation: String? = nil) -> String {
-        let resolved = resolve(
-            in: _CommandLineToolResolutionContext(defaultKeyConversion: keyConversion)
-        )
-        
-        var invocationComponents = [resolved.mainCommandName]
-        if let operation {
-            invocationComponents.append(operation)
-        }
-        
-        invocationComponents.append(
-            contentsOf: resolved.arguments.map(\.id.argument)
-        )
-        
-        return invocationComponents
-            .filter({ !$0.isEmpty })
-            .joined(separator: " ")
+//        let resolved = resolve(
+//            in: _CommandLineToolResolutionContext(defaultKeyConversion: keyConversion)
+//        )
+//        
+//        var invocationComponents = [resolved.toolName]
+//        if let operation {
+//            invocationComponents.append(operation)
+//        }
+//        
+//        invocationComponents.append(
+//            contentsOf: resolved.arguments.map(\.id.argument)
+//        )
+//        
+//        return invocationComponents
+//            .filter({ !$0.isEmpty })
+//            .joined(separator: " ")
+        fatalError(.unimplemented)
     }
     
     /// Makes the command invocation and runs in the system shell

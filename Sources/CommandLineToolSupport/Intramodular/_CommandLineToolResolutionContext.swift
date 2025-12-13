@@ -8,9 +8,5 @@
 import Foundation
 
 public struct _CommandLineToolResolutionContext {
-    var defaultKeyConversion: _CommandLineToolOptionKeyConversion?
-    
-    public init(defaultKeyConversion: _CommandLineToolOptionKeyConversion? = nil) {
-        self.defaultKeyConversion = defaultKeyConversion
-    }
+
 }

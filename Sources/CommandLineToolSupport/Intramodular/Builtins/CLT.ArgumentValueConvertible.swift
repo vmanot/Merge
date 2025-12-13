@@ -16,6 +16,12 @@ extension CLT {
     }
 }
 
+extension Never: CLT.ArgumentValueConvertible {
+    public var argumentValue: String {
+        fatalError(.abstract)
+    }
+}
+
 extension CLT.ArgumentValueConvertible {
     public var argumentValue: String {
         String(describing: self)

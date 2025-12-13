@@ -16,8 +16,12 @@ open class CommandLineToolCommand {
     /// Ideally, it should only contain one argument without whitespaces, for example:
     /// - `xcrun` / `swiftc` / `simctl` / etc.
     /// - `git` / `commit` / `push`, etc.
-    open class var _commandName: String {
+    open var _commandName: String {
         "\(Self.self)".lowercased()
+    }
+    
+    open class var keyConversion: _CommandLineToolOptionKeyConversion? {
+        nil
     }
     
     public init() {
@@ -26,7 +30,9 @@ open class CommandLineToolCommand {
 }
 
 public class EmptyCommandLineToolSubcommand: CommandLineToolCommand {
-    
+    public override var _commandName: String {
+        "Empty Subcommand"
+    }
 }
 
 public protocol _GenericSubcommandProtocol {
@@ -40,18 +46,24 @@ public protocol _GenericSubcommandProtocol {
 public struct GenericSubcommand<Parent, Subcommand, Result>: _GenericSubcommandProtocol where Subcommand: CommandLineToolCommand {
     public let parent: Parent
     public let name: String
-    public var information: Subcommand
-    
+    public var subcommand: Subcommand
+
     public subscript<SubSubcommand: CommandLineToolCommand, ChildResult>(
         dynamicMember keyPath: KeyPath<Subcommand, GenericSubcommand<Subcommand, SubSubcommand, ChildResult>>
-    ) -> GenericSubcommand<Self, SubSubcommand, ChildResult> {
-        let subSubcommand = information[keyPath: keyPath]
+    ) -> GenericSubcommand<GenericSubcommand<Parent, Subcommand, Result>, SubSubcommand, ChildResult> {
+        let subSubcommand = subcommand[keyPath: keyPath]
         
-        return GenericSubcommand<Self, SubSubcommand, ChildResult>(
+        return GenericSubcommand<GenericSubcommand<Parent, Subcommand, Result>, SubSubcommand, ChildResult>(
             parent: self,
             name: subSubcommand.name,
-            subcommand: subSubcommand.information
+            subcommand: subSubcommand.subcommand
         )
+    }
+    
+    public func resolve(
+        in context: _CommandLineToolResolutionContext
+    ) throws -> _ResolvedCommandLineToolDescription {
+        try subcommand.resolve(in: context)
     }
     
     public init(
@@ -61,7 +73,7 @@ public struct GenericSubcommand<Parent, Subcommand, Result>: _GenericSubcommandP
     ) {
         self.parent = parent
         self.name = name
-        self.information = subcommand
+        self.subcommand = subcommand
     }
     
     @discardableResult
@@ -71,7 +83,7 @@ public struct GenericSubcommand<Parent, Subcommand, Result>: _GenericSubcommandP
     
     public func with<T>(_ keyPath: WritableKeyPath<Subcommand, T>, _ newValue: T) -> Self {
         var copy = self
-        copy.information[keyPath: keyPath] = newValue
+        copy.subcommand[keyPath: keyPath] = newValue
         return copy
     }
 }
