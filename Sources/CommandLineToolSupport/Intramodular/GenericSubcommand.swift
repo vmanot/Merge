@@ -69,4 +69,10 @@ public class GenericSubcommand<Parent, Command>: AnyCommandLineTool, _GenericSub
     ) async throws -> R {
         try await command.withUnsafeSystemShell(perform: operation)
     }
+    
+    public func callAsFunction() async throws -> Process.RunResult {
+        try await withUnsafeSystemShell { shell in
+            try await shell.run(command: makeCommand())
+        }
+    }
 }
