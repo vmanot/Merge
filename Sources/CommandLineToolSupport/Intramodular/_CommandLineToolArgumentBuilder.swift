@@ -9,7 +9,7 @@ import Foundation
 import Swallow
 
 struct _CommandLineToolArgumentBuilder {
-    var command: CommandLineToolCommand
+    var command: AnyCommandLineTool
     
     func buildCommandInvocation(operation: String? = nil) -> String {
         let mirror = Mirror(reflecting: command)

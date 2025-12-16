@@ -13,19 +13,18 @@ extension CommandLineTool {
 }
 
 public protocol _CommandLineToolSubcommandProtocol /* PropertyWrapper */ {
-    associatedtype Subcommand : CommandLineToolCommand
-    associatedtype Result
+    associatedtype Subcommand : AnyCommandLineTool
     
     var name: String { get }
     var command: Subcommand { get }
 }
 
 @propertyWrapper
-public struct _CommandLineToolSubcommand<Parent, Command, Result>: _CommandLineToolSubcommandProtocol where Command: CommandLineToolCommand {
+public struct _CommandLineToolSubcommand<Parent, Command>: _CommandLineToolSubcommandProtocol where Parent: AnyCommandLineTool, Command: AnyCommandLineTool {
     public var name: String
     public var command: Command
 
-    public typealias WrappedValue = GenericSubcommand<Parent, Command, Result>
+    public typealias WrappedValue = GenericSubcommand<Parent, Command>
     
     @available(*, unavailable, message: "This must never be accessed directly. Use this property inside a `class` instead.")
     public var wrappedValue: WrappedValue {
@@ -56,8 +55,7 @@ public struct _CommandLineToolSubcommand<Parent, Command, Result>: _CommandLineT
     public init(
         of parent: Parent.Type,
         name: String,
-        command: Command,
-        resultType: Result.Type = Void.self
+        command: Command
     ) {
         self.name = name
         self.command = command
@@ -65,8 +63,7 @@ public struct _CommandLineToolSubcommand<Parent, Command, Result>: _CommandLineT
     
     public init(
         of parent: Parent.Type,
-        name: String,
-        resultType: Result.Type = Void.self
+        name: String
     ) where Command == EmptyCommandLineToolSubcommand {
         self.name = name
         self.command = .init(name: name)

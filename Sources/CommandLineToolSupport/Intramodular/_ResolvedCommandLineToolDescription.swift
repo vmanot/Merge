@@ -58,7 +58,6 @@ public struct _ResolvedCommandLineToolDescription {
         public let id: _ResolvedCommandLineToolDescription.ArgumentID
         public let name: String
         public let _resolvedDescription: _ResolvedCommandLineToolDescription
-        public let returnType: Any.Type
     }
     
     public let toolName: String

@@ -12,10 +12,34 @@ import Runtime
 @available(macCatalyst, unavailable)
 @available(tvOS, unavailable)
 @available(watchOS, unavailable)
-open class AnyCommandLineTool: CommandLineToolCommand, Logging {
+open class AnyCommandLineTool: Logging {
     public lazy var logger = PassthroughLogger(source: self)
-    @available(*, deprecated, message: "Use `@Subcommand` to declare a subcommand.")
-    open var parent: AnyCommandLineTool?
+    
+    /// The name of the command-line tool or information being used.
+    ///
+    /// By default, the lowercased version of the type name would be used if you don't override it.
+    ///
+    /// Ideally, it should only contain one argument without whitespaces, for example:
+    /// - `xcrun` / `swiftc` / `simctl` / etc.
+    /// - `git` / `commit` / `push`, etc.
+    open var _commandName: String {
+        "\(Self.self)".lowercased()
+    }
+    
+    open var keyConversion: _CommandLineToolOptionKeyConversion? {
+        nil
+    }
+    
+    /// Makes the command invocation as it would be passed into system shell.
+    ///
+    /// - parameter operation: An optional operation after the ``commandName``. It typically serves as mode selection. For example: `xcrun --show-sdk-path -sdk <sdk>` where `--show-sdk-path` is the operation.
+    open func makeCommand(operation: String? = nil) -> String {
+        _CommandLineToolArgumentBuilder(command: self).buildCommandInvocation(operation: operation)
+    }
+
+    public init() {
+        
+    }
 
     public var environmentVariables: [String: any CLT.EnvironmentVariableValue] = [:]
     public var currentDirectoryURL: URL? = nil

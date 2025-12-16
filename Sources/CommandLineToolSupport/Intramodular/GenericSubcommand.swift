@@ -7,36 +7,9 @@
 
 import Foundation
 import Swallow
+import Merge
 
-open class CommandLineToolCommand {
-    /// The name of the command-line tool or information being used.
-    ///
-    /// By default, the lowercased version of the type name would be used if you don't override it.
-    ///
-    /// Ideally, it should only contain one argument without whitespaces, for example:
-    /// - `xcrun` / `swiftc` / `simctl` / etc.
-    /// - `git` / `commit` / `push`, etc.
-    open var _commandName: String {
-        "\(Self.self)".lowercased()
-    }
-    
-    open var keyConversion: _CommandLineToolOptionKeyConversion? {
-        nil
-    }
-    
-    /// Makes the command invocation as it would be passed into system shell.
-    ///
-    /// - parameter operation: An optional operation after the ``commandName``. It typically serves as mode selection. For example: `xcrun --show-sdk-path -sdk <sdk>` where `--show-sdk-path` is the operation.
-    open func makeCommand(operation: String? = nil) -> String {
-        _CommandLineToolArgumentBuilder(command: self).buildCommandInvocation(operation: operation)
-    }
-
-    public init() {
-        
-    }
-}
-
-public class EmptyCommandLineToolSubcommand: CommandLineToolCommand {
+public class EmptyCommandLineToolSubcommand: AnyCommandLineTool {
     var name: String
     
     init(name: String) {
@@ -49,48 +22,27 @@ public class EmptyCommandLineToolSubcommand: CommandLineToolCommand {
 }
 
 public protocol _GenericSubcommandProtocol {
-    associatedtype Parent
+    associatedtype Parent: AnyCommandLineTool
     var parent: Parent { get }
     
-    func makeCommand(operation: String?) -> String
+    associatedtype Command: AnyCommandLineTool
+    var command: Command { get }
 }
 
 @dynamicMemberLookup
-public struct GenericSubcommand<Parent, Command, Result>: _GenericSubcommandProtocol where Command: CommandLineToolCommand {
+public class GenericSubcommand<Parent, Command>: AnyCommandLineTool, _GenericSubcommandProtocol where Parent: AnyCommandLineTool, Command: AnyCommandLineTool {
     public let parent: Parent
     public var command: Command
 
-    public subscript<SubSubcommand: CommandLineToolCommand, ChildResult>(
-        dynamicMember keyPath: KeyPath<Command, GenericSubcommand<Command, SubSubcommand, ChildResult>>
-    ) -> GenericSubcommand<Self, SubSubcommand, ChildResult> {
+    public subscript<SubSubcommand: AnyCommandLineTool>(
+        dynamicMember keyPath: KeyPath<Command, GenericSubcommand<Command, SubSubcommand>>
+    ) -> GenericSubcommand<GenericSubcommand<Parent, Command>, SubSubcommand> {
         let subSubcommand = command[keyPath: keyPath]
         
-        return GenericSubcommand<Self, SubSubcommand, ChildResult>(
+        return GenericSubcommand<GenericSubcommand<Parent, Command>, SubSubcommand>(
             parent: self,
             command: subSubcommand.command
         )
-    }
-    
-    public func resolve(
-        in context: _CommandLineToolResolutionContext
-    ) throws -> _ResolvedCommandLineToolDescription {
-        try command.resolve(in: context)
-    }
-    
-    public func makeCommand(
-        operation: String? = nil
-    ) -> String {
-        var invocationComponents = [String]()
-        
-        if let parent = parent as? AnyCommandLineTool {
-            invocationComponents.append(parent.makeCommand())
-        } else if let parent = parent as? (any _GenericSubcommandProtocol) {
-            invocationComponents.append(parent.makeCommand(operation: nil))
-        }
-        
-        invocationComponents.append(command.makeCommand(operation: operation))
-        
-        return invocationComponents.joined(separator: " ")
     }
     
     public init(parent: Parent, command: Command) {
@@ -98,14 +50,23 @@ public struct GenericSubcommand<Parent, Command, Result>: _GenericSubcommandProt
         self.command = command
     }
     
-    @discardableResult
-    public func callAsFunction() async throws -> Result {
-        fatalError(.unimplemented)
+    public override func makeCommand(operation: String? = nil) -> String {
+        [parent.makeCommand(operation: nil), command.makeCommand(operation: operation)]
+            .joined(separator: " ")
     }
     
-    public func with<T>(_ keyPath: WritableKeyPath<Command, T>, _ newValue: T) -> Self {
-        var copy = self
-        copy.command[keyPath: keyPath] = newValue
-        return copy
+    public func with<T>(
+        _ keyPath: ReferenceWritableKeyPath<Command, T>,
+        _ newValue: T
+    ) -> Self {
+        command[keyPath: keyPath] = newValue
+        return self
+    }
+    
+    @inlinable
+    public override func withUnsafeSystemShell<R>(
+        perform operation: (SystemShell) async throws -> R
+    ) async throws -> R {
+        try await command.withUnsafeSystemShell(perform: operation)
     }
 }

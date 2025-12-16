@@ -16,7 +16,10 @@ public protocol CommandLineTool: AnyCommandLineTool {
 }
 
 extension CommandLineTool {
-    public func with<T>(_ keyPath: WritableKeyPath<Self, T>, _ newValue: T) -> Self {
+    public func with<T>(
+        _ keyPath: WritableKeyPath<Self, T>,
+        _ newValue: T
+    ) -> Self {
         var copy = self
         copy[keyPath: keyPath] = newValue
         return copy

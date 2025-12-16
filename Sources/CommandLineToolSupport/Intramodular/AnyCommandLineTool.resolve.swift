@@ -9,7 +9,7 @@ import Foundation
 import Swallow
 import Runtime
 
-extension CommandLineToolCommand {
+extension AnyCommandLineTool {
     public func resolve(in context: _CommandLineToolResolutionContext) throws -> _ResolvedCommandLineToolDescription {
         let mirror = try InstanceMirror(reflecting: self)
         
@@ -58,15 +58,11 @@ extension CommandLineToolCommand {
         context: _CommandLineToolResolutionContext,
         into resolved: inout _ResolvedCommandLineToolDescription.ResolvedSubcommands
     ) throws {
-        func returnType<S: _CommandLineToolSubcommandProtocol>(of subcommand: S) -> S.Result.Type {
-            S.Result.self
-        }
         try resolved.append(
             _ResolvedCommandLineToolDescription.Subcommand(
                 id: resolvingID,
                 name: subcommand.command._commandName,
-                _resolvedDescription: subcommand.command.resolve(in: context),
-                returnType: _openExistential(subcommand, do: returnType(of:))
+                _resolvedDescription: subcommand.command.resolve(in: context)
             ).erasedToAnyResolvedCommandLineToolMetadata()
         )
     }
@@ -157,7 +153,7 @@ extension CommandLineToolCommand {
 
 // MARK: - Helpers
 
-extension CommandLineToolCommand {
+extension AnyCommandLineTool {
     private func _effectiveKeyConversion(
         explicit: _CommandLineToolOptionKeyConversion?,
         nameOfKey: String
