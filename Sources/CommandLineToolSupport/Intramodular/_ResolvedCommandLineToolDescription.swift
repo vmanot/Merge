@@ -21,6 +21,7 @@ public struct _ResolvedCommandLineToolDescription {
     /// A resolved argument.
     public struct Argument: _ResolvedCommandLineToolMetadata {
         public let id: _ResolvedCommandLineToolDescription.ArgumentID
+        public let position: _CommandLineToolArgumentPosition
         public let value: Any?
         public let valueType: any Any.Type
     }
@@ -28,6 +29,7 @@ public struct _ResolvedCommandLineToolDescription {
     /// A resolved option.
     public struct Option: _ResolvedCommandLineToolMetadata {
         public let id: _ResolvedCommandLineToolDescription.ArgumentID
+        public let position: _CommandLineToolArgumentPosition
         public let conversion: _CommandLineToolOptionKeyConversion
         public let name: String
         public let separator: _CommandLineToolParameterKeyValueSeparator
@@ -39,6 +41,7 @@ public struct _ResolvedCommandLineToolDescription {
     /// A resolved simple flag.
     public struct SimpleFlag: _ResolvedCommandLineToolMetadata {
         public let id: _ResolvedCommandLineToolDescription.ArgumentID
+        public let position: _CommandLineToolArgumentPosition
         public let conversion: _CommandLineToolOptionKeyConversion
         public let name: String
         public let inversion: _CommandLineToolFlagInversion?
@@ -49,6 +52,7 @@ public struct _ResolvedCommandLineToolDescription {
     /// A resolved custom flag.
     public struct CustomFlag: _ResolvedCommandLineToolMetadata {
         public let id: _ResolvedCommandLineToolDescription.ArgumentID
+        public let position: _CommandLineToolArgumentPosition
         public let value: Any?
         public let valueType: any Any.Type
     }
@@ -92,4 +96,3 @@ public struct _AnyResolvedCommandLineToolMetadata: _UnwrappableTypeEraser, Ident
         base
     }
 }
-

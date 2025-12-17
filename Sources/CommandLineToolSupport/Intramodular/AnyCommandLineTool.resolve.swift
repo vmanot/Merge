@@ -78,6 +78,7 @@ extension AnyCommandLineTool {
                 resolved.append(
                     _ResolvedCommandLineToolDescription.CustomFlag(
                         id: resolvingID,
+                        position: flag.position,
                         value: flag.wrappedValue,
                         valueType: type(of: flag.wrappedValue),
                     ).erasedToAnyResolvedCommandLineToolMetadata()
@@ -86,6 +87,7 @@ extension AnyCommandLineTool {
                 resolved.append(
                     _ResolvedCommandLineToolDescription.SimpleFlag(
                         id: resolvingID,
+                        position: flag.position,
                         conversion: conversion ?? defaultKeyConversion(name),
                         name: name,
                         inversion: nil,
@@ -97,6 +99,7 @@ extension AnyCommandLineTool {
                 resolved.append(
                     _ResolvedCommandLineToolDescription.SimpleFlag(
                         id: resolvingID,
+                        position: flag.position,
                         conversion: conversion ?? defaultKeyConversion(name),
                         name: name,
                         inversion: nil, // only be able to switch to another state (true / false)
@@ -108,6 +111,7 @@ extension AnyCommandLineTool {
                 resolved.append(
                     _ResolvedCommandLineToolDescription.SimpleFlag(
                         id: resolvingID,
+                        position: flag.position,
                         conversion: conversion ?? defaultKeyConversion(name),
                         name: name,
                         inversion: inversion,
@@ -128,6 +132,7 @@ extension AnyCommandLineTool {
             resolved.append(
                 _ResolvedCommandLineToolDescription.Option(
                     id: resolvingID,
+                    position: parameter.position,
                     conversion: _effectiveKeyConversion(
                         explicit: parameter.optionKeyConversion,
                         nameOfKey: name
@@ -143,6 +148,7 @@ extension AnyCommandLineTool {
             resolved.append(
                 _ResolvedCommandLineToolDescription.Argument(
                     id: resolvingID,
+                    position: parameter.position,
                     value: parameter.wrappedValue,
                     valueType: type(of: parameter.wrappedValue)
                 ).erasedToAnyResolvedCommandLineToolMetadata()

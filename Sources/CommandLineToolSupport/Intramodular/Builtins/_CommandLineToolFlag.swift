@@ -17,6 +17,9 @@ public protocol _CommandLineToolFlagProtocol: PropertyWrapper {
     ///
     /// This must aligned with the `WrappedValue`, for example: `.counter(key:)` assumes `WrappedValue` is `Int`, etc.
     var _representaton: _CommandLineToolFlagRepresentation { get }
+    
+    /// Positional hint for where this flag should appear in the invocation.
+    var position: _CommandLineToolArgumentPosition { get }
 }
 
 /// The representation of a command line tool flag that controls how to convert it into command argument.
@@ -56,6 +59,7 @@ public struct _CommandLineToolFlag<WrappedValue>: _CommandLineToolFlagProtocol {
     var _wrappedValue: WrappedValue
     
     public var _representaton: _CommandLineToolFlagRepresentation
+    public var position: _CommandLineToolArgumentPosition = .global
   
     public var wrappedValue: WrappedValue {
         get {
@@ -78,7 +82,8 @@ public struct _CommandLineToolFlag<WrappedValue>: _CommandLineToolFlagProtocol {
     public init(
         wrappedValue: WrappedValue,
         conversion: _CommandLineToolOptionKeyConversion? = nil,
-        name: String
+        name: String,
+        position: _CommandLineToolArgumentPosition = .global
     ) where WrappedValue == Bool {
         self._wrappedValue = wrappedValue
         self._representaton = .boolean(
@@ -86,6 +91,7 @@ public struct _CommandLineToolFlag<WrappedValue>: _CommandLineToolFlagProtocol {
             name: name,
             defaultValue: wrappedValue
         )
+        self.position = position
     }
     
     /// Creates a flag from an optional boolean value.
@@ -96,7 +102,8 @@ public struct _CommandLineToolFlag<WrappedValue>: _CommandLineToolFlagProtocol {
         wrappedValue: WrappedValue,
         conversion: _CommandLineToolOptionKeyConversion? = nil,
         name: String,
-        inversion: _CommandLineToolFlagInversion
+        inversion: _CommandLineToolFlagInversion,
+        position: _CommandLineToolArgumentPosition = .global
     ) where WrappedValue == Bool? {
         self._wrappedValue = wrappedValue
         self._representaton = .optionalBoolean(
@@ -104,6 +111,7 @@ public struct _CommandLineToolFlag<WrappedValue>: _CommandLineToolFlagProtocol {
             name: name,
             inversion: inversion
         )
+        self.position = position
     }
     
     /// Creates a counter flag from an integer value.
@@ -111,31 +119,45 @@ public struct _CommandLineToolFlag<WrappedValue>: _CommandLineToolFlagProtocol {
     public init(
         wrappedValue: WrappedValue = 0,
         conversion: _CommandLineToolOptionKeyConversion? = nil,
-        name: String
+        name: String,
+        position: _CommandLineToolArgumentPosition = .global
     ) where WrappedValue == Int {
         self._wrappedValue = wrappedValue
         self._representaton = .counter(
             conversion: conversion,
             name: name
         )
+        self.position = position
     }
     
     /// Creates a custom flag from any `OptionKeyConvertible`.
-    public init(wrappedValue: WrappedValue) where WrappedValue : CLT.OptionKeyConvertible {
+    public init(
+        wrappedValue: WrappedValue,
+        position: _CommandLineToolArgumentPosition = .global
+    ) where WrappedValue : CLT.OptionKeyConvertible {
         self._wrappedValue = wrappedValue
         self._representaton = .custom
+        self.position = position
     }
     
     /// Creates an array of custom flags from any `OptionKeyConvertible`.
-    public init<T>(wrappedValue: [T]) where WrappedValue == [T], T : CLT.OptionKeyConvertible {
+    public init<T>(
+        wrappedValue: [T],
+        position: _CommandLineToolArgumentPosition = .global
+    ) where WrappedValue == [T], T : CLT.OptionKeyConvertible {
         self._wrappedValue = wrappedValue
         self._representaton = .custom
+        self.position = position
     }
     
     /// Creates an array of custom flags from any `OptionKeyConvertible`.
-    public init<T>(wrappedValue: [T]?) where WrappedValue == [T]?, T : CLT.OptionKeyConvertible {
+    public init<T>(
+        wrappedValue: [T]?,
+        position: _CommandLineToolArgumentPosition = .global
+    ) where WrappedValue == [T]?, T : CLT.OptionKeyConvertible {
         self._wrappedValue = wrappedValue
         self._representaton = .custom
+        self.position = position
     }
     
     @available(*, unavailable, message: "@Flag only accepts `Bool`, `Int` or any custom types that conforms to `CLT.OptionKeyConvertible`.")
