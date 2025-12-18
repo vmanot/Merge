@@ -24,7 +24,7 @@ public protocol _CommandLineToolParameterProtocol: PropertyWrapper {
     var multiValueEncodingStrategy: MultiValueParameterEncodingStrategy? { get }
     
     /// Positional hint for where this parameter should appear in the invocation.
-    var position: _CommandLineToolArgumentPosition { get }
+    var defaultPosition: _CommandLineToolArgumentPosition { get }
 }
 
 @propertyWrapper
@@ -35,7 +35,7 @@ public struct _CommandLineToolParameter<WrappedValue>: _CommandLineToolParameter
     public var optionKeyConversion: _CommandLineToolOptionKeyConversion?
     public var keyValueSeparator: _CommandLineToolParameterKeyValueSeparator
     public var multiValueEncodingStrategy: MultiValueParameterEncodingStrategy?
-    public var position: _CommandLineToolArgumentPosition = .global
+    public var defaultPosition: _CommandLineToolArgumentPosition = .local
     
     public var wrappedValue: WrappedValue {
         get {
@@ -51,12 +51,12 @@ public struct _CommandLineToolParameter<WrappedValue>: _CommandLineToolParameter
         wrappedValue: WrappedValue,
         name: String?,
         separator: _CommandLineToolParameterKeyValueSeparator = .space,
-        position: _CommandLineToolArgumentPosition = .global
+        defaultPosition: _CommandLineToolArgumentPosition = .local
     ) {
         self._wrappedValue = wrappedValue
         self.name = name
         self.keyValueSeparator = separator
-        self.position = position
+        self.defaultPosition = defaultPosition
     }
 }
 
@@ -66,13 +66,13 @@ extension _CommandLineToolParameter where WrappedValue : CLT.ArgumentValueConver
         wrappedValue: WrappedValue,
         name: String?,
         separator: _CommandLineToolParameterKeyValueSeparator = .space,
-        position: _CommandLineToolArgumentPosition = .global
+        defaultPosition: _CommandLineToolArgumentPosition = .local
     ) {
         self._wrappedValue = wrappedValue
         self.name = name
         self.keyValueSeparator = separator
         self.multiValueEncodingStrategy = nil
-        self.position = position
+        self.defaultPosition = defaultPosition
     }
     
     /// Creates a property that reads its value from a labeled option or an argument.
@@ -81,14 +81,14 @@ extension _CommandLineToolParameter where WrappedValue : CLT.ArgumentValueConver
         conversion: _CommandLineToolOptionKeyConversion,
         name: String?,
         separator: _CommandLineToolParameterKeyValueSeparator = .space,
-        position: _CommandLineToolArgumentPosition = .global
+        defaultPosition: _CommandLineToolArgumentPosition = .local
     ) {
         self._wrappedValue = wrappedValue
         self.name = name
         self.optionKeyConversion = conversion
         self.keyValueSeparator = separator
         self.multiValueEncodingStrategy = nil
-        self.position = position
+        self.defaultPosition = defaultPosition
     }
 }
 
@@ -99,13 +99,13 @@ extension _CommandLineToolParameter {
         name: String?,
         separator: _CommandLineToolParameterKeyValueSeparator = .space,
         encoding: MultiValueParameterEncodingStrategy = .singleValue,
-        position: _CommandLineToolArgumentPosition = .global
+        defaultPosition: _CommandLineToolArgumentPosition = .local
     ) where WrappedValue == [T]?, T : CLT.ArgumentValueConvertible {
         self._wrappedValue = wrappedValue
         self.name = name
         self.keyValueSeparator = separator
         self.multiValueEncodingStrategy = encoding
-        self.position = position
+        self.defaultPosition = defaultPosition
     }
     
     /// Creates an array that reads its value from zero or more labeled options or arguments.
@@ -115,13 +115,13 @@ extension _CommandLineToolParameter {
         name: String?,
         separator: _CommandLineToolParameterKeyValueSeparator = .space,
         encoding: MultiValueParameterEncodingStrategy = .singleValue,
-        position: _CommandLineToolArgumentPosition = .global
+        defaultPosition: _CommandLineToolArgumentPosition = .local
     ) where WrappedValue == [T]?, T : CLT.ArgumentValueConvertible {
         self._wrappedValue = wrappedValue
         self.name = name
         self.keyValueSeparator = separator
         self.multiValueEncodingStrategy = encoding
-        self.position = position
+        self.defaultPosition = defaultPosition
     }
 }
 
@@ -132,13 +132,13 @@ extension _CommandLineToolParameter {
         name: String?,
         separator: _CommandLineToolParameterKeyValueSeparator = .space,
         encoding: MultiValueParameterEncodingStrategy = .singleValue,
-        position: _CommandLineToolArgumentPosition = .global
+        defaultPosition: _CommandLineToolArgumentPosition = .local
     ) where WrappedValue == [T], T : CLT.ArgumentValueConvertible {
         self._wrappedValue = wrappedValue
         self.name = name
         self.keyValueSeparator = separator
         self.multiValueEncodingStrategy = encoding
-        self.position = position
+        self.defaultPosition = defaultPosition
     }
 
     /// Creates an array that reads its value from zero or more labeled options or arguments.
@@ -148,13 +148,13 @@ extension _CommandLineToolParameter {
         name: String?,
         separator: _CommandLineToolParameterKeyValueSeparator = .space,
         encoding: MultiValueParameterEncodingStrategy = .singleValue,
-        position: _CommandLineToolArgumentPosition = .global
+        defaultPosition: _CommandLineToolArgumentPosition = .local
     ) where WrappedValue == [T], T : CLT.ArgumentValueConvertible {
         self._wrappedValue = wrappedValue
         self.name = name
         self.optionKeyConversion = conversion
         self.keyValueSeparator = separator
         self.multiValueEncodingStrategy = encoding
-        self.position = position
+        self.defaultPosition = defaultPosition
     }
 }

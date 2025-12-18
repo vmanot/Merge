@@ -11,9 +11,11 @@ import Foundation
 public struct _CommandLineToolArgumentPosition: Hashable, Sendable {
     public enum Anchor: Hashable, Sendable {
         /// Place the argument with the global options, before any subcommand-specific component.
-        case global
-        /// Place the argument alongside a subcommand, after the subcommand component.
-        case subcommand
+        case local
+        /// Place the argument in the group of next command
+        case nextCommand
+        /// Place the argument in the group of last command
+        case lastCommand
     }
     
     /// The coarse-grained anchor for the argument.
@@ -25,11 +27,15 @@ public struct _CommandLineToolArgumentPosition: Hashable, Sendable {
 }
 
 extension _CommandLineToolArgumentPosition {
-    public static var global: Self {
-        .init(anchor: .global)
+    public static var local: Self {
+        .init(anchor: .local)
     }
     
-    public static var subcommand: Self {
-        .init(anchor: .subcommand)
+    public static var nextCommand: Self {
+        .init(anchor: .nextCommand)
+    }
+    
+    public static var lastCommand: Self {
+        .init(anchor: .lastCommand)
     }
 }
