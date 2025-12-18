@@ -33,6 +33,10 @@ public protocol _GenericSubcommandProtocol {
 public class GenericSubcommand<Parent, Command>: AnyCommandLineTool, _GenericSubcommandProtocol where Parent: AnyCommandLineTool, Command: AnyCommandLineTool {
     public let parent: Parent
     public var command: Command
+    
+    public override var _commandName: String {
+        command._commandName
+    }
 
     public subscript<SubSubcommand: AnyCommandLineTool>(
         dynamicMember keyPath: KeyPath<Command, GenericSubcommand<Command, SubSubcommand>>
@@ -48,11 +52,6 @@ public class GenericSubcommand<Parent, Command>: AnyCommandLineTool, _GenericSub
     public init(parent: Parent, command: Command) {
         self.parent = parent
         self.command = command
-    }
-    
-    public override func makeCommand(operation: String? = nil) -> String {
-        [parent.makeCommand(operation: nil), command.makeCommand(operation: operation)]
-            .joined(separator: " ")
     }
     
     public func with<T>(
@@ -72,7 +71,7 @@ public class GenericSubcommand<Parent, Command>: AnyCommandLineTool, _GenericSub
     
     public func callAsFunction() async throws -> Process.RunResult {
         try await withUnsafeSystemShell { shell in
-            try await shell.run(command: makeCommand())
+            try await shell.run(command: invocation)
         }
     }
 }

@@ -30,11 +30,18 @@ open class AnyCommandLineTool: Logging {
         nil
     }
     
-    /// Makes the command invocation as it would be passed into system shell.
-    ///
-    /// - parameter operation: An optional operation after the ``commandName``. It typically serves as mode selection. For example: `xcrun --show-sdk-path -sdk <sdk>` where `--show-sdk-path` is the operation.
-    open func makeCommand(operation: String? = nil) -> String {
-        _CommandLineToolArgumentBuilder(command: self).buildCommandInvocation(operation: operation)
+    public var invocation: String {
+        get throws {
+            try _resolvedDescriptionChain
+                .compactMap { descriptor -> String? in
+                    var args = descriptor.arguments
+                        .compactMap(\.invocationArgument)
+                        .filter({ !$0.isEmpty })
+                    args.insert(descriptor.toolName, at: 0)
+                    return args.joined(separator: " ")
+                }
+                .joined(separator: " ")
+        }
     }
 
     public init() {
@@ -59,17 +66,6 @@ open class AnyCommandLineTool: Logging {
         let result: R = try await operation(shell)
         
         return result
-    }
-    
-    /// Makes the command invocation and runs in the system shell
-    ///
-    /// - parameter operation: An optional operation after the ``commandName``. It typically serves as mode selection. For example: `xcrun --show-sdk-path -sdk <sdk>` where `--show-sdk-path` is the operation.
-    @available(*, deprecated, message: "Waiting for @vatsal's `SystemShell` design and this would be an error in the future. Use `withUnsafeSystemShell` instead.")
-    @discardableResult
-    open func run(operation: String? = nil) async throws -> Process.RunResult {
-        try await withUnsafeSystemShell { shell in
-            try await shell.run(command: makeCommand(operation: operation))
-        }
     }
 }
 

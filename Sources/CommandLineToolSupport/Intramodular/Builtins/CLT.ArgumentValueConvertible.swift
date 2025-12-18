@@ -40,7 +40,7 @@ extension Optional: CLT.ArgumentValueConvertible where Wrapped: CLT.ArgumentValu
             return value.argumentValue
         }
         
-        fatalError(.abstract)
+        return ""
     }
 }
 

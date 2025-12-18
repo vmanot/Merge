@@ -8,18 +8,19 @@
 import Foundation
 
 public struct _CommandLineToolResolutionContext {
+    var argumentPositions: Set<_CommandLineToolArgumentPosition> = [.local, .nextCommand, .lastCommand]
+    var traverseDepth: Int = 0
+//    var isRootCommand: Bool
+    
     public init() {
         
     }
+    
+    internal init(
+        argumentPositions: Set<_CommandLineToolArgumentPosition> = [.local, .nextCommand, .lastCommand],
+        traverseDepth: Int = 0
+    ) {
+        self.argumentPositions = argumentPositions
+        self.traverseDepth = traverseDepth
+    }
 }
-
-/* FYI: SwiftUI.Font.Context
- 
- struct FontResolutionContext {
-     var sizeCategory: DynamicTypeSize = .large
-     var legibilityWeight: Any?
-     var fontDefinition: Any
-     var watchDisplayVariant: Any
-     var shouldRedacrContebt: Bool = false
- }
- */
