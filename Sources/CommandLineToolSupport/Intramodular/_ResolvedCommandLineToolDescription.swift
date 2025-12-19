@@ -27,6 +27,7 @@ public struct _ResolvedCommandLineToolDescription: MergeOperatable {
         
         public var invocationArgument: String? {
             // TODO: Support array
+            // value could be Array<T: CLT.ArgumentValueConvertible>
             (value as? CLT.ArgumentValueConvertible)?.argumentValue
         }
     }
@@ -134,6 +135,7 @@ public struct _ResolvedCommandLineToolDescription: MergeOperatable {
             }
             
             // FIXME: add support for custom flag array.
+            // value could be Array<T: CLT.OptionKeyConvertible>
             guard let conversion else { return nil }
             return (value as? CLT.OptionKeyConvertible).flatMap {
                 conversion.argumentKey(for: $0.name)

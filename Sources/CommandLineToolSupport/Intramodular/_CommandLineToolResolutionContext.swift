@@ -10,7 +10,6 @@ import Foundation
 public struct _CommandLineToolResolutionContext {
     var argumentPositions: Set<_CommandLineToolArgumentPosition> = [.local, .nextCommand, .lastCommand]
     var traverseDepth: Int = 0
-//    var isRootCommand: Bool
     
     public init() {
         
