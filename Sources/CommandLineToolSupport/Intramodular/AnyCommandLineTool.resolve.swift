@@ -192,7 +192,6 @@ extension AnyCommandLineTool {
                 resolved.append(
                     _ResolvedCommandLineToolDescription.CustomFlag(
                         id: resolvingID,
-                        conversion: keyConversion,
                         value: value,
                         valueType: type(of: flag.wrappedValue),
                     ).erasedToAnyResolvedCommandLineToolInvocationArgument()

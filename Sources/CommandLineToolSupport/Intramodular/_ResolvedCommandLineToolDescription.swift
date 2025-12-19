@@ -22,13 +22,15 @@ public struct _ResolvedCommandLineToolDescription: MergeOperatable {
     /// A resolved argument.
     public struct Argument: _ResolvedCommandLineToolInvocationArgument {
         public let id: _ResolvedCommandLineToolDescription.ArgumentID
-        public let value: Any?
+        public let value: Any
         public let valueType: any Any.Type
         
         public var invocationArgument: String? {
-            // TODO: Support array
-            // value could be Array<T: CLT.ArgumentValueConvertible>
-            (value as? CLT.ArgumentValueConvertible)?.argumentValue
+            if let array = value as? [any CLT.ArgumentValueConvertible] {
+                return array.map(\.argumentValue).joined(separator: " ")
+            }
+            
+            return (value as? CLT.ArgumentValueConvertible)?.argumentValue
         }
     }
     
@@ -125,7 +127,7 @@ public struct _ResolvedCommandLineToolDescription: MergeOperatable {
     /// A resolved custom flag.
     public struct CustomFlag: _ResolvedCommandLineToolInvocationArgument {
         public let id: _ResolvedCommandLineToolDescription.ArgumentID
-        public let conversion: _CommandLineToolOptionKeyConversion?
+        
         public let value: Any
         public let valueType: any Any.Type
         
@@ -134,11 +136,15 @@ public struct _ResolvedCommandLineToolDescription: MergeOperatable {
                 return nil
             }
             
-            // FIXME: add support for custom flag array.
-            // value could be Array<T: CLT.OptionKeyConvertible>
-            guard let conversion else { return nil }
-            return (value as? CLT.OptionKeyConvertible).flatMap {
-                conversion.argumentKey(for: $0.name)
+            return switch value {
+                case let array as Array<any CLT.OptionKeyConvertible>:
+                    array.compactMap {
+                        $0.conversion.argumentKey(for: $0.name)
+                    }.joined(separator: " ")
+                case let optionKeyConvertible as CLT.OptionKeyConvertible:
+                    optionKeyConvertible.conversion.argumentKey(for: optionKeyConvertible.name)
+                default:
+                    nil
             }
         }
     }

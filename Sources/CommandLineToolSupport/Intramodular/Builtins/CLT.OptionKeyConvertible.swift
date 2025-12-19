@@ -11,14 +11,14 @@ import Swallow
 
 extension CLT {
     public protocol OptionKeyConvertible {
-        var conversion: _CommandLineToolOptionKeyConversion? { get }
+        var conversion: _CommandLineToolOptionKeyConversion { get }
         var name: String { get }
     }
 }
 
 extension CLT.OptionKeyConvertible {
-    public var conversion: _CommandLineToolOptionKeyConversion? {
-        nil
+    public var conversion: _CommandLineToolOptionKeyConversion {
+        name.count > 1 ? .doubleHyphenPrefixed : .hyphenPrefixed
     }
 }
 
@@ -31,10 +31,11 @@ extension Optional: CLT.OptionKeyConvertible where Wrapped: CLT.OptionKeyConvert
         }
     }
     
-    public var conversion: _CommandLineToolOptionKeyConversion? {
+    public var conversion: _CommandLineToolOptionKeyConversion {
         if let self {
-            return self.conversion
+            self.conversion
+        } else {
+            name.count > 1 ? .doubleHyphenPrefixed : .hyphenPrefixed
         }
-        return nil
     }
 }
