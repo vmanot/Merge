@@ -182,13 +182,7 @@ extension AnyCommandLineTool {
         
         switch flag._representaton {
             case .custom:
-                let value = (flag.wrappedValue as! CLT.OptionKeyConvertible)
-                let keyConversion: _CommandLineToolOptionKeyConversion? = if let optionValue = value as? any OptionalProtocol, optionValue.isNil {
-                    nil
-                } else {
-                    value.conversion ?? defaultKeyConversion(value.name)
-                }
-                
+                let value = (flag.wrappedValue as! CLT.OptionKeyConvertible)                
                 resolved.append(
                     _ResolvedCommandLineToolDescription.CustomFlag(
                         id: resolvingID,

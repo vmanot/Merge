@@ -20,7 +20,7 @@ public protocol _CommandLineToolSubcommandProtocol /* PropertyWrapper */ {
 }
 
 @propertyWrapper
-public struct _CommandLineToolSubcommand<Parent, Command>: _CommandLineToolSubcommandProtocol where Parent: AnyCommandLineTool, Command: AnyCommandLineTool {
+public struct _CommandLineToolSubcommand<Parent, Command>: _CommandLineToolSubcommandProtocol where Parent: AnyCommandLineTool, Command: AnyCommandLineTool & CommandLineTool {
     public var name: String
     public var command: Command
 

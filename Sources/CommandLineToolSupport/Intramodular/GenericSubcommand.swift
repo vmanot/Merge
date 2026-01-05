@@ -9,7 +9,7 @@ import Foundation
 import Swallow
 import Merge
 
-public class EmptyCommandLineToolSubcommand: AnyCommandLineTool {
+public class EmptyCommandLineToolSubcommand: AnyCommandLineTool, CommandLineTool {
     var name: String
     
     init(name: String) {
@@ -30,7 +30,7 @@ public protocol _GenericSubcommandProtocol {
 }
 
 @dynamicMemberLookup
-public class GenericSubcommand<Parent, Command>: AnyCommandLineTool, _GenericSubcommandProtocol where Parent: AnyCommandLineTool, Command: AnyCommandLineTool {
+public class GenericSubcommand<Parent, Command>: AnyCommandLineTool, CommandLineTool, _GenericSubcommandProtocol where Parent: AnyCommandLineTool, Command: AnyCommandLineTool & CommandLineTool {
     public let parent: Parent
     public var command: Command
     
@@ -54,6 +54,10 @@ public class GenericSubcommand<Parent, Command>: AnyCommandLineTool, _GenericSub
         self.command = command
     }
     
+    public var invocationSummary: Command.SummaryContent {
+        command.invocationSummary
+    }
+    
     public func with<T>(
         _ keyPath: ReferenceWritableKeyPath<Command, T>,
         _ newValue: T
@@ -71,7 +75,7 @@ public class GenericSubcommand<Parent, Command>: AnyCommandLineTool, _GenericSub
     
     public func callAsFunction() async throws -> Process.RunResult {
         try await withUnsafeSystemShell { shell in
-            try await shell.run(command: invocation)
+            try await shell.run(command: command.invocationArguments.joined(separator: " "))
         }
     }
 }

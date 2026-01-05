@@ -68,6 +68,10 @@ public struct _CommandLineToolFlag<WrappedValue>: _CommandLineToolFlagProtocol {
             _wrappedValue = newValue
         }
     }
+    
+    public var projectedValue: InvocationSummaryValue<WrappedValue> {
+        .init(wrappedValue)
+    }
 
     /// Creates a flag from a non-optional boolean value.
     ///

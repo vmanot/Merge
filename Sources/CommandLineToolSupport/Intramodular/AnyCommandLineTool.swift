@@ -29,20 +29,6 @@ open class AnyCommandLineTool: Logging {
     open var keyConversion: _CommandLineToolOptionKeyConversion? {
         nil
     }
-    
-    public var invocation: String {
-        get throws {
-            try _resolvedDescriptionChain
-                .compactMap { descriptor -> String? in
-                    var args = descriptor.arguments
-                        .compactMap(\.invocationArgument)
-                        .filter({ !$0.isEmpty })
-                    args.insert(descriptor.toolName, at: 0)
-                    return args.joined(separator: " ")
-                }
-                .joined(separator: " ")
-        }
-    }
 
     public init() {
         

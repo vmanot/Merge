@@ -45,6 +45,10 @@ public struct _CommandLineToolParameter<WrappedValue>: _CommandLineToolParameter
         }
     }
     
+    public var projectedValue: InvocationSummaryValue<WrappedValue> {
+        .init(wrappedValue)
+    }
+    
     @available(*, unavailable, message: "This parameter will be ignored. Make sure `WrappedValue` conforms to `CLT.ArgumentValueConvertible`.")
     @_disfavoredOverload
     public init(
