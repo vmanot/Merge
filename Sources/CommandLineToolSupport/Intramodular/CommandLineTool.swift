@@ -34,7 +34,9 @@ extension CommandLineTool {
                     guard let command = subcommand.command as? SummaryContent.Command else {
                         preconditionFailure("GenericSubcommand \(type(of: subcommand.command)) not equals to \(SummaryContent.Command.self)")
                     }
-                    return try invocationSummary.invocationArguments(for: command)
+                    
+                    let parentCommandInvocationArgs = try (subcommand.parent as? any CommandLineTool)?.invocationArguments
+                    return try (parentCommandInvocationArgs ?? []) + invocationSummary.invocationArguments(for: command)
                 default:
                     preconditionFailure("\(type(of: self)) not equals to \(SummaryContent.Command.self)")
             }
