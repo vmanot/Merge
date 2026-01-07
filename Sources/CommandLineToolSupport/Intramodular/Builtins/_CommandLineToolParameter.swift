@@ -46,7 +46,28 @@ public struct _CommandLineToolParameter<WrappedValue>: _CommandLineToolParameter
     }
     
     public var projectedValue: InvocationSummaryValue<WrappedValue> {
-        .init(wrappedValue)
+        let resolvedArgument: any _ResolvedCommandLineToolInvocationArgument
+        let argumentID = _ResolvedCommandLineToolDescription.ArgumentID(rawValue: "", commandName: "")
+
+        if let name {
+            resolvedArgument = _ResolvedCommandLineToolDescription.Option(
+                id: argumentID,
+                conversion: optionKeyConversion ?? _defaultKeyConversion(for: name),
+                name: name,
+                separator: keyValueSeparator,
+                multiValueEncoding: multiValueEncodingStrategy,
+                value: wrappedValue,
+                valueType: type(of: wrappedValue)
+            )
+        } else {
+            resolvedArgument = _ResolvedCommandLineToolDescription.Argument(
+                id: argumentID,
+                value: wrappedValue,
+                valueType: type(of: wrappedValue)
+            )
+        }
+
+        return .init(wrappedValue, resolvedArgument: resolvedArgument)
     }
     
     @available(*, unavailable, message: "This parameter will be ignored. Make sure `WrappedValue` conforms to `CLT.ArgumentValueConvertible`.")

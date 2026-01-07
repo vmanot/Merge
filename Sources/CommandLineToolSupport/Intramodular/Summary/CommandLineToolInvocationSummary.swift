@@ -8,18 +8,29 @@
 import Foundation
 import Swallow
 
-public struct CommandLineToolInvocationSummary<Tool: AnyCommandLineTool>: InvocationSummary {
-    let _components: [InvocationSummaryComponent<Tool>]
+public protocol InvocationSummary {
+    associatedtype Command: AnyCommandLineTool
+    typealias Context = InvocationSummaryContext<Command>
+    
+    func makeInvocationArguments(context: Context) throws -> [String]
+}
+
+// MARK: - Supplementary
+
+public struct CommandLineToolInvocationSummary<Command: AnyCommandLineTool>: InvocationSummary {
+    let _components: [InvocationSummaryComponent<Command>]
 
     public init(
-        @InvocationSummaryBuilder<Tool> _ content: () -> [InvocationSummaryComponent<Tool>]
+        @InvocationSummaryBuilder<Command> _ content: () -> [InvocationSummaryComponent<Command>]
     ) {
         self._components = content()
     }
 
-    public func invocationArguments(for command: Tool) -> [String] {
-        return _components
-            .flatMap { $0.resolve(in: command) }
+    public func makeInvocationArguments(
+        context: InvocationSummaryContext<Command>
+    ) throws -> [String] {
+        _components
+            .flatMap { $0.resolve(in: context) }
             .filter { !$0.isEmpty }
     }
 }
@@ -34,7 +45,7 @@ extension CommandLineToolInvocationSummary: ExpressibleByStringLiteral, Expressi
     }
 
     public struct StringInterpolation: StringInterpolationProtocol {
-        fileprivate var components: [InvocationSummaryComponent<Tool>] = []
+        fileprivate var components: [InvocationSummaryComponent<Command>] = []
 
         public init(literalCapacity: Int, interpolationCount: Int) {
             components.reserveCapacity(literalCapacity + interpolationCount)
@@ -48,7 +59,7 @@ extension CommandLineToolInvocationSummary: ExpressibleByStringLiteral, Expressi
             components.append(.literal(literal))
         }
 
-        public mutating func appendInterpolation<Value>(_ keyPath: KeyPath<Tool, InvocationSummaryValue<Value>>) {
+        public mutating func appendInterpolation<Value>(_ keyPath: KeyPath<Command, InvocationSummaryValue<Value>>) {
             components.append(.value(keyPath))
         }
 

@@ -29,14 +29,17 @@ extension CommandLineTool {
         get throws {
             switch self {
                 case let command as SummaryContent.Command:
-                    return try invocationSummary.invocationArguments(for: command)
+                    let context = InvocationSummaryContext(command: command, parent: nil)
+                    return try invocationSummary.makeInvocationArguments(context: context)
                 case let subcommand as any _GenericSubcommandProtocol:
                     guard let command = subcommand.command as? SummaryContent.Command else {
                         preconditionFailure("GenericSubcommand \(type(of: subcommand.command)) not equals to \(SummaryContent.Command.self)")
                     }
                     
                     let parentCommandInvocationArgs = try (subcommand.parent as? any CommandLineTool)?.invocationArguments
-                    return try (parentCommandInvocationArgs ?? []) + invocationSummary.invocationArguments(for: command)
+                    let context = InvocationSummaryContext(command: command, parent: subcommand.parent)
+                    let invocationArgs = try invocationSummary.makeInvocationArguments(context: context)
+                    return (parentCommandInvocationArgs ?? []) + invocationArgs
                 default:
                     preconditionFailure("\(type(of: self)) not equals to \(SummaryContent.Command.self)")
             }

@@ -8,10 +8,14 @@
 import Foundation
 
 struct RuntimeReflectionInvocationSummary: InvocationSummary {
+    typealias Command = AnyCommandLineTool
+    
     init() { }
     
-    func invocationArguments(for tool: AnyCommandLineTool) throws -> [String] {
-        try tool._resolvedDescriptionChain
+    func makeInvocationArguments(
+        context: InvocationSummaryContext<Command>
+    ) throws -> [String] {
+        try context.command._resolvedDescriptionChain
             .flatMap { descriptor -> [String] in
                 let args = descriptor.arguments
                     .compactMap(\.invocationArgument)

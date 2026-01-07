@@ -7,24 +7,14 @@
 
 import Foundation
 
-/*
- "swiftc"
- When($mode, is: .typeCheck) {
-     When($emitModuleTrace, is: true) {
-        "--emit-module-trace"
-        "--emit-module-trace-path"
-        $emitModuleTracePath
-     }
- } /* else { } */
- */
-public struct InvocationSummaryWhenCondition<Tool: AnyCommandLineTool>: InvocationSummary {
-    internal let condition: (Tool) -> Bool
-    internal let trueBranch: [InvocationSummaryComponent<Tool>]
-    internal let falseBranch: [InvocationSummaryComponent<Tool>]?
+public struct InvocationSummaryWhenCondition<Command: AnyCommandLineTool>: InvocationSummary {
+    internal let condition: InvocationSummaryCondition<Command>
+    internal let trueBranch: [InvocationSummaryComponent<Command>]
+    internal let falseBranch: [InvocationSummaryComponent<Command>]?
 
     public init(
-        _ condition: @escaping (Tool) -> Bool,
-        @InvocationSummaryBuilder<Tool> _ content: () -> [InvocationSummaryComponent<Tool>]
+        _ condition: InvocationSummaryCondition<Command>,
+        @InvocationSummaryBuilder<Command> _ content: () -> [InvocationSummaryComponent<Command>]
     ) {
         self.condition = condition
         self.trueBranch = content()
@@ -32,66 +22,127 @@ public struct InvocationSummaryWhenCondition<Tool: AnyCommandLineTool>: Invocati
     }
 
     public init(
-        _ condition: @escaping (Tool) -> Bool,
-        @InvocationSummaryBuilder<Tool> _ content: () -> [InvocationSummaryComponent<Tool>],
-        @InvocationSummaryBuilder<Tool> `else` elseContent: () -> [InvocationSummaryComponent<Tool>]
+        _ condition: InvocationSummaryCondition<Command>,
+        @InvocationSummaryBuilder<Command> _ content: () -> [InvocationSummaryComponent<Command>],
+        @InvocationSummaryBuilder<Command> `else` elseContent: () -> [InvocationSummaryComponent<Command>]
     ) {
         self.condition = condition
         self.trueBranch = content()
         self.falseBranch = elseContent()
     }
 
-    public func invocationArguments(for tool: AnyCommandLineTool) -> [String] {
-        guard let typedTool = tool as? Tool else {
-            assertionFailure("Invocation summary expected \(Tool.self) but received \(type(of: tool)).")
-            return []
-        }
-
-        let branch = condition(typedTool) ? trueBranch : (falseBranch ?? [])
-        return branch.flatMap { $0.resolve(in: typedTool) }
+    public init(
+        _ condition: @escaping (Command) -> Bool,
+        @InvocationSummaryBuilder<Command> _ content: () -> [InvocationSummaryComponent<Command>]
+    ) {
+        self.init(.predicate { context in
+            condition(context.command)
+        }, content)
+    }
+    
+    public init(
+        _ condition: @escaping (Command) -> Bool,
+        @InvocationSummaryBuilder<Command> _ content: () -> [InvocationSummaryComponent<Command>],
+        @InvocationSummaryBuilder<Command> `else` elseContent: () -> [InvocationSummaryComponent<Command>]
+    ) {
+        self.init(.predicate { context in
+            condition(context.command)
+        }, content, else: elseContent)
+    }
+    
+    public init<Value>(
+        _ value: InvocationSummaryValueExpression<Command, Value>,
+        _ predicate: InvocationSummaryValuePredicate<Value>,
+        @InvocationSummaryBuilder<Command> _ content: () -> [InvocationSummaryComponent<Command>]
+    ) {
+        self.init(.value(value, predicate), content)
+    }
+    
+    public init<Value>(
+        _ value: InvocationSummaryValueExpression<Command, Value>,
+        _ predicate: InvocationSummaryValuePredicate<Value>,
+        @InvocationSummaryBuilder<Command> _ content: () -> [InvocationSummaryComponent<Command>],
+        @InvocationSummaryBuilder<Command> `else` elseContent: () -> [InvocationSummaryComponent<Command>]
+    ) {
+        self.init(.value(value, predicate), content, else: elseContent)
+    }
+    
+    public func makeInvocationArguments(
+        context: InvocationSummaryContext<Command>
+    ) throws -> [String] {
+        let branch = condition.evaluate(in: context) ? trueBranch : (falseBranch ?? [])
+        return branch.flatMap { $0.resolve(in: context) }
     }
 }
 
 extension InvocationSummaryWhenCondition {
-    public init<Value: Equatable>(
-        _ keyPath: KeyPath<Tool, InvocationSummaryValue<Value>>,
-        is expected: Value,
-        @InvocationSummaryBuilder<Tool> _ content: () -> [InvocationSummaryComponent<Tool>]
+    public init<Value>(
+        _ keyPath: KeyPath<Command, InvocationSummaryValue<Value>>,
+        _ predicate: InvocationSummaryValuePredicate<Value>,
+        @InvocationSummaryBuilder<Command> _ content: () -> [InvocationSummaryComponent<Command>]
     ) {
-        self.init({ tool in
-            tool[keyPath: keyPath].value == expected
-        }, content)
+        self.init(.keyPath(keyPath), predicate, content)
+    }
+    
+    public init<Value>(
+        _ keyPath: KeyPath<Command, InvocationSummaryValue<Value>>,
+        _ predicate: InvocationSummaryValuePredicate<Value>,
+        @InvocationSummaryBuilder<Command> _ content: () -> [InvocationSummaryComponent<Command>],
+        @InvocationSummaryBuilder<Command> `else` elseContent: () -> [InvocationSummaryComponent<Command>]
+    ) {
+        self.init(.keyPath(keyPath), predicate, content, else: elseContent)
+    }
+    
+    public init<Value>(
+        _ value: InvocationSummaryValue<Value>,
+        _ predicate: InvocationSummaryValuePredicate<Value>,
+        @InvocationSummaryBuilder<Command> _ content: () -> [InvocationSummaryComponent<Command>]
+    ) {
+        self.init(.value(value), predicate, content)
+    }
+    
+    public init<Value>(
+        _ value: InvocationSummaryValue<Value>,
+        _ predicate: InvocationSummaryValuePredicate<Value>,
+        @InvocationSummaryBuilder<Command> _ content: () -> [InvocationSummaryComponent<Command>],
+        @InvocationSummaryBuilder<Command> `else` elseContent: () -> [InvocationSummaryComponent<Command>]
+    ) {
+        self.init(.value(value), predicate, content, else: elseContent)
+    }
+    
+    public init<Value: Equatable>(
+        _ keyPath: KeyPath<Command, InvocationSummaryValue<Value>>,
+        is expected: Value,
+        @InvocationSummaryBuilder<Command> _ content: () -> [InvocationSummaryComponent<Command>]
+    ) {
+        self.init(keyPath, .equalsTo(expected), content)
     }
 
     public init<Value: Equatable>(
-        _ keyPath: KeyPath<Tool, InvocationSummaryValue<Value>>,
+        _ keyPath: KeyPath<Command, InvocationSummaryValue<Value>>,
         is expected: Value,
-        @InvocationSummaryBuilder<Tool> _ content: () -> [InvocationSummaryComponent<Tool>],
-        @InvocationSummaryBuilder<Tool> `else` elseContent: () -> [InvocationSummaryComponent<Tool>]
+        @InvocationSummaryBuilder<Command> _ content: () -> [InvocationSummaryComponent<Command>],
+        @InvocationSummaryBuilder<Command> `else` elseContent: () -> [InvocationSummaryComponent<Command>]
     ) {
-        self.init({ tool in
-            tool[keyPath: keyPath].value == expected
-        }, content, else: elseContent)
+        self.init(keyPath, .equalsTo(expected), content, else: elseContent)
     }
 
     public init<Value: Equatable>(
         _ value: InvocationSummaryValue<Value>,
         is expected: Value,
-        @InvocationSummaryBuilder<Tool> _ content: () -> [InvocationSummaryComponent<Tool>]
+        @InvocationSummaryBuilder<Command> _ content: () -> [InvocationSummaryComponent<Command>]
     ) {
-        self.init({ _ in
-            value.value == expected
-        }, content)
+        self.init(value, .equalsTo(expected), content)
     }
 
     public init<Value: Equatable>(
         _ value: InvocationSummaryValue<Value>,
         is expected: Value,
-        @InvocationSummaryBuilder<Tool> _ content: () -> [InvocationSummaryComponent<Tool>],
-        @InvocationSummaryBuilder<Tool> `else` elseContent: () -> [InvocationSummaryComponent<Tool>]
+        @InvocationSummaryBuilder<Command> _ content: () -> [InvocationSummaryComponent<Command>],
+        @InvocationSummaryBuilder<Command> `else` elseContent: () -> [InvocationSummaryComponent<Command>]
     ) {
-        self.init({ _ in
-            value.value == expected
-        }, content, else: elseContent)
+        self.init(value, .equalsTo(expected), content, else: elseContent)
     }
 }
+
+public typealias When<Command: AnyCommandLineTool> = InvocationSummaryWhenCondition<Command>

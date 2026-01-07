@@ -70,7 +70,45 @@ public struct _CommandLineToolFlag<WrappedValue>: _CommandLineToolFlagProtocol {
     }
     
     public var projectedValue: InvocationSummaryValue<WrappedValue> {
-        .init(wrappedValue)
+        let argumentID = _ResolvedCommandLineToolDescription.ArgumentID(rawValue: "", commandName: "")
+        let resolvedArgument: any _ResolvedCommandLineToolInvocationArgument
+
+        switch _representaton {
+            case .custom:
+                resolvedArgument = _ResolvedCommandLineToolDescription.CustomFlag(
+                    id: argumentID,
+                    value: wrappedValue,
+                    valueType: type(of: wrappedValue)
+                )
+            case .counter(let conversion, let name):
+                resolvedArgument = _ResolvedCommandLineToolDescription.CounterFlag(
+                    id: argumentID,
+                    conversion: conversion ?? _defaultKeyConversion(for: name),
+                    name: name,
+                    count: wrappedValue as! Int,
+                    isClustered: name.count == 1
+                )
+            case .boolean(let conversion, let name, let defaultValue):
+                resolvedArgument = _ResolvedCommandLineToolDescription.BooleanFlag(
+                    id: argumentID,
+                    conversion: conversion ?? _defaultKeyConversion(for: name),
+                    name: name,
+                    inversion: nil,
+                    defaultBooleanValue: defaultValue,
+                    isOn: (wrappedValue as! Bool)
+                )
+            case .optionalBoolean(let conversion, let name, let inversion):
+                resolvedArgument = _ResolvedCommandLineToolDescription.BooleanFlag(
+                    id: argumentID,
+                    conversion: conversion ?? _defaultKeyConversion(for: name),
+                    name: name,
+                    inversion: inversion,
+                    defaultBooleanValue: nil,
+                    isOn: wrappedValue as! Bool?
+                )
+        }
+
+        return .init(wrappedValue, resolvedArgument: resolvedArgument)
     }
 
     /// Creates a flag from a non-optional boolean value.
