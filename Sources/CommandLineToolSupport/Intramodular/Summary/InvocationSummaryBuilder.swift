@@ -10,59 +10,78 @@ import Swallow
 
 @resultBuilder
 public struct InvocationSummaryBuilder<Command: AnyCommandLineTool> {
-    public static func buildBlock(_ components: [InvocationSummaryComponent<Command>]...) -> [InvocationSummaryComponent<Command>] {
+    public typealias Component = [any InvocationSummary<Command>]
+    
+    public static func buildBlock() -> Component {
+        []
+    }
+    
+    public static func buildBlock(_ components: Component...) -> Component {
         components.flatMap { $0 }
     }
-
-    public static func buildExpression(_ expression: InvocationSummaryComponent<Command>) -> [InvocationSummaryComponent<Command>] {
+    
+    public static func buildExpression(
+        _ expression: Component
+    ) -> Component {
+        expression
+    }
+    
+    public static func buildExpression(
+        _ expression: String
+    ) -> Component {
+        [_InvocationSummaryLiteral(text: expression)]
+    }
+    
+    public static func buildExpression<Parent: AnyCommandLineTool, Value: InvocationSummaryValue>(
+        _ expression: InvocationSummaryValueFromParentCommandReference<Parent, Command, Value>
+    ) -> Component where Command : _Subcommand, Command.ParentCommand == Parent {
+        [InvocationSummaryValueFromParentCommandReference(keyPath: expression.keyPath)]
+    }
+    
+    @_disfavoredOverload
+    public static func buildExpression<S: InvocationSummary>(
+        _ expression: S
+    ) -> Component where S.Command == Command {
         [expression]
     }
-
-    public static func buildExpression(_ expression: InvocationSummaryWhenCondition<Command>) -> [InvocationSummaryComponent<Command>] {
-        [
-            .conditional(
-                { context in
-                    expression.condition.evaluate(in: context)
-                },
-                ifTrue: expression.trueBranch,
-                ifFalse: expression.falseBranch
-            )
-        ]
-    }
-
-    public static func buildExpression(_ expression: CommandLineToolInvocationSummary<Command>) -> [InvocationSummaryComponent<Command>] {
-        expression._components
-    }
-
-    public static func buildExpression(_ expression: String) -> [InvocationSummaryComponent<Command>] {
-        [.literal(expression)]
-    }
-
-    public static func buildExpression<Value>(_ expression: KeyPath<Command, InvocationSummaryValue<Value>>) -> [InvocationSummaryComponent<Command>] {
-        [.value(expression)]
-    }
     
-    public static func buildExpression<Value>(_ expression: InvocationSummaryValue<Value>) -> [InvocationSummaryComponent<Command>] {
-        [.value(expression)]
-    }
-    
-    public static func buildExpression<Value>(_ expression: InvocationSummaryValueExpression<Command, Value>) -> [InvocationSummaryComponent<Command>] {
-        [.value(expression)]
-    }
-
-    public static func buildOptional(_ component: [InvocationSummaryComponent<Command>]?) -> [InvocationSummaryComponent<Command>] {
+    public static func buildOptional(
+        _ component: Component?
+    ) -> Component {
         component ?? []
     }
-
-    public static func buildEither(first component: [InvocationSummaryComponent<Command>]) -> [InvocationSummaryComponent<Command>] {
+    
+    public static func buildEither(
+        first component: Component
+    ) -> Component {
         component
     }
-
-    public static func buildEither(second component: [InvocationSummaryComponent<Command>]) -> [InvocationSummaryComponent<Command>] {
+    
+    public static func buildEither(
+        second component: Component
+    ) -> Component {
         component
     }
-
-    public static func buildArray(_ components: [[InvocationSummaryComponent<Command>]]) -> [InvocationSummaryComponent<Command>] {
+    
+    public static func buildArray(
+        _ components: [Component]
+    ) -> Component {
         components.flatMap { $0 }
+    }
+    
+    public static func buildLimitedAvailability(
+        _ component: Component
+    ) -> Component {
+        component
+    }
+}
+
+private struct _InvocationSummaryLiteral<Command: AnyCommandLineTool>: InvocationSummary {
+    let text: String
+    
+    func makeInvocationArguments(
+        context: InvocationSummaryContext<Command>
+    ) throws -> [String] {
+        [text]
     }
 }

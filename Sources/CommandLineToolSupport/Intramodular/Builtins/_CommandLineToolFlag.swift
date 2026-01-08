@@ -9,10 +9,10 @@ import Foundation
 import Swallow
 
 extension CommandLineTool {
-    public typealias Flag<T> = _CommandLineToolFlag<T>
+    public typealias Flag<T> = _CommandLineToolFlag<T, Self>
 }
 
-public protocol _CommandLineToolFlagProtocol: PropertyWrapper {
+public protocol _CommandLineToolFlagProtocol: PropertyWrapper, InvocationSummaryValue {
     /// The representation of the `_CommandLineToolFlag`.
     ///
     /// This must aligned with the `WrappedValue`, for example: `.counter(key:)` assumes `WrappedValue` is `Int`, etc.
@@ -55,7 +55,7 @@ public enum _CommandLineToolFlagRepresentation {
 }
 
 @propertyWrapper
-public struct _CommandLineToolFlag<WrappedValue>: _CommandLineToolFlagProtocol {
+public struct _CommandLineToolFlag<WrappedValue, Command: AnyCommandLineTool>: _CommandLineToolFlagProtocol, Resolvable {
     var _wrappedValue: WrappedValue
     
     public var _representaton: _CommandLineToolFlagRepresentation
@@ -69,46 +69,47 @@ public struct _CommandLineToolFlag<WrappedValue>: _CommandLineToolFlagProtocol {
         }
     }
     
-    public var projectedValue: InvocationSummaryValue<WrappedValue> {
-        let argumentID = _ResolvedCommandLineToolDescription.ArgumentID(rawValue: "", commandName: "")
-        let resolvedArgument: any _ResolvedCommandLineToolInvocationArgument
-
+    public var projectedValue: InvocationSummaryValueReference<Command, Self> {
+        .init(self)
+    }
+    
+    public func resolve(
+        in context: _CommandLineToolResolutionContext
+    ) throws -> _AnyResolvedCommandLineToolInvocationArgument {
         switch _representaton {
             case .custom:
-                resolvedArgument = _ResolvedCommandLineToolDescription.CustomFlag(
-                    id: argumentID,
-                    value: wrappedValue,
-                    valueType: type(of: wrappedValue)
-                )
+                _ResolvedCommandLineToolDescription.CustomFlag(
+                    id: context.resolvingID,
+                    value: (wrappedValue as! CLT.OptionKeyConvertible),
+                    valueType: type(of: wrappedValue),
+                ).erasedToAnyResolvedCommandLineToolInvocationArgument()
             case .counter(let conversion, let name):
-                resolvedArgument = _ResolvedCommandLineToolDescription.CounterFlag(
-                    id: argumentID,
-                    conversion: conversion ?? _defaultKeyConversion(for: name),
+                _ResolvedCommandLineToolDescription.CounterFlag(
+                    id: context.resolvingID,
+                    conversion: conversion ?? context.implicitKeyConversion(for: name),
                     name: name,
                     count: wrappedValue as! Int,
                     isClustered: name.count == 1
-                )
+                ).erasedToAnyResolvedCommandLineToolInvocationArgument()
             case .boolean(let conversion, let name, let defaultValue):
-                resolvedArgument = _ResolvedCommandLineToolDescription.BooleanFlag(
-                    id: argumentID,
-                    conversion: conversion ?? _defaultKeyConversion(for: name),
+                _ResolvedCommandLineToolDescription.BooleanFlag(
+                    id: context.resolvingID,
+                    conversion: conversion ?? context.implicitKeyConversion(for: name),
                     name: name,
-                    inversion: nil,
+                    inversion: nil, // only be able to switch to another state (true / false)
                     defaultBooleanValue: defaultValue,
                     isOn: (wrappedValue as! Bool)
-                )
+                ).erasedToAnyResolvedCommandLineToolInvocationArgument()
             case .optionalBoolean(let conversion, let name, let inversion):
-                resolvedArgument = _ResolvedCommandLineToolDescription.BooleanFlag(
-                    id: argumentID,
-                    conversion: conversion ?? _defaultKeyConversion(for: name),
+                _ResolvedCommandLineToolDescription.BooleanFlag(
+                    id: context.resolvingID,
+                    conversion: conversion ?? context.implicitKeyConversion(for: name),
                     name: name,
                     inversion: inversion,
                     defaultBooleanValue: nil,
-                    isOn: wrappedValue as! Bool?
-                )
+                    isOn: wrappedValue as! Optional<Bool>
+                ).erasedToAnyResolvedCommandLineToolInvocationArgument()
         }
-
-        return .init(wrappedValue, resolvedArgument: resolvedArgument)
     }
 
     /// Creates a flag from a non-optional boolean value.

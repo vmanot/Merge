@@ -6,10 +6,10 @@ import Foundation
 import Swallow
 
 extension CommandLineTool {
-    public typealias Parameter<T> = _CommandLineToolParameter<T>
+    public typealias Parameter<T> = _CommandLineToolParameter<T, Self>
 }
 
-public protocol _CommandLineToolParameterProtocol: PropertyWrapper {
+public protocol _CommandLineToolParameterProtocol: PropertyWrapper, InvocationSummaryValue {
     /// The name of the parameter as it will be passed in the actual command being invoked.
     var name: String? { get }
     
@@ -28,7 +28,7 @@ public protocol _CommandLineToolParameterProtocol: PropertyWrapper {
 }
 
 @propertyWrapper
-public struct _CommandLineToolParameter<WrappedValue>: _CommandLineToolParameterProtocol {
+public struct _CommandLineToolParameter<WrappedValue, Command: AnyCommandLineTool>: _CommandLineToolParameterProtocol, Resolvable {
     var _wrappedValue: WrappedValue
 
     public var name: String?
@@ -45,29 +45,30 @@ public struct _CommandLineToolParameter<WrappedValue>: _CommandLineToolParameter
         }
     }
     
-    public var projectedValue: InvocationSummaryValue<WrappedValue> {
-        let resolvedArgument: any _ResolvedCommandLineToolInvocationArgument
-        let argumentID = _ResolvedCommandLineToolDescription.ArgumentID(rawValue: "", commandName: "")
-
+    public var projectedValue: InvocationSummaryValueReference<Command, Self> {
+        .init(self)
+    }
+    
+    public func resolve(
+        in context: _CommandLineToolResolutionContext
+    ) throws -> _AnyResolvedCommandLineToolInvocationArgument {
         if let name {
-            resolvedArgument = _ResolvedCommandLineToolDescription.Option(
-                id: argumentID,
-                conversion: optionKeyConversion ?? _defaultKeyConversion(for: name),
+            _ResolvedCommandLineToolDescription.Option(
+                id: context.resolvingID,
+                conversion: optionKeyConversion ?? context.implicitKeyConversion(for: name),
                 name: name,
                 separator: keyValueSeparator,
                 multiValueEncoding: multiValueEncodingStrategy,
                 value: wrappedValue,
                 valueType: type(of: wrappedValue)
-            )
+            ).erasedToAnyResolvedCommandLineToolInvocationArgument()
         } else {
-            resolvedArgument = _ResolvedCommandLineToolDescription.Argument(
-                id: argumentID,
+            _ResolvedCommandLineToolDescription.Argument(
+                id: context.resolvingID,
                 value: wrappedValue,
                 valueType: type(of: wrappedValue)
-            )
+            ).erasedToAnyResolvedCommandLineToolInvocationArgument()
         }
-
-        return .init(wrappedValue, resolvedArgument: resolvedArgument)
     }
     
     @available(*, unavailable, message: "This parameter will be ignored. Make sure `WrappedValue` conforms to `CLT.ArgumentValueConvertible`.")

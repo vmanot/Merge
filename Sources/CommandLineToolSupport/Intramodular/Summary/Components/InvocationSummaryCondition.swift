@@ -4,6 +4,7 @@
 //
 
 import Foundation
+import Swallow
 
 public indirect enum InvocationSummaryCondition<Command: AnyCommandLineTool> {
     case predicate((InvocationSummaryContext<Command>) -> Bool)
@@ -82,12 +83,24 @@ extension InvocationSummaryCondition {
         .predicate(condition)
     }
 
-    public static func value<Value>(
-        _ value: InvocationSummaryValueExpression<Command, Value>,
-        _ predicate: InvocationSummaryValuePredicate<Value>
+    public static func value<Value: InvocationSummaryValue>(
+        _ value: InvocationSummaryValueReference<Command, Value>,
+        _ predicate: InvocationSummaryValuePredicate<Value.WrappedValue>
     ) -> InvocationSummaryCondition<Command> {
         .predicate { context in
-            predicate.evaluate(value.resolveValue(in: context))
+            predicate.evaluate(value.wrappedValue)
+        }
+    }
+    
+    public static func parentValue<Parent: AnyCommandLineTool, Value: InvocationSummaryValue>(
+        _ value: InvocationSummaryValueFromParentCommandReference<Parent, Command, Value>,
+        _ predicate: InvocationSummaryValuePredicate<Value.WrappedValue>
+    ) -> InvocationSummaryCondition<Command> {
+        .predicate { context in
+            guard let parent = context.parent(of: Parent.self) else {
+                preconditionFailure("No such parent matched.")
+            }
+            return predicate.evaluate(parent[keyPath: value.keyPath].wrappedValue)
         }
     }
 
