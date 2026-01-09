@@ -7,7 +7,7 @@ import Foundation
 import Swallow
 
 public indirect enum InvocationSummaryCondition<Command: AnyCommandLineTool> {
-    case predicate((InvocationSummaryContext<Command>) -> Bool)
+    case predicate((Command, InvocationSummaryContext) -> Bool)
     case not(InvocationSummaryCondition<Command>)
     case all([InvocationSummaryCondition<Command>])
     case any([InvocationSummaryCondition<Command>])
@@ -54,16 +54,16 @@ public struct InvocationSummaryValuePredicate<Value> {
 }
 
 extension InvocationSummaryCondition {
-    public func evaluate(in context: InvocationSummaryContext<Command>) -> Bool {
+    public func evaluate(command: Command, context: InvocationSummaryContext) -> Bool {
         switch self {
             case .predicate(let predicate):
-                return predicate(context)
+                return predicate(command, context)
             case .not(let condition):
-                return !condition.evaluate(in: context)
+                return !condition.evaluate(command: command, context: context)
             case .all(let conditions):
-                return conditions.allSatisfy { $0.evaluate(in: context) }
+                return conditions.allSatisfy { $0.evaluate(command: command, context: context) }
             case .any(let conditions):
-                return conditions.contains { $0.evaluate(in: context) }
+                return conditions.contains { $0.evaluate(command: command, context: context) }
         }
     }
 
@@ -80,17 +80,17 @@ extension InvocationSummaryCondition {
     }
 
     public static func custom(
-        _ condition: @escaping (InvocationSummaryContext<Command>) -> Bool
+        _ condition: @escaping (Command, InvocationSummaryContext) -> Bool
     ) -> InvocationSummaryCondition<Command> {
         .predicate(condition)
     }
 
-    public static func value<Value: InvocationSummaryValue>(
-        _ value: InvocationSummaryValueReference<Command, Value>,
+    public static func keyPath<Value: InvocationSummaryValue>(
+        _ keyPath: KeyPath<Command, Value>,
         _ predicate: InvocationSummaryValuePredicate<Value.WrappedValue>
     ) -> InvocationSummaryCondition<Command> {
-        .predicate { context in
-            predicate.evaluate(value.wrappedValue)
+        .predicate { command, context in
+            predicate.evaluate(command[keyPath: keyPath].wrappedValue)
         }
     }
     
@@ -98,8 +98,9 @@ extension InvocationSummaryCondition {
         _ value: InvocationSummaryValueReferenceFromParent<Parent, Command, Value>,
         _ predicate: InvocationSummaryValuePredicate<Value.WrappedValue>
     ) -> InvocationSummaryCondition<Command> {
-        .predicate { context in
-            guard let parent = context.parent(of: Parent.self) else {
+        .predicate { command, context in
+            let parent = (command as? any _GenericSubcommandProtocol)?.parent as? Parent
+            guard let parent else {
                 preconditionFailure("No such parent matched.")
             }
             return predicate.evaluate(parent[keyPath: value.keyPath].wrappedValue)

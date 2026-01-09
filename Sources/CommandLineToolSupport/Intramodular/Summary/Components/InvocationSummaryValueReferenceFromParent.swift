@@ -8,17 +8,25 @@
 import Foundation
 import Swallow
 
-public struct InvocationSummaryValueReferenceFromParent<Parent: AnyCommandLineTool, Command: AnyCommandLineTool, Value: InvocationSummaryValue>: InvocationSummary {    
-    let keyPath: KeyPath<Parent, InvocationSummaryValueReference<Parent, Value>>
+public struct InvocationSummaryValueReferenceFromParent<Parent: AnyCommandLineTool, Command: AnyCommandLineTool, Value: InvocationSummaryValue>: InvocationSummary where Command : _Subcommand, Parent == Command.ParentCommand {
+    let keyPath: KeyPath<Parent, Value>
     
-    public func makeInvocationArguments(context: InvocationSummaryContext<Command>) throws -> [String] {
-        guard let parent = context.parent(of: Parent.self) else {
-            assertionFailure("Invocation summary expected parent \(Parent.self) but none was found.")
-            return []
+    public func makeInvocationArguments(
+        command: Command,
+        parent: AnyCommandLineTool?,
+        context: InvocationSummaryContext
+    ) throws -> [String] {
+        guard let parent = parent as? Parent else {
+            preconditionFailure("No such parent matched.")
         }
         
+        guard !context.argumentIsRendered(command: parent, keyPath) else {
+            return []
+        }
+        defer { context.registerValueReference(command: parent, keyPath) }
+        
         let reference = parent[keyPath: keyPath]
-        let resolved = try reference.value.resolve(
+        let resolved = try reference.resolve(
             in: .init(
                 resolvingID: _ResolvedCommandLineToolDescription.ArgumentID(
                     rawValue: UUID().uuidString,

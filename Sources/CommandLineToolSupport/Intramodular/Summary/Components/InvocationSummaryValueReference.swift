@@ -9,19 +9,23 @@ import Foundation
 import Swallow
 
 public struct InvocationSummaryValueReference<Command: AnyCommandLineTool, Value: InvocationSummaryValue>: InvocationSummary {
-    let value: Value
+    let keyPath: KeyPath<Command, Value>
+    
+    public init(keyPath: KeyPath<Command, Value>) {
+        self.keyPath = keyPath
+    }
 
-    public init(_ value: Value) {
-        self.value = value
-    }
-    
-    public var wrappedValue: Value.WrappedValue {
-        value.wrappedValue
-    }
-    
-    public func makeInvocationArguments(context: InvocationSummaryContext<Command>) throws -> [String] {
-        let command = context.command
-        let resolved = try value.resolve(
+    public func makeInvocationArguments(
+        command: Command,
+        parent: AnyCommandLineTool?,
+        context: InvocationSummaryContext
+    ) throws -> [String] {
+        guard !context.argumentIsRendered(command: command, keyPath) else {
+            return []
+        }
+        defer { context.registerValueReference(command: command, keyPath) }
+        
+        let resolved = try command[keyPath: keyPath].resolve(
             in: .init(
                 resolvingID: _ResolvedCommandLineToolDescription.ArgumentID(
                     rawValue: UUID().uuidString, // construct a temporary string.

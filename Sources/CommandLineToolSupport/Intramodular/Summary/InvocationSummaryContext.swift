@@ -5,89 +5,48 @@
 
 import Foundation
 
-public struct InvocationSummaryContext<Command: AnyCommandLineTool> {
-    public let command: Command
-    public let parent: AnyCommandLineTool?
-    private let emissionState: InvocationSummaryEmissionState
-
-    public private(set) var emittedArguments: Set<_ResolvedCommandLineToolDescription.ArgumentID> {
-        get {
-            emissionState.emittedArguments
-        }
-        set {
-            emissionState.emittedArguments = newValue
-        }
-    }
-
-    public init(command: Command, parent: AnyCommandLineTool?) {
-        self.command = command
-        self.parent = parent
-        self.emissionState = InvocationSummaryEmissionState()
+public final class InvocationSummaryContext {
+    private(set) var renderedArguments: Set<Argument> = []
+    
+    struct Argument: Hashable, Sendable {
+        var name: String
+        var owningCommandName: String
     }
     
-    init(command: Command, parent: AnyCommandLineTool?, emissionState: InvocationSummaryEmissionState) {
-        self.command = command
-        self.parent = parent
-        self.emissionState = emissionState
-    }
-
-    public func parent<Parent: AnyCommandLineTool>(of type: Parent.Type = Parent.self) -> Parent? {
-        var current = parent
-
-        while let candidate = current {
-            if let typed = candidate as? Parent {
-                return typed
-            }
-
-            if let subcommand = candidate as? any _GenericSubcommandProtocol {
-                if let command = subcommand.command as? Parent {
-                    return command
-                }
-
-                current = subcommand.parent
-                continue
-            }
-
-            break
-        }
-
-        return nil
-    }
-    
-    func sharingEmissionState(
+    @discardableResult
+    func registerValueReference<Command: AnyCommandLineTool, Value: InvocationSummaryValue>(
         command: Command,
-        parent: AnyCommandLineTool?
-    ) -> InvocationSummaryContext {
-        InvocationSummaryContext(
-            command: command,
-            parent: parent,
-            emissionState: emissionState
+        _ keyPath: KeyPath<Command, Value>
+    ) -> Bool {
+        renderedArguments.insert(
+            .init(
+                name: String(describing: keyPath).dropPrefixIfPresent("\\\(String(describing: Command.self)).$"),
+                owningCommandName: command._commandName
+            )
+        ).inserted
+    }
+    
+    func argumentIsRendered<Command: AnyCommandLineTool, Value: InvocationSummaryValue>(
+        command: Command,
+        _ keyPath: KeyPath<Command, Value>
+    ) -> Bool {
+        renderedArguments.contains(
+            .init(
+                name: String(describing: keyPath).dropPrefixIfPresent("\\\(String(describing: Command.self)).$"),
+                owningCommandName: command._commandName
+            )
         )
     }
     
-    func _hasEmitted(_ argumentID: _ResolvedCommandLineToolDescription.ArgumentID) -> Bool {
-        emissionState.emittedArguments.contains(argumentID)
+    func argumentIsRendered<Command: AnyCommandLineTool>(
+        command: Command,
+        argumentName: String
+    ) -> Bool {
+        renderedArguments.contains(
+            .init(
+                name: argumentName,
+                owningCommandName: command._commandName
+            )
+        )
     }
-    
-    func _hasEmitted(tokens: [String]) -> Bool {
-        emissionState.emittedArgumentTokens.contains(tokens)
-    }
-    
-    func _recordEmitted(
-        argumentID: _ResolvedCommandLineToolDescription.ArgumentID?,
-        tokens: [String]
-    ) {
-        guard !tokens.isEmpty else { return }
-        
-        if let argumentID {
-            emissionState.emittedArguments.insert(argumentID)
-        }
-        
-        emissionState.emittedArgumentTokens.insert(tokens)
-    }
-}
-
-final class InvocationSummaryEmissionState {
-    var emittedArguments: Set<_ResolvedCommandLineToolDescription.ArgumentID> = []
-    var emittedArgumentTokens: Set<[String]> = []
 }

@@ -9,7 +9,7 @@ import Foundation
 import Swallow
 
 extension CommandLineTool {
-    public typealias Flag<T> = _CommandLineToolFlag<T, Self>
+    public typealias Flag<T> = _CommandLineToolFlag<T>
 }
 
 public protocol _CommandLineToolFlagProtocol: PropertyWrapper, InvocationSummaryValue {
@@ -55,7 +55,7 @@ public enum _CommandLineToolFlagRepresentation {
 }
 
 @propertyWrapper
-public struct _CommandLineToolFlag<WrappedValue, Command: AnyCommandLineTool>: _CommandLineToolFlagProtocol, Resolvable {
+public struct _CommandLineToolFlag<WrappedValue>: _CommandLineToolFlagProtocol {
     var _wrappedValue: WrappedValue
     
     public var _representaton: _CommandLineToolFlagRepresentation
@@ -69,8 +69,8 @@ public struct _CommandLineToolFlag<WrappedValue, Command: AnyCommandLineTool>: _
         }
     }
     
-    public var projectedValue: InvocationSummaryValueReference<Command, Self> {
-        .init(self)
+    public var projectedValue: _CommandLineToolFlag<WrappedValue> {
+        self
     }
     
     public func resolve(

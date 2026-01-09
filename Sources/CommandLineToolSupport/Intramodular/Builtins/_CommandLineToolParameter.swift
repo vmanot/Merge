@@ -6,7 +6,7 @@ import Foundation
 import Swallow
 
 extension CommandLineTool {
-    public typealias Parameter<T> = _CommandLineToolParameter<T, Self>
+    public typealias Parameter<T> = _CommandLineToolParameter<T>
 }
 
 public protocol _CommandLineToolParameterProtocol: PropertyWrapper, InvocationSummaryValue {
@@ -28,7 +28,7 @@ public protocol _CommandLineToolParameterProtocol: PropertyWrapper, InvocationSu
 }
 
 @propertyWrapper
-public struct _CommandLineToolParameter<WrappedValue, Command: AnyCommandLineTool>: _CommandLineToolParameterProtocol, Resolvable {
+public struct _CommandLineToolParameter<WrappedValue>: _CommandLineToolParameterProtocol {
     var _wrappedValue: WrappedValue
 
     public var name: String?
@@ -45,8 +45,8 @@ public struct _CommandLineToolParameter<WrappedValue, Command: AnyCommandLineToo
         }
     }
     
-    public var projectedValue: InvocationSummaryValueReference<Command, Self> {
-        .init(self)
+    public var projectedValue: _CommandLineToolParameter<WrappedValue> {
+        self
     }
     
     public func resolve(

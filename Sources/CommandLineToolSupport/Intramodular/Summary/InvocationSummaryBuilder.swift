@@ -38,6 +38,18 @@ public struct InvocationSummaryBuilder<Command: AnyCommandLineTool> {
         [InvocationSummaryValueReferenceFromParent(keyPath: expression.keyPath)]
     }
     
+    public static func buildExpression<Value>(
+        _ expression: KeyPath<Command, _CommandLineToolFlag<Value>>
+    ) -> Component {
+        [InvocationSummaryValueReference(keyPath: expression)]
+    }
+    
+    public static func buildExpression<Value>(
+        _ expression: KeyPath<Command, _CommandLineToolParameter<Value>>
+    ) -> Component {
+        [InvocationSummaryValueReference(keyPath: expression)]
+    }
+    
     @_disfavoredOverload
     public static func buildExpression<S: InvocationSummary>(
         _ expression: S
@@ -80,7 +92,9 @@ private struct _InvocationSummaryLiteral<Command: AnyCommandLineTool>: Invocatio
     let text: String
     
     func makeInvocationArguments(
-        context: InvocationSummaryContext<Command>
+        command: Command,
+        parent: AnyCommandLineTool?,
+        context: InvocationSummaryContext
     ) throws -> [String] {
         [text]
     }

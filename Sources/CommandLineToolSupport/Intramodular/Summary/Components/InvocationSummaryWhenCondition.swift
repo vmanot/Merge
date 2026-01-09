@@ -8,8 +8,6 @@
 import Foundation
 import Swallow
 
-public typealias When<Command: AnyCommandLineTool> = InvocationSummaryWhenCondition<Command>
-
 public struct InvocationSummaryWhenCondition<Command: AnyCommandLineTool>: InvocationSummary {
     internal let condition: InvocationSummaryCondition<Command>
     internal let trueBranch: [any InvocationSummary<Command>]
@@ -35,43 +33,43 @@ public struct InvocationSummaryWhenCondition<Command: AnyCommandLineTool>: Invoc
     }
 
     public init(
-        _ condition: @escaping (Command) -> Bool,
+        _ condition: @escaping (Command, InvocationSummaryContext) -> Bool,
         @InvocationSummaryBuilder<Command> _ content: () -> [any InvocationSummary<Command>]
     ) {
-        self.init(.predicate { context in
-            condition(context.command)
+        self.init(.predicate { command, context in
+            condition(command, context)
         }, content)
     }
     
     public init(
-        _ condition: @escaping (Command) -> Bool,
+        _ condition: @escaping (Command, InvocationSummaryContext) -> Bool,
         @InvocationSummaryBuilder<Command> _ content: () -> [any InvocationSummary<Command>],
         @InvocationSummaryBuilder<Command> `else` elseContent: () -> [any InvocationSummary<Command>]
     ) {
-        self.init(.predicate { context in
-            condition(context.command)
+        self.init(.predicate { command, context in
+            condition(command, context)
         }, content, else: elseContent)
     }
     
     public init<Value: InvocationSummaryValue>(
-        _ value: InvocationSummaryValueReference<Command, Value>,
+        _ value: KeyPath<Command, Value>,
         _ predicate: InvocationSummaryValuePredicate<Value.WrappedValue>,
         @InvocationSummaryBuilder<Command> _ content: () -> [any InvocationSummary<Command>]
     ) {
-        self.init(.value(value, predicate), content)
+        self.init(.keyPath(value, predicate), content)
     }
     
     public init<Value: InvocationSummaryValue>(
-        _ value: InvocationSummaryValueReference<Command, Value>,
+        _ value: KeyPath<Command, Value>,
         _ predicate: InvocationSummaryValuePredicate<Value.WrappedValue>,
         @InvocationSummaryBuilder<Command> _ content: () -> [any InvocationSummary<Command>],
         @InvocationSummaryBuilder<Command> `else` elseContent: () -> [any InvocationSummary<Command>]
     ) {
-        self.init(.value(value, predicate), content, else: elseContent)
+        self.init(.keyPath(value, predicate), content, else: elseContent)
     }
     
     public init<Value: InvocationSummaryValue>(
-        _ value: InvocationSummaryValueReference<Command, Value>,
+        _ value: KeyPath<Command, Value>,
         is expected: Value.WrappedValue,
         @InvocationSummaryBuilder<Command> _ content: () -> [any InvocationSummary<Command>]
     ) where Value.WrappedValue : Equatable {
@@ -79,7 +77,7 @@ public struct InvocationSummaryWhenCondition<Command: AnyCommandLineTool>: Invoc
     }
 
     public init<Value: InvocationSummaryValue>(
-        _ value: InvocationSummaryValueReference<Command, Value>,
+        _ value: KeyPath<Command, Value>,
         is expected: Value.WrappedValue,
         @InvocationSummaryBuilder<Command> _ content: () -> [any InvocationSummary<Command>],
         @InvocationSummaryBuilder<Command> `else` elseContent: () -> [any InvocationSummary<Command>]
@@ -87,10 +85,14 @@ public struct InvocationSummaryWhenCondition<Command: AnyCommandLineTool>: Invoc
         self.init(value, .equalsTo(expected), content, else: elseContent)
     }
     
-    public func makeInvocationArguments(context: InvocationSummaryContext<Command>) throws -> [String] {
-        let branch: [any InvocationSummary<Command>] = condition.evaluate(in: context) ? trueBranch : (falseBranch ?? [])
+    public func makeInvocationArguments(
+        command: Command,
+        parent: AnyCommandLineTool?,
+        context: InvocationSummaryContext
+    ) throws -> [String] {
+        let branch: [any InvocationSummary<Command>] = condition.evaluate(command: command, context: context) ? trueBranch : (falseBranch ?? [])
         return try branch.flatMap({
-            try $0.makeInvocationArguments(context: context)
+            try $0.makeInvocationArguments(command: command, parent: parent, context: context)
         })
     }
 }

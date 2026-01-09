@@ -17,52 +17,45 @@ public protocol CommandLineTool: AnyCommandLineTool {
     
     associatedtype SummaryContent: InvocationSummary
     typealias Summary = CommandLineToolInvocationSummary<Self>
+    typealias When<Command: AnyCommandLineTool> = InvocationSummaryWhenCondition<Self>
     var invocationSummary: SummaryContent { get }
 }
 
 extension CommandLineTool {
     public var invocationSummary: some InvocationSummary {
-        RuntimeReflectionInvocationSummary<Self>()
+        DefaultInvocationSummary<Self>()
     }
     
-    public var invocationArguments: [String] {
-        get throws {
-            try _invocationArguments(emissionState: InvocationSummaryEmissionState())
-        }
-    }
-    
-    private func _invocationArguments(
-        emissionState: InvocationSummaryEmissionState
-    ) throws -> [String] {
+    public func invocationArguments(context: InvocationSummaryContext) throws  -> [String] {
         switch self {
             case let command as SummaryContent.Command:
-                let context = InvocationSummaryContext(
+                return try [_commandName] + invocationSummary.makeInvocationArguments(
                     command: command,
                     parent: nil,
-                    emissionState: emissionState
+                    context: context
                 )
-                return try [_commandName] + invocationSummary.makeInvocationArguments(context: context)
             case let subcommand as any _GenericSubcommandProtocol:
                 guard let command = subcommand.command as? SummaryContent.Command else {
                     preconditionFailure("GenericSubcommand \(type(of: subcommand.command)) not equals to \(SummaryContent.Command.self)")
                 }
-                
-                let context = InvocationSummaryContext(
+                let selfArgs = try invocationSummary.makeInvocationArguments(
                     command: command,
                     parent: subcommand.parent,
-                    emissionState: emissionState
+                    context: context
                 )
-                let invocationArgs = try invocationSummary.makeInvocationArguments(context: context)
-                let parentCommandInvocationArgs = try (subcommand.parent as? any CommandLineTool)?._invocationArguments(emissionState: emissionState)
-                return (parentCommandInvocationArgs ?? []) + [_commandName] + invocationArgs
+                
+                let parentArgs = try (subcommand.parent as? any CommandLineTool)?
+                    .invocationArguments(context: context)
+                
+                return (parentArgs ?? []) + [_commandName] + selfArgs
             default:
                 preconditionFailure("\(type(of: self)) not equals to \(SummaryContent.Command.self)")
         }
     }
-    
+
     public var invocation: String {
         get throws {
-            try invocationArguments.joined(separator: " ")
+            try invocationArguments(context: InvocationSummaryContext()).joined(separator: " ")
         }
     }
     

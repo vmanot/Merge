@@ -10,9 +10,13 @@ import Swallow
 
 public protocol InvocationSummary<Command> {
     associatedtype Command: AnyCommandLineTool
-    typealias Context = InvocationSummaryContext<Command>
+    typealias Context = InvocationSummaryContext
     
-    func makeInvocationArguments(context: Context) throws -> [String]
+    func makeInvocationArguments(
+        command: Command,
+        parent: AnyCommandLineTool?,
+        context: Context
+    ) throws -> [String]
 }
 
 // MARK: - Supplementary
@@ -27,10 +31,12 @@ public struct CommandLineToolInvocationSummary<Command: AnyCommandLineTool>: Inv
     }
 
     public func makeInvocationArguments(
-        context: InvocationSummaryContext<Command>
+        command: Command,
+        parent: AnyCommandLineTool?,
+        context: InvocationSummaryContext
     ) throws -> [String] {
         try _components.flatMap({
-            try $0.makeInvocationArguments(context: context)
+            try $0.makeInvocationArguments(command: command, parent: parent, context: context)
         })
     }
 }

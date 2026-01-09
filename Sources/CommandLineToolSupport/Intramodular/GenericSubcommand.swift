@@ -75,7 +75,7 @@ public class GenericSubcommand<Parent, Command>: AnyCommandLineTool, CommandLine
     
     public func callAsFunction() async throws -> Process.RunResult {
         try await withUnsafeSystemShell { shell in
-            try await shell.run(command: command.invocationArguments.joined(separator: " "))
+            try await shell.run(command: command.invocation)
         }
     }
 }
