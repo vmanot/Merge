@@ -25,14 +25,13 @@ public struct InvocationSummaryValueReferenceFromParent<Parent: AnyCommandLineTo
         }
         defer { context.registerValueReference(command: parent, keyPath) }
         
-        let reference = parent[keyPath: keyPath]
-        let resolved = try reference.resolve(
+        let resolved = try parent[keyPath: keyPath].resolve(
             in: .init(
                 resolvingID: _ResolvedCommandLineToolDescription.ArgumentID(
-                    rawValue: UUID().uuidString,
+                    rawValue: UUID().uuidString, // construct a temporary string.
                     commandName: parent._commandName
                 ),
-                defaultKeyConversion: parent.keyConversion
+                defaultKeyConversion: command.keyConversion
             )
         )
         
