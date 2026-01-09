@@ -42,19 +42,3 @@ public struct InvocationSummaryValueReference<Command: AnyCommandLineTool, Value
 public protocol InvocationSummaryValue: PropertyWrapper, Resolvable where Result == _AnyResolvedCommandLineToolInvocationArgument, Context == _CommandLineToolResolutionContext {
     
 }
-
-// MARK: - Auxiliary
-
-func _unwrapOptional(_ value: Any) -> Any? {
-    if let optional = value as? any OptionalProtocol, optional.isNil {
-        return nil
-    }
-
-    let mirror = Mirror(reflecting: value)
-
-    if mirror.displayStyle == .optional {
-        return mirror.children.first?.value
-    }
-
-    return value
-}

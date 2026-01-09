@@ -1,15 +1,14 @@
 //
-//  InvocationSummaryValueFromParentCommandReference.swift
+//  InvocationSummaryValueReferenceFromParent.swift
 //  Merge
 //
 //  Created by Yanan Li on 2026/1/9.
 //
 
-
 import Foundation
 import Swallow
 
-public struct InvocationSummaryValueFromParentCommandReference<Parent: AnyCommandLineTool, Command: AnyCommandLineTool, Value: InvocationSummaryValue>: InvocationSummary {    
+public struct InvocationSummaryValueReferenceFromParent<Parent: AnyCommandLineTool, Command: AnyCommandLineTool, Value: InvocationSummaryValue>: InvocationSummary {    
     let keyPath: KeyPath<Parent, InvocationSummaryValueReference<Parent, Value>>
     
     public func makeInvocationArguments(context: InvocationSummaryContext<Command>) throws -> [String] {

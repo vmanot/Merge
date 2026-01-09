@@ -33,9 +33,9 @@ public struct InvocationSummaryBuilder<Command: AnyCommandLineTool> {
     }
     
     public static func buildExpression<Parent: AnyCommandLineTool, Value: InvocationSummaryValue>(
-        _ expression: InvocationSummaryValueFromParentCommandReference<Parent, Command, Value>
+        _ expression: InvocationSummaryValueReferenceFromParent<Parent, Command, Value>
     ) -> Component where Command : _Subcommand, Command.ParentCommand == Parent {
-        [InvocationSummaryValueFromParentCommandReference(keyPath: expression.keyPath)]
+        [InvocationSummaryValueReferenceFromParent(keyPath: expression.keyPath)]
     }
     
     @_disfavoredOverload

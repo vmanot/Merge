@@ -22,11 +22,13 @@ public struct InvocationSummaryValuePredicate<Value> {
 
     public static var hasValue: Self {
         .init(evaluate: { value in
-            guard let value else {
-                return false
+            if let optional = value as? any OptionalProtocol {
+                return !optional.isNil
+            } else if let string = value as? String {
+                return !string.isEmpty
             }
-
-            return _unwrapOptional(value) != nil
+            
+            return true
         })
     }
 
@@ -93,7 +95,7 @@ extension InvocationSummaryCondition {
     }
     
     public static func parentValue<Parent: AnyCommandLineTool, Value: InvocationSummaryValue>(
-        _ value: InvocationSummaryValueFromParentCommandReference<Parent, Command, Value>,
+        _ value: InvocationSummaryValueReferenceFromParent<Parent, Command, Value>,
         _ predicate: InvocationSummaryValuePredicate<Value.WrappedValue>
     ) -> InvocationSummaryCondition<Command> {
         .predicate { context in
