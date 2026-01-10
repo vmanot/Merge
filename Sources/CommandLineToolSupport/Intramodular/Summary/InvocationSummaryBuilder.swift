@@ -29,16 +29,7 @@ public struct InvocationSummaryBuilder<Command: AnyCommandLineTool> {
     ) -> TupleInvocationSummary<Command, (repeat each Content)> where repeat each Content: InvocationSummary {
         TupleInvocationSummary((repeat each content))
     }
-    
-    @_alwaysEmitIntoClient
-    public static func buildFinalResult<Content>(
-        _ component: Content
-    ) -> TupleInvocationSummary<Command, (Content, DefaultInvocationSummary<Command>)> where Content: InvocationSummary {
-        TupleInvocationSummary(
-            (component, DefaultInvocationSummary<Command>())
-        )
-    }
-    
+
     @_alwaysEmitIntoClient
     public static func buildExpression<Content>(
         _ content: Content
@@ -186,9 +177,13 @@ public enum _ConditionalInvocationSummary<Command: AnyCommandLineTool, TrueConte
 }
 
 extension Never: InvocationSummary {
-    public func makeInvocationArguments(command: AnyCommandLineTool, parent: AnyCommandLineTool?, context: Context) throws -> [String] {
+    public typealias Command = AnyCommandLineTool
+    
+    public func makeInvocationArguments(
+        command: Command,
+        parent: AnyCommandLineTool?,
+        context: Context
+    ) throws -> [String] {
         fatalError(.unavailable)
     }
-    
-    public typealias Command = AnyCommandLineTool
 }
