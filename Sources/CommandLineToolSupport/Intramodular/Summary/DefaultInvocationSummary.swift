@@ -8,10 +8,11 @@
 import Foundation
 import Swallow
 
-struct DefaultInvocationSummary<Command: AnyCommandLineTool>: InvocationSummary {
+public struct DefaultInvocationSummary<Command: AnyCommandLineTool>: InvocationSummary {
+    @usableFromInline
     init() { }
     
-    func makeInvocationArguments(
+    public func makeInvocationArguments(
         command: Command,
         parent: AnyCommandLineTool?,
         context: InvocationSummaryContext

@@ -14,10 +14,12 @@ import Merge
 @available(watchOS, unavailable)
 public protocol CommandLineTool: AnyCommandLineTool {
     associatedtype EnvironmentVariables = _CommandLineTool_DefaultEnvironmentVariables
+    associatedtype Command : AnyCommandLineTool = Self
     
     associatedtype SummaryContent: InvocationSummary
-    typealias Summary = CommandLineToolInvocationSummary<Self>
-    typealias When<Command: AnyCommandLineTool> = InvocationSummaryWhenCondition<Self>
+    typealias When = InvocationSummaryWhenCondition<Command>
+    
+    @InvocationSummaryBuilder<Command>
     var invocationSummary: SummaryContent { get }
 }
 
@@ -26,7 +28,7 @@ extension CommandLineTool {
         DefaultInvocationSummary<Self>()
     }
     
-    public func invocationArguments(context: InvocationSummaryContext) throws  -> [String] {
+    public func invocationArguments(context: InvocationSummaryContext) throws -> [String] {
         switch self {
             case let command as SummaryContent.Command:
                 return try [_commandName] + invocationSummary.makeInvocationArguments(

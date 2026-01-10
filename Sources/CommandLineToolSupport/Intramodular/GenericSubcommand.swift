@@ -54,7 +54,7 @@ public class GenericSubcommand<Parent, Command>: AnyCommandLineTool, CommandLine
         self.command = command
     }
     
-    public var invocationSummary: Command.SummaryContent {
+    public var invocationSummary: some InvocationSummary {
         command.invocationSummary
     }
     
