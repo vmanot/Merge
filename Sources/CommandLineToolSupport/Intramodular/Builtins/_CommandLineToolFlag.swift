@@ -9,7 +9,7 @@ import Foundation
 import Swallow
 
 extension CommandLineTool {
-    public typealias Flag<T> = _CommandLineToolFlag<T>
+    public typealias Flag<T: Equatable> = _CommandLineToolFlag<T>
 }
 
 public protocol _CommandLineToolFlagProtocol: PropertyWrapper, InvocationSummaryValue {
@@ -55,7 +55,7 @@ public enum _CommandLineToolFlagRepresentation {
 }
 
 @propertyWrapper
-public struct _CommandLineToolFlag<WrappedValue>: _CommandLineToolFlagProtocol {
+public struct _CommandLineToolFlag<WrappedValue: Equatable>: _CommandLineToolFlagProtocol {
     var _wrappedValue: WrappedValue
     
     public var _representaton: _CommandLineToolFlagRepresentation

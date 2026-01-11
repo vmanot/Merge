@@ -25,8 +25,13 @@ public struct InvocationSummarySwitchCondition<Command: AnyCommandLineTool, Valu
         parent: AnyCommandLineTool?,
         context: InvocationSummaryContext
     ) throws -> [String] {
-        try conditions.summary(
-            sourceValue: command[keyPath: keyPath] as! CaseCondition.Value
-        ).makeInvocationArguments(command: command as! CaseCondition.Command, parent: parent, context: context)
+        let summary = try conditions.summary(sourceValue: command[keyPath: keyPath] as! CaseCondition.Value)
+        
+        let value = try summary.makeInvocationArguments(
+            command: command as! CaseCondition.Command,
+            parent: parent,
+            context: context
+        )
+        return value
     }
 }

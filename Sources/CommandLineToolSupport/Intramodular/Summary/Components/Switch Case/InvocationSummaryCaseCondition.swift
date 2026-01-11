@@ -21,11 +21,7 @@ public struct InvocationSummaryCaseCondition<Command: AnyCommandLineTool, Value:
     }
     
     public func summary(sourceValue: Value) throws -> Summary {
-        let source = sourceValue.wrappedValue as? any Equatable
-        let target = value as? any Equatable
-        guard let source, let target else { throw InvocationSummarySwitchCaseError.notEquatable }
-        
-        guard source.eraseToAnyEquatable() == target.eraseToAnyEquatable() else {
+        guard sourceValue.wrappedValue.eraseToAnyEquatable() == value.eraseToAnyEquatable() else {
             throw InvocationSummarySwitchCaseError.caseNotMatch
         }
         

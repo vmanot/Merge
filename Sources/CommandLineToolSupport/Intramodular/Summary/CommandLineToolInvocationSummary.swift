@@ -19,6 +19,22 @@ public protocol InvocationSummary<Command> {
     ) throws -> [String]
 }
 
+public struct AnyInvocationSummary<Command: AnyCommandLineTool>: InvocationSummary {
+    let base: any InvocationSummary<Command>
+    
+    public init(erasing summary: some InvocationSummary<Command>) {
+        self.base = summary
+    }
+    
+    public func makeInvocationArguments(
+        command: Command,
+        parent: AnyCommandLineTool?,
+        context: Context
+    ) throws -> [String] {
+        try base.makeInvocationArguments(command: command, parent: parent, context: context)
+    }
+}
+
 // MARK: - Tuple Invocation Summary
 
 public struct TupleInvocationSummary<Command: AnyCommandLineTool, T>: InvocationSummary {

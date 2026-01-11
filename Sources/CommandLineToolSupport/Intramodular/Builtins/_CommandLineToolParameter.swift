@@ -6,7 +6,7 @@ import Foundation
 import Swallow
 
 extension CommandLineTool {
-    public typealias Parameter<T> = _CommandLineToolParameter<T>
+    public typealias Parameter<T: Equatable> = _CommandLineToolParameter<T>
 }
 
 public protocol _CommandLineToolParameterProtocol: PropertyWrapper, InvocationSummaryValue {
@@ -28,7 +28,7 @@ public protocol _CommandLineToolParameterProtocol: PropertyWrapper, InvocationSu
 }
 
 @propertyWrapper
-public struct _CommandLineToolParameter<WrappedValue>: _CommandLineToolParameterProtocol {
+public struct _CommandLineToolParameter<WrappedValue: Equatable>: _CommandLineToolParameterProtocol {
     var _wrappedValue: WrappedValue
 
     public var name: String?

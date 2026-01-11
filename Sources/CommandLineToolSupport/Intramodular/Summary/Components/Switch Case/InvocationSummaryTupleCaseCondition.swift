@@ -40,13 +40,11 @@ public struct InvocationSummaryTupleCaseCondition<Command: AnyCommandLineTool, V
         return conditions
     }
     
-    public func summary(sourceValue: Value) throws -> some InvocationSummary {
-        let summary = conditions.first(byUnwrapping: {
-            try? $0.summary(sourceValue: sourceValue)
+    public func summary(sourceValue: Value) throws -> some InvocationSummary<Command> {
+        let summary: any InvocationSummary<Command> = conditions.first(byUnwrapping: {
+            (try? $0.summary(sourceValue: sourceValue)) as? (any InvocationSummary<Command>)
         })!
         
-        return TupleInvocationSummary<Command, (any InvocationSummary)>(
-            (summary)
-        )
+        return AnyInvocationSummary(erasing: summary)
     }
 }

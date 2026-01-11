@@ -43,6 +43,6 @@ public struct InvocationSummaryValueReference<Command: AnyCommandLineTool, Value
     }
 }
 
-public protocol InvocationSummaryValue<WrappedValue>: PropertyWrapper, Resolvable where Result == _AnyResolvedCommandLineToolInvocationArgument, Context == _CommandLineToolResolutionContext {
+public protocol InvocationSummaryValue<WrappedValue>: PropertyWrapper, Resolvable where Result == _AnyResolvedCommandLineToolInvocationArgument, Context == _CommandLineToolResolutionContext, WrappedValue : Equatable {
     
 }
