@@ -26,6 +26,8 @@ public struct _CommandLineToolParameter<WrappedValue>: _CommandLineToolParameter
     }
 }
 
+#if os(macOS)
 extension CommandLineTool {
     public typealias Parameter<T> = _CommandLineToolParameter<T>
 }
+#endif

@@ -32,6 +32,8 @@ public struct _CommandLineToolEnvironmentVariable<WrappedValue: CLT.EnvironmentV
     }
 }
 
+#if os(macOS)
 extension CommandLineTool {
     public typealias EnvironmentVariable<T: CLT.EnvironmentVariableValue> = _CommandLineToolEnvironmentVariable<T>
 }
+#endif
