@@ -39,6 +39,7 @@ jobs:
 
           TARGET=""
           PLATFORMS="macOS iOS tvOS watchOS xrOS"
+          DERIVED_DATA_PATH="${RUNNER_TEMP:-/tmp}/MergeDerivedData"
 
           if [ -z "$TARGET" ]; then
             TARGET=$(swift package dump-package | python3 -c "import json,sys; print(json.load(sys.stdin)['name'])")
@@ -49,13 +50,13 @@ jobs:
           fi
 
           echo "Resolving package dependencies for $TARGET..."
-          NSUnbufferedIO=YES xcodebuild -resolvePackageDependencies -scheme "$TARGET" -derivedDataPath .build 2>&1 | tee "${RUNNER_TEMP:-/tmp}/xcodebuild-resolve.log" | xcbeautify --renderer github-actions
+          NSUnbufferedIO=YES xcodebuild -resolvePackageDependencies -scheme "$TARGET" -derivedDataPath "$DERIVED_DATA_PATH" 2>&1 | tee "${RUNNER_TEMP:-/tmp}/xcodebuild-resolve.log" | xcbeautify --renderer github-actions
 
           build_platform() {
             local PLATFORM=$1
             local LOG_FILE="${RUNNER_TEMP:-/tmp}/xcodebuild-${PLATFORM}.log"
             echo "Building $TARGET for $PLATFORM..."
-            if ! NSUnbufferedIO=YES xcodebuild build -scheme "$TARGET" -derivedDataPath .build -destination "generic/platform=$PLATFORM" 2>&1 | tee "$LOG_FILE" | xcbeautify --renderer github-actions; then
+            if ! NSUnbufferedIO=YES xcodebuild build -scheme "$TARGET" -derivedDataPath "$DERIVED_DATA_PATH" -destination "generic/platform=$PLATFORM" 2>&1 | tee "$LOG_FILE" | xcbeautify --renderer github-actions; then
               echo "Failed to build $TARGET for $PLATFORM"
               echo
               echo "Last 200 lines from raw xcodebuild log:"

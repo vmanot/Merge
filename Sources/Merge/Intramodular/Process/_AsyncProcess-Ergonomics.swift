@@ -15,9 +15,12 @@ import System
 @available(watchOS, unavailable)
 extension _AsyncProcess {
     public func start() async throws {
+        #if os(macOS)
         let _: Void = run()
-        
         try await processDidStart.enter()
+        #else
+        fatalError(.unsupported)
+        #endif
     }
     
     public func start(
