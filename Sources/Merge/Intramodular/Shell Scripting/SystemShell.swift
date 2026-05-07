@@ -126,7 +126,7 @@ extension _AsyncProcess {
         )
         
         if let input = input?.data(using: .utf8), !input.isEmpty, let handle = standardInputPipe?.fileHandleForWriting {
-            try? handle.write(contentsOf: input)
+            handle.write(input)
             try? handle.close()
         }
     }

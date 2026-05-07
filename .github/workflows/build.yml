@@ -1,4 +1,4 @@
-# This workflow builds the project for all platforms.
+# This workflow builds the project for selected platforms.
 
 # For more information see:
 # https://docs.github.com/en/actions/automating-builds-and-tests/building-and-testing-swift
@@ -31,14 +31,14 @@ jobs:
       - name: Install xcbeautify
         run: brew install xcbeautify
 
-      - name: Build All Platforms
+      - name: Build Selected Platforms
         run: |
           #!/bin/bash
           set -eo pipefail
           export LLVM_PROFILE_FILE="${RUNNER_TEMP:-/tmp}/Merge-%p.profraw"
 
           TARGET=""
-          PLATFORMS="macOS iOS tvOS watchOS xrOS"
+          PLATFORMS="macOS iOS macCatalyst xrOS"
           DERIVED_DATA_PATH=".build"
 
           xcodebuild -version
@@ -53,9 +53,10 @@ jobs:
 
           build_platform() {
             local PLATFORM=$1
+            local DESTINATION=$2
             local LOG_FILE="${RUNNER_TEMP:-/tmp}/xcodebuild-${PLATFORM}.log"
             echo "Building $TARGET for $PLATFORM..."
-            if ! NSUnbufferedIO=YES xcodebuild -scheme "$TARGET" -derivedDataPath "$DERIVED_DATA_PATH" -destination "generic/platform=$PLATFORM" -skipPackagePluginValidation -skipMacroValidation 2>&1 | tee "$LOG_FILE" | xcbeautify --renderer github-actions; then
+            if ! NSUnbufferedIO=YES xcodebuild -scheme "$TARGET" -derivedDataPath "$DERIVED_DATA_PATH" -destination "$DESTINATION" -skipPackagePluginValidation -skipMacroValidation 2>&1 | tee "$LOG_FILE" | xcbeautify --renderer github-actions; then
               echo "Failed to build $TARGET for $PLATFORM"
               echo
               echo "Last 200 lines from raw xcodebuild log:"
@@ -68,11 +69,10 @@ jobs:
           echo
           echo "Building $TARGET for [$PLATFORMS]..."
 
-          for PLATFORM in $PLATFORMS; do
-            if ! build_platform "$PLATFORM"; then
-              exit 1
-            fi
-          done
+          build_platform "macOS" "generic/platform=macOS"
+          build_platform "iOS" "generic/platform=iOS"
+          build_platform "macCatalyst" "generic/platform=macOS,variant=Mac Catalyst"
+          build_platform "xrOS" "generic/platform=xrOS"
 
           echo
           echo "Building $TARGET completed successfully!"

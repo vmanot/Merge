@@ -6,6 +6,7 @@ import Foundation
 import Swallow
 import System
 
+#if !targetEnvironment(macCatalyst)
 @available(macOS 11.0, iOS 14.0, watchOS 7.0, tvOS 14.0, *)
 @available(macCatalyst, unavailable)
 extension Pipe {
@@ -41,8 +42,10 @@ extension Pipe {
         return descriptor
     }
 }
+#endif
 
 @available(macOS 11.0, iOS 14.0, watchOS 7.0, tvOS 14.0, *)
+@available(macCatalyst 14.0, *)
 extension Pipe {
     public var _fileDescriptorForReading: FileDescriptor {
         FileDescriptor(rawValue: fileHandleForReading.fileDescriptor)
@@ -99,6 +102,7 @@ extension Pipe {
     }
 }
 
+#if !targetEnvironment(macCatalyst)
 @available(macOS 11.0, iOS 14.0, watchOS 7.0, tvOS 14.0, *)
 @available(macCatalyst, unavailable)
 extension FileDescriptor {
@@ -108,3 +112,4 @@ extension FileDescriptor {
         return fstat(self.rawValue, &statBuffer) == 0
     }
 }
+#endif
