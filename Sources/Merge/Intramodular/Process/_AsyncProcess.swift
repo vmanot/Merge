@@ -131,7 +131,9 @@ public class _AsyncProcess: Logging {
         process.executableURL = executableURL
         process.arguments = arguments
         process.environment = environment ?? ProcessInfo.processInfo.environment
-        process.currentDirectoryURL = currentDirectoryURL?._fromURLToFileURL() ?? process.currentDirectoryURL
+        if let currentDirectoryURL {
+            process.currentDirectoryURL = currentDirectoryURL._fromURLToFileURL()
+        }
         
         self.options = options
         

@@ -29,7 +29,9 @@ extension _AsyncProcess {
         
         self.process.executableURL = executableURL ?? URL(fileURLWithPath: "/bin/zsh")
         self.process.arguments = arguments
-        self.process.currentDirectoryURL = currentDirectoryURL?._fromURLToFileURL()
+        if let currentDirectoryURL {
+            self.process.currentDirectoryURL = currentDirectoryURL._fromURLToFileURL()
+        }
         self.process.environment = environmentVariables
         #else
         fatalError(.unsupported)
