@@ -40,8 +40,8 @@ public class _AsyncProcess: Logging {
     )
     
     private let publishers = _Publishers()
-    private let processDidStart = _AsyncGate(initiallyOpen: false)
-    private let processDidExit = _AsyncGate(initiallyOpen: false)
+    package let processDidStart = _AsyncGate(initiallyOpen: false)
+    package let processDidExit = _AsyncGate(initiallyOpen: false)
     
     @_OSUnfairLocked
     private var isWaiting = false
@@ -251,25 +251,7 @@ extension _AsyncProcess {
             }
         }
     }
-    
-    public func start() async throws {
-        let _: Void = run()
         
-        try await processDidStart.enter()
-    }
-    
-    public func start(
-        completion: @escaping (Result<Void, Error>) -> Void
-    ) async throws {
-        Task.detached(priority: .userInitiated) {
-            let result = await Result(catching: {
-                try await self.start()
-            })
-            
-            completion(result)
-        }
-    }
-    
     public func terminate() async throws {
         #if os(macOS)
         process.terminate()
