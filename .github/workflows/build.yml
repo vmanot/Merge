@@ -21,7 +21,7 @@ jobs:
 
     steps:
       - name: Checkout Code
-        uses: actions/checkout@v5
+        uses: actions/checkout@v6
 
       - name: Setup Xcode
         uses: maxim-lobanov/setup-xcode@v1
@@ -30,6 +30,14 @@ jobs:
 
       - name: Install xcbeautify
         run: brew install xcbeautify
+
+      - name: Restore DerivedData Cache
+        uses: actions/cache@v5
+        with:
+          path: .build
+          key: deriveddata-arm64-${{ runner.os }}-xcode-26.4.1-${{ hashFiles('Package.swift', 'Package.resolved') }}
+          restore-keys: |
+            deriveddata-arm64-${{ runner.os }}-xcode-26.4.1-
 
       - name: Build Selected Platforms
         run: |
@@ -56,7 +64,7 @@ jobs:
             local DESTINATION=$2
             local LOG_FILE="${RUNNER_TEMP:-/tmp}/xcodebuild-${PLATFORM}.log"
             echo "Building $TARGET for $PLATFORM..."
-            if ! NSUnbufferedIO=YES xcodebuild -scheme "$TARGET" -derivedDataPath "$DERIVED_DATA_PATH" -destination "$DESTINATION" -skipPackagePluginValidation -skipMacroValidation 2>&1 | tee "$LOG_FILE" | xcbeautify --renderer github-actions; then
+            if ! NSUnbufferedIO=YES xcodebuild -scheme "$TARGET" -derivedDataPath "$DERIVED_DATA_PATH" -destination "$DESTINATION" -skipPackagePluginValidation -skipMacroValidation ARCHS=arm64 ONLY_ACTIVE_ARCH=NO 2>&1 | tee "$LOG_FILE" | xcbeautify --renderer github-actions; then
               echo "Failed to build $TARGET for $PLATFORM"
               echo
               echo "Last 200 lines from raw xcodebuild log:"
