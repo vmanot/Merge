@@ -46,7 +46,7 @@ jobs:
           export LLVM_PROFILE_FILE="${RUNNER_TEMP:-/tmp}/Merge-%p.profraw"
 
           TARGET=""
-          PLATFORMS="macOS iOS macCatalyst xrOS"
+          PLATFORMS="macOS iOS macCatalyst"
           DERIVED_DATA_PATH=".build"
 
           xcodebuild -version
@@ -80,7 +80,6 @@ jobs:
           build_platform "macOS" "generic/platform=macOS"
           build_platform "iOS" "generic/platform=iOS"
           build_platform "macCatalyst" "generic/platform=macOS,variant=Mac Catalyst"
-          build_platform "xrOS" "generic/platform=xrOS"
 
           echo
           echo "Building $TARGET completed successfully!"
