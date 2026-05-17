@@ -56,6 +56,7 @@ public struct _CommandLineToolParameter<WrappedValue: Equatable>: _CommandLineTo
         if let name {
             _ResolvedCommandLineToolDescription.Option(
                 id: context.resolvingID,
+                defaultPosition: defaultPosition,
                 conversion: optionKeyConversion ?? context.implicitKeyConversion(for: name),
                 name: name,
                 separator: keyValueSeparator,
@@ -66,6 +67,7 @@ public struct _CommandLineToolParameter<WrappedValue: Equatable>: _CommandLineTo
         } else {
             _ResolvedCommandLineToolDescription.Argument(
                 id: context.resolvingID,
+                defaultPosition: defaultPosition,
                 value: wrappedValue,
                 valueType: type(of: wrappedValue)
             ).erasedToAnyResolvedCommandLineToolInvocationArgument()

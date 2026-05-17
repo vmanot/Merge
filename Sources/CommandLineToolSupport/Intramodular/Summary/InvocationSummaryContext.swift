@@ -55,6 +55,19 @@ public final class InvocationSummaryContext {
             )
         )
     }
+
+    @discardableResult
+    func registerArgument<Command: AnyCommandLineTool>(
+        command: Command,
+        argumentName: String
+    ) -> Bool {
+        renderedArguments.insert(
+            .init(
+                name: argumentName,
+                owningCommandName: command._commandName
+            )
+        ).inserted
+    }
 }
 
 #endif

@@ -11,6 +11,27 @@ import Swallow
 import Runtime
 
 extension AnyCommandLineTool {
+    package func _defaultInvocationArguments(
+        context: InvocationSummaryContext,
+        positions: Set<_CommandLineToolArgumentPosition.Anchor>
+    ) throws -> [String] {
+        try resolve().arguments
+            .filter {
+                positions.contains($0.defaultPosition.anchor)
+            }
+            .filter {
+                !context.argumentIsRendered(command: self, argumentName: $0.id.rawValue)
+            }
+            .compactMap { argument in
+                defer {
+                    context.registerArgument(command: self, argumentName: argument.id.rawValue)
+                }
+
+                return argument.invocationArgument
+            }
+            .filter { !$0.isEmpty }
+    }
+
 //    public var _resolvedDescriptionChain: [_ResolvedCommandLineToolDescription] {
 //        get throws {
 //            var resolvedDescriptions = [_ResolvedCommandLineToolDescription]()

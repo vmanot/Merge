@@ -17,11 +17,11 @@ import Merge
 @available(watchOS, unavailable)
 public class EmptyCommandLineToolSubcommand: AnyCommandLineTool, CommandLineTool {
     var name: String
-    
+
     init(name: String) {
         self.name = name
     }
-    
+
     public override var _commandName: String {
         name
     }
@@ -35,9 +35,19 @@ public class EmptyCommandLineToolSubcommand: AnyCommandLineTool, CommandLineTool
 public protocol _GenericSubcommandProtocol {
     associatedtype Parent: AnyCommandLineTool
     var parent: Parent { get }
-    
+
     associatedtype Command: AnyCommandLineTool
     var command: Command { get }
+}
+
+extension _GenericSubcommandProtocol {
+    var _opaqueParent: AnyCommandLineTool {
+        parent
+    }
+
+    var _opaqueCommand: AnyCommandLineTool {
+        command
+    }
 }
 
 @dynamicMemberLookup
@@ -49,7 +59,7 @@ public protocol _GenericSubcommandProtocol {
 public class GenericSubcommand<Parent, Command>: AnyCommandLineTool, CommandLineTool, _GenericSubcommandProtocol where Parent: AnyCommandLineTool, Command: AnyCommandLineTool & CommandLineTool {
     public let parent: Parent
     public var command: Command
-    
+
     public override var _commandName: String {
         command._commandName
     }
@@ -58,22 +68,22 @@ public class GenericSubcommand<Parent, Command>: AnyCommandLineTool, CommandLine
         dynamicMember keyPath: KeyPath<Command, GenericSubcommand<Command, SubSubcommand>>
     ) -> GenericSubcommand<GenericSubcommand<Parent, Command>, SubSubcommand> {
         let subSubcommand = command[keyPath: keyPath]
-        
+
         return GenericSubcommand<GenericSubcommand<Parent, Command>, SubSubcommand>(
             parent: self,
             command: subSubcommand.command
         )
     }
-    
+
     public init(parent: Parent, command: Command) {
         self.parent = parent
         self.command = command
     }
-    
+
     public var invocationSummary: some InvocationSummary {
         command.invocationSummary
     }
-    
+
     public func with<T>(
         _ keyPath: ReferenceWritableKeyPath<Command, T>,
         _ newValue: T
@@ -81,14 +91,14 @@ public class GenericSubcommand<Parent, Command>: AnyCommandLineTool, CommandLine
         command[keyPath: keyPath] = newValue
         return self
     }
-    
+
     @inlinable
     public override func withUnsafeSystemShell<R>(
         perform operation: (SystemShell) async throws -> R
     ) async throws -> R {
         try await command.withUnsafeSystemShell(perform: operation)
     }
-    
+
 #if os(macOS)
     @available(macOS 11.0, *)
     @available(iOS, unavailable)
@@ -97,7 +107,7 @@ public class GenericSubcommand<Parent, Command>: AnyCommandLineTool, CommandLine
     @available(watchOS, unavailable)
     public func callAsFunction() async throws -> Process.RunResult {
         try await withUnsafeSystemShell { shell in
-            try await shell.run(command: command.invocation)
+            try await shell.run(command: self.invocation)
         }
     }
 #endif

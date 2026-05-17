@@ -81,12 +81,14 @@ public struct _CommandLineToolFlag<WrappedValue: Equatable>: _CommandLineToolFla
             case .custom:
                 _ResolvedCommandLineToolDescription.CustomFlag(
                     id: context.resolvingID,
+                    defaultPosition: defaultPosition,
                     value: (wrappedValue as! CLT.OptionKeyConvertible),
                     valueType: type(of: wrappedValue),
                 ).erasedToAnyResolvedCommandLineToolInvocationArgument()
             case .counter(let conversion, let name):
                 _ResolvedCommandLineToolDescription.CounterFlag(
                     id: context.resolvingID,
+                    defaultPosition: defaultPosition,
                     conversion: conversion ?? context.implicitKeyConversion(for: name),
                     name: name,
                     count: wrappedValue as! Int,
@@ -95,6 +97,7 @@ public struct _CommandLineToolFlag<WrappedValue: Equatable>: _CommandLineToolFla
             case .boolean(let conversion, let name, let defaultValue):
                 _ResolvedCommandLineToolDescription.BooleanFlag(
                     id: context.resolvingID,
+                    defaultPosition: defaultPosition,
                     conversion: conversion ?? context.implicitKeyConversion(for: name),
                     name: name,
                     inversion: nil, // only be able to switch to another state (true / false)
@@ -104,6 +107,7 @@ public struct _CommandLineToolFlag<WrappedValue: Equatable>: _CommandLineToolFla
             case .optionalBoolean(let conversion, let name, let inversion):
                 _ResolvedCommandLineToolDescription.BooleanFlag(
                     id: context.resolvingID,
+                    defaultPosition: defaultPosition,
                     conversion: conversion ?? context.implicitKeyConversion(for: name),
                     name: name,
                     inversion: inversion,

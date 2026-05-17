@@ -16,28 +16,30 @@ public struct _ResolvedCommandLineToolDescription: MergeOperatable {
         public let rawValue: String // the property name.
         public let commandName: String
     }
-    
+
     public typealias ResolvedArguments = IdentifierIndexingArrayOf<_AnyResolvedCommandLineToolInvocationArgument>
     public typealias ResolvedSubcommands = IdentifierIndexingArrayOf<Subcommand>
-    
+
     /// A resolved argument.
     public struct Argument: _ResolvedCommandLineToolInvocationArgument {
         public let id: _ResolvedCommandLineToolDescription.ArgumentID
+        public let defaultPosition: _CommandLineToolArgumentPosition
         public let value: Any
         public let valueType: any Any.Type
-        
+
         public var invocationArgument: String? {
             if let array = value as? [any CLT.ArgumentValueConvertible] {
                 return array.map(\.argumentValue).joined(separator: " ")
             }
-            
+
             return (value as? CLT.ArgumentValueConvertible)?.argumentValue
         }
     }
-    
+
     /// A resolved option.
     public struct Option: _ResolvedCommandLineToolInvocationArgument {
         public let id: _ResolvedCommandLineToolDescription.ArgumentID
+        public let defaultPosition: _CommandLineToolArgumentPosition
         public let conversion: _CommandLineToolOptionKeyConversion
         public let name: String
         public let separator: _CommandLineToolParameterKeyValueSeparator
@@ -79,19 +81,20 @@ public struct _ResolvedCommandLineToolDescription: MergeOperatable {
             }
         }
     }
-    
+
     /// A resolved boolean flag.
     public struct BooleanFlag: _ResolvedCommandLineToolInvocationArgument {
         public let id: _ResolvedCommandLineToolDescription.ArgumentID
+        public let defaultPosition: _CommandLineToolArgumentPosition
         public let conversion: _CommandLineToolOptionKeyConversion
         public let name: String
         public let inversion: _CommandLineToolFlagInversion?
         public let defaultBooleanValue: Bool?
         public let isOn: Bool?
-        
+
         public var invocationArgument: String? {
             guard let isOn else { return nil }
-            
+
             if let inversion {
                 return inversion.argument(conversion: conversion, name: name, value: isOn)
             } else {
@@ -103,18 +106,19 @@ public struct _ResolvedCommandLineToolDescription: MergeOperatable {
             }
         }
     }
-    
+
     /// A resolved simple flag.
     public struct CounterFlag: _ResolvedCommandLineToolInvocationArgument {
         public let id: _ResolvedCommandLineToolDescription.ArgumentID
+        public let defaultPosition: _CommandLineToolArgumentPosition
         public let conversion: _CommandLineToolOptionKeyConversion
         public let name: String
         public let count: Int
         public let isClustered: Bool
-        
+
         public var invocationArgument: String? {
             guard count > 0 else { return nil }
-            
+
             return if isClustered {
                 "\(conversion.argumentKey(for: (0..<count).map({ _ in name }).joined()))"
             } else {
@@ -124,19 +128,20 @@ public struct _ResolvedCommandLineToolDescription: MergeOperatable {
             }
         }
     }
-    
+
     /// A resolved custom flag.
     public struct CustomFlag: _ResolvedCommandLineToolInvocationArgument {
         public let id: _ResolvedCommandLineToolDescription.ArgumentID
-        
+        public let defaultPosition: _CommandLineToolArgumentPosition
+
         public let value: Any
         public let valueType: any Any.Type
-        
+
         public var invocationArgument: String? {
             if let optionValue = value as? any OptionalProtocol, optionValue.isNil {
                 return nil
             }
-            
+
             return switch value {
                 case let array as Array<any CLT.OptionKeyConvertible>:
                     array.compactMap {
@@ -149,25 +154,25 @@ public struct _ResolvedCommandLineToolDescription: MergeOperatable {
             }
         }
     }
-    
+
     /// A resolved subcommand.
     public struct Subcommand: Identifiable {
         public let id: _ResolvedCommandLineToolDescription.ArgumentID
         public let name: String
         public let _resolvedDescription: _ResolvedCommandLineToolDescription
     }
-    
+
     public var toolName: String
     public var arguments: ResolvedArguments
     public var subcommands: ResolvedSubcommands
-    
+
     public var inheritedArguments: ResolvedArguments {
         arguments.filter({ $0.id.commandName != toolName })
     }
     public var localArguments: ResolvedArguments {
         arguments.filter({ $0.id.commandName == toolName })
     }
-    
+
     public mutating func mergeInPlace(with other: _ResolvedCommandLineToolDescription) {
         arguments.append(contentsOf: other.arguments)
         subcommands.append(contentsOf: other.subcommands)
@@ -176,6 +181,7 @@ public struct _ResolvedCommandLineToolDescription: MergeOperatable {
 
 public protocol _ResolvedCommandLineToolInvocationArgument {
     var id: _ResolvedCommandLineToolDescription.ArgumentID { get }
+    var defaultPosition: _CommandLineToolArgumentPosition { get }
     var invocationArgument: String? { get }
 }
 
@@ -189,21 +195,25 @@ extension _ResolvedCommandLineToolInvocationArgument {
 
 public struct _AnyResolvedCommandLineToolInvocationArgument: _UnwrappableTypeEraser, _ResolvedCommandLineToolInvocationArgument, Identifiable {
     public typealias _UnwrappedBaseType = any _ResolvedCommandLineToolInvocationArgument
-    
+
     public let base: any _ResolvedCommandLineToolInvocationArgument
-    
+
     public var id: _ResolvedCommandLineToolDescription.ArgumentID {
         base.id
     }
-    
+
+    public var defaultPosition: _CommandLineToolArgumentPosition {
+        base.defaultPosition
+    }
+
     public var invocationArgument: String? {
         base.invocationArgument
     }
-    
+
     public init(_erasing x: any _ResolvedCommandLineToolInvocationArgument) {
         self.base = x
     }
-    
+
     public func _unwrapBase() -> any _ResolvedCommandLineToolInvocationArgument {
         base
     }
