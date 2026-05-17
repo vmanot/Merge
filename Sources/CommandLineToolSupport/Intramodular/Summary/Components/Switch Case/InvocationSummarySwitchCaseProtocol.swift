@@ -9,6 +9,7 @@
 import Foundation
 import Swallow
 
+extension CommandLineToolInvocationSummary {
 @available(macOS 11.0, *)
 @available(iOS, unavailable)
 @available(macCatalyst, unavailable)
@@ -18,7 +19,7 @@ public protocol InvocationSummarySwitchCaseProtocol<Value> {
     associatedtype Command: AnyCommandLineTool
     associatedtype Value: InvocationSummaryValue
     associatedtype Summary: InvocationSummary where Summary.Command == Command
-    
+
     /// Returns the summary when source value equals to the branch.
     @InvocationSummaryBuilder<Command>
     func summary(sourceValue: Value) throws -> Summary
@@ -31,7 +32,10 @@ public protocol InvocationSummarySwitchCaseProtocol<Value> {
 @available(watchOS, unavailable)
 enum InvocationSummarySwitchCaseError: Error {
     case caseNotMatch
+    case noCaseMatched
     case notEquatable
+}
+
 }
 
 #endif

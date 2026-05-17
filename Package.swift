@@ -80,13 +80,43 @@ var package = Package(
             ]
         ),
         .testTarget(
-            name: "MergeTests",
+            name: "CommandLineSupportTests",
             dependencies: [
                 "CommandLineToolSupport",
+            ],
+            path: "Tests/CommandLineSupport",
+            swiftSettings: [
+                .swiftLanguageMode(.v5)
+            ]
+        ),
+        .testTarget(
+            name: "MergeTests",
+            dependencies: [
+                "Merge",
+            ],
+            path: "Tests/Merge",
+            swiftSettings: [
+                .swiftLanguageMode(.v5)
+            ]
+        ),
+        .testTarget(
+            name: "ShellScriptingTests",
+            dependencies: [
                 "Merge",
                 "ShellScripting",
             ],
-            path: "Tests",
+            path: "Tests/ShellScripting",
+            swiftSettings: [
+                .swiftLanguageMode(.v5)
+            ]
+        ),
+        .testTarget(
+            name: "SwiftDITests",
+            dependencies: [
+                "Merge",
+                "SwiftDI",
+            ],
+            path: "Tests/SwiftDI",
             swiftSettings: [
                 .swiftLanguageMode(.v5)
             ]

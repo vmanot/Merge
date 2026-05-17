@@ -5,24 +5,26 @@
 @testable import Merge
 
 import Swallow
-import XCTest
+import Testing
 
-final class PassthroughTaskTests: XCTestCase {
+@Suite
+struct PassthroughTaskTests {
+    @Test
     func testStatus() async throws {
         let task = PassthroughTask<Int, Error>(priority: nil) {
             try await Task.sleep(.seconds(1))
-            
+
             return 69
         }
-        
-        XCTAssert(task.status == .inactive)
-        
+
+        #expect(task.status == .inactive)
+
         task.start()
-        
-        XCTAssert(task.status == .active)
-        
+
+        #expect(task.status == .active)
+
         let value = try await task.value
-        
-        XCTAssertEqual(value, 69)
+
+        #expect(value == 69)
     }
 }

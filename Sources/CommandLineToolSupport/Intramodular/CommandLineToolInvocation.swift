@@ -13,26 +13,26 @@ import Foundation
 public struct CommandLineToolInvocation: CustomStringConvertible, Hashable, Sendable {
     /// The shell-rendered invocation components, including the command name.
     public var components: [String]
-    
+
     public init(components: [String]) {
         self.components = components.filter { !$0.isEmpty }
     }
-    
+
     /// The rendered command name component, when present.
     public var commandName: String? {
         components.first
     }
-    
+
     /// The rendered argument components after the command name.
     public var arguments: [String] {
         Array(components.dropFirst())
     }
-    
+
     /// The shell-rendered command line.
     public var commandLine: String {
         components.joined(separator: " ")
     }
-    
+
     public var description: String {
         commandLine
     }
@@ -47,11 +47,11 @@ extension CommandLineTool {
     public var commandInvocation: CommandLineToolInvocation {
         get throws {
             try CommandLineToolInvocation(
-                components: invocationArguments(context: InvocationSummaryContext())
+                components: invocationArguments(context: CommandLineToolInvocationSummary.InvocationSummaryContext())
             )
         }
     }
-    
+
     /// The shell-rendered invocation components, including the command name.
     public var invocationComponents: [String] {
         get throws {

@@ -7,6 +7,7 @@
 import Foundation
 import Swallow
 
+extension CommandLineToolInvocationSummary {
 @available(macOS 11.0, *)
 @available(iOS, unavailable)
 @available(macCatalyst, unavailable)
@@ -31,16 +32,30 @@ public struct InvocationSummaryValuePredicate<Value> {
         self.evaluate = evaluate
     }
 
-    public static var hasValue: Self {
-        .init(evaluate: { value in
-            if let optional = value as? any OptionalProtocol {
-                return !optional.isNil
-            } else if let string = value as? String {
-                return !string.isEmpty
+    private static func containsValue(_ value: Any?) -> Bool {
+        guard let value else {
+            return false
+        }
+
+        let mirror = Mirror(reflecting: value)
+
+        if mirror.displayStyle == .optional {
+            guard let child = mirror.children.first else {
+                return false
             }
-            
-            return true
-        })
+
+            return containsValue(child.value)
+        }
+
+        if let string = value as? String {
+            return !string.isEmpty
+        }
+
+        return true
+    }
+
+    public static var hasValue: Self {
+        .init(evaluate: containsValue)
     }
 
     public static func equalsTo(_ expected: Value) -> Self where Value: Equatable {
@@ -64,13 +79,15 @@ public struct InvocationSummaryValuePredicate<Value> {
     }
 }
 
+}
+
 @available(macOS 11.0, *)
 @available(iOS, unavailable)
 @available(macCatalyst, unavailable)
 @available(tvOS, unavailable)
 @available(watchOS, unavailable)
-extension InvocationSummaryCondition {
-    public func evaluate(command: Command, parent: AnyCommandLineTool?, context: InvocationSummaryContext) -> Bool {
+extension CommandLineToolInvocationSummary.InvocationSummaryCondition {
+    public func evaluate(command: Command, parent: AnyCommandLineTool?, context: CommandLineToolInvocationSummary.InvocationSummaryContext) -> Bool {
         switch self {
             case .predicate(let predicate):
                 return predicate(command, parent, context)
@@ -83,37 +100,37 @@ extension InvocationSummaryCondition {
         }
     }
 
-    public func and(_ other: InvocationSummaryCondition<Command>) -> InvocationSummaryCondition<Command> {
+    public func and(_ other: CommandLineToolInvocationSummary.InvocationSummaryCondition<Command>) -> CommandLineToolInvocationSummary.InvocationSummaryCondition<Command> {
         .all([self, other])
     }
 
-    public func or(_ other: InvocationSummaryCondition<Command>) -> InvocationSummaryCondition<Command> {
+    public func or(_ other: CommandLineToolInvocationSummary.InvocationSummaryCondition<Command>) -> CommandLineToolInvocationSummary.InvocationSummaryCondition<Command> {
         .any([self, other])
     }
 
-    public func negated() -> InvocationSummaryCondition<Command> {
+    public func negated() -> CommandLineToolInvocationSummary.InvocationSummaryCondition<Command> {
         .not(self)
     }
 
     public static func custom(
-        _ condition: @escaping (_ command: Command, _ parent: AnyCommandLineTool?, _ context: InvocationSummaryContext) -> Bool
-    ) -> InvocationSummaryCondition<Command> {
+        _ condition: @escaping (_ command: Command, _ parent: AnyCommandLineTool?, _ context: CommandLineToolInvocationSummary.InvocationSummaryContext) -> Bool
+    ) -> CommandLineToolInvocationSummary.InvocationSummaryCondition<Command> {
         .predicate(condition)
     }
 
-    public static func keyPath<Value: InvocationSummaryValue>(
+    public static func keyPath<Value: CommandLineToolInvocationSummary.InvocationSummaryValue>(
         _ keyPath: KeyPath<Command, Value>,
-        _ predicate: InvocationSummaryValuePredicate<Value.WrappedValue>
-    ) -> InvocationSummaryCondition<Command> {
+        _ predicate: CommandLineToolInvocationSummary.InvocationSummaryValuePredicate<Value.WrappedValue>
+    ) -> CommandLineToolInvocationSummary.InvocationSummaryCondition<Command> {
         .predicate { command, _, context in
             predicate.evaluate(command[keyPath: keyPath].wrappedValue)
         }
     }
-    
-    public static func parentValue<Parent: AnyCommandLineTool, Value: InvocationSummaryValue>(
-        _ value: InvocationSummaryValueReferenceFromParent<Parent, Command, Value>,
-        _ predicate: InvocationSummaryValuePredicate<Value.WrappedValue>
-    ) -> InvocationSummaryCondition<Command> {
+
+    public static func parentValue<Parent: AnyCommandLineTool, Value: CommandLineToolInvocationSummary.InvocationSummaryValue>(
+        _ value: CommandLineToolInvocationSummary.InvocationSummaryValueReferenceFromParent<Parent, Command, Value>,
+        _ predicate: CommandLineToolInvocationSummary.InvocationSummaryValuePredicate<Value.WrappedValue>
+    ) -> CommandLineToolInvocationSummary.InvocationSummaryCondition<Command> {
         .predicate { _, parent, context in
             let parent = parent as? Parent
             guard let parent else {
@@ -124,8 +141,8 @@ extension InvocationSummaryCondition {
     }
 
     public static prefix func !(
-        condition: InvocationSummaryCondition<Command>
-    ) -> InvocationSummaryCondition<Command> {
+        condition: CommandLineToolInvocationSummary.InvocationSummaryCondition<Command>
+    ) -> CommandLineToolInvocationSummary.InvocationSummaryCondition<Command> {
         .not(condition)
     }
 }

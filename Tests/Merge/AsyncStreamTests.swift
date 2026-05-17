@@ -3,33 +3,29 @@ import Combine
 import Testing
 @testable import Merge
 
-@Suite
+@Suite(.serialized)
 struct AsyncStreamTests {
     @Test("AsyncStream cancellation propagates to publisher")
     func testCancellation() async throws {
-        let publisher = Timer.publish(every: 0.1, on: .main, in: .common)
-            .autoconnect()
+        let publisher = PassthroughSubject<Int, Never>()
 
         try await confirmation { confirm in
-            var count: Int = 0
-            
             let cancellablePublisher = publisher.handleCancel {
-                print("✅ Publisher was canceled")
                 confirm()
             }
-            
+
             let stream = cancellablePublisher.toAsyncStream()
-            
+
             let task = Task {
                 for await _ in stream {
-                    print("value")
-                    count += 1
+                    _ = ()
                 }
             }
-            
-            try await Task.sleep(for: .milliseconds(300))
-            
+
+            try await Task.sleep(for: .milliseconds(100))
             task.cancel()
+
+            _ = await task.result
         }
     }
 }

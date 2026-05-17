@@ -6,6 +6,7 @@
 
 import Foundation
 
+extension CommandLineToolInvocationSummary {
 @available(macOS 11.0, *)
 @available(iOS, unavailable)
 @available(macCatalyst, unavailable)
@@ -13,12 +14,12 @@ import Foundation
 @available(watchOS, unavailable)
 public final class InvocationSummaryContext {
     private(set) var renderedArguments: Set<Argument> = []
-    
+
     struct Argument: Hashable, Sendable {
         var name: String
         var owningCommandName: String
     }
-    
+
     @discardableResult
     func registerValueReference<Command: AnyCommandLineTool, Value: InvocationSummaryValue>(
         command: Command,
@@ -31,7 +32,7 @@ public final class InvocationSummaryContext {
             )
         ).inserted
     }
-    
+
     func argumentIsRendered<Command: AnyCommandLineTool, Value: InvocationSummaryValue>(
         command: Command,
         _ keyPath: KeyPath<Command, Value>
@@ -43,7 +44,7 @@ public final class InvocationSummaryContext {
             )
         )
     }
-    
+
     func argumentIsRendered<Command: AnyCommandLineTool>(
         command: Command,
         argumentName: String
@@ -68,6 +69,8 @@ public final class InvocationSummaryContext {
             )
         ).inserted
     }
+}
+
 }
 
 #endif

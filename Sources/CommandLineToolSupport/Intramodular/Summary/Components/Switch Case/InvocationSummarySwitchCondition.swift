@@ -9,12 +9,13 @@
 import Foundation
 import Swallow
 
+extension CommandLineToolInvocationSummary {
 @available(macOS 11.0, *)
 @available(iOS, unavailable)
 @available(macCatalyst, unavailable)
 @available(tvOS, unavailable)
 @available(watchOS, unavailable)
-public struct InvocationSummarySwitchCondition<Command: AnyCommandLineTool, Value: InvocationSummaryValue, CaseCondition: InvocationSummarySwitchCaseProtocol>: InvocationSummary {
+public struct InvocationSummarySwitchCondition<Command: AnyCommandLineTool, Value: InvocationSummaryValue, CaseCondition: InvocationSummarySwitchCaseProtocol>: InvocationSummary where CaseCondition.Command == Command, CaseCondition.Value == Value {
     private let keyPath: KeyPath<Command, Value>
     private let conditions: CaseCondition
 
@@ -31,15 +32,17 @@ public struct InvocationSummarySwitchCondition<Command: AnyCommandLineTool, Valu
         parent: AnyCommandLineTool?,
         context: InvocationSummaryContext
     ) throws -> [String] {
-        let summary = try conditions.summary(sourceValue: command[keyPath: keyPath] as! CaseCondition.Value)
-        
+        let summary = try conditions.summary(sourceValue: command[keyPath: keyPath])
+
         let value = try summary.makeInvocationArguments(
-            command: command as! CaseCondition.Command,
+            command: command,
             parent: parent,
             context: context
         )
         return value
     }
+}
+
 }
 
 #endif

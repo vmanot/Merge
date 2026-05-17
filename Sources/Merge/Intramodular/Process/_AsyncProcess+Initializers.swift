@@ -18,7 +18,7 @@ extension _AsyncProcess {
         executableURL: URL?,
         arguments: [String],
         currentDirectoryURL: URL? = nil,
-        environmentVariables: [String: String] = [:],
+        environmentVariables: EnvironmentVariables = .inherited,
         options: [_AsyncProcess.Option]?
     ) throws {
         #if os(macOS)
@@ -26,23 +26,24 @@ extension _AsyncProcess {
             existingProcess: nil,
             options: options
         )
-        
+
         self.process.executableURL = executableURL ?? URL(fileURLWithPath: "/bin/zsh")
         self.process.arguments = arguments
         if let currentDirectoryURL {
             self.process.currentDirectoryURL = currentDirectoryURL._fromURLToFileURL()
         }
-        self.process.environment = environmentVariables
+
+        self.environmentVariables = environmentVariables
         #else
         fatalError(.unsupported)
         #endif
     }
-    
+
     public convenience init(
         launchPath: String?,
         arguments: [String],
         currentDirectoryURL: URL? = nil,
-        environmentVariables: [String: String] = [:],
+        environmentVariables: EnvironmentVariables = .inherited,
         options: [_AsyncProcess.Option]?
     ) throws {
         try self.init(
@@ -50,6 +51,38 @@ extension _AsyncProcess {
             arguments: arguments,
             currentDirectoryURL: currentDirectoryURL,
             environmentVariables: environmentVariables,
+            options: options
+        )
+    }
+
+    public convenience init(
+        executableURL: URL?,
+        arguments: [String],
+        currentDirectoryURL: URL? = nil,
+        environmentVariables: [String: String]?,
+        options: [_AsyncProcess.Option]?
+    ) throws {
+        try self.init(
+            executableURL: executableURL,
+            arguments: arguments,
+            currentDirectoryURL: currentDirectoryURL,
+            environmentVariables: environmentVariables.map(EnvironmentVariables.exact) ?? .inherited,
+            options: options
+        )
+    }
+
+    public convenience init(
+        launchPath: String?,
+        arguments: [String],
+        currentDirectoryURL: URL? = nil,
+        environmentVariables: [String: String]?,
+        options: [_AsyncProcess.Option]?
+    ) throws {
+        try self.init(
+            launchPath: launchPath,
+            arguments: arguments,
+            currentDirectoryURL: currentDirectoryURL,
+            environmentVariables: environmentVariables.map(EnvironmentVariables.exact) ?? .inherited,
             options: options
         )
     }
@@ -65,17 +98,17 @@ extension _AsyncProcess {
         executableURL: URL?,
         arguments: [String],
         currentDirectoryURL: URL? = nil,
-        environmentVariables: [String: String] = [:],
+        environmentVariables: [String: String]? = nil,
         options: [_AsyncProcess.Option]?
     ) throws {
         fatalError(.unavailable)
     }
-    
+
     public convenience init(
         launchPath: String?,
         arguments: [String],
         currentDirectoryURL: URL? = nil,
-        environmentVariables: [String: String] = [:],
+        environmentVariables: [String: String]? = nil,
         options: [_AsyncProcess.Option]?
     ) throws {
         fatalError(.unavailable)

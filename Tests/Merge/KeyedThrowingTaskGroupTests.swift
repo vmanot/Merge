@@ -5,55 +5,58 @@
 @testable import Merge
 
 import Swallow
-import XCTest
+import Testing
 
-final class KeyedThrowingTaskGroupTests: XCTestCase {
+@Suite
+struct KeyedThrowingTaskGroupTests {
+    @Test
     func testUseExistingPolicy() async throws {
         let graph = KeyedThrowingTaskGroup<TestTasks>()
-        
+
         try graph.insert(.foo) {
             try await Task.sleep(.milliseconds(200))
-            
+
             return 1
         }
-        
+
         let existingResult =  try await graph.perform(.foo, policy: .useExisting) {
             try await Task.sleep(.milliseconds(200))
-            
+
             return 2
         }
-        
-        XCTAssertEqual(existingResult, 1)
-        
+
+        #expect(existingResult == 1)
+
         let freshResult = try await graph.perform(.foo, policy: .useExisting) {
             try await Task.sleep(.milliseconds(200))
-            
+
             return 3
         }
-        
-        XCTAssertEqual(freshResult, 3)
+
+        #expect(freshResult == 3)
     }
-    
+
+    @Test
     func testUnspecifiedInsertionPolicyFailure() async throws {
         let graph = KeyedThrowingTaskGroup<TestTasks>()
-        
+
         func insertLongFoo() async throws {
             try graph.insert(.foo) {
                 try await Task.sleep(.seconds(10))
             }
         }
-        
+
         try await insertLongFoo()
-        
+
         var caughtError: Error?
-        
+
         do {
             try await insertLongFoo()
         } catch {
             caughtError = error
         }
-        
-        XCTAssertNotNil(caughtError)
+
+        #expect(caughtError != nil)
     }
 }
 

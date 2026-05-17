@@ -9,6 +9,7 @@
 import Foundation
 import Swallow
 
+extension CommandLineToolInvocationSummary {
 @available(macOS 11.0, *)
 @available(iOS, unavailable)
 @available(macCatalyst, unavailable)
@@ -17,7 +18,7 @@ import Swallow
 public struct DefaultInvocationSummary<Command: AnyCommandLineTool>: InvocationSummary {
     @usableFromInline
     init() { }
-    
+
     public func makeInvocationArguments(
         command: Command,
         parent: AnyCommandLineTool?,
@@ -30,6 +31,8 @@ public struct DefaultInvocationSummary<Command: AnyCommandLineTool>: InvocationS
             }
             .compactMap(\.invocationArgument)
     }
+}
+
 }
 
 #endif

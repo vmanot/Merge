@@ -5,33 +5,36 @@
 @testable import Merge
 
 import Swallow
-import XCTest
+import Testing
 
-final class PublisherExtensionsTests: XCTestCase {
+@Suite
+struct PublisherExtensionsTests {
+    @Test
     func testSubscribeAndWait() {
         let f1 = Future.async(qos: .unspecified) { () -> Int in
             sleep(1)
-            
+
             return 1
         }
-        
+
         let f2 = Future.async(qos: .unspecified) { () -> Int in
             sleep(1)
-            
+
             return 2
         }
-        
-        XCTAssert((f1.subscribeAndWaitUntilDone(), f2.subscribeAndWaitUntilDone()) == (1, 2))
+
+        #expect((f1.subscribeAndWaitUntilDone(), f2.subscribeAndWaitUntilDone()) == (1, 2))
     }
-    
+
+    @Test
     func testEitherPublisher() {
         enum TestError: Hashable, Error {
             case some
         }
-        
+
         var foo = true
-        
-        XCTAssert(
+
+        #expect(
             Either {
                 if foo {
                     Just("foo").setFailureType(to: TestError.self)
@@ -41,10 +44,10 @@ final class PublisherExtensionsTests: XCTestCase {
             }
             .subscribeAndWaitUntilDone() == .success("foo")
         )
-        
+
         foo = false
-        
-        XCTAssert(
+
+        #expect(
             Either {
                 if foo {
                     Just("foo").setFailureType(to: TestError.self)
@@ -55,10 +58,11 @@ final class PublisherExtensionsTests: XCTestCase {
             .subscribeAndWaitUntilDone() == .failure(TestError.some)
         )
     }
-    
+
+    @Test
     func testWhilePublisher() {
         var count = 0
-        
+
         Publishers.While(count < 100) {
             Just(()).then {
                 count += 1
@@ -66,14 +70,14 @@ final class PublisherExtensionsTests: XCTestCase {
         }
         .reduceAndMapTo(())
         .subscribeAndWaitUntilDone()
-        
-        XCTAssert(count == 100)
-        
+
+        #expect(count == 100)
+
         enum TestError: Hashable, Error {
             case some
         }
-        
-        XCTAssert(
+
+        #expect(
             Publishers.While(true) {
                 Fail<Void, TestError>(error: TestError.some)
             }

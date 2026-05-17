@@ -13,12 +13,12 @@ extension CommandLineTool {
     public typealias Flag<T: Equatable> = _CommandLineToolFlag<T>
 }
 
-public protocol _CommandLineToolFlagProtocol: PropertyWrapper, InvocationSummaryValue {
+public protocol _CommandLineToolFlagProtocol: PropertyWrapper, CommandLineToolInvocationSummary.InvocationSummaryValue {
     /// The representation of the `_CommandLineToolFlag`.
     ///
     /// This must aligned with the `WrappedValue`, for example: `.counter(key:)` assumes `WrappedValue` is `Int`, etc.
     var _representaton: _CommandLineToolFlagRepresentation { get }
-    
+
     /// Positional hint for where this flag should appear in the invocation.
     var defaultPosition: _CommandLineToolArgumentPosition { get }
 }
@@ -36,24 +36,24 @@ public enum _CommandLineToolFlagRepresentation {
     ///
     /// - Parameter key: The name of the flag as it will be passed in the actual command being invoked.
     case counter(conversion: _CommandLineToolOptionKeyConversion?, name: String)
-    
+
     /// A non-optional Boolean flag that is only emitted when its value differs from the default.
     ///
     /// - Parameters:
     ///   - key: The name of the flag as it will be passed in the actual command being invoked.
     ///   - defaultValue: The default value of the flag used to determine whether the flag should be emitted.
     case boolean(conversion: _CommandLineToolOptionKeyConversion?, name: String, defaultValue: Bool)
-    
+
     /// An optional Boolean flag that is always emitted and encoded using an inversion strategy.
     ///
     /// - Parameters:
     ///   - key: The name of the flag as it will be passed in the actual command being invoked.
     ///   - inversion: The options for converting a flag into a `true` / `false` pair that will be passed in the actual command being invoked.
     case optionalBoolean(conversion: _CommandLineToolOptionKeyConversion?, name: String, inversion: _CommandLineToolFlagInversion)
-    
+
     /// A flag uses custom data type that conforms to `CLT.OptionKeyConvertible`.
     case custom
-    
+
     package var inversion: _CommandLineToolFlagInversion? {
         if case .optionalBoolean(_, _, let inversion) = self {
             return inversion
@@ -65,10 +65,10 @@ public enum _CommandLineToolFlagRepresentation {
 @propertyWrapper
 public struct _CommandLineToolFlag<WrappedValue: Equatable>: _CommandLineToolFlagProtocol {
     var _wrappedValue: WrappedValue
-    
+
     public var _representaton: _CommandLineToolFlagRepresentation
     public var defaultPosition: _CommandLineToolArgumentPosition
-    
+
     /// Positional hint for where this flag should appear in the invocation.
     public var placement: CommandLineToolArgumentPlacement {
         get {
@@ -77,7 +77,7 @@ public struct _CommandLineToolFlag<WrappedValue: Equatable>: _CommandLineToolFla
             defaultPosition = newValue
         }
     }
-  
+
     public var wrappedValue: WrappedValue {
         get {
             _wrappedValue
@@ -85,11 +85,11 @@ public struct _CommandLineToolFlag<WrappedValue: Equatable>: _CommandLineToolFla
             _wrappedValue = newValue
         }
     }
-    
+
     public var projectedValue: _CommandLineToolFlag<WrappedValue> {
         self
     }
-    
+
     public func resolve(
         in context: _CommandLineToolResolutionContext
     ) throws -> _AnyResolvedCommandLineToolInvocationArgument {
@@ -156,7 +156,7 @@ public struct _CommandLineToolFlag<WrappedValue: Equatable>: _CommandLineToolFla
             defaultPosition: placement
         )
     }
-    
+
     public init(
         wrappedValue: WrappedValue,
         conversion: _CommandLineToolOptionKeyConversion? = nil,
@@ -171,7 +171,7 @@ public struct _CommandLineToolFlag<WrappedValue: Equatable>: _CommandLineToolFla
         )
         self.defaultPosition = defaultPosition
     }
-    
+
     /// Creates a flag from an optional boolean value.
     ///
     /// - parameter key: The option key that would be emitted as a command argument.
@@ -191,7 +191,7 @@ public struct _CommandLineToolFlag<WrappedValue: Equatable>: _CommandLineToolFla
             defaultPosition: placement
         )
     }
-    
+
     public init(
         wrappedValue: WrappedValue,
         conversion: _CommandLineToolOptionKeyConversion? = nil,
@@ -207,7 +207,7 @@ public struct _CommandLineToolFlag<WrappedValue: Equatable>: _CommandLineToolFla
         )
         self.defaultPosition = defaultPosition
     }
-    
+
     /// Creates a counter flag from an integer value.
     /// - parameter key: The option key that would be emitted if necessary as a command argument.
     public init(
@@ -223,7 +223,7 @@ public struct _CommandLineToolFlag<WrappedValue: Equatable>: _CommandLineToolFla
             defaultPosition: placement
         )
     }
-    
+
     public init(
         wrappedValue: WrappedValue = 0,
         conversion: _CommandLineToolOptionKeyConversion? = nil,
@@ -237,7 +237,7 @@ public struct _CommandLineToolFlag<WrappedValue: Equatable>: _CommandLineToolFla
         )
         self.defaultPosition = defaultPosition
     }
-    
+
     /// Creates a custom flag from any `OptionKeyConvertible`.
     public init(
         wrappedValue: WrappedValue,
@@ -248,7 +248,7 @@ public struct _CommandLineToolFlag<WrappedValue: Equatable>: _CommandLineToolFla
             defaultPosition: placement
         )
     }
-    
+
     /// Creates a custom flag from any `OptionKeyConvertible`.
     public init(
         wrappedValue: WrappedValue,
@@ -258,7 +258,7 @@ public struct _CommandLineToolFlag<WrappedValue: Equatable>: _CommandLineToolFla
         self._representaton = .custom
         self.defaultPosition = defaultPosition
     }
-    
+
     /// Creates an array of custom flags from any `OptionKeyConvertible`.
     public init<T>(
         wrappedValue: [T],
@@ -269,7 +269,7 @@ public struct _CommandLineToolFlag<WrappedValue: Equatable>: _CommandLineToolFla
             defaultPosition: placement
         )
     }
-    
+
     /// Creates an array of custom flags from any `OptionKeyConvertible`.
     public init<T>(
         wrappedValue: [T],
@@ -279,7 +279,7 @@ public struct _CommandLineToolFlag<WrappedValue: Equatable>: _CommandLineToolFla
         self._representaton = .custom
         self.defaultPosition = defaultPosition
     }
-    
+
     /// Creates an array of custom flags from any `OptionKeyConvertible`.
     public init<T>(
         wrappedValue: [T]?,
@@ -290,7 +290,7 @@ public struct _CommandLineToolFlag<WrappedValue: Equatable>: _CommandLineToolFla
             defaultPosition: placement
         )
     }
-    
+
     /// Creates an array of custom flags from any `OptionKeyConvertible`.
     public init<T>(
         wrappedValue: [T]?,
@@ -300,7 +300,7 @@ public struct _CommandLineToolFlag<WrappedValue: Equatable>: _CommandLineToolFla
         self._representaton = .custom
         self.defaultPosition = defaultPosition
     }
-    
+
     @available(*, unavailable, message: "@Flag only accepts `Bool`, `Int` or any custom types that conforms to `CLT.OptionKeyConvertible`.")
     @_disfavoredOverload
     public init(
@@ -318,7 +318,7 @@ public enum _CommandLineToolFlagInversion: Hashable, Sendable {
     case prefixedNo
     /// Emit `--enable-<name>` when `true` and `--disable-<name>` when `false`.
     case prefixedEnableDisable
-    
+
     package func argument(
         conversion: _CommandLineToolOptionKeyConversion,
         name: String,
@@ -335,7 +335,7 @@ public enum _CommandLineToolFlagInversion: Hashable, Sendable {
         guard let insertionText else {
             return base
         }
-        
+
         return conversion.prefix + insertionText + "-" + name
     }
 }

@@ -9,12 +9,13 @@
 import Foundation
 import Swallow
 
+extension CommandLineToolInvocationSummary {
 @available(macOS 11.0, *)
 @available(iOS, unavailable)
 @available(macCatalyst, unavailable)
 @available(tvOS, unavailable)
 @available(watchOS, unavailable)
-public struct InvocationSummaryCaseCondition<Command: AnyCommandLineTool, Value: InvocationSummaryValue, Summary: InvocationSummary>: InvocationSummarySwitchCaseProtocol where Value.WrappedValue: Equatable {
+public struct InvocationSummaryCaseCondition<Command: AnyCommandLineTool, Value: InvocationSummaryValue, Summary: InvocationSummary>: InvocationSummarySwitchCaseProtocol where Value.WrappedValue: Equatable, Summary.Command == Command {
     let value: Value.WrappedValue
     let summary: Summary
 
@@ -25,14 +26,16 @@ public struct InvocationSummaryCaseCondition<Command: AnyCommandLineTool, Value:
         self.value = value
         self.summary = content()
     }
-    
+
     public func summary(sourceValue: Value) throws -> Summary {
         guard sourceValue.wrappedValue.eraseToAnyEquatable() == value.eraseToAnyEquatable() else {
             throw InvocationSummarySwitchCaseError.caseNotMatch
         }
-        
+
         return summary
     }
+}
+
 }
 
 #endif

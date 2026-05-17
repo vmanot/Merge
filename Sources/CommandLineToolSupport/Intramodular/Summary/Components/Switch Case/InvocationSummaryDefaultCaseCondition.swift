@@ -8,12 +8,13 @@
 
 import Foundation
 
+extension CommandLineToolInvocationSummary {
 @available(macOS 11.0, *)
 @available(iOS, unavailable)
 @available(macCatalyst, unavailable)
 @available(tvOS, unavailable)
 @available(watchOS, unavailable)
-public struct InvocationSummaryDefaultCaseCondition<Command: AnyCommandLineTool, Value: InvocationSummaryValue, Summary: InvocationSummary>: InvocationSummarySwitchCaseProtocol {
+public struct InvocationSummaryDefaultCaseCondition<Command: AnyCommandLineTool, Value: InvocationSummaryValue, Summary: InvocationSummary>: InvocationSummarySwitchCaseProtocol where Summary.Command == Command {
     let summary: Summary
 
     public init(
@@ -21,10 +22,12 @@ public struct InvocationSummaryDefaultCaseCondition<Command: AnyCommandLineTool,
     ) {
         self.summary = content()
     }
-    
+
     public func summary(sourceValue: Value) throws -> Summary {
         summary
     }
+}
+
 }
 
 #endif

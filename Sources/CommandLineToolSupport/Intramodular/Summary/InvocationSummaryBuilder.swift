@@ -9,6 +9,7 @@
 import Foundation
 import Swallow
 
+extension CommandLineToolInvocationSummary {
 @resultBuilder
 @available(macOS 11.0, *)
 @available(iOS, unavailable)
@@ -20,14 +21,14 @@ public struct InvocationSummaryBuilder<Command: AnyCommandLineTool> {
     public static func buildBlock() -> _EmptyInvocationSummary<Command> {
         _EmptyInvocationSummary()
     }
-    
+
     @_alwaysEmitIntoClient
     public static func buildBlock<Content>(
         _ content: Content
     ) -> Content where Content: InvocationSummary {
         content
     }
-    
+
     @_disfavoredOverload
     @_alwaysEmitIntoClient
     public static func buildBlock<each Content>(
@@ -42,42 +43,42 @@ public struct InvocationSummaryBuilder<Command: AnyCommandLineTool> {
     ) -> Content where Content: InvocationSummary{
         content
     }
-    
+
     @available(*, unavailable, message: "this expression does not conform to 'InvocationSummary'")
     @_disfavoredOverload
     @_alwaysEmitIntoClient
     public static func buildExpression(_ invalid: Any) -> some InvocationSummary {
         fatalError()
     }
-    
+
     @_alwaysEmitIntoClient
     public static func buildExpression(
         _ expression: String
     ) -> _InvocationSummaryLiteral<Command> {
         _InvocationSummaryLiteral(text: expression)
     }
-    
+
     @_alwaysEmitIntoClient
     public static func buildExpression<Value>(
         _ expression: KeyPath<Command, _CommandLineToolFlag<Value>>
     ) -> InvocationSummaryValueReference<Command, _CommandLineToolFlag<Value>> {
         InvocationSummaryValueReference(keyPath: expression)
     }
-    
+
     @_alwaysEmitIntoClient
     public static func buildExpression<Value>(
         _ expression: KeyPath<Command, _CommandLineToolParameter<Value>>
     ) -> InvocationSummaryValueReference<Command, _CommandLineToolParameter<Value>> {
         InvocationSummaryValueReference(keyPath: expression)
     }
-    
+
     @_alwaysEmitIntoClient
     public static func buildOptional<Content>(
         _ component: Content?
     ) -> _OptionalInvocationSummary<Command, Content> where Content: InvocationSummary, Content.Command == Command {
         _OptionalInvocationSummary(component)
     }
-    
+
     @_alwaysEmitIntoClient
     public static func buildEither<TrueContent, FalseContent>(
         first component: TrueContent
@@ -85,7 +86,7 @@ public struct InvocationSummaryBuilder<Command: AnyCommandLineTool> {
           TrueContent.Command == Command, FalseContent.Command == Command {
         _ConditionalInvocationSummary.first(component)
     }
-    
+
     @_alwaysEmitIntoClient
     public static func buildEither<TrueContent, FalseContent>(
         second component: FalseContent
@@ -93,7 +94,7 @@ public struct InvocationSummaryBuilder<Command: AnyCommandLineTool> {
           TrueContent.Command == Command, FalseContent.Command == Command {
         _ConditionalInvocationSummary.second(component)
     }
-    
+
     @_alwaysEmitIntoClient
     public static func buildLimitedAvailability<Content>(
         _ component: Content
@@ -111,11 +112,11 @@ public struct InvocationSummaryBuilder<Command: AnyCommandLineTool> {
 @available(watchOS, unavailable)
 public struct _InvocationSummaryLiteral<Command: AnyCommandLineTool>: InvocationSummary {
     let text: String
-    
+
     public init(text: String) {
         self.text = text
     }
-    
+
     public func makeInvocationArguments(
         command: Command,
         parent: AnyCommandLineTool?,
@@ -132,7 +133,7 @@ public struct _InvocationSummaryLiteral<Command: AnyCommandLineTool>: Invocation
 @available(watchOS, unavailable)
 public struct _EmptyInvocationSummary<Command: AnyCommandLineTool>: InvocationSummary {
     @inlinable public init() { }
-    
+
     public func makeInvocationArguments(
         command: Command,
         parent: AnyCommandLineTool?,
@@ -149,11 +150,11 @@ public struct _EmptyInvocationSummary<Command: AnyCommandLineTool>: InvocationSu
 @available(watchOS, unavailable)
 public struct _OptionalInvocationSummary<Command: AnyCommandLineTool, Content: InvocationSummary>: InvocationSummary where Content.Command == Command {
     let content: Content?
-    
+
     public init(_ content: Content?) {
         self.content = content
     }
-    
+
     public func makeInvocationArguments(
         command: Command,
         parent: AnyCommandLineTool?,
@@ -162,7 +163,7 @@ public struct _OptionalInvocationSummary<Command: AnyCommandLineTool, Content: I
         guard let content else {
             return []
         }
-        
+
         return try content.makeInvocationArguments(
             command: command,
             parent: parent,
@@ -179,7 +180,7 @@ public struct _OptionalInvocationSummary<Command: AnyCommandLineTool, Content: I
 public enum _ConditionalInvocationSummary<Command: AnyCommandLineTool, TrueContent: InvocationSummary, FalseContent: InvocationSummary>: InvocationSummary where TrueContent.Command == Command, FalseContent.Command == Command {
     case first(TrueContent)
     case second(FalseContent)
-    
+
     public func makeInvocationArguments(
         command: Command,
         parent: AnyCommandLineTool?,
@@ -202,18 +203,15 @@ public enum _ConditionalInvocationSummary<Command: AnyCommandLineTool, TrueConte
     }
 }
 
-@available(macOS 11.0, *)
-@available(iOS, unavailable)
-@available(macCatalyst, unavailable)
-@available(tvOS, unavailable)
-@available(watchOS, unavailable)
-extension Never: InvocationSummary {
+}
+
+extension Never: CommandLineToolInvocationSummary.InvocationSummary {
     public typealias Command = AnyCommandLineTool
-    
+
     public func makeInvocationArguments(
         command: Command,
         parent: AnyCommandLineTool?,
-        context: Context
+        context: CommandLineToolInvocationSummary.InvocationSummaryContext
     ) throws -> [String] {
         fatalError(.unavailable)
     }

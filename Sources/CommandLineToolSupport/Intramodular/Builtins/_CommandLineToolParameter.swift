@@ -10,20 +10,20 @@ extension CommandLineTool {
     public typealias Parameter<T> = _CommandLineToolParameter<T>
 }
 
-public protocol _CommandLineToolParameterProtocol: PropertyWrapper, InvocationSummaryValue {
+public protocol _CommandLineToolParameterProtocol: PropertyWrapper, CommandLineToolInvocationSummary.InvocationSummaryValue {
     /// The name of the parameter as it will be passed in the actual command being invoked.
     var name: String? { get }
-    
+
     var optionKeyConversion: _CommandLineToolOptionKeyConversion? { get }
-    
+
     /// Defines how the parameter’s value is joined with its key when constructing the final command-line invocation.
     ///
     /// For example, `--output <path>`, or `--output=value`.
     var keyValueSeparator: _CommandLineToolParameterKeyValueSeparator { get }
-    
+
     /// Defines how multi-value parameter is converted into argument(s) that would be passed in the actual command being invoked.
     var multiValueEncodingStrategy: MultiValueParameterEncodingStrategy? { get }
-    
+
     /// Positional hint for where this parameter should appear in the invocation.
     var defaultPosition: _CommandLineToolArgumentPosition { get }
 }
@@ -39,12 +39,12 @@ extension _CommandLineToolParameterProtocol {
 public struct _CommandLineToolParameter<WrappedValue>: _CommandLineToolParameterProtocol {
     private final class Storage {
         var wrappedValue: Any?
-        
+
         init(wrappedValue: Any? = nil) {
             self.wrappedValue = wrappedValue
         }
     }
-    
+
     private let storage: Storage
 
     public var name: String?
@@ -52,7 +52,7 @@ public struct _CommandLineToolParameter<WrappedValue>: _CommandLineToolParameter
     public var keyValueSeparator: _CommandLineToolParameterKeyValueSeparator
     public var multiValueEncodingStrategy: MultiValueParameterEncodingStrategy?
     public var defaultPosition: _CommandLineToolArgumentPosition = .local
-    
+
     /// Positional hint for where this parameter should appear in the invocation.
     public var placement: CommandLineToolArgumentPlacement {
         get {
@@ -61,32 +61,32 @@ public struct _CommandLineToolParameter<WrappedValue>: _CommandLineToolParameter
             defaultPosition = newValue
         }
     }
-    
+
     public var wrappedValue: WrappedValue {
         get {
             if let value = storage.wrappedValue as? WrappedValue {
                 return value
             }
-            
+
             if let value = (Optional<Any>.none as Any) as? WrappedValue {
                 return value
             }
-            
+
             preconditionFailure("Parameter \(WrappedValue.self) was read before being initialized.")
         } nonmutating set {
             storage.wrappedValue = newValue
         }
     }
-    
+
     public var projectedValue: _CommandLineToolParameter<WrappedValue> {
         self
     }
-    
+
     public func resolve(
         in context: _CommandLineToolResolutionContext
     ) throws -> _AnyResolvedCommandLineToolInvocationArgument {
         let wrappedValue = self.wrappedValue
-        
+
         return if let name {
             _ResolvedCommandLineToolDescription.Option(
                 id: context.resolvingID,
@@ -107,7 +107,7 @@ public struct _CommandLineToolParameter<WrappedValue>: _CommandLineToolParameter
             ).erasedToAnyResolvedCommandLineToolInvocationArgument()
         }
     }
-    
+
     @_disfavoredOverload
     public init() {
         self.storage = Storage()
@@ -116,7 +116,7 @@ public struct _CommandLineToolParameter<WrappedValue>: _CommandLineToolParameter
         self.multiValueEncodingStrategy = nil
         self.defaultPosition = .local
     }
-    
+
     @_disfavoredOverload
     public init(
         wrappedValue: WrappedValue,
@@ -142,7 +142,7 @@ extension _CommandLineToolParameter where WrappedValue : CLT.ArgumentValueConver
             name: nil
         )
     }
-    
+
     /// Creates a property that reads its value from a labeled option or an argument.
     public init(
         wrappedValue: WrappedValue,
@@ -174,7 +174,7 @@ extension _CommandLineToolParameter where WrappedValue : CLT.ArgumentValueConver
             defaultPosition: placement
         )
     }
-    
+
     /// Creates a property that reads its value from a labeled option or an argument.
     public init(
         wrappedValue: WrappedValue,
@@ -210,7 +210,7 @@ extension _CommandLineToolParameter {
             defaultPosition: placement
         )
     }
-    
+
     /// Creates an array that reads its value from zero or more labeled options or arguments.
     public init<T>(
         wrappedValue: WrappedValue,
@@ -226,7 +226,7 @@ extension _CommandLineToolParameter {
         self.multiValueEncodingStrategy = encoding
         self.defaultPosition = defaultPosition
     }
-    
+
     /// Creates an array that reads its value from zero or more labeled options or arguments.
     public init<T>(
         wrappedValue: WrappedValue,
@@ -245,7 +245,7 @@ extension _CommandLineToolParameter {
             defaultPosition: placement
         )
     }
-    
+
     /// Creates an array that reads its value from zero or more labeled options or arguments.
     public init<T>(
         wrappedValue: WrappedValue,
@@ -284,7 +284,7 @@ extension _CommandLineToolParameter {
             defaultPosition: placement
         )
     }
-    
+
     /// Creates an array that reads its value from zero or more labeled options or arguments.
     public init<T>(
         wrappedValue: WrappedValue,
@@ -319,7 +319,7 @@ extension _CommandLineToolParameter {
             defaultPosition: placement
         )
     }
-    
+
     /// Creates an array that reads its value from zero or more labeled options or arguments.
     public init<T>(
         wrappedValue: WrappedValue,

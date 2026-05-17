@@ -17,13 +17,13 @@ public protocol CommandLineTool: AnyCommandLineTool {
     associatedtype EnvironmentVariables = _CommandLineTool_DefaultEnvironmentVariables
     associatedtype Command : AnyCommandLineTool = Self
 
-    associatedtype SummaryContent: InvocationSummary
-    typealias When = InvocationSummaryWhenCondition<Self>
-    typealias Switch<Value, CaseCondition> = InvocationSummarySwitchCondition<Self, Value, CaseCondition> where CaseCondition : InvocationSummarySwitchCaseProtocol, Value: InvocationSummaryValue
-    typealias Case<Value, Summary> = InvocationSummaryCaseCondition<Self, Value, Summary> where Value : InvocationSummaryValue, Value.WrappedValue: Equatable, Summary : InvocationSummary
-    typealias DefaultCase<Value, Summary> = InvocationSummaryDefaultCaseCondition<Self, Value, Summary> where Value : InvocationSummaryValue, Summary : InvocationSummary
+    associatedtype SummaryContent: CommandLineToolInvocationSummary.InvocationSummary
+    typealias When = CommandLineToolInvocationSummary.InvocationSummaryWhenCondition<Self>
+    typealias Switch<Value, CaseCondition> = CommandLineToolInvocationSummary.InvocationSummarySwitchCondition<Self, Value, CaseCondition> where CaseCondition : CommandLineToolInvocationSummary.InvocationSummarySwitchCaseProtocol, CaseCondition.Command == Self, CaseCondition.Value == Value, Value: CommandLineToolInvocationSummary.InvocationSummaryValue
+    typealias Case<Value, Summary> = CommandLineToolInvocationSummary.InvocationSummaryCaseCondition<Self, Value, Summary> where Value : CommandLineToolInvocationSummary.InvocationSummaryValue, Value.WrappedValue: Equatable, Summary : CommandLineToolInvocationSummary.InvocationSummary, Summary.Command == Self
+    typealias DefaultCase<Value, Summary> = CommandLineToolInvocationSummary.InvocationSummaryDefaultCaseCondition<Self, Value, Summary> where Value : CommandLineToolInvocationSummary.InvocationSummaryValue, Summary : CommandLineToolInvocationSummary.InvocationSummary, Summary.Command == Self
 
-    @InvocationSummaryBuilder<Command>
+    @CommandLineToolInvocationSummary.InvocationSummaryBuilder<Command>
     var invocationSummary: SummaryContent { get }
 }
 
@@ -50,11 +50,11 @@ extension CommandLineTool {
         arguments.filter { !$0.isEmpty }
     }
 
-    public var invocationSummary: some InvocationSummary {
-        DefaultInvocationSummary<Self>()
+    public var invocationSummary: some CommandLineToolInvocationSummary.InvocationSummary {
+        CommandLineToolInvocationSummary.DefaultInvocationSummary<Self>()
     }
 
-    public func invocationArguments(context: InvocationSummaryContext) throws -> [String] {
+    public func invocationArguments(context: CommandLineToolInvocationSummary.InvocationSummaryContext) throws -> [String] {
         var arguments = [String]()
 
         switch self {
@@ -122,9 +122,9 @@ extension CommandLineTool {
                 preconditionFailure("\(type(of: self)) not equals to \(SummaryContent.Command.self)")
         }
 
-        if !(SummaryContent.self == DefaultInvocationSummary<Self>.self) {
+        if !(self is any _GenericSubcommandProtocol) && !(SummaryContent.self == CommandLineToolInvocationSummary.DefaultInvocationSummary<Self>.self) {
             try arguments.append(
-                contentsOf: DefaultInvocationSummary<Self>().makeInvocationArguments(
+                contentsOf: CommandLineToolInvocationSummary.DefaultInvocationSummary<Self>().makeInvocationArguments(
                     command: self,
                     parent: nil,
                     context: context
@@ -137,7 +137,7 @@ extension CommandLineTool {
 
     public var invocation: String {
         get throws {
-            try invocationArguments(context: InvocationSummaryContext()).joined(separator: " ")
+            try invocationArguments(context: CommandLineToolInvocationSummary.InvocationSummaryContext()).joined(separator: " ")
         }
     }
 

@@ -12,7 +12,7 @@ import Runtime
 
 extension AnyCommandLineTool {
     package func _defaultInvocationArguments(
-        context: InvocationSummaryContext,
+        context: CommandLineToolInvocationSummary.InvocationSummaryContext,
         positions: Set<_CommandLineToolArgumentPosition.Anchor>
     ) throws -> [String] {
         try resolve().arguments
@@ -35,13 +35,13 @@ extension AnyCommandLineTool {
 //    public var _resolvedDescriptionChain: [_ResolvedCommandLineToolDescription] {
 //        get throws {
 //            var resolvedDescriptions = [_ResolvedCommandLineToolDescription]()
-//            
+//
 //            switch self {
 //                case _ as any _GenericSubcommandProtocol:
 //                    var argumentPositions: Set<_CommandLineToolArgumentPosition> = [.local, .nextCommand, .lastCommand]
 //                    var root: AnyCommandLineTool! = self
 //                    var depth = 0
-//                    
+//
 //                    resolvedDescriptions.append(
 //                        try self.resolve(
 //                            in: _CommandLineToolResolutionContext(
@@ -50,19 +50,19 @@ extension AnyCommandLineTool {
 //                            )
 //                        )
 //                    )
-//                    
+//
 //                    while let parent = (root as? (any _GenericSubcommandProtocol))?.parent {
 //                        depth += 1
 //                        defer { root = parent }
-//                        
+//
 //                        if (parent is any _GenericSubcommandProtocol) == false {
 //                            argumentPositions.remove(.nextCommand)
 //                        }
-//                        
+//
 //                        if depth > 0 {
 //                            argumentPositions.remove(.lastCommand)
 //                        }
-//                        
+//
 //                        try resolvedDescriptions.insert(
 //                            parent.resolve(
 //                                in: _CommandLineToolResolutionContext(
@@ -83,19 +83,19 @@ extension AnyCommandLineTool {
 //                        )
 //                    )
 //            }
-//            
+//
 //            return resolvedDescriptions
 //        }
 //    }
-    
+
     public func resolve() throws -> _ResolvedCommandLineToolDescription {
         let mirror = try InstanceMirror(reflecting: self)
-        
+
         var _resolvedArguments: _ResolvedCommandLineToolDescription.ResolvedArguments = []
         var _resolvedSubcommmands: _ResolvedCommandLineToolDescription.ResolvedSubcommands = []
-        
+
 //        try _resolveArgumentsFromParentCommand(context: context, into: &_resolvedArguments)
-        
+
         if let subcommand = self as? (any _GenericSubcommandProtocol) {
             let _resolved = try subcommand.command.resolve()
             _resolvedArguments.append(contentsOf: _resolved.arguments)
@@ -106,7 +106,7 @@ extension AnyCommandLineTool {
                     rawValue: key.stringValue.dropPrefixIfPresent("_"), // property wrapper always includes a prefix `_`
                     commandName: _commandName
                 )
-                
+
                 let context = _CommandLineToolResolutionContext(
                     resolvingID: resolvingID,
                     defaultKeyConversion: self.keyConversion
@@ -129,21 +129,21 @@ extension AnyCommandLineTool {
                 }
             }
         }
-        
+
         return _ResolvedCommandLineToolDescription(
             toolName: _commandName,
             arguments: _resolvedArguments,
             subcommands: _resolvedSubcommmands
         )
     }
-    
+
 //    private func _resolveArgumentsFromParentCommand(
 //        context: _CommandLineToolResolutionContext,
 //        into resolved: inout _ResolvedCommandLineToolDescription.ResolvedArguments
 //    ) throws {
 //        var parent: AnyCommandLineTool? = (self as? any _GenericSubcommandProtocol)?.parent
 //        var depth = context.traverseDepth + 1
-//        
+//
 //        if let parent, context.argumentPositions.contains(.nextCommand) {
 //            // subcommmand inherits arguments with `defaultPosition` of `.nextCommand` (aka. the subcommand or this command) from parent command
 //            try resolved.append(
@@ -155,13 +155,13 @@ extension AnyCommandLineTool {
 //                ).localArguments
 //            )
 //        }
-//        
+//
 //        guard depth == 1 else { return } // If depth > 1, it is an intermediate command, not last command
 //        guard context.argumentPositions.contains(.lastCommand) else { return }
-//        
+//
 //        while let _parent = parent {
 //            depth += 1
-//            
+//
 //            // Inherits arguments with `defaultPosition` of `.lastCommand` from the parent command chain
 //            // For example: `git remote update` chain is `remote` -> `git`
 //            try resolved.append(
@@ -172,11 +172,11 @@ extension AnyCommandLineTool {
 //                    )
 //                ).localArguments
 //            )
-//            
+//
 //            parent = (_parent as? any _GenericSubcommandProtocol)?.parent
 //        }
 //    }
-    
+
     private func _resolveSubcommand(
         _ subcommand: any _CommandLineToolSubcommandProtocol,
         resolvingID: _ResolvedCommandLineToolDescription.ArgumentID,
@@ -202,7 +202,7 @@ extension AnyCommandLineTool {
     ) -> _CommandLineToolOptionKeyConversion {
         explicit ?? keyConversion ?? defaultKeyConversion(nameOfKey)
     }
-    
+
     private func defaultKeyConversion(_ name: String) -> _CommandLineToolOptionKeyConversion {
         name.count > 1 ? .doubleHyphenPrefixed : .hyphenPrefixed
     }

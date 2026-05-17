@@ -7,137 +7,35 @@ import Foundation
 import Swallow
 
 public final class SystemShell: Logging {
-    public var environmentVariables: [String: String]
+    package enum Ownership {
+        case local
+        case borrowedFromCommandLineTool
+    }
+
+    public var environmentVariables: EnvironmentVariables
     public var currentDirectoryURL: URL?
     public var options: [_AsyncProcessOption]?
-    
+
+    package let _internalState = _InternalState()
+    package var ownership: Ownership = .local
+
     public init(
         environment: [String: String]? = nil,
         currentDirectoryURL: URL? = nil,
         options: [_AsyncProcessOption]? = nil
     ) {
-        self.environmentVariables = ProcessInfo.processInfo.environment.merging(environment ?? [:], uniquingKeysWith: { lhs, rhs in rhs })
+        self.environmentVariables = .inherited(overriding: environment ?? [:])
+        self.currentDirectoryURL = currentDirectoryURL
+        self.options = options
+    }
+
+    public init(
+        environmentVariables: EnvironmentVariables,
+        currentDirectoryURL: URL? = nil,
+        options: [_AsyncProcessOption]? = nil
+    ) {
+        self.environmentVariables = environmentVariables
         self.currentDirectoryURL = currentDirectoryURL
         self.options = options
     }
 }
-
-#if os(macOS)
-@available(macOS 11.0, iOS 14.0, watchOS 7.0, tvOS 14.0, *)
-@available(macCatalyst, unavailable)
-extension SystemShell {
-    public func run(
-        executableURL: URL,
-        arguments: [String],
-        environment: Environment = .zsh
-    ) async throws -> Process.RunResult {
-        let (launchPath, arguments) = try await environment.resolve(launchPath: executableURL.path, arguments: arguments)
-        
-        let process = try _AsyncProcess(
-            launchPath: launchPath,
-            arguments: arguments,
-            currentDirectoryURL: currentDirectoryURL?._fromURLToFileURL() ?? self.currentDirectoryURL,
-            environmentVariables: self.environmentVariables.merging(environmentVariables, uniquingKeysWith: { $1 }),
-            options: options
-        )
-        
-        return try await process.run()
-    }
-    
-    @discardableResult
-    public func run(
-        command: String,
-        input: String? = nil,
-        environment: Environment = .zsh
-    ) async throws -> Process.RunResult {
-        let process = try await _AsyncProcess(
-            command: command,
-            input: input,
-            environment: environmentVariables,
-            currentDirectoryURL: currentDirectoryURL,
-            options: options
-        )
-        
-        return try await process.run()
-    }
-}
-#else
-@available(macOS 11.0, *)
-@available(iOS, unavailable)
-@available(macCatalyst, unavailable)
-@available(tvOS, unavailable)
-@available(watchOS, unavailable)
-extension SystemShell {
-    public func run(
-        executableURL: URL,
-        arguments: [String],
-        environment: Environment = .zsh
-    ) async throws -> _ProcessRunResult {
-        throw Never.Reason.unsupported
-    }
-    
-    @discardableResult
-    public func run(
-        command: String,
-        input: String? = nil,
-        environment: Environment = .zsh
-    ) async throws -> _ProcessRunResult {
-        throw Never.Reason.unsupported
-    }
-}
-#endif
-
-// MARK: - Auxiliary
-
-@globalActor
-public actor _ShellActor {
-    public actor ActorType {
-        fileprivate init() {
-            
-        }
-    }
-    
-    public static let shared: ActorType = ActorType()
-}
-
-@available(macOS 11.0, *)
-@available(iOS 13.4, *)
-@available(iOS, unavailable)
-@available(macCatalyst, unavailable)
-@available(tvOS, unavailable)
-@available(watchOS, unavailable)
-extension _AsyncProcess {
-    public convenience init(
-        command: String,
-        input: String? = nil,
-        shell: SystemShell.Environment = .zsh,
-        environment: [String: String]? = nil,
-        currentDirectoryURL: URL? = nil,
-        options: [_AsyncProcess.Option]?
-    ) async throws {
-        let (launchPath, arguments) = try await shell.resolve(command: command)
-        
-        try self.init(
-            executableURL: URL(fileURLWithPath: launchPath),
-            arguments: arguments,
-            environment: environment ?? ProcessInfo.processInfo.environment,
-            currentDirectoryURL: currentDirectoryURL,
-            options: options
-        )
-        
-        if let input = input?.data(using: .utf8), !input.isEmpty, let handle = standardInputPipe?.fileHandleForWriting {
-            handle.write(input)
-            try? handle.close()
-        }
-    }
-}
-
-// MARK: - Deprecated
-
-@available(macOS 11.0, *)
-@available(iOS, unavailable)
-@available(macCatalyst, unavailable)
-@available(tvOS, unavailable)
-@available(watchOS, unavailable)
-@available(*, deprecated, renamed: "SystemShell")
-public typealias Shell = SystemShell

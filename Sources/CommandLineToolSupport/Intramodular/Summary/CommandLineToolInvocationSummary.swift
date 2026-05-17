@@ -9,6 +9,11 @@
 import Foundation
 import Swallow
 
+public enum CommandLineToolInvocationSummary {
+
+}
+
+extension CommandLineToolInvocationSummary {
 @available(macOS 11.0, *)
 @available(iOS, unavailable)
 @available(macCatalyst, unavailable)
@@ -17,7 +22,7 @@ import Swallow
 public protocol InvocationSummary<Command> {
     associatedtype Command: AnyCommandLineTool
     typealias Context = InvocationSummaryContext
-    
+
     func makeInvocationArguments(
         command: Command,
         parent: AnyCommandLineTool?,
@@ -32,11 +37,11 @@ public protocol InvocationSummary<Command> {
 @available(watchOS, unavailable)
 public struct AnyInvocationSummary<Command: AnyCommandLineTool>: InvocationSummary {
     let base: any InvocationSummary<Command>
-    
+
     public init(erasing summary: some InvocationSummary<Command>) {
         self.base = summary
     }
-    
+
     public func makeInvocationArguments(
         command: Command,
         parent: AnyCommandLineTool?,
@@ -55,15 +60,15 @@ public struct AnyInvocationSummary<Command: AnyCommandLineTool>: InvocationSumma
 @available(watchOS, unavailable)
 public struct TupleInvocationSummary<Command: AnyCommandLineTool, T>: InvocationSummary {
     public var value: T
-    
+
     @inlinable public init(_ value: T) {
         self.value = value
     }
-    
+
     private var summaries: [any InvocationSummary<Command>] {
         let metadata = TupleMetadata(T.self)
         guard let metadata else { return [] }
-        
+
         var summaries: [any InvocationSummary<Command>] = []
         for i in 0 ..< metadata.elementCount {
             let element = metadata.element(at: Int(i))
@@ -77,14 +82,14 @@ public struct TupleInvocationSummary<Command: AnyCommandLineTool, T>: Invocation
                         .advanced(by: Int(element.offset))
                         .load(as: Summary.self)
                 }
-               
+
                 return load(elementType)
             }
             summaries.append(summary)
         }
         return summaries
     }
-    
+
     public func makeInvocationArguments(
         command: Command,
         parent: AnyCommandLineTool?,
@@ -94,6 +99,8 @@ public struct TupleInvocationSummary<Command: AnyCommandLineTool, T>: Invocation
             try $0.makeInvocationArguments(command: command, parent: parent, context: context)
         })
     }
+}
+
 }
 
 #endif

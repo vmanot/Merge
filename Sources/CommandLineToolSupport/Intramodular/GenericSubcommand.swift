@@ -80,7 +80,7 @@ public class GenericSubcommand<Parent, Command>: AnyCommandLineTool, CommandLine
         self.command = command
     }
 
-    public var invocationSummary: some InvocationSummary {
+    public var invocationSummary: some CommandLineToolInvocationSummary.InvocationSummary {
         command.invocationSummary
     }
 
@@ -90,6 +90,10 @@ public class GenericSubcommand<Parent, Command>: AnyCommandLineTool, CommandLine
     ) -> Self {
         command[keyPath: keyPath] = newValue
         return self
+    }
+
+    public func callAsFunction() -> Self {
+        self
     }
 
     @inlinable

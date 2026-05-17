@@ -9,6 +9,7 @@
 import Foundation
 import Swallow
 
+extension CommandLineToolInvocationSummary {
 @available(macOS 11.0, *)
 @available(iOS, unavailable)
 @available(macCatalyst, unavailable)
@@ -16,7 +17,7 @@ import Swallow
 @available(watchOS, unavailable)
 public struct InvocationSummaryValueReferenceFromParent<Parent: AnyCommandLineTool, Command: AnyCommandLineTool, Value: InvocationSummaryValue>: InvocationSummary where Command : _Subcommand, Parent == Command.ParentCommand {
     let keyPath: KeyPath<Parent, Value>
-    
+
     public func makeInvocationArguments(
         command: Command,
         parent: AnyCommandLineTool?,
@@ -25,12 +26,12 @@ public struct InvocationSummaryValueReferenceFromParent<Parent: AnyCommandLineTo
         guard let parent = parent as? Parent else {
             preconditionFailure("No such parent matched.")
         }
-        
+
         guard !context.argumentIsRendered(command: parent, keyPath) else {
             return []
         }
         defer { context.registerValueReference(command: parent, keyPath) }
-        
+
         let resolved = try parent[keyPath: keyPath].resolve(
             in: .init(
                 resolvingID: _ResolvedCommandLineToolDescription.ArgumentID(
@@ -40,13 +41,15 @@ public struct InvocationSummaryValueReferenceFromParent<Parent: AnyCommandLineTo
                 defaultKeyConversion: command.keyConversion
             )
         )
-        
+
         if let argument = resolved.invocationArgument {
             return [argument]
         } else {
             return []
         }
     }
+}
+
 }
 
 #endif
