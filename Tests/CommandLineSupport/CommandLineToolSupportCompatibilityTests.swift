@@ -240,20 +240,27 @@ struct CommandLineToolSupportCompatibilityTests {
         #expect(dryRunCommand == "conditionalsummarytool dry-run --verbose")
     }
 
-    @Test
+    @Test("Borrowed SystemShell rejects process teardown")
     func borrowedSystemShellRejectsProcessTeardown() async throws {
         do {
             try await CompatibilityLeafTool().withUnsafeSystemShell { shell in
                 try await shell.teardownRunningProcesses()
             }
 
-            Issue.record("Expected borrowed SystemShell teardown to fail")
+            Issue.record("Expected borrowed SystemShell teardown to fail.")
         } catch {
-            #expect(String(describing: error).contains("AnyCommandLineTool.withUnsafeSystemShell"))
+            #expect(
+                String(describing: error).contains("Cannot tear down running processes"),
+                "Borrowed shell teardown should fail with the dedicated ownership error."
+            )
+            #expect(
+                String(describing: error).contains("withUnsafeSystemShell"),
+                "The teardown failure should call out the borrowed-shell API boundary."
+            )
         }
     }
 
-    @Test
+    @Test("Borrowed SystemShell rejects use after withUnsafeSystemShell returns")
     func borrowedSystemShellRejectsUseAfterClosureReturns() async throws {
         var escapedShell: SystemShell?
 
@@ -264,19 +271,23 @@ struct CommandLineToolSupportCompatibilityTests {
         do {
             _ = try await escapedShell?.run(command: "echo leaked")
 
-            Issue.record("Expected escaped borrowed SystemShell use to fail")
+            Issue.record("Expected escaped borrowed SystemShell use to fail.")
+        } catch SystemShell.DeveloperError.invalidBorrowedShellLease {
         } catch {
-            #expect(String(describing: error).contains("withUnsafeSystemShell"))
+            Issue.record("Expected invalidBorrowedShellLease, got \(error).")
         }
     }
 
-    @Test
+    @Test("Legacy sink wrapper uses scoped SystemShell configuration")
     func legacySinkWrapperUsesScopedConfiguration() async throws {
         let result = try await CompatibilityLeafTool().withUnsafeSystemShell(sink: .null) { shell in
             try await shell.run(command: "echo captured")
         }
 
-        #expect(result.stdoutString == "captured")
+        #expect(
+            result.stdoutString == "captured",
+            "The legacy .null sink should disable mirroring while preserving captured stdout."
+        )
     }
 }
 

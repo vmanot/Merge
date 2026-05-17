@@ -6,9 +6,9 @@
 
 import Testing
 
-@Suite(.serialized)
+@Suite("SystemShell process tracking", .serialized)
 struct SystemShellProcessTrackingTests {
-    @Test
+    @Test("Tracks running processes and completed run results")
     func tracksRunningProcessesAndCompletedRunResults() async throws {
         let shell = SystemShell(options: [])
 
@@ -20,18 +20,20 @@ struct SystemShellProcessTrackingTests {
             try await Task.sleep(.milliseconds(10))
         }
 
-        #expect(await shell.runningProcesses.count == 1)
-        #expect(await shell.completedRunResults.isEmpty)
+        #expect(await shell.runningProcesses.count == 1, "The shell should expose the live process while it is running.")
+        #expect(await shell.completedRunResults.isEmpty, "A running process should not be recorded as completed yet.")
 
         let result = try await task.value
 
-        #expect(result.stdoutString == "done")
-        #expect(await shell.runningProcesses.isEmpty)
-        #expect(await shell.completedRunResults.count == 1)
-        #expect(await shell.completedRunResults.first?.stdoutString == "done")
+        let completedRunResults = await shell.completedRunResults
+
+        #expect(result.stdoutString == "done", "The shell should still return the captured run result to the caller.")
+        #expect(await shell.runningProcesses.isEmpty, "Finished processes should be removed from the running set.")
+        #expect(completedRunResults.count == 1, "Finished processes should be recorded exactly once.")
+        #expect(completedRunResults.first?.stdoutString == "done", "The recorded result should preserve captured stdout.")
     }
 
-    @Test
+    @Test("Tears down running processes owned by the shell")
     func tearsDownRunningProcessesOwnedByShell() async throws {
         let shell = SystemShell(options: [._teardown([.terminate(allowedDurationToNextStep: .milliseconds(100))])])
 
@@ -47,7 +49,7 @@ struct SystemShellProcessTrackingTests {
 
         _ = try await task.value
 
-        #expect(await shell.runningProcesses.isEmpty)
-        #expect(await shell.completedRunResults.count == 1)
+        #expect(await shell.runningProcesses.isEmpty, "Teardown should remove terminated processes from the running set.")
+        #expect(await shell.completedRunResults.count == 1, "Teardown should still record the terminated run result.")
     }
 }
