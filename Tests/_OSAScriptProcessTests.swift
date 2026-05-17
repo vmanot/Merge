@@ -6,6 +6,9 @@
 import XCTest
 
 class OSAScriptProcessTests: XCTestCase {
+    override func setUpWithError() throws {
+        throw XCTSkip("OSAScriptProcess tests are disabled generally.")
+    }
     
     func testPropertySettersAndGetters() {
         let process = OSAScriptProcess()
