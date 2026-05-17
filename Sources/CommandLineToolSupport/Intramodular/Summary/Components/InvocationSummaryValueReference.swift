@@ -54,7 +54,7 @@ public struct InvocationSummaryValueReference<Command: AnyCommandLineTool, Value
 @available(macCatalyst, unavailable)
 @available(tvOS, unavailable)
 @available(watchOS, unavailable)
-public protocol InvocationSummaryValue<WrappedValue>: PropertyWrapper, Resolvable where Result == _AnyResolvedCommandLineToolInvocationArgument, Context == _CommandLineToolResolutionContext, WrappedValue : Equatable {
+public protocol InvocationSummaryValue<WrappedValue>: PropertyWrapper, Resolvable where Result == _AnyResolvedCommandLineToolInvocationArgument, Context == _CommandLineToolResolutionContext {
     
 }
 

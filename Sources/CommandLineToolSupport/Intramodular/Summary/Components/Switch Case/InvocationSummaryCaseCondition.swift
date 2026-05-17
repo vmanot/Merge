@@ -14,7 +14,7 @@ import Swallow
 @available(macCatalyst, unavailable)
 @available(tvOS, unavailable)
 @available(watchOS, unavailable)
-public struct InvocationSummaryCaseCondition<Command: AnyCommandLineTool, Value: InvocationSummaryValue, Summary: InvocationSummary>: InvocationSummarySwitchCaseProtocol {
+public struct InvocationSummaryCaseCondition<Command: AnyCommandLineTool, Value: InvocationSummaryValue, Summary: InvocationSummary>: InvocationSummarySwitchCaseProtocol where Value.WrappedValue: Equatable {
     let value: Value.WrappedValue
     let summary: Summary
 

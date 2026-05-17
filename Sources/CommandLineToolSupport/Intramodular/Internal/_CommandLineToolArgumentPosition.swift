@@ -27,15 +27,36 @@ public struct _CommandLineToolArgumentPosition: Hashable, Sendable {
     }
 }
 
+/// Describes where a flag or parameter should appear when constructing a command invocation.
+public typealias CommandLineToolArgumentPlacement = _CommandLineToolArgumentPosition
+
 extension _CommandLineToolArgumentPosition {
+    /// Place the argument with the command that declares it.
+    public static var declaringCommand: Self {
+        .local
+    }
+    
+    /// Place the argument with the command that declares it.
     public static var local: Self {
         .init(anchor: .local)
     }
     
+    /// Place the argument with the selected command in a command/subcommand chain.
+    public static var selectedCommand: Self {
+        .nextCommand
+    }
+    
+    /// Place the argument with the next command in a command/subcommand chain.
     public static var nextCommand: Self {
         .init(anchor: .nextCommand)
     }
     
+    /// Place the argument with the final command in a command/subcommand chain.
+    public static var finalCommand: Self {
+        .lastCommand
+    }
+    
+    /// Place the argument with the final command in a command/subcommand chain.
     public static var lastCommand: Self {
         .init(anchor: .lastCommand)
     }

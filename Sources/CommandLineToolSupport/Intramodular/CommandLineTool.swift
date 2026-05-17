@@ -20,7 +20,7 @@ public protocol CommandLineTool: AnyCommandLineTool {
     associatedtype SummaryContent: InvocationSummary
     typealias When = InvocationSummaryWhenCondition<Self>
     typealias Switch<Value, CaseCondition> = InvocationSummarySwitchCondition<Self, Value, CaseCondition> where CaseCondition : InvocationSummarySwitchCaseProtocol, Value: InvocationSummaryValue
-    typealias Case<Value, Summary> = InvocationSummaryCaseCondition<Self, Value, Summary> where Value : InvocationSummaryValue, Summary : InvocationSummary
+    typealias Case<Value, Summary> = InvocationSummaryCaseCondition<Self, Value, Summary> where Value : InvocationSummaryValue, Value.WrappedValue: Equatable, Summary : InvocationSummary
     typealias DefaultCase<Value, Summary> = InvocationSummaryDefaultCaseCondition<Self, Value, Summary> where Value : InvocationSummaryValue, Summary : InvocationSummary
 
     @InvocationSummaryBuilder<Command>
