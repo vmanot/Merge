@@ -71,6 +71,10 @@ extension SystemShell {
         package private(set) var runningProcesses: [_AsyncProcess] = []
         package private(set) var completedRunResults: [Process.RunResult] = []
 
+        package init() {
+
+        }
+
         package func insertRunningProcess(
             _ process: _AsyncProcess
         ) {

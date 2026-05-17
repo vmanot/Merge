@@ -59,6 +59,22 @@ extension _AsyncProcess {
         executableURL: URL?,
         arguments: [String],
         currentDirectoryURL: URL? = nil,
+        environmentVariables: [String: String],
+        options: [_AsyncProcess.Option]?
+    ) throws {
+        try self.init(
+            executableURL: executableURL,
+            arguments: arguments,
+            currentDirectoryURL: currentDirectoryURL,
+            environmentVariables: EnvironmentVariables.exact(environmentVariables),
+            options: options
+        )
+    }
+
+    public convenience init(
+        executableURL: URL?,
+        arguments: [String],
+        currentDirectoryURL: URL? = nil,
         environmentVariables: [String: String]?,
         options: [_AsyncProcess.Option]?
     ) throws {
@@ -67,6 +83,22 @@ extension _AsyncProcess {
             arguments: arguments,
             currentDirectoryURL: currentDirectoryURL,
             environmentVariables: environmentVariables.map(EnvironmentVariables.exact) ?? .inherited,
+            options: options
+        )
+    }
+
+    public convenience init(
+        launchPath: String?,
+        arguments: [String],
+        currentDirectoryURL: URL? = nil,
+        environmentVariables: [String: String],
+        options: [_AsyncProcess.Option]?
+    ) throws {
+        try self.init(
+            launchPath: launchPath,
+            arguments: arguments,
+            currentDirectoryURL: currentDirectoryURL,
+            environmentVariables: EnvironmentVariables.exact(environmentVariables),
             options: options
         )
     }

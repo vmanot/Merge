@@ -27,6 +27,18 @@ struct SystemShellEnvironmentVariablesTests {
     }
 
     @Test
+    func inheritedEnvironmentVariablesPreserveSubscriptMutationCompatibility() throws {
+        var environmentVariables = SystemShell.EnvironmentVariables.inherited
+
+        environmentVariables["MERGE_TEST_ENV"] = "1"
+
+        let variables = try #require(environmentVariables.resolvingForProcessLaunch())
+
+        #expect(variables["MERGE_TEST_ENV"] == "1")
+        #expect(variables["PATH"] == ProcessInfo.processInfo.environment["PATH"])
+    }
+
+    @Test
     func exactEnvironmentVariablesDoNotInheritParentVariables() throws {
         let variables = try #require(
             SystemShell.EnvironmentVariables

@@ -12,16 +12,49 @@ extension SystemShell {
     public func run(
         executableURL: URL,
         arguments: [String],
-        environment: Environment = .zsh
+        interpreter: Environment
     ) async throws -> Process.RunResult {
-        let (launchPath, arguments) = try await environment.resolve(launchPath: executableURL.path, arguments: arguments)
+        try _validateBorrowedLease()
+
+        let (launchPath, arguments) = try await interpreter.resolve(launchPath: executableURL.path, arguments: arguments)
 
         let process = try _AsyncProcess(
             launchPath: launchPath,
             arguments: arguments,
-            currentDirectoryURL: currentDirectoryURL?._fromURLToFileURL() ?? self.currentDirectoryURL,
-            environmentVariables: environmentVariables.resolvingForAsyncProcessLaunch(),
-            options: options
+            currentDirectoryURL: configuration.currentDirectoryURL,
+            environmentVariables: configuration.environmentVariables.resolvingForAsyncProcessLaunch(),
+            options: try _optionsForProcessLaunch()
+        )
+
+        return try await _run(process)
+    }
+
+    public func run(
+        executableURL: URL,
+        arguments: [String],
+        environment: Environment = .zsh
+    ) async throws -> Process.RunResult {
+        try await run(
+            executableURL: executableURL,
+            arguments: arguments,
+            interpreter: environment
+        )
+    }
+
+    @discardableResult
+    public func run(
+        command: String,
+        input: String? = nil,
+        interpreter: Environment
+    ) async throws -> Process.RunResult {
+        try _validateBorrowedLease()
+
+        let process = try await _AsyncProcess(
+            command: command,
+            input: input,
+            environmentVariables: configuration.environmentVariables.resolvingForAsyncProcessLaunch(),
+            currentDirectoryURL: configuration.currentDirectoryURL,
+            options: try _optionsForProcessLaunch()
         )
 
         return try await _run(process)
@@ -33,15 +66,11 @@ extension SystemShell {
         input: String? = nil,
         environment: Environment = .zsh
     ) async throws -> Process.RunResult {
-        let process = try await _AsyncProcess(
+        try await run(
             command: command,
             input: input,
-            environmentVariables: environmentVariables.resolvingForAsyncProcessLaunch(),
-            currentDirectoryURL: currentDirectoryURL,
-            options: options
+            interpreter: environment
         )
-
-        return try await _run(process)
     }
 }
 #else
@@ -54,7 +83,24 @@ extension SystemShell {
     public func run(
         executableURL: URL,
         arguments: [String],
+        interpreter: Environment
+    ) async throws -> _ProcessRunResult {
+        throw Never.Reason.unsupported
+    }
+
+    public func run(
+        executableURL: URL,
+        arguments: [String],
         environment: Environment = .zsh
+    ) async throws -> _ProcessRunResult {
+        throw Never.Reason.unsupported
+    }
+
+    @discardableResult
+    public func run(
+        command: String,
+        input: String? = nil,
+        interpreter: Environment
     ) async throws -> _ProcessRunResult {
         throw Never.Reason.unsupported
     }
@@ -83,7 +129,19 @@ extension SystemShell {
         try await run(
             executableURL: shell.launchURL.unwrap(),
             arguments: shell.deriveArguments(command),
-            environment: shell
+            interpreter: shell
+        )
+    }
+
+    public func run(
+        executablePath: String,
+        arguments: [String],
+        interpreter: Environment
+    ) async throws -> _ProcessRunResult {
+        try await run(
+            executableURL: try URL(string: executablePath).unwrap(),
+            arguments: arguments,
+            interpreter: interpreter
         )
     }
 
@@ -93,9 +151,9 @@ extension SystemShell {
         environment: Environment = .zsh
     ) async throws -> _ProcessRunResult {
         try await run(
-            executableURL: try URL(string: executablePath).unwrap(),
+            executablePath: executablePath,
             arguments: arguments,
-            environment: environment
+            interpreter: environment
         )
     }
 }
@@ -110,7 +168,7 @@ extension SystemShell {
     public static func run(
         command: String,
         input: String? = nil,
-        environment: Environment = .zsh,
+        interpreter: Environment,
         environmentVariables: [String: String] = [:],
         currentDirectoryURL: URL? = nil,
         options: [_AsyncProcess.Option]? = nil
@@ -123,9 +181,28 @@ extension SystemShell {
         let result: _ProcessRunResult = try await shell.run(
             command: command,
             input: input,
-            environment: environment
+            interpreter: interpreter
         )
 
         return result
+    }
+
+    @discardableResult
+    public static func run(
+        command: String,
+        input: String? = nil,
+        environment: Environment = .zsh,
+        environmentVariables: [String: String] = [:],
+        currentDirectoryURL: URL? = nil,
+        options: [_AsyncProcess.Option]? = nil
+    ) async throws -> _ProcessRunResult {
+        try await run(
+            command: command,
+            input: input,
+            interpreter: environment,
+            environmentVariables: environmentVariables,
+            currentDirectoryURL: currentDirectoryURL,
+            options: options
+        )
     }
 }

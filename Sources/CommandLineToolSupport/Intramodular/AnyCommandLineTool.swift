@@ -43,13 +43,23 @@ open class AnyCommandLineTool: Logging {
         perform operation: (SystemShell) async throws -> R
     ) async throws -> R {
         let environmentVariables = _resolveEnvironmentVariables()
+        let lease = SystemShell._BorrowedLease()
 
         let shell = SystemShell(
-            environment: environmentVariables.mapValues({ String(describing: $0) }),
-            currentDirectoryURL: currentDirectoryURL ?? URL(fileURLWithPath: FileManager.default.currentDirectoryPath),
-            options: [._forwardStdoutStderr]
+            configuration: SystemShell.Configuration(
+                environmentVariables: .inherited(
+                    overriding: environmentVariables.mapValues({ String(describing: $0) })
+                ),
+                currentDirectoryURL: currentDirectoryURL ?? URL(fileURLWithPath: FileManager.default.currentDirectoryPath),
+                standardStreamMirroring: .terminal
+            ),
+            internalState: SystemShell._InternalState(),
+            ownership: .borrowedFromCommandLineTool,
+            borrowedLease: lease
         )
-        shell.ownership = .borrowedFromCommandLineTool
+        defer {
+            lease.invalidate()
+        }
 
         let result: R = try await operation(shell)
 
@@ -68,13 +78,12 @@ extension AnyCommandLineTool {
         perform operation: (SystemShell) async throws -> R
     ) async throws -> R {
         try await withUnsafeSystemShell { shell in
-            shell.options ??= []
-            shell.options?.removeAll(where: {
-                $0._stdoutStderrSink != .null
-            })
-            shell.options?.append(._forwardStdoutStderr(to: sink))
-
-            return try await operation(shell)
+            try await shell.withConfiguration(
+                applying: .standardStreamMirroring(
+                    SystemShell.StandardStreamMirroring(processStandardOutputSink: sink)
+                ),
+                perform: operation
+            )
         }
     }
 }

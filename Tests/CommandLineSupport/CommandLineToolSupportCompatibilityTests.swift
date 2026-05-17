@@ -1,6 +1,7 @@
 #if os(macOS)
 
 import CommandLineToolSupport
+import Merge
 import Testing
 
 final class CompatibilityRootTool: AnyCommandLineTool, CommandLineTool {
@@ -34,6 +35,18 @@ final class OptionalParameterTool: AnyCommandLineTool, CommandLineTool {
     override init() {
 
     }
+}
+
+final class DefaultValueParameterTool: AnyCommandLineTool, CommandLineTool {
+    enum Mode: Hashable {
+        case disabled
+    }
+
+    @Parameter
+    var mode: Mode = .disabled
+
+    @Parameter
+    var values: [String] = []
 }
 
 final class SummaryModeTool: AnyCommandLineTool, CommandLineTool {
@@ -190,6 +203,14 @@ struct CommandLineToolSupportCompatibilityTests {
     }
 
     @Test
+    func defaultValueParametersDoNotRequireArgumentValueConvertible() {
+        let tool = DefaultValueParameterTool()
+
+        #expect(tool.mode == .disabled)
+        #expect(tool.values == [])
+    }
+
+    @Test
     func invocationSummaryCanModelModeSpecificArguments() throws {
         let command = try SummaryModeTool()
             .with(\.target, "arm64-apple-macos")
@@ -230,6 +251,32 @@ struct CommandLineToolSupportCompatibilityTests {
         } catch {
             #expect(String(describing: error).contains("AnyCommandLineTool.withUnsafeSystemShell"))
         }
+    }
+
+    @Test
+    func borrowedSystemShellRejectsUseAfterClosureReturns() async throws {
+        var escapedShell: SystemShell?
+
+        try await CompatibilityLeafTool().withUnsafeSystemShell { shell in
+            escapedShell = shell
+        }
+
+        do {
+            _ = try await escapedShell?.run(command: "echo leaked")
+
+            Issue.record("Expected escaped borrowed SystemShell use to fail")
+        } catch {
+            #expect(String(describing: error).contains("withUnsafeSystemShell"))
+        }
+    }
+
+    @Test
+    func legacySinkWrapperUsesScopedConfiguration() async throws {
+        let result = try await CompatibilityLeafTool().withUnsafeSystemShell(sink: .null) { shell in
+            try await shell.run(command: "echo captured")
+        }
+
+        #expect(result.stdoutString == "captured")
     }
 }
 

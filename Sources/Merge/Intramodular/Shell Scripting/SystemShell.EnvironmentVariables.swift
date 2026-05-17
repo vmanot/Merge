@@ -56,6 +56,53 @@ extension SystemShell {
             Self(policy: .empty)
         }
 
+        public subscript(
+            key: String
+        ) -> String? {
+            get {
+                switch policy {
+                    case .inherit:
+                        return ProcessInfo.processInfo.environment[key]
+                    case .inheritOverriding(let variables):
+                        return variables[key] ?? ProcessInfo.processInfo.environment[key]
+                    case .exact(let variables):
+                        return variables[key]
+                    case .empty:
+                        return nil
+                }
+            } set {
+                switch policy {
+                    case .inherit:
+                        if let newValue {
+                            self = .inherited(overriding: [key: newValue])
+                        } else {
+                            var variables = ProcessInfo.processInfo.environment
+                            variables[key] = nil
+                            self = .exact(variables)
+                        }
+                    case .inheritOverriding(var variables):
+                        if let newValue {
+                            variables[key] = newValue
+                            self = .inherited(overriding: variables)
+                        } else {
+                            var resolvedVariables = ProcessInfo.processInfo.environment.merging(
+                                variables,
+                                uniquingKeysWith: { _, rhs in rhs }
+                            )
+                            resolvedVariables[key] = nil
+                            self = .exact(resolvedVariables)
+                        }
+                    case .exact(var variables):
+                        variables[key] = newValue
+                        self = .exact(variables)
+                    case .empty:
+                        if let newValue {
+                            self = .exact([key: newValue])
+                        }
+                }
+            }
+        }
+
         public func resolvingForProcessLaunch() -> [String: String]? {
             switch policy {
                 case .inherit:

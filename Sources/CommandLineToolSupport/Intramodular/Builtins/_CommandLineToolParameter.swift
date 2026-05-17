@@ -130,6 +130,16 @@ public struct _CommandLineToolParameter<WrappedValue>: _CommandLineToolParameter
         self.multiValueEncodingStrategy = nil
         self.defaultPosition = defaultPosition
     }
+
+    @_disfavoredOverload
+    public init(
+        wrappedValue: WrappedValue
+    ) {
+        self.init(
+            wrappedValue: wrappedValue,
+            name: nil
+        )
+    }
 }
 
 extension _CommandLineToolParameter where WrappedValue : CLT.ArgumentValueConvertible {
