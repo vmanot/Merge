@@ -1,5 +1,5 @@
 {
-  "originHash" : "ad35f7cce3eb38ad5e7d55cff5e9b28638dc499db2f0744a61d9b321948bbefd",
+  "originHash" : "8912347777196abf52f8dd3261c6a13b6b63f870a8a0e9883809ce4b1a7e60c0",
   "pins" : [
     {
       "identity" : "swallow",
@@ -7,7 +7,7 @@
       "location" : "https://github.com/vmanot/Swallow.git",
       "state" : {
         "branch" : "master",
-        "revision" : "6a996c765a000e6c744276300ac5c01c86070fe1"
+        "revision" : "65c44f8fc616cb73079b66c63496a1c408dd918a"
       }
     },
     {
@@ -15,8 +15,8 @@
       "kind" : "remoteSourceControl",
       "location" : "https://github.com/apple/swift-atomics.git",
       "state" : {
-        "revision" : "cd142fd2f64be2100422d658e7411e39489da985",
-        "version" : "1.2.0"
+        "revision" : "b601256eab081c0f92f059e12818ac1d4f178ff7",
+        "version" : "1.3.0"
       }
     },
     {
@@ -24,8 +24,8 @@
       "kind" : "remoteSourceControl",
       "location" : "https://github.com/apple/swift-collections",
       "state" : {
-        "revision" : "c1805596154bb3a265fd91b8ac0c4433b4348fb0",
-        "version" : "1.2.0"
+        "revision" : "6675bc0ff86e61436e615df6fc5174e043e57924",
+        "version" : "1.4.1"
       }
     },
     {
@@ -33,8 +33,8 @@
       "kind" : "remoteSourceControl",
       "location" : "https://github.com/preternatural-fork/swift-subprocess.git",
       "state" : {
-        "branch" : "main",
-        "revision" : "80bd50f91abf49164156b61c1071821927242c62"
+        "revision" : "45581612c9a4e2a982065d1e1ee11f1d2399aa4c",
+        "version" : "0.4.1"
       }
     },
     {
@@ -51,8 +51,8 @@
       "kind" : "remoteSourceControl",
       "location" : "https://github.com/apple/swift-system",
       "state" : {
-        "revision" : "61e4ca4b81b9e09e2ec863b00c340eb13497dac6",
-        "version" : "1.5.0"
+        "revision" : "7c6ad0fc39d0763e0b699210e4124afd5041c5df",
+        "version" : "1.6.4"
       }
     }
   ],

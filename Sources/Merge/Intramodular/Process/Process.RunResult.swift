@@ -7,7 +7,7 @@ import Swallow
 
 /// A type that represents the result of a running a `Process`.
 public struct _ProcessRunResult: Hashable, Logging, @unchecked Sendable {
-    #if os(macOS) || targetEnvironment(macCatalyst)
+    #if os(macOS)
     public let process: Process
     #endif
     public let stdout: Data?
@@ -98,7 +98,7 @@ extension _ProcessRunResult {
 
 // MARK: - Initializers
 
-#if os(macOS) || targetEnvironment(macCatalyst)
+#if os(macOS)
 @available(macOS 11.0, iOS 14.0, watchOS 7.0, tvOS 14.0, *)
 @available(macCatalyst, unavailable)
 extension _ProcessRunResult {

@@ -10,7 +10,7 @@ import System
 
 // MARK: - Initializers
 
-#if os(macOS) || targetEnvironment(macCatalyst)
+#if os(macOS)
 @available(macOS 11.0, iOS 14.0, watchOS 7.0, tvOS 14.0, *)
 @available(macCatalyst, unavailable)
 extension _AsyncProcess {
@@ -29,7 +29,9 @@ extension _AsyncProcess {
         
         self.process.executableURL = executableURL ?? URL(fileURLWithPath: "/bin/zsh")
         self.process.arguments = arguments
-        self.process.currentDirectoryURL = currentDirectoryURL?._fromURLToFileURL()
+        if let currentDirectoryURL {
+            self.process.currentDirectoryURL = currentDirectoryURL._fromURLToFileURL()
+        }
         self.process.environment = environmentVariables
         #else
         fatalError(.unsupported)

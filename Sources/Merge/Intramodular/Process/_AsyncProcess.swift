@@ -40,8 +40,8 @@ public class _AsyncProcess: Logging {
     )
     
     private let publishers = _Publishers()
-    private let processDidStart = _AsyncGate(initiallyOpen: false)
-    private let processDidExit = _AsyncGate(initiallyOpen: false)
+    package let processDidStart = _AsyncGate(initiallyOpen: false)
+    package let processDidExit = _AsyncGate(initiallyOpen: false)
     
     @_OSUnfairLocked
     private var isWaiting = false
@@ -131,7 +131,9 @@ public class _AsyncProcess: Logging {
         process.executableURL = executableURL
         process.arguments = arguments
         process.environment = environment ?? ProcessInfo.processInfo.environment
-        process.currentDirectoryURL = currentDirectoryURL?._fromURLToFileURL() ?? process.currentDirectoryURL
+        if let currentDirectoryURL {
+            process.currentDirectoryURL = currentDirectoryURL._fromURLToFileURL()
+        }
         
         self.options = options
         
@@ -165,7 +167,7 @@ public class _AsyncProcess: Logging {
     #endif
 }
 
-#if os(macOS) || targetEnvironment(macCatalyst)
+#if os(macOS)
 @available(macOS 11.0, iOS 14.0, watchOS 7.0, tvOS 14.0, *)
 @available(macCatalyst, unavailable)
 extension _AsyncProcess {
@@ -251,25 +253,7 @@ extension _AsyncProcess {
             }
         }
     }
-    
-    public func start() async throws {
-        let _: Void = run()
         
-        try await processDidStart.enter()
-    }
-    
-    public func start(
-        completion: @escaping (Result<Void, Error>) -> Void
-    ) async throws {
-        Task.detached(priority: .userInitiated) {
-            let result = await Result(catching: {
-                try await self.start()
-            })
-            
-            completion(result)
-        }
-    }
-    
     public func terminate() async throws {
         #if os(macOS)
         process.terminate()
@@ -594,7 +578,7 @@ extension _AsyncProcess {
 }
 #endif
 
-#if os(macOS) || targetEnvironment(macCatalyst)
+#if os(macOS)
 @available(macCatalyst, unavailable)
 extension _AsyncProcess {
     public func _standardOutputPublisher() -> AnyPublisher<Data, Never> {

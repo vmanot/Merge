@@ -5,7 +5,7 @@
 import Foundation
 import Swallow
 
-#if os(macOS) || targetEnvironment(macCatalyst)
+#if os(macOS)
 public struct ProcessTerminationError: Error, Hashable, LocalizedError {
     public let process: Process
     public let stdout: String?
@@ -33,7 +33,7 @@ public struct ProcessTerminationError: Error, Hashable, LocalizedError {
 }
 #endif
 
-#if os(macOS) || targetEnvironment(macCatalyst)
+#if os(macOS)
 @available(macCatalyst, unavailable)
 extension ProcessTerminationError: CustomStringConvertible {
     public var description: String {
@@ -90,7 +90,7 @@ extension ProcessTerminationError {
 
 // MARK: - Supplementary
 
-#if os(macOS) || targetEnvironment(macCatalyst)
+#if os(macOS)
 extension Process {
     public typealias TerminationError = ProcessTerminationError
 }

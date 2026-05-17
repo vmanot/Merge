@@ -2,7 +2,7 @@
 // Copyright (c) Vatsal Manot
 //
 
-#if !canImport(PermissionKit)
+#if os(macOS) && !canImport(PermissionKit)
 
 import Darwin
 import Swallow
