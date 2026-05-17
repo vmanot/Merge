@@ -1,3 +1,4 @@
+#if os(macOS)
 //
 // Copyright (c) Vatsal Manot
 //
@@ -15,12 +16,27 @@ import Runtime
 open class AnyCommandLineTool: Logging {
     public lazy var logger = PassthroughLogger(source: self)
     
-    public var environmentVariables: [String: any CLT.EnvironmentVariableValue] = [:]
-    public var currentDirectoryURL: URL? = nil
+    /// The name of the command-line tool or information being used.
+    ///
+    /// By default, the lowercased version of the type name would be used if you don't override it.
+    ///
+    /// Ideally, it should only contain one argument without whitespaces, for example:
+    /// - `xcrun` / `swiftc` / `simctl` / etc.
+    /// - `git` / `commit` / `push`, etc.
+    open var _commandName: String {
+        "\(Self.self)".lowercased()
+    }
     
+    open var keyConversion: _CommandLineToolOptionKeyConversion? {
+        nil
+    }
+
     public init() {
         
     }
+
+    public var environmentVariables: [String: any CLT.EnvironmentVariableValue] = [:]
+    public var currentDirectoryURL: URL? = nil
     
     @discardableResult
     open func withUnsafeSystemShell<R>(
@@ -35,30 +51,6 @@ open class AnyCommandLineTool: Logging {
         )
         
         let result: R = try await operation(shell)
-        
-        return result
-    }
-    
-    /// Resolves the full list of environment variables by combining manually set environment variables with runtime-reflected variables that are defined via the `@EnvironmentVariable` property wrapper.
-    private func _resolveEnvironmentVariables() -> [String: any CLT.EnvironmentVariableValue] {
-        var result: [String: any CLT.EnvironmentVariableValue] = environmentVariables
-        
-        let mirror = InstanceMirror(self)!
-        
-        for child in mirror.children {
-            guard let propertyWrapper = child.value as? (any _CommandLineToolEnvironmentVariableProtocol) else {
-                continue
-            }
-            
-            let environmentVariableName = propertyWrapper.name
-            let environmentVariableValue: any CLT.EnvironmentVariableValue = propertyWrapper.wrappedValue
-
-            if environmentVariables.contains(key: environmentVariableName) {
-                fatalError("conflict for \(environmentVariableName)")
-            }
-        
-            result[environmentVariableName] = environmentVariableValue
-        }
         
         return result
     }
@@ -85,3 +77,34 @@ extension AnyCommandLineTool {
         }
     }
 }
+
+// MARK: - Auxiliary
+
+extension AnyCommandLineTool {
+    /// Resolves the full list of environment variables by combining manually set environment variables with runtime-reflected variables that are defined via the `@EnvironmentVariable` property wrapper.
+    private func _resolveEnvironmentVariables() -> [String: any CLT.EnvironmentVariableValue] {
+        var result: [String: any CLT.EnvironmentVariableValue] = environmentVariables
+        
+        let mirror = Mirror(reflecting: self)
+        
+        for child in mirror.children {
+            guard let propertyWrapper = child.value as? (any _CommandLineToolEnvironmentVariableProtocol) else {
+                continue
+            }
+            
+            let environmentVariableName = propertyWrapper.name
+            let environmentVariableValue: any CLT.EnvironmentVariableValue = propertyWrapper.wrappedValue
+            
+            if environmentVariables.contains(key: environmentVariableName) {
+                fatalError("conflict for \(environmentVariableName)")
+            }
+            
+            result[environmentVariableName] = environmentVariableValue
+        }
+        
+        return result
+    }
+    
+}
+
+#endif

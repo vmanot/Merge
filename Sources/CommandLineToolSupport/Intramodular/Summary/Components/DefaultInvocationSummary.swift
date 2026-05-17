@@ -1,0 +1,35 @@
+#if os(macOS)
+//
+//  DefaultInvocationSummary.swift
+//  Merge
+//
+//  Created by Yanan Li on 2026/1/5.
+//
+
+import Foundation
+import Swallow
+
+@available(macOS 11.0, *)
+@available(iOS, unavailable)
+@available(macCatalyst, unavailable)
+@available(tvOS, unavailable)
+@available(watchOS, unavailable)
+public struct DefaultInvocationSummary<Command: AnyCommandLineTool>: InvocationSummary {
+    @usableFromInline
+    init() { }
+    
+    public func makeInvocationArguments(
+        command: Command,
+        parent: AnyCommandLineTool?,
+        context: InvocationSummaryContext
+    ) throws -> [String] {
+        try command
+            .resolve().arguments
+            .filter {
+                !context.argumentIsRendered(command: command, argumentName: $0.id.rawValue)
+            }
+            .compactMap(\.invocationArgument)
+    }
+}
+
+#endif
