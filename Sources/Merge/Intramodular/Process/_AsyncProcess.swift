@@ -289,6 +289,10 @@ extension _AsyncProcess {
 
     public func terminate() async throws {
         #if os(macOS)
+        guard process.isRunning else {
+            return
+        }
+
         process.terminate()
         #else
         fatalError(.unsupported)
@@ -426,8 +430,8 @@ extension _AsyncProcess {
                         $launchError.assignedValue = error
                         processWillRunTask.cancel()
 
-                        try? _standardOutputPipe?.fileHandleForReading.close()
-                        try? _standardErrorPipe?.fileHandleForReading.close()
+                        try? _standardOutputPipe?.fileHandleForWriting.close()
+                        try? _standardErrorPipe?.fileHandleForWriting.close()
                         try? _standardInputPipe?.fileHandleForWriting.close()
 
                         continuation.resume(throwing: error)
@@ -438,6 +442,10 @@ extension _AsyncProcess {
             } catch {
                 if let launchError {
                     readStdoutStderrTask.cancel()
+                    _ = try? await readStdoutStderrTask.value
+
+                    try? _standardOutputPipe?.fileHandleForReading.close()
+                    try? _standardErrorPipe?.fileHandleForReading.close()
 
                     throw launchError
                 } else {

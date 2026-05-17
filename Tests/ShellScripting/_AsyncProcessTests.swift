@@ -458,7 +458,7 @@ struct _AsyncProcessTests {
     func testTeardownSequenceTerminatesRunningProcess() async throws {
         let process: _AsyncProcess = try _AsyncProcess(
             launchPath: "/bin/bash",
-            arguments: ["-c", "trap 'echo terminated; exit 0' TERM; while true; do sleep 1; done"],
+            arguments: ["-c", "trap 'echo terminated; exit 0' TERM; while true; do sleep 0.01; done"],
             options: [._teardown([.terminate(allowedDurationToNextStep: .milliseconds(100))])]
         )
 
@@ -502,6 +502,31 @@ struct _AsyncProcessTests {
     }
 
     @Test
+    func testRepeatedLaunchFailuresCleanUpProcessRegistry() async throws {
+        let initialCount: Int = _AsyncProcess.$runningProcesses.withCriticalRegion { $0.count }
+
+        for _ in 0..<10 {
+            let process: _AsyncProcess = try _AsyncProcess(
+                executableURL: URL(fileURLWithPath: "/definitely/not/a/real/executable"),
+                arguments: [],
+                environment: nil,
+                currentDirectoryURL: nil,
+                options: []
+            )
+
+            do {
+                _ = try await process.run()
+
+                Issue.record("Expected launch failure")
+            } catch {
+                let finalCount: Int = _AsyncProcess.$runningProcesses.withCriticalRegion { $0.count }
+
+                #expect(finalCount == initialCount)
+            }
+        }
+    }
+
+    @Test
     func testProcessCleanupAfterCompletion() async throws {
         let initialCount: Int = _AsyncProcess.$runningProcesses.withCriticalRegion { $0.count }
 
@@ -520,6 +545,71 @@ struct _AsyncProcessTests {
         // Process should be cleaned up
         let finalCount: Int = _AsyncProcess.$runningProcesses.withCriticalRegion { $0.count }
         #expect(finalCount == initialCount)
+    }
+
+    @Test
+    func testRepeatedShortProcessesCleanUpProcessRegistry() async throws {
+        let initialCount: Int = _AsyncProcess.$runningProcesses.withCriticalRegion { $0.count }
+
+        for index in 0..<5 {
+            let process: _AsyncProcess = try _AsyncProcess(
+                launchPath: "/bin/echo",
+                arguments: ["cleanup-\(index)"],
+                options: []
+            )
+
+            let countAfterInit: Int = _AsyncProcess.$runningProcesses.withCriticalRegion { $0.count }
+            #expect(countAfterInit == initialCount + 1)
+
+            let result: _ProcessRunResult = try await process.run()
+
+            #expect(result.stdoutString == "cleanup-\(index)")
+            #expect(process.state.isTerminated)
+            #expect(!process.isRunning)
+
+            let finalCount: Int = _AsyncProcess.$runningProcesses.withCriticalRegion { $0.count }
+            #expect(finalCount == initialCount)
+        }
+    }
+
+    @Test
+    func testTerminateBeforeLaunchIsNoOp() async throws {
+        let initialCount: Int = _AsyncProcess.$runningProcesses.withCriticalRegion { $0.count }
+
+        let process: _AsyncProcess = try _AsyncProcess(
+            launchPath: "/bin/echo",
+            arguments: ["terminate-before-launch"],
+            options: []
+        )
+
+        try await process.terminate()
+
+        #expect(process.state == .notLaunch)
+        #expect(!process.isRunning)
+        #expect(_AsyncProcess.$runningProcesses.withCriticalRegion { $0.count } == initialCount + 1)
+
+        let result: _ProcessRunResult = try await process.run()
+
+        #expect(result.stdoutString == "terminate-before-launch")
+        #expect(_AsyncProcess.$runningProcesses.withCriticalRegion { $0.count } == initialCount)
+    }
+
+    @Test
+    func testTerminateAfterCompletionIsNoOp() async throws {
+        let initialCount: Int = _AsyncProcess.$runningProcesses.withCriticalRegion { $0.count }
+
+        let process: _AsyncProcess = try _AsyncProcess(
+            launchPath: "/bin/echo",
+            arguments: ["terminate-after-completion"],
+            options: []
+        )
+
+        _ = try await process.run()
+        try await process.terminate()
+
+        #expect(process.state.isTerminated)
+        #expect(!process.isRunning)
+        #expect(_AsyncProcess.$runningProcesses.withCriticalRegion { $0.count } == initialCount)
     }
 
     // MARK: - Environment and Working Directory
