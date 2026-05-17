@@ -1,3 +1,4 @@
+#if os(macOS)
 //
 // Copyright (c) Vatsal Manot
 //
@@ -184,3 +185,5 @@ extension _CommandLineToolParameter {
         self.defaultPosition = defaultPosition
     }
 }
+
+#endif

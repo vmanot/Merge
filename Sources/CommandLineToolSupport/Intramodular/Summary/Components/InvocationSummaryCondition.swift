@@ -1,3 +1,4 @@
+#if os(macOS)
 //
 //  InvocationSummaryCondition.swift
 //  Merge
@@ -6,6 +7,11 @@
 import Foundation
 import Swallow
 
+@available(macOS 11.0, *)
+@available(iOS, unavailable)
+@available(macCatalyst, unavailable)
+@available(tvOS, unavailable)
+@available(watchOS, unavailable)
 public indirect enum InvocationSummaryCondition<Command: AnyCommandLineTool> {
     case predicate((Command, AnyCommandLineTool?, InvocationSummaryContext) -> Bool)
     case not(InvocationSummaryCondition<Command>)
@@ -13,6 +19,11 @@ public indirect enum InvocationSummaryCondition<Command: AnyCommandLineTool> {
     case any([InvocationSummaryCondition<Command>])
 }
 
+@available(macOS 11.0, *)
+@available(iOS, unavailable)
+@available(macCatalyst, unavailable)
+@available(tvOS, unavailable)
+@available(watchOS, unavailable)
 public struct InvocationSummaryValuePredicate<Value> {
     fileprivate let evaluate: (Value?) -> Bool
 
@@ -53,6 +64,11 @@ public struct InvocationSummaryValuePredicate<Value> {
     }
 }
 
+@available(macOS 11.0, *)
+@available(iOS, unavailable)
+@available(macCatalyst, unavailable)
+@available(tvOS, unavailable)
+@available(watchOS, unavailable)
 extension InvocationSummaryCondition {
     public func evaluate(command: Command, parent: AnyCommandLineTool?, context: InvocationSummaryContext) -> Bool {
         switch self {
@@ -113,3 +129,5 @@ extension InvocationSummaryCondition {
         .not(condition)
     }
 }
+
+#endif

@@ -1,3 +1,4 @@
+#if os(macOS)
 //
 //  InvocationSummaryValueReferenceFromParent.swift
 //  Merge
@@ -8,6 +9,11 @@
 import Foundation
 import Swallow
 
+@available(macOS 11.0, *)
+@available(iOS, unavailable)
+@available(macCatalyst, unavailable)
+@available(tvOS, unavailable)
+@available(watchOS, unavailable)
 public struct InvocationSummaryValueReferenceFromParent<Parent: AnyCommandLineTool, Command: AnyCommandLineTool, Value: InvocationSummaryValue>: InvocationSummary where Command : _Subcommand, Parent == Command.ParentCommand {
     let keyPath: KeyPath<Parent, Value>
     
@@ -42,3 +48,5 @@ public struct InvocationSummaryValueReferenceFromParent<Parent: AnyCommandLineTo
         }
     }
 }
+
+#endif

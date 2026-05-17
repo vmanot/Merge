@@ -1,3 +1,4 @@
+#if os(macOS)
 //
 //  InvocationSummaryContext.swift
 //  Merge
@@ -5,6 +6,11 @@
 
 import Foundation
 
+@available(macOS 11.0, *)
+@available(iOS, unavailable)
+@available(macCatalyst, unavailable)
+@available(tvOS, unavailable)
+@available(watchOS, unavailable)
 public final class InvocationSummaryContext {
     private(set) var renderedArguments: Set<Argument> = []
     
@@ -50,3 +56,5 @@ public final class InvocationSummaryContext {
         )
     }
 }
+
+#endif

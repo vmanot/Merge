@@ -1,3 +1,4 @@
+#if os(macOS)
 //
 //  GenericSubcommand.swift
 //  Merge
@@ -9,6 +10,11 @@ import Foundation
 import Swallow
 import Merge
 
+@available(macOS 11.0, *)
+@available(iOS, unavailable)
+@available(macCatalyst, unavailable)
+@available(tvOS, unavailable)
+@available(watchOS, unavailable)
 public class EmptyCommandLineToolSubcommand: AnyCommandLineTool, CommandLineTool {
     var name: String
     
@@ -21,6 +27,11 @@ public class EmptyCommandLineToolSubcommand: AnyCommandLineTool, CommandLineTool
     }
 }
 
+@available(macOS 11.0, *)
+@available(iOS, unavailable)
+@available(macCatalyst, unavailable)
+@available(tvOS, unavailable)
+@available(watchOS, unavailable)
 public protocol _GenericSubcommandProtocol {
     associatedtype Parent: AnyCommandLineTool
     var parent: Parent { get }
@@ -30,6 +41,11 @@ public protocol _GenericSubcommandProtocol {
 }
 
 @dynamicMemberLookup
+@available(macOS 11.0, *)
+@available(iOS, unavailable)
+@available(macCatalyst, unavailable)
+@available(tvOS, unavailable)
+@available(watchOS, unavailable)
 public class GenericSubcommand<Parent, Command>: AnyCommandLineTool, CommandLineTool, _GenericSubcommandProtocol where Parent: AnyCommandLineTool, Command: AnyCommandLineTool & CommandLineTool {
     public let parent: Parent
     public var command: Command
@@ -73,9 +89,18 @@ public class GenericSubcommand<Parent, Command>: AnyCommandLineTool, CommandLine
         try await command.withUnsafeSystemShell(perform: operation)
     }
     
+#if os(macOS)
+    @available(macOS 11.0, *)
+    @available(iOS, unavailable)
+    @available(macCatalyst, unavailable)
+    @available(tvOS, unavailable)
+    @available(watchOS, unavailable)
     public func callAsFunction() async throws -> Process.RunResult {
         try await withUnsafeSystemShell { shell in
             try await shell.run(command: command.invocation)
         }
     }
+#endif
 }
+
+#endif

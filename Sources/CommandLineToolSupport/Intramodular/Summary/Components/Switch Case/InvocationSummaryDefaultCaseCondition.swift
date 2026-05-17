@@ -1,3 +1,4 @@
+#if os(macOS)
 //
 //  InvocationSummaryDefaultCaseCondition.swift
 //  Merge
@@ -7,6 +8,11 @@
 
 import Foundation
 
+@available(macOS 11.0, *)
+@available(iOS, unavailable)
+@available(macCatalyst, unavailable)
+@available(tvOS, unavailable)
+@available(watchOS, unavailable)
 public struct InvocationSummaryDefaultCaseCondition<Command: AnyCommandLineTool, Value: InvocationSummaryValue, Summary: InvocationSummary>: InvocationSummarySwitchCaseProtocol {
     let summary: Summary
 
@@ -20,3 +26,5 @@ public struct InvocationSummaryDefaultCaseCondition<Command: AnyCommandLineTool,
         summary
     }
 }
+
+#endif

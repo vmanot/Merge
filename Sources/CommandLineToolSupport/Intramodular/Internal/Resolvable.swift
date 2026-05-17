@@ -1,3 +1,4 @@
+#if os(macOS)
 //
 //  Resolvable.swift
 //  Merge
@@ -12,3 +13,5 @@ public protocol Resolvable {
     associatedtype Context = Void
     func resolve(in context: Context) throws -> Result
 }
+
+#endif

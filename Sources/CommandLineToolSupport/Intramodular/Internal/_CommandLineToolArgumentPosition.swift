@@ -1,3 +1,4 @@
+#if os(macOS)
 //
 //  _CommandLineToolArgumentPosition.swift
 //  Merge
@@ -39,3 +40,5 @@ extension _CommandLineToolArgumentPosition {
         .init(anchor: .lastCommand)
     }
 }
+
+#endif

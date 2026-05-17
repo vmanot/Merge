@@ -1,3 +1,4 @@
+#if os(macOS)
 //
 //  _CommandLineToolSubcommand.swift
 //  Merge
@@ -8,6 +9,11 @@
 import Foundation
 import Swallow
 
+@available(macOS 11.0, *)
+@available(iOS, unavailable)
+@available(macCatalyst, unavailable)
+@available(tvOS, unavailable)
+@available(watchOS, unavailable)
 extension CommandLineTool {
     public typealias Subcommand = _CommandLineToolSubcommand
 }
@@ -20,6 +26,11 @@ public protocol _CommandLineToolSubcommandProtocol /* PropertyWrapper */ {
 }
 
 @propertyWrapper
+@available(macOS 11.0, *)
+@available(iOS, unavailable)
+@available(macCatalyst, unavailable)
+@available(tvOS, unavailable)
+@available(watchOS, unavailable)
 public struct _CommandLineToolSubcommand<Parent, Command>: _CommandLineToolSubcommandProtocol where Parent: AnyCommandLineTool, Command: AnyCommandLineTool & CommandLineTool {
     public var name: String
     public var command: Command
@@ -69,3 +80,5 @@ public struct _CommandLineToolSubcommand<Parent, Command>: _CommandLineToolSubco
         self.command = .init(name: name)
     }
 }
+
+#endif

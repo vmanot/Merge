@@ -1,3 +1,4 @@
+#if os(macOS)
 //
 //  AnyCommandLineTool+Resolve.swift
 //  Merge
@@ -185,3 +186,5 @@ extension AnyCommandLineTool {
         name.count > 1 ? .doubleHyphenPrefixed : .hyphenPrefixed
     }
 }
+
+#endif

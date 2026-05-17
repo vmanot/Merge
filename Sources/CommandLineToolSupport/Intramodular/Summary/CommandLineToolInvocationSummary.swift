@@ -1,3 +1,4 @@
+#if os(macOS)
 //
 //  CommandLineToolInvocationSummary.swift
 //  Merge
@@ -8,6 +9,11 @@
 import Foundation
 import Swallow
 
+@available(macOS 11.0, *)
+@available(iOS, unavailable)
+@available(macCatalyst, unavailable)
+@available(tvOS, unavailable)
+@available(watchOS, unavailable)
 public protocol InvocationSummary<Command> {
     associatedtype Command: AnyCommandLineTool
     typealias Context = InvocationSummaryContext
@@ -19,6 +25,11 @@ public protocol InvocationSummary<Command> {
     ) throws -> [String]
 }
 
+@available(macOS 11.0, *)
+@available(iOS, unavailable)
+@available(macCatalyst, unavailable)
+@available(tvOS, unavailable)
+@available(watchOS, unavailable)
 public struct AnyInvocationSummary<Command: AnyCommandLineTool>: InvocationSummary {
     let base: any InvocationSummary<Command>
     
@@ -37,6 +48,11 @@ public struct AnyInvocationSummary<Command: AnyCommandLineTool>: InvocationSumma
 
 // MARK: - Tuple Invocation Summary
 
+@available(macOS 11.0, *)
+@available(iOS, unavailable)
+@available(macCatalyst, unavailable)
+@available(tvOS, unavailable)
+@available(watchOS, unavailable)
 public struct TupleInvocationSummary<Command: AnyCommandLineTool, T>: InvocationSummary {
     public var value: T
     
@@ -79,3 +95,5 @@ public struct TupleInvocationSummary<Command: AnyCommandLineTool, T>: Invocation
         })
     }
 }
+
+#endif

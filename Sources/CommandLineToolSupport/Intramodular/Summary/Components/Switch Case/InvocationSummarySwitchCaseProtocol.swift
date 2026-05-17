@@ -1,3 +1,4 @@
+#if os(macOS)
 //
 //  InvocationSummaryCaseCondition.swift
 //  Merge
@@ -8,6 +9,11 @@
 import Foundation
 import Swallow
 
+@available(macOS 11.0, *)
+@available(iOS, unavailable)
+@available(macCatalyst, unavailable)
+@available(tvOS, unavailable)
+@available(watchOS, unavailable)
 public protocol InvocationSummarySwitchCaseProtocol<Value> {
     associatedtype Command: AnyCommandLineTool
     associatedtype Value: InvocationSummaryValue
@@ -18,7 +24,14 @@ public protocol InvocationSummarySwitchCaseProtocol<Value> {
     func summary(sourceValue: Value) throws -> Summary
 }
 
+@available(macOS 11.0, *)
+@available(iOS, unavailable)
+@available(macCatalyst, unavailable)
+@available(tvOS, unavailable)
+@available(watchOS, unavailable)
 enum InvocationSummarySwitchCaseError: Error {
     case caseNotMatch
     case notEquatable
 }
+
+#endif

@@ -1,3 +1,4 @@
+#if os(macOS)
 //
 //  InvocationSummaryCaseConditionBuilder.swift
 //  Merge
@@ -8,6 +9,11 @@
 import Foundation
 
 @resultBuilder
+@available(macOS 11.0, *)
+@available(iOS, unavailable)
+@available(macCatalyst, unavailable)
+@available(tvOS, unavailable)
+@available(watchOS, unavailable)
 public struct InvocationSummaryCaseConditionBuilder<Command: AnyCommandLineTool, Value: InvocationSummaryValue> {
     @_alwaysEmitIntoClient
     public static func buildBlock<each CaseCondition, DefaultSummary>(
@@ -26,3 +32,5 @@ public struct InvocationSummaryCaseConditionBuilder<Command: AnyCommandLineTool,
         content
     }
 }
+
+#endif

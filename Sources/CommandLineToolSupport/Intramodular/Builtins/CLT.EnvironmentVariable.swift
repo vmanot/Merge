@@ -30,6 +30,8 @@ extension CLT.EnvironmentVariable {
     }
 }
 
+#if os(macOS)
+
 @available(macOS 11.0, *)
 @available(iOS, unavailable)
 @available(macCatalyst, unavailable)
@@ -45,3 +47,5 @@ extension CommandLineTool {
         self.environmentVariables[variable.name] = value
     }
 }
+
+#endif

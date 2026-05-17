@@ -1,3 +1,4 @@
+#if os(macOS)
 //
 //  _CommandLineToolResolutionContext.swift
 //  Merge
@@ -34,3 +35,5 @@ public struct _CommandLineToolResolutionContext {
         return name.count > 1 ? .doubleHyphenPrefixed : .hyphenPrefixed
     }
 }
+
+#endif

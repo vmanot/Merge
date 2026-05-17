@@ -1,3 +1,4 @@
+#if os(macOS)
 //
 //  DefaultInvocationSummary.swift
 //  Merge
@@ -8,6 +9,11 @@
 import Foundation
 import Swallow
 
+@available(macOS 11.0, *)
+@available(iOS, unavailable)
+@available(macCatalyst, unavailable)
+@available(tvOS, unavailable)
+@available(watchOS, unavailable)
 public struct DefaultInvocationSummary<Command: AnyCommandLineTool>: InvocationSummary {
     @usableFromInline
     init() { }
@@ -25,3 +31,5 @@ public struct DefaultInvocationSummary<Command: AnyCommandLineTool>: InvocationS
             .compactMap(\.invocationArgument)
     }
 }
+
+#endif

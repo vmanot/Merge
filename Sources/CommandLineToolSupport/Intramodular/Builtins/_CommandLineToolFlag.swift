@@ -1,3 +1,4 @@
+#if os(macOS)
 //
 //  _CommandLineToolFlag.swift
 //  Merge
@@ -241,3 +242,5 @@ public enum _CommandLineToolFlagInversion: Hashable, Sendable {
         return conversion.prefix + insertionText + "-" + name
     }
 }
+
+#endif

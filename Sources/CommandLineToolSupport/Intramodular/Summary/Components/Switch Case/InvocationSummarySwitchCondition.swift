@@ -1,3 +1,4 @@
+#if os(macOS)
 //
 //  InvocationSummarySwitchCondition.swift
 //  Merge
@@ -8,6 +9,11 @@
 import Foundation
 import Swallow
 
+@available(macOS 11.0, *)
+@available(iOS, unavailable)
+@available(macCatalyst, unavailable)
+@available(tvOS, unavailable)
+@available(watchOS, unavailable)
 public struct InvocationSummarySwitchCondition<Command: AnyCommandLineTool, Value: InvocationSummaryValue, CaseCondition: InvocationSummarySwitchCaseProtocol>: InvocationSummary {
     private let keyPath: KeyPath<Command, Value>
     private let conditions: CaseCondition
@@ -35,3 +41,5 @@ public struct InvocationSummarySwitchCondition<Command: AnyCommandLineTool, Valu
         return value
     }
 }
+
+#endif

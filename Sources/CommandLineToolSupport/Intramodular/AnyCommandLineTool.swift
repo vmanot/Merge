@@ -1,3 +1,4 @@
+#if os(macOS)
 //
 // Copyright (c) Vatsal Manot
 //
@@ -105,3 +106,5 @@ extension AnyCommandLineTool {
     }
     
 }
+
+#endif

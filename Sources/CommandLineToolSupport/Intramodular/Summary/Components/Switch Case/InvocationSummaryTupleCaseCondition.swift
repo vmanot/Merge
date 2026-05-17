@@ -1,3 +1,4 @@
+#if os(macOS)
 //
 //  InvocationSummaryTupleCaseCondition.swift
 //  Merge
@@ -8,6 +9,11 @@
 import Foundation
 import Swallow
 
+@available(macOS 11.0, *)
+@available(iOS, unavailable)
+@available(macCatalyst, unavailable)
+@available(tvOS, unavailable)
+@available(watchOS, unavailable)
 public struct InvocationSummaryTupleCaseCondition<Command: AnyCommandLineTool, Value: InvocationSummaryValue, ValueType>: InvocationSummarySwitchCaseProtocol {
     public var value: ValueType
 
@@ -15,6 +21,11 @@ public struct InvocationSummaryTupleCaseCondition<Command: AnyCommandLineTool, V
         self.value = value
     }
 
+    @available(macOS 11.0, *)
+    @available(iOS, unavailable)
+    @available(macCatalyst, unavailable)
+    @available(tvOS, unavailable)
+    @available(watchOS, unavailable)
     private var conditions: [any InvocationSummarySwitchCaseProtocol<Value>] {
         guard let metadata = TupleMetadata(ValueType.self) else { return [] }
         
@@ -40,6 +51,11 @@ public struct InvocationSummaryTupleCaseCondition<Command: AnyCommandLineTool, V
         return conditions
     }
     
+    @available(macOS 11.0, *)
+    @available(iOS, unavailable)
+    @available(macCatalyst, unavailable)
+    @available(tvOS, unavailable)
+    @available(watchOS, unavailable)
     public func summary(sourceValue: Value) throws -> some InvocationSummary<Command> {
         let summary: any InvocationSummary<Command> = conditions.first(byUnwrapping: {
             (try? $0.summary(sourceValue: sourceValue)) as? (any InvocationSummary<Command>)
@@ -48,3 +64,5 @@ public struct InvocationSummaryTupleCaseCondition<Command: AnyCommandLineTool, V
         return AnyInvocationSummary(erasing: summary)
     }
 }
+
+#endif

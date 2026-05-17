@@ -1,3 +1,4 @@
+#if os(macOS)
 //
 //  _ResolvedCommandLineToolDescription.swift
 //  Merge
@@ -207,3 +208,5 @@ public struct _AnyResolvedCommandLineToolInvocationArgument: _UnwrappableTypeEra
         base
     }
 }
+
+#endif

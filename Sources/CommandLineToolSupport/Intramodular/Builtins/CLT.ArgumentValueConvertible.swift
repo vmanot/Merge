@@ -58,6 +58,6 @@ extension String: CLT.ArgumentValueConvertible {
 
 extension URL: CLT.ArgumentValueConvertible {
     public var argumentValue: String {
-        path(percentEncoded: false).replacing(" ", with: "\\ ")
+        path.replacing(" ", with: "\\ ")
     }
 }

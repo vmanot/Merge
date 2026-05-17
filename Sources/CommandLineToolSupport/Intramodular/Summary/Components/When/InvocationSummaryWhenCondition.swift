@@ -1,3 +1,4 @@
+#if os(macOS)
 //
 //  InvocationSummaryWhenCondition.swift
 //  Merge
@@ -8,6 +9,11 @@
 import Foundation
 import Swallow
 
+@available(macOS 11.0, *)
+@available(iOS, unavailable)
+@available(macCatalyst, unavailable)
+@available(tvOS, unavailable)
+@available(watchOS, unavailable)
 public struct InvocationSummaryWhenCondition<Command: AnyCommandLineTool>: InvocationSummary {
     internal let condition: InvocationSummaryCondition<Command>
     internal let trueBranch: any InvocationSummary<Command>
@@ -55,6 +61,11 @@ public struct InvocationSummaryWhenCondition<Command: AnyCommandLineTool>: Invoc
 
 // MARK: - Self property reference
 
+@available(macOS 11.0, *)
+@available(iOS, unavailable)
+@available(macCatalyst, unavailable)
+@available(tvOS, unavailable)
+@available(watchOS, unavailable)
 extension InvocationSummaryWhenCondition {
     public init<TrueContent: InvocationSummary, Value: InvocationSummaryValue>(
         _ value: KeyPath<Command, Value>,
@@ -93,6 +104,11 @@ extension InvocationSummaryWhenCondition {
 
 // MARK: - Property reference to parent command
 
+@available(macOS 11.0, *)
+@available(iOS, unavailable)
+@available(macCatalyst, unavailable)
+@available(tvOS, unavailable)
+@available(watchOS, unavailable)
 extension InvocationSummaryWhenCondition {
     public init<Parent: AnyCommandLineTool, TrueContent: InvocationSummary, Value: InvocationSummaryValue>(
         _ value: InvocationSummaryValueReferenceFromParent<Parent, Command, Value>,
@@ -128,3 +144,5 @@ extension InvocationSummaryWhenCondition {
         self.init(value, .equalsTo(expected), content, else: elseContent)
     }
 }
+
+#endif

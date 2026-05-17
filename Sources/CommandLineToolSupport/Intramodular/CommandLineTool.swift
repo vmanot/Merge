@@ -1,3 +1,4 @@
+#if os(macOS)
 //
 // Copyright (c) Vatsal Manot
 //
@@ -113,3 +114,5 @@ public typealias CLT = CommandLineTools
 public struct _CommandLineTool_DefaultEnvironmentVariables {
     
 }
+
+#endif

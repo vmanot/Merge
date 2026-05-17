@@ -1,3 +1,4 @@
+#if os(macOS)
 //
 //  InvocationSummaryBuilder.swift
 //  Merge
@@ -9,6 +10,11 @@ import Foundation
 import Swallow
 
 @resultBuilder
+@available(macOS 11.0, *)
+@available(iOS, unavailable)
+@available(macCatalyst, unavailable)
+@available(tvOS, unavailable)
+@available(watchOS, unavailable)
 public struct InvocationSummaryBuilder<Command: AnyCommandLineTool> {
     @_alwaysEmitIntoClient
     public static func buildBlock() -> _EmptyInvocationSummary<Command> {
@@ -98,6 +104,11 @@ public struct InvocationSummaryBuilder<Command: AnyCommandLineTool> {
 
 // MARK: - Supplementary
 
+@available(macOS 11.0, *)
+@available(iOS, unavailable)
+@available(macCatalyst, unavailable)
+@available(tvOS, unavailable)
+@available(watchOS, unavailable)
 public struct _InvocationSummaryLiteral<Command: AnyCommandLineTool>: InvocationSummary {
     let text: String
     
@@ -114,6 +125,11 @@ public struct _InvocationSummaryLiteral<Command: AnyCommandLineTool>: Invocation
     }
 }
 
+@available(macOS 11.0, *)
+@available(iOS, unavailable)
+@available(macCatalyst, unavailable)
+@available(tvOS, unavailable)
+@available(watchOS, unavailable)
 public struct _EmptyInvocationSummary<Command: AnyCommandLineTool>: InvocationSummary {
     @inlinable public init() { }
     
@@ -126,6 +142,11 @@ public struct _EmptyInvocationSummary<Command: AnyCommandLineTool>: InvocationSu
     }
 }
 
+@available(macOS 11.0, *)
+@available(iOS, unavailable)
+@available(macCatalyst, unavailable)
+@available(tvOS, unavailable)
+@available(watchOS, unavailable)
 public struct _OptionalInvocationSummary<Command: AnyCommandLineTool, Content: InvocationSummary>: InvocationSummary where Content.Command == Command {
     let content: Content?
     
@@ -150,6 +171,11 @@ public struct _OptionalInvocationSummary<Command: AnyCommandLineTool, Content: I
     }
 }
 
+@available(macOS 11.0, *)
+@available(iOS, unavailable)
+@available(macCatalyst, unavailable)
+@available(tvOS, unavailable)
+@available(watchOS, unavailable)
 public enum _ConditionalInvocationSummary<Command: AnyCommandLineTool, TrueContent: InvocationSummary, FalseContent: InvocationSummary>: InvocationSummary where TrueContent.Command == Command, FalseContent.Command == Command {
     case first(TrueContent)
     case second(FalseContent)
@@ -176,6 +202,11 @@ public enum _ConditionalInvocationSummary<Command: AnyCommandLineTool, TrueConte
     }
 }
 
+@available(macOS 11.0, *)
+@available(iOS, unavailable)
+@available(macCatalyst, unavailable)
+@available(tvOS, unavailable)
+@available(watchOS, unavailable)
 extension Never: InvocationSummary {
     public typealias Command = AnyCommandLineTool
     
@@ -187,3 +218,5 @@ extension Never: InvocationSummary {
         fatalError(.unavailable)
     }
 }
+
+#endif

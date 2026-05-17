@@ -1,3 +1,4 @@
+#if os(macOS)
 //
 //  TupleMetadata.swift
 //  Merge
@@ -9,6 +10,11 @@ import Foundation
 
 // Copied from Swallow since it's private and no `@_spi` available.
 
+@available(macOS 11.0, *)
+@available(iOS, unavailable)
+@available(macCatalyst, unavailable)
+@available(tvOS, unavailable)
+@available(watchOS, unavailable)
 struct TupleMetadata {
     let ptr: UnsafeRawPointer
 
@@ -42,6 +48,11 @@ struct TupleMetadata {
     }
 }
 
+@available(macOS 11.0, *)
+@available(iOS, unavailable)
+@available(macCatalyst, unavailable)
+@available(tvOS, unavailable)
+@available(watchOS, unavailable)
 extension TupleMetadata {
     struct Element: Equatable {
         let ptr: UnsafeRawPointer
@@ -68,3 +79,5 @@ fileprivate struct MetadataKind: Equatable {
     static var tuple: Self { .init(rawValue: 0x301) }
     static var existential: Self { .init(rawValue: 0x303) }
 }
+
+#endif

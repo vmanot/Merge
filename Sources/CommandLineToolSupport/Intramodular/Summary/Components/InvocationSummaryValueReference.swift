@@ -1,3 +1,4 @@
+#if os(macOS)
 //
 //  InvocationSummaryValue.swift
 //  Merge
@@ -8,6 +9,11 @@
 import Foundation
 import Swallow
 
+@available(macOS 11.0, *)
+@available(iOS, unavailable)
+@available(macCatalyst, unavailable)
+@available(tvOS, unavailable)
+@available(watchOS, unavailable)
 public struct InvocationSummaryValueReference<Command: AnyCommandLineTool, Value: InvocationSummaryValue>: InvocationSummary {
     let keyPath: KeyPath<Command, Value>
     
@@ -43,6 +49,13 @@ public struct InvocationSummaryValueReference<Command: AnyCommandLineTool, Value
     }
 }
 
+@available(macOS 11.0, *)
+@available(iOS, unavailable)
+@available(macCatalyst, unavailable)
+@available(tvOS, unavailable)
+@available(watchOS, unavailable)
 public protocol InvocationSummaryValue<WrappedValue>: PropertyWrapper, Resolvable where Result == _AnyResolvedCommandLineToolInvocationArgument, Context == _CommandLineToolResolutionContext, WrappedValue : Equatable {
     
 }
+
+#endif
