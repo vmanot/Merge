@@ -2,11 +2,12 @@
 // Copyright (c) Vatsal Manot
 //
 
+import Combine
 import Diagnostics
 import Foundation
 import Swallow
 
-public final class SystemShell: Logging {
+public final class SystemShell: Logging, ObjectDidChangeObservableObject {
     package enum Ownership {
         case local
         case borrowedFromCommandLineTool
@@ -61,7 +62,16 @@ public final class SystemShell: Logging {
 
     package let _internalState: _InternalState
     package let _borrowedLease: _BorrowedLease?
+    package let _shellScopeID: _ShellScope.ID?
     package var ownership: Ownership = .local
+
+    public var objectWillChange: AnyPublisher<Void, Never> {
+        _internalState.objectWillChange.eraseToAnyPublisher()
+    }
+
+    public var objectDidChange: AnyPublisher<Void, Never> {
+        _internalState.objectDidChange.eraseToAnyPublisher()
+    }
 
     public init(
         environment: [String: String]? = nil,
@@ -76,6 +86,7 @@ public final class SystemShell: Logging {
         self._options = options?.filter({ !$0._isStandardStreamForwardingOption })
         self._internalState = _InternalState()
         self._borrowedLease = nil
+        self._shellScopeID = nil
     }
 
     public init(
@@ -91,6 +102,7 @@ public final class SystemShell: Logging {
         self._options = options?.filter({ !$0._isStandardStreamForwardingOption })
         self._internalState = _InternalState()
         self._borrowedLease = nil
+        self._shellScopeID = nil
     }
 
     public init(
@@ -101,6 +113,7 @@ public final class SystemShell: Logging {
         self._options = options?.filter({ !$0._isStandardStreamForwardingOption })
         self._internalState = _InternalState()
         self._borrowedLease = nil
+        self._shellScopeID = nil
     }
 
     package init(
@@ -108,13 +121,15 @@ public final class SystemShell: Logging {
         options: [_AsyncProcessOption]? = nil,
         internalState: _InternalState,
         ownership: Ownership,
-        borrowedLease: _BorrowedLease?
+        borrowedLease: _BorrowedLease?,
+        shellScopeID: _ShellScope.ID? = nil
     ) {
         self._configuration = configuration
         self._options = options?.filter({ !$0._isStandardStreamForwardingOption })
         self._internalState = internalState
         self.ownership = ownership
         self._borrowedLease = borrowedLease
+        self._shellScopeID = shellScopeID
     }
 
     package func _optionsForProcessLaunch() throws -> [_AsyncProcessOption]? {

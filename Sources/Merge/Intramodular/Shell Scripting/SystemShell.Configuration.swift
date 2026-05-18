@@ -176,3 +176,75 @@ extension SystemShell.Configuration.Difference {
         }
     }
 }
+
+@available(macOS 11.0, *)
+@available(iOS, unavailable)
+@available(macCatalyst, unavailable)
+@available(tvOS, unavailable)
+@available(watchOS, unavailable)
+extension SystemShell {
+    public func withConfiguration<R>(
+        applying differences: Configuration.Difference...,
+        perform operation: (SystemShell) async throws -> R
+    ) async throws -> R {
+        try await withConfiguration(applying: differences, perform: operation)
+    }
+
+    public func withConfiguration<R>(
+        applying differences: [Configuration.Difference],
+        perform operation: (SystemShell) async throws -> R
+    ) async throws -> R {
+        try _validateBorrowedLease()
+
+        let difference = try differences.reduce(into: Configuration.Difference()) {
+            try $0.mergeInPlace(with: $1)
+        }
+
+        guard let childConfiguration = configuration.applying(difference) else {
+            throw _DeveloperError.conflictingConfigurationDifferences
+        }
+
+        let childScope: _ShellScope?
+
+        if let shellScopeID = _shellScopeID {
+            let parentScope = await _internalState._shellScope(id: shellScopeID)
+
+            childScope = _ShellScope(
+                parentID: shellScopeID,
+                rootID: parentScope?.rootID ?? shellScopeID,
+                kind: .configurationScope
+            )
+        } else {
+            childScope = nil
+        }
+
+        if let childScope {
+            await _internalState._insertShellScope(childScope)
+        }
+
+        let child = SystemShell(
+            configuration: childConfiguration,
+            options: _nonStandardStreamMirroringOptions,
+            internalState: _internalState,
+            ownership: ownership,
+            borrowedLease: _borrowedLease,
+            shellScopeID: childScope?.id
+        )
+
+        do {
+            let result = try await operation(child)
+
+            if let childScope {
+                await _internalState._completeShellScope(id: childScope.id)
+            }
+
+            return result
+        } catch {
+            if let childScope {
+                await _internalState._completeShellScope(id: childScope.id)
+            }
+
+            throw error
+        }
+    }
+}
