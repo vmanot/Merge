@@ -27,7 +27,7 @@ public enum ObservableTaskFailure<Error: Swift.Error>: _ErrorX, HashEquatable {
     case canceled
     case error(Error)
     
-    public var traits: ErrorTraits {
+    public var traits: _ErrorTraits {
         switch self {
             case .canceled:
                 assertionFailure()

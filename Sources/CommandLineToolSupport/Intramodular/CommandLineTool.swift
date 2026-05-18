@@ -146,6 +146,64 @@ extension CommandLineTool {
             try await shell.run(command: self.invocation)
         }
     }
+
+    @discardableResult
+    public func _run(
+        applying differences: SystemShell.Configuration.Difference...
+    ) async throws -> _CommandLineToolExecutionRecord<Self> {
+        try await _run(applying: differences)
+    }
+
+    @discardableResult
+    public func _run(
+        applying differences: [SystemShell.Configuration.Difference]
+    ) async throws -> _CommandLineToolExecutionRecord<Self> {
+        let invocation = try commandInvocation
+
+        return try await withUnsafeSystemShell { shell in
+            try await shell.withConfiguration(applying: differences) { shell in
+                let processResult = try await shell.run(command: invocation.commandLine)
+
+                return _CommandLineToolExecutionRecord(
+                    tool: self,
+                    source: .modeledInvocation(invocation),
+                    processResult: processResult
+                )
+            }
+        }
+    }
+
+    @discardableResult
+    public func _run(
+        command commandLine: String,
+        input: String? = nil,
+        applying differences: SystemShell.Configuration.Difference...
+    ) async throws -> _CommandLineToolExecutionRecord<Self> {
+        try await _run(
+            command: commandLine,
+            input: input,
+            applying: differences
+        )
+    }
+
+    @discardableResult
+    public func _run(
+        command commandLine: String,
+        input: String? = nil,
+        applying differences: [SystemShell.Configuration.Difference]
+    ) async throws -> _CommandLineToolExecutionRecord<Self> {
+        try await withUnsafeSystemShell { shell in
+            try await shell.withConfiguration(applying: differences) { shell in
+                let processResult = try await shell.run(command: commandLine, input: input)
+
+                return _CommandLineToolExecutionRecord(
+                    tool: self,
+                    source: .shellCommandLine(commandLine),
+                    processResult: processResult
+                )
+            }
+        }
+    }
 }
 
 extension CommandLineTool {

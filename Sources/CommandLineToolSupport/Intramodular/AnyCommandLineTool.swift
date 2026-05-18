@@ -3,6 +3,7 @@
 // Copyright (c) Vatsal Manot
 //
 
+import Combine
 import Diagnostics
 import Foundation
 import Merge
@@ -13,8 +14,17 @@ import Runtime
 @available(macCatalyst, unavailable)
 @available(tvOS, unavailable)
 @available(watchOS, unavailable)
-open class AnyCommandLineTool: Logging {
+open class AnyCommandLineTool: Logging, ObjectDidChangeObservableObject {
     public lazy var logger = PassthroughLogger(source: self)
+    package let _internalState = _InternalState()
+
+    public var objectWillChange: AnyPublisher<Void, Never> {
+        _internalState.objectWillChange.eraseToAnyPublisher()
+    }
+
+    public var objectDidChange: AnyPublisher<Void, Never> {
+        _internalState.objectDidChange.eraseToAnyPublisher()
+    }
 
     /// The name of the command-line tool or information being used.
     ///
@@ -44,6 +54,12 @@ open class AnyCommandLineTool: Logging {
     ) async throws -> R {
         let environmentVariables = _resolveEnvironmentVariables()
         let lease = SystemShell._BorrowedLease()
+        let shellState = SystemShell._InternalState()
+        let shellScope = SystemShell._ShellScope(kind: .commandLineToolLease)
+        let shellSession = _ShellSession(scope: shellScope, shellState: shellState)
+
+        await shellState._insertShellScope(shellScope)
+        try await _internalState._insertShellSessionAfterValidatingUse(shellSession)
 
         let shell = SystemShell(
             configuration: SystemShell.Configuration(
@@ -53,17 +69,27 @@ open class AnyCommandLineTool: Logging {
                 currentDirectoryURL: currentDirectoryURL ?? URL(fileURLWithPath: FileManager.default.currentDirectoryPath),
                 standardStreamMirroring: .terminal
             ),
-            internalState: SystemShell._InternalState(),
+            internalState: shellState,
             ownership: .borrowedFromCommandLineTool,
-            borrowedLease: lease
+            borrowedLease: lease,
+            shellScopeID: shellScope.id
         )
-        defer {
+
+        do {
+            let result: R = try await operation(shell)
+
             lease.invalidate()
+            await shellState._completeShellScope(id: shellScope.id)
+            await _internalState._completeShellSession(id: shellScope.id)
+
+            return result
+        } catch {
+            lease.invalidate()
+            await shellState._completeShellScope(id: shellScope.id)
+            await _internalState._completeShellSession(id: shellScope.id)
+
+            throw error
         }
-
-        let result: R = try await operation(shell)
-
-        return result
     }
 }
 
@@ -86,6 +112,7 @@ extension AnyCommandLineTool {
             )
         }
     }
+
 }
 
 // MARK: - Auxiliary

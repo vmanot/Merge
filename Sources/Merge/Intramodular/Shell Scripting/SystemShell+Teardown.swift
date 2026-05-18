@@ -99,7 +99,7 @@ extension SystemShell {
         var reports: [ProcessTeardownReport] = []
 
         for process in processes {
-            reports.append(await teardown(process, using: sequence))
+            reports.append(await Self._teardown(process, using: sequence))
         }
 
         return RunningProcessTeardownReport(processReports: reports)
@@ -112,7 +112,7 @@ extension SystemShell {
         var reports: [ProcessTeardownReport] = []
 
         for process in processes {
-            reports.append(await teardown(process, using: process.teardownSequence))
+            reports.append(await Self._teardown(process, using: process.teardownSequence))
         }
 
         return RunningProcessTeardownReport(processReports: reports)
@@ -131,7 +131,7 @@ extension SystemShell {
         }
     }
 
-    package func teardown(
+    package static func _teardown(
         _ process: _AsyncProcess,
         using sequence: some Sequence<TeardownStep> & Sendable
     ) async -> ProcessTeardownReport {
@@ -170,6 +170,8 @@ extension SystemShell {
 
             if step.allowedDurationToNextStep > .zero {
                 try? await Task.sleep(for: step.allowedDurationToNextStep)
+            } else if step.action == .kill {
+                try? await Task.sleep(for: .milliseconds(100))
             }
 
             if !process.isRunning {
@@ -208,6 +210,24 @@ extension SystemShell {
 
     package func _preconditionCanTeardownRunningProcesses() throws {
         try _validateCanAttemptOwnedShellOperation(.teardownRunningProcesses)
+    }
+}
+
+@available(macOS 11.0, *)
+@available(iOS, unavailable)
+@available(macCatalyst, unavailable)
+@available(tvOS, unavailable)
+@available(watchOS, unavailable)
+extension SystemShell._InternalState {
+    package func _teardownRunningProcessesReportingForOwningCommandLineTool() async -> SystemShell.RunningProcessTeardownReport {
+        let processes = runningProcesses
+        var reports: [SystemShell.ProcessTeardownReport] = []
+
+        for process in processes {
+            reports.append(await SystemShell._teardown(process, using: process.teardownSequence))
+        }
+
+        return SystemShell.RunningProcessTeardownReport(processReports: reports)
     }
 }
 

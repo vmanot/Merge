@@ -1,6 +1,8 @@
 #if os(macOS)
 
 import CommandLineToolSupport
+import Combine
+import Foundation
 import Merge
 import Testing
 
@@ -25,6 +27,30 @@ final class CompatibilityRootTool: AnyCommandLineTool, CommandLineTool {
 final class CompatibilityLeafTool: AnyCommandLineTool, CommandLineTool {
     override var _commandName: String {
         "leaf"
+    }
+}
+
+final class EchoCompatibilityTool: AnyCommandLineTool, CommandLineTool {
+    override var _commandName: String {
+        "echo"
+    }
+
+    @Parameter(name: nil)
+    var text: String? = nil
+
+    @Subcommand(of: EchoCompatibilityTool.self, name: "nested", command: EchoNestedCompatibilityTool())
+    var nested
+}
+
+final class EchoNestedCompatibilityTool: AnyCommandLineTool, CommandLineTool {
+    override var _commandName: String {
+        "nested"
+    }
+}
+
+final class TrueCompatibilityTool: AnyCommandLineTool, CommandLineTool {
+    override var _commandName: String {
+        "true"
     }
 }
 
@@ -142,6 +168,13 @@ final class SelectingToolFixture: AnyCommandLineToolWithSelectedTool, CommandLin
     }
 }
 
+@_CommandLineToolModel
+final class MacroBackedCompatibilityTool: AnyCommandLineTool, CommandLineTool {
+    override var _commandName: String {
+        "macro-backed"
+    }
+}
+
 @Suite
 struct CommandLineToolSupportCompatibilityTests {
     @Test
@@ -176,6 +209,15 @@ struct CommandLineToolSupportCompatibilityTests {
     }
 
     @Test
+    func commandLineToolModelMacroSynthesizesProvisionalResultAliases() {
+        let rawResultType: MacroBackedCompatibilityTool._RawRunResult.Type = Process.RunResult.self
+        let executionRecordType: MacroBackedCompatibilityTool._ExecutionRecord.Type = _CommandLineToolExecutionRecord<MacroBackedCompatibilityTool>.self
+
+        #expect(rawResultType == Process.RunResult.self)
+        #expect(executionRecordType == _CommandLineToolExecutionRecord<MacroBackedCompatibilityTool>.self)
+    }
+
+    @Test
     func structuredInvocationPreservesStringInvocation() throws {
         let command = CompatibilityRootTool()
             .with(\.force, true)
@@ -200,6 +242,93 @@ struct CommandLineToolSupportCompatibilityTests {
     @Test
     func optionalNonEquatableParametersCanBeModeled() throws {
         #expect(try OptionalParameterTool().invocation == "optionalparametertool")
+    }
+
+    @Test("CommandLineTool callAsFunction still returns Process.RunResult")
+    func commandLineToolCallAsFunctionStillReturnsRawProcessRunResult() async throws {
+        let result: Process.RunResult = try await TrueCompatibilityTool().callAsFunction()
+
+        #expect(result.stdoutString == nil)
+    }
+
+    @Test("CommandLineTool _run records modeled invocations")
+    func commandLineToolRunRecordsModeledInvocation() async throws {
+        let tool = EchoCompatibilityTool()
+            .with(\.text, "modeled-record")
+        let record = try await tool._run(applying: .standardStreamMirroring(.disabled))
+
+        guard case .modeledInvocation(let invocation) = record.source else {
+            Issue.record("Expected CommandLineTool._run() to record a modeled invocation.")
+            return
+        }
+
+        #expect(record.tool === tool)
+        #expect(invocation.commandLine == "echo modeled-record")
+        #expect(record.invocation == invocation)
+        #expect(record.commandLine == invocation.commandLine)
+        #expect(record.stdoutString == "modeled-record")
+        #expect(try record.toString() == "modeled-record")
+    }
+
+    @Test("GenericSubcommand _run records the full modeled chain")
+    func genericSubcommandRunRecordsFullModeledChain() async throws {
+        let command = EchoCompatibilityTool().nested
+        let record = try await command._run(applying: .standardStreamMirroring(.disabled))
+
+        guard case .modeledInvocation(let invocation) = record.source else {
+            Issue.record("Expected GenericSubcommand._run() to record a modeled invocation.")
+            return
+        }
+
+        #expect(invocation.commandLine == "echo nested")
+        #expect(record.commandLine == "echo nested")
+        #expect(record.stdoutString == "nested")
+    }
+
+    @Test("AnyCommandLineTool _run(command:) records shell command lines")
+    func anyCommandLineToolRunCommandRecordsShellCommandLine() async throws {
+        let tool = CompatibilityLeafTool()
+        let record = try await tool._run(
+            command: "printf raw-shell",
+            applying: .standardStreamMirroring(.disabled)
+        )
+
+        guard case .shellCommandLine(let commandLine) = record.source else {
+            Issue.record("Expected AnyCommandLineTool._run(command:) to record a shell command line.")
+            return
+        }
+
+        #expect(commandLine == "printf raw-shell")
+        #expect(record.invocation == nil)
+        #expect(record.commandLine == commandLine)
+        #expect(record.stdoutString == "raw-shell")
+    }
+
+    @Test("Command-line tool _run applies scoped SystemShell configuration")
+    func commandLineToolRunAppliesScopedSystemShellConfiguration() async throws {
+        let directoryURL = URL(fileURLWithPath: FileManager.default.currentDirectoryPath)
+            .appendingPathComponent(".build", isDirectory: true)
+            .appendingPathComponent(
+                "merge-command-line-tool-run-\(UUID().uuidString)",
+                isDirectory: true
+            )
+
+        try FileManager.default.createDirectory(
+            at: directoryURL,
+            withIntermediateDirectories: true
+        )
+        defer {
+            try? FileManager.default.removeItem(at: directoryURL)
+        }
+
+        let record = try await CompatibilityLeafTool()._run(
+            command: "pwd",
+            applying: .currentDirectoryURL(directoryURL),
+            .standardStreamMirroring(.disabled)
+        )
+
+        #expect(record.commandLine == "pwd")
+        #expect(record.stdoutString == directoryURL.path)
     }
 
     @Test
@@ -306,6 +435,152 @@ struct CommandLineToolSupportCompatibilityTests {
             result.stdoutString == "captured",
             "The legacy .null sink should disable mirroring while preserving captured stdout."
         )
+    }
+
+    @Test("Command-line tools track borrowed shell scopes")
+    func commandLineToolsTrackBorrowedShellScopes() async throws {
+        let tool = CompatibilityLeafTool()
+        var shellState: SystemShell._InternalState?
+
+        try await tool.withUnsafeSystemShell { shell in
+            shellState = shell._internalState
+
+            let toolScope = try #require(
+                await tool._internalState._activeShellScopes.first,
+                "The command-line tool should track the active borrowed shell scope."
+            )
+            let shellScope = try #require(
+                await shell._internalState._activeShellScopes.first,
+                "The borrowed shell state should track its active root scope."
+            )
+
+            #expect(toolScope.id == shellScope.id)
+            #expect(toolScope.kind == .commandLineToolLease)
+            #expect(toolScope.parentID == nil)
+            #expect(toolScope.rootID == toolScope.id)
+
+            try await shell.withConfiguration(
+                applying: SystemShell.Configuration.Difference.standardStreamMirroring(.disabled)
+            ) { childShell in
+                let childScopeID = try #require(
+                    childShell._shellScopeID,
+                    "A child shell derived from the borrowed root should have a scope ID."
+                )
+                let childScope = try #require(
+                    await shell._internalState._shellScope(id: childScopeID),
+                    "The shell state should track child configuration scopes."
+                )
+
+                #expect(childScope.kind == .configurationScope)
+                #expect(childScope.parentID == shellScope.id)
+                #expect(childScope.rootID == shellScope.id)
+                #expect(childScope.status == .active)
+            }
+
+            let completedChildren = await shell._internalState._completedShellScopes.filter {
+                $0.kind == .configurationScope && $0.parentID == shellScope.id
+            }
+
+            #expect(
+                completedChildren.count == 1,
+                "Configuration child scopes should be completed when the scoped operation returns."
+            )
+        }
+
+        #expect(await tool._internalState._activeShellScopes.isEmpty)
+
+        let completedToolScope = try #require(
+            await tool._internalState._completedShellScopes.first,
+            "The command-line tool should retain completed borrowed shell scope history."
+        )
+        let completedShellScope = try #require(
+            await shellState?._completedShellScopes.first,
+            "The shell state should retain completed root scope history."
+        )
+
+        #expect(completedToolScope.id == completedShellScope.id)
+        #expect(completedToolScope.status == .completed)
+    }
+
+    @Test("Command-line tool shell scope tracking is observable")
+    func commandLineToolShellScopeTrackingIsObservable() async throws {
+        let tool = CompatibilityLeafTool()
+        var cancellable: AnyCancellable?
+
+        await withCheckedContinuation { continuation in
+            cancellable = tool.objectDidChange.prefix(1).sink {
+                continuation.resume()
+            }
+
+            Task {
+                try await tool.withUnsafeSystemShell { _ in
+
+                }
+            }
+        }
+
+        withExtendedLifetime(cancellable) {}
+        #expect(
+            await !tool._internalState._shellScopes.isEmpty,
+            "Observing the command-line tool should not require polling shell state."
+        )
+    }
+
+    @Test("Killing a command-line tool with no active shells makes the instance unusable")
+    func killingCommandLineToolWithNoActiveShellsMakesInstanceUnusable() async throws {
+        let tool = CompatibilityLeafTool()
+
+        try await tool.kill()
+
+        #expect(await tool._internalState._lifecycleStatus == .killed)
+
+        do {
+            try await tool.withUnsafeSystemShell { _ in
+
+            }
+
+            Issue.record("Expected killed AnyCommandLineTool instance usage to fail.")
+        } catch AnyCommandLineTool._DeveloperError.killedInstanceUsage {
+        } catch {
+            Issue.record("Expected killedInstanceUsage, got \(error).")
+        }
+    }
+
+    @Test("Killing a command-line tool tears down active borrowed shell sessions")
+    func killingCommandLineToolTearsDownActiveBorrowedShellSessions() async throws {
+        let tool = CompatibilityLeafTool()
+        var shellState: SystemShell._InternalState?
+
+        let task = Task {
+            try await tool.withUnsafeSystemShell { shell in
+                shellState = shell._internalState
+
+                _ = try await shell.run(command: "trap 'exit 0' TERM; while true; do sleep 1; done")
+            }
+        }
+
+        while await tool._internalState._activeShellSessions.isEmpty {
+            try await Task.sleep(.milliseconds(10))
+        }
+
+        while await shellState?.runningProcesses.isEmpty != false {
+            try await Task.sleep(.milliseconds(10))
+        }
+
+        try await tool.kill()
+
+        _ = try await task.value
+
+        #expect(await tool._internalState._lifecycleStatus == .killed)
+        #expect(await tool._internalState._activeShellScopes.isEmpty)
+        #expect(await shellState?.runningProcesses.isEmpty == true)
+
+        let completedScope = try #require(
+            await tool._internalState._completedShellScopes.first,
+            "The killed command-line tool should complete its active shell scope."
+        )
+
+        #expect(completedScope.status == .completed)
     }
 }
 

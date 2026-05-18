@@ -1,5 +1,6 @@
 // swift-tools-version:6.1
 
+import CompilerPluginSupport
 import PackageDescription
 
 var package = Package(
@@ -69,6 +70,7 @@ var package = Package(
         .target(
             name: "CommandLineToolSupport",
             dependencies: [
+                "CommandLineToolSupportMacros",
                 "Merge",
                 "ShellScripting",
                 "Swallow",
@@ -76,6 +78,16 @@ var package = Package(
             path: "Sources/CommandLineToolSupport",
             swiftSettings: [
                 .enableExperimentalFeature("AccessLevelOnImport"),
+                .swiftLanguageMode(.v5),
+            ]
+        ),
+        .macro(
+            name: "CommandLineToolSupportMacros",
+            dependencies: [
+                .product(name: "MacroBuilder", package: "Swallow"),
+            ],
+            path: "Macros/CommandLineToolSupportMacros",
+            swiftSettings: [
                 .swiftLanguageMode(.v5),
             ]
         ),
