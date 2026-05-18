@@ -240,22 +240,40 @@ struct CommandLineToolSupportCompatibilityTests {
         #expect(dryRunCommand == "conditionalsummarytool dry-run --verbose")
     }
 
-    @Test("Borrowed SystemShell rejects process teardown")
-    func borrowedSystemShellRejectsProcessTeardown() async throws {
+    @Test("Borrowed SystemShell rejects owned process teardown")
+    func borrowedSystemShellRejectsOwnedProcessTeardown() async throws {
         do {
             try await CompatibilityLeafTool().withUnsafeSystemShell { shell in
                 try await shell.teardownRunningProcesses()
             }
 
             Issue.record("Expected borrowed SystemShell teardown to fail.")
+        } catch SystemShell._DeveloperError.borrowedShellOwnedOperation(let operation) {
+            #expect(operation == .teardownRunningProcesses)
         } catch {
-            #expect(
-                String(describing: error).contains("Cannot tear down running processes"),
-                "Borrowed shell teardown should fail with the dedicated ownership error."
-            )
+            Issue.record("Expected borrowedShellOwnedOperation, got \(error).")
             #expect(
                 String(describing: error).contains("withUnsafeSystemShell"),
                 "The teardown failure should call out the borrowed-shell API boundary."
+            )
+        }
+    }
+
+    @Test("Borrowed SystemShell kill is an owned operation")
+    func borrowedSystemShellKillIsAnOwnedOperation() async throws {
+        do {
+            try await CompatibilityLeafTool().withUnsafeSystemShell { shell in
+                try shell._validateCanAttemptOwnedShellOperation(.kill)
+            }
+
+            Issue.record("Expected borrowed SystemShell kill ownership check to fail.")
+        } catch SystemShell._DeveloperError.borrowedShellOwnedOperation(let operation) {
+            #expect(operation == .kill)
+        } catch {
+            Issue.record("Expected borrowedShellOwnedOperation, got \(error).")
+            #expect(
+                String(describing: error).contains("withUnsafeSystemShell"),
+                "The kill ownership failure should call out the borrowed-shell API boundary."
             )
         }
     }
@@ -272,7 +290,7 @@ struct CommandLineToolSupportCompatibilityTests {
             _ = try await escapedShell?.run(command: "echo leaked")
 
             Issue.record("Expected escaped borrowed SystemShell use to fail.")
-        } catch SystemShell.DeveloperError.invalidBorrowedShellLease {
+        } catch SystemShell._DeveloperError.invalidBorrowedShellLease {
         } catch {
             Issue.record("Expected invalidBorrowedShellLease, got \(error).")
         }

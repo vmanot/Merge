@@ -76,7 +76,7 @@ struct SystemShellConfigurationTests {
             try difference.mergeInPlace(with: .standardStreamMirroring(.terminal))
 
             Issue.record("Expected conflicting standard stream mirroring differences to throw.")
-        } catch SystemShell.DeveloperError.conflictingConfigurationDifferences {
+        } catch SystemShell._DeveloperError.conflictingConfigurationDifferences {
             #expect(
                 difference.standardStreamMirroring == .set(.disabled),
                 "A failed merge should leave the original difference intact."

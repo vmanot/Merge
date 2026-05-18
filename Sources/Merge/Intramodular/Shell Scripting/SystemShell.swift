@@ -23,7 +23,7 @@ public final class SystemShell: Logging {
         get {
             _configuration.environmentVariables
         } set {
-            _preconditionCanMutateBorrowedShell(property: "environmentVariables")
+            _preconditionCanMutateBorrowedShell(property: .environmentVariables)
 
             _configuration.environmentVariables = newValue
         }
@@ -33,7 +33,7 @@ public final class SystemShell: Logging {
         get {
             _configuration.currentDirectoryURL
         } set {
-            _preconditionCanMutateBorrowedShell(property: "currentDirectoryURL")
+            _preconditionCanMutateBorrowedShell(property: .currentDirectoryURL)
 
             _configuration.currentDirectoryURL = newValue
         }
@@ -50,7 +50,7 @@ public final class SystemShell: Logging {
 
             return result.isEmpty ? nil : result
         } set {
-            _preconditionCanMutateBorrowedShell(property: "options")
+            _preconditionCanMutateBorrowedShell(property: .options)
             _setOptionsAssumingCanMutate(newValue)
         }
     }
@@ -133,12 +133,38 @@ public final class SystemShell: Logging {
         }
 
         guard _borrowedLease?.isValid == true else {
-            let error = DeveloperError.invalidBorrowedShellLease
+            let error = _DeveloperError.invalidBorrowedShellLease
 
             runtimeIssue(error)
 
             throw error
         }
+    }
+
+    package func _preconditionCanPerformOwnedShellOperation(
+        _ operation: _OwnedOperation
+    ) {
+        guard ownership == .borrowedFromCommandLineTool else {
+            return
+        }
+
+        let error = _DeveloperError.borrowedShellOwnedOperation(operation)
+
+        runtimeIssue(error)
+        preconditionFailure(error.description)
+    }
+
+    package func _validateCanAttemptOwnedShellOperation(
+        _ operation: _OwnedOperation
+    ) throws {
+        guard ownership == .borrowedFromCommandLineTool else {
+            return
+        }
+
+        let error = _DeveloperError.borrowedShellOwnedOperation(operation)
+
+        runtimeIssue(error)
+        throw error
     }
 
     private func _setOptionsAssumingCanMutate(
@@ -149,13 +175,13 @@ public final class SystemShell: Logging {
     }
 
     private func _preconditionCanMutateBorrowedShell(
-        property: String
+        property: _MutableProperty
     ) {
         guard ownership == .borrowedFromCommandLineTool else {
             return
         }
 
-        let error = DeveloperError.borrowedShellMutation(property)
+        let error = _DeveloperError.borrowedShellMutation(property)
 
         runtimeIssue(error)
         preconditionFailure(error.description)

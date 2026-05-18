@@ -2,7 +2,6 @@
 // Copyright (c) Vatsal Manot
 //
 
-import Diagnostics
 import Foundation
 
 @available(macOS 11.0, *)
@@ -24,21 +23,7 @@ extension SystemShell {
     }
 
     package func teardownRunningProcesses() async throws {
-        guard ownership == .local else {
-            let error = OwnershipError(
-                reason: "Cannot tear down running processes from a SystemShell borrowed through AnyCommandLineTool.withUnsafeSystemShell. The caller that creates or owns the shell must own teardown."
-            )
-
-            runtimeIssue(error)
-
-            throw error
-        }
-
-        let processes = await runningProcesses
-
-        for process in processes {
-            await process.teardown(using: process.teardownSequence)
-        }
+        _ = try await teardownRunningProcessesReporting()
     }
 
     package func _run(

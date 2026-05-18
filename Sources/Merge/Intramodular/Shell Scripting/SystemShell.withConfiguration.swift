@@ -28,7 +28,7 @@ extension SystemShell {
         }
 
         guard let childConfiguration = configuration.applying(difference) else {
-            throw DeveloperError.conflictingConfigurationDifferences
+            throw _DeveloperError.conflictingConfigurationDifferences
         }
 
         let child = SystemShell(

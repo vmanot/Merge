@@ -107,7 +107,7 @@ extension SystemShell.StandardStreamMirroring {
                     )
                 )
             default:
-                throw SystemShell.DeveloperError.unsupportedStandardStreamMirroring(self)
+                throw SystemShell._DeveloperError.unsupportedStandardStreamMirroring(self)
         }
     }
 }

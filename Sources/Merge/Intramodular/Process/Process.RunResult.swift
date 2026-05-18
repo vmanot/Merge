@@ -46,15 +46,8 @@ extension _ProcessRunResult {
         _AsyncProcess.ProcessIdentifier(value: process.processIdentifier)
     }
 
-    public var terminationStatus: TerminationStatus {
-        switch process.terminationReason {
-            case .exit:
-                return .exited(process.terminationStatus)
-            case .uncaughtSignal:
-                return .signaled(process.terminationStatus)
-            @unknown default:
-                return .exited(process.terminationStatus)
-        }
+    public var terminationStatus: _AsyncProcess.TerminationStatus {
+        _AsyncProcess.TerminationStatus(_from: process)
     }
     #endif
 

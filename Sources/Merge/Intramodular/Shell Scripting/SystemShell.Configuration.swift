@@ -143,7 +143,7 @@ extension SystemShell.Configuration.Difference {
                 case let (.set(lhs), .set(rhs)) where lhs == rhs:
                     return
                 case (.set, .set):
-                    throw SystemShell.DeveloperError.conflictingConfigurationDifferences
+                    throw SystemShell._DeveloperError.conflictingConfigurationDifferences
             }
         }
     }
@@ -171,7 +171,7 @@ extension SystemShell.Configuration.Difference {
                 case let (.set(lhs), .set(rhs)) where lhs == rhs:
                     return
                 case (.set, .set):
-                    throw SystemShell.DeveloperError.conflictingConfigurationDifferences
+                    throw SystemShell._DeveloperError.conflictingConfigurationDifferences
             }
         }
     }
