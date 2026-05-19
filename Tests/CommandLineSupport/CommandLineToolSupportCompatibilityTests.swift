@@ -226,6 +226,15 @@ final class ResolvedDescriptionTool: AnyCommandLineTool, CommandLineTool {
     var trace: Bool = false
 }
 
+final class URLParameterCompatibilityTool: AnyCommandLineTool, CommandLineTool {
+    override var _commandName: String {
+        "url-parameter"
+    }
+
+    @Parameter(name: "C")
+    var checkoutURL: URL? = nil
+}
+
 final class ConstructorBackedFlagTool: AnyCommandLineTool, CommandLineTool {
     override var _commandName: String {
         "constructor-flag"
@@ -408,6 +417,19 @@ struct CommandLineToolSupportCompatibilityTests {
         #expect(invocation.commandLine == (try command.invocation))
         #expect(invocation.posixShellCommandLine == "'root' '--force' 'Sources'")
         #expect(String(describing: invocation) == (try command.invocation))
+    }
+
+    @Test
+    func urlParametersRenderSemanticValuesBeforeShellEscaping() throws {
+        let url = URL(fileURLWithPath: "/tmp/path with spaces")
+        let invocation = try URLParameterCompatibilityTool()
+            .with(\.checkoutURL, url)
+            .commandInvocation
+
+        #expect(url.argumentValue == "/tmp/path with spaces")
+        #expect(invocation.rawComponents == ["url-parameter", "-C", "/tmp/path with spaces"])
+        #expect(invocation.commandLine == "url-parameter -C /tmp/path with spaces")
+        #expect(invocation.posixShellCommandLine == "'url-parameter' '-C' '/tmp/path with spaces'")
     }
 
     @Test
