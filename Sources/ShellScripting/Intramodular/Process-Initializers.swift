@@ -5,74 +5,8 @@
 #if os(macOS)
 
 import Foundation
-import Merge
-import Swift
 
 extension Process {
-    public struct ArgumentLiteral: Hashable, ExpressibleByStringLiteral, Sendable {
-        public enum Option: Hashable, Sendable {
-            case escapeSpaces
-        }
-        
-        let value: String
-        let options: Set<Option>
-        let isQuoted: Bool
-        
-        public init(
-            _ value: String,
-            options: Set<Option> = [.escapeSpaces],
-            isQuoted: Bool = false
-        ) {
-            self.value = value
-            self.options = options
-            self.isQuoted = isQuoted
-        }
-        
-        @_disfavoredOverload
-        public init(
-            _ value: URL,
-            options: Set<Option> = [.escapeSpaces],
-            isQuoted: Bool = false
-        ) {
-            let value: String = value.isFileURL ? value.path : value.absoluteString
-            
-            self.init(
-                value,
-                options: options,
-                isQuoted: isQuoted
-            )
-        }
-        
-        public init(
-            stringLiteral value: String
-        ) {
-            self.init(value)
-        }
-        
-        /// Returns the argument value with necessary escape characters, optionally wrapped in quotes.
-        /// Handles escaping quotes within quoted arguments (Example: Nested Quotes for "echo \"John said, 'Hello'\"").
-        public var escapedValue: String {
-            var result = value
-            
-            if isQuoted {
-                result = result.replacingOccurrences(of: "\\", with: "\\\\") // First escape backslashes
-                result = result.replacingOccurrences(of: "\"", with: "\\\"") // Then escape double quotes
-                result = "\"" + result + "\"" // Wrap the whole argument in quotes
-            } else {
-                result = result.replacingOccurrences(of: "\\", with: "\\\\") // Escape backslashes
-                
-                if options.contains(.escapeSpaces) {
-                    result = result.replacingOccurrences(of: " ", with: "\\ ") // Escape spaces
-                }
-                
-                result = result.replacingOccurrences(of: "'", with: "\\'") // Escape single quotes
-                result = result.replacingOccurrences(of: "\"", with: "\\\"") // Escape double quotes
-            }
-            
-            return result
-        }
-    }
-    
     /// Initializes a `Process` to run a command using a specified shell or directly, with given arguments and options.
     public convenience init(
         command: String,
@@ -82,9 +16,9 @@ extension Process {
         currentDirectoryPath: String? = nil
     ) {
         self.init()
-        
+
         var shell: PreferredUNIXShell.Name? = shell
-        
+
         if shell == .unspecified {
             if command.hasPrefix("/bin") || command.hasPrefix("/usr/bin") {
                 shell = nil
@@ -92,23 +26,23 @@ extension Process {
                 shell = .zsh
             }
         }
-        
+
         let shellArguments = shell.deriveExecutableURLAndArguments(fromCommand: command)
-        
+
         self.executableURL = shellArguments.0
-        
+
         let additionalArguments: [String] = arguments.map {
-            $0.escapedValue
+            $0.posixShellEscapedValue
         }
-        
+
         self.arguments = shellArguments.1 + additionalArguments
         self.environment = ProcessInfo.processInfo.environment.merging(environment) { (_, new) in new }
-        
+
         if let currentDirectoryPath = currentDirectoryPath {
             self.currentDirectoryURL = URL(fileURLWithPath: currentDirectoryPath)
         }
     }
-    
+
     public convenience init(
         _ command: String,
         arguments: [ArgumentLiteral] = [],
@@ -123,7 +57,7 @@ extension Process {
             currentDirectoryPath: currentDirectoryPath
         )
     }
-    
+
     public convenience init(
         _ command: String,
         arguments: [String] = [],
@@ -138,7 +72,7 @@ extension Process {
             currentDirectoryPath: currentDirectoryPath
         )
     }
-    
+
     public convenience init(
         command: String,
         shell: PreferredUNIXShell.Name? = .unspecified,
@@ -147,11 +81,11 @@ extension Process {
         currentDirectoryPath: String? = nil
     ) {
         let splitArguments: [String] = Process.splitArguments(argumentString)
-        
+
         let arguments: [ArgumentLiteral] = splitArguments.map {
             ArgumentLiteral($0,  isQuoted: $0.contains("\"") || $0.contains("'"))
         }
-        
+
         self.init(
             command: command,
             shell: shell,
@@ -172,26 +106,26 @@ extension Process {
         var escaping = false
         var quoteCharacter: Character?
     }
-    
+
     /// Splits a single argument string into multiple arguments by spaces, respecting quoted substrings.
     /// Correctly handles paths and commands with spaces (Example: Path "/Applications/My App.app/Contents/MacOS/app").
     static func splitArguments(_ argument: String) -> [String] {
         var state = ArgumentStringSplitState()
-        
+
         for char in argument {
             processCharacter(char, &state)
         }
-        
+
         // If there is any remaining content in the current part after iterating through all characters
         // Append the current part to the parts array
         // This handles the case where the last argument doesn't have a trailing space
         if !state.currentPart.isEmpty {
             state.parts.append(state.currentPart)
         }
-        
+
         return state.parts
     }
-    
+
     private static func processCharacter(
         _ char: Character,
         _ state: inout ArgumentStringSplitState
@@ -210,7 +144,7 @@ extension Process {
             handleRegularCharacter(char, &state)
         }
     }
-    
+
     private static func handleEscapedCharacter(
         _ char: Character,
         _ state: inout ArgumentStringSplitState
@@ -218,21 +152,21 @@ extension Process {
         state.currentPart.append(char)
         state.escaping = false
     }
-    
+
     private static  func handleBackslash(
         _ state: inout ArgumentStringSplitState
     ) {
         state.escaping = true
         state.currentPart.append("\\")
     }
-    
+
     private static func handleSpace(_ state: inout ArgumentStringSplitState) {
         if !state.currentPart.isEmpty {
             state.parts.append(state.currentPart)
             state.currentPart = ""
         }
     }
-    
+
     private static func handleQuote(
         _ char: Character,
         _ state: inout ArgumentStringSplitState
@@ -249,26 +183,12 @@ extension Process {
             state.currentPart.append(char)
         }
     }
-    
+
     private static func handleRegularCharacter(
         _ char: Character,
         _ state: inout ArgumentStringSplitState
     ) {
         state.currentPart.append(char)
-    }
-}
-
-extension SystemShell {
-    public func run(
-        executablePath: String,
-        arguments: [Process.ArgumentLiteral],
-        environment: Environment = .zsh
-    ) async throws -> Process.RunResult {
-        try await run(
-            executableURL: try URL(string: executablePath).unwrap(),
-            arguments: arguments.map({ $0.value }),
-            environment: environment
-        )
     }
 }
 

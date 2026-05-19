@@ -1,8 +1,8 @@
+//
+// Copyright (c) Vatsal Manot
+//
+
 #if os(macOS)
-//
-//  InvocationSummaryCondition.swift
-//  Merge
-//
 
 import Foundation
 import Swallow
@@ -13,6 +13,7 @@ extension CommandLineToolInvocationSummary {
 @available(macCatalyst, unavailable)
 @available(tvOS, unavailable)
 @available(watchOS, unavailable)
+/// Boolean predicate tree used by `When` summary nodes.
 public indirect enum InvocationSummaryCondition<Command: AnyCommandLineTool> {
     case predicate((Command, AnyCommandLineTool?, InvocationSummaryContext) -> Bool)
     case not(InvocationSummaryCondition<Command>)
@@ -25,6 +26,7 @@ public indirect enum InvocationSummaryCondition<Command: AnyCommandLineTool> {
 @available(macCatalyst, unavailable)
 @available(tvOS, unavailable)
 @available(watchOS, unavailable)
+/// Reusable predicate over a property-wrapper value referenced from an invocation summary.
 public struct InvocationSummaryValuePredicate<Value> {
     fileprivate let evaluate: (Value?) -> Bool
 
@@ -58,6 +60,10 @@ public struct InvocationSummaryValuePredicate<Value> {
         .init(evaluate: containsValue)
     }
 
+    public static var isPresent: Self {
+        hasValue
+    }
+
     public static func equalsTo(_ expected: Value) -> Self where Value: Equatable {
         .init(evaluate: { value in
             guard let value else {
@@ -66,6 +72,10 @@ public struct InvocationSummaryValuePredicate<Value> {
 
             return value == expected
         })
+    }
+
+    public static func equals(_ expected: Value) -> Self where Value: Equatable {
+        equalsTo(expected)
     }
 
     public static func satisfies(_ predicate: @escaping (Value) -> Bool) -> Self {

@@ -1,10 +1,8 @@
+//
+// Copyright (c) Vatsal Manot
+//
+
 #if os(macOS)
-//
-//  InvocationSummaryValueReferenceFromParent.swift
-//  Merge
-//
-//  Created by Yanan Li on 2026/1/9.
-//
 
 import Foundation
 import Swallow
@@ -15,6 +13,7 @@ extension CommandLineToolInvocationSummary {
 @available(macCatalyst, unavailable)
 @available(tvOS, unavailable)
 @available(watchOS, unavailable)
+/// Summary node that lets a subcommand intentionally render a property-wrapper value owned by its parent command.
 public struct InvocationSummaryValueReferenceFromParent<Parent: AnyCommandLineTool, Command: AnyCommandLineTool, Value: InvocationSummaryValue>: InvocationSummary where Command : _Subcommand, Parent == Command.ParentCommand {
     let keyPath: KeyPath<Parent, Value>
 
@@ -35,18 +34,14 @@ public struct InvocationSummaryValueReferenceFromParent<Parent: AnyCommandLineTo
         let resolved = try parent[keyPath: keyPath].resolve(
             in: .init(
                 resolvingID: _ResolvedCommandLineToolDescription.ArgumentID(
-                    rawValue: UUID().uuidString, // construct a temporary string.
+                    rawValue: InvocationSummaryContext.argumentName(for: keyPath),
                     commandName: parent._commandName
                 ),
-                defaultKeyConversion: command.keyConversion
+                defaultKeyConversion: parent.keyConversion
             )
         )
 
-        if let argument = resolved.invocationArgument {
-            return [argument]
-        } else {
-            return []
-        }
+        return resolved.invocationArguments
     }
 }
 

@@ -15,6 +15,7 @@ import Foundation
 @available(macCatalyst, unavailable)
 @available(tvOS, unavailable)
 @available(watchOS, unavailable)
+/// Minimal tuple reflection helper used to flatten result-builder tuple output while this DSL is WIP.
 struct TupleMetadata {
     let ptr: UnsafeRawPointer
 

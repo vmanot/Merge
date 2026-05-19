@@ -22,12 +22,12 @@ extension AnyCommandLineTool {
             .filter {
                 !context.argumentIsRendered(command: self, argumentName: $0.id.rawValue)
             }
-            .compactMap { argument in
+            .flatMap { argument in
                 defer {
                     context.registerArgument(command: self, argumentName: argument.id.rawValue)
                 }
 
-                return argument.invocationArgument
+                return argument.invocationArguments
             }
             .filter { !$0.isEmpty }
     }
@@ -96,7 +96,11 @@ extension AnyCommandLineTool {
 
 //        try _resolveArgumentsFromParentCommand(context: context, into: &_resolvedArguments)
 
-        if let subcommand = self as? (any _GenericSubcommandProtocol) {
+        if let selectedTool = self as? (any _GenericSelectedCommandLineToolProtocol) {
+            let _resolved = try selectedTool._opaqueSelectedTool.resolve()
+            _resolvedArguments.append(contentsOf: _resolved.arguments)
+            _resolvedSubcommmands.append(contentsOf: _resolved.subcommands)
+        } else if let subcommand = self as? (any _GenericSubcommandProtocol) {
             let _resolved = try subcommand.command.resolve()
             _resolvedArguments.append(contentsOf: _resolved.arguments)
             _resolvedSubcommmands.append(contentsOf: _resolved.subcommands)

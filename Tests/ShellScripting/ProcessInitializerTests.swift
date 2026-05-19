@@ -71,9 +71,57 @@ struct ShellProcessTests {
         let quotedArgument = Process.ArgumentLiteral("Hello, World!", isQuoted: true)
         let nestedQuotesArgument = Process.ArgumentLiteral("echo \"John said, 'Hello'\"", isQuoted: true)
 
-        #expect(plainArgument.escapedValue == "Hello")
-        #expect(quotedArgument.escapedValue == "\"Hello, World!\"")
-        #expect(nestedQuotesArgument.escapedValue == "\"echo \\\"John said, 'Hello'\\\"\"")
+        #expect(plainArgument.rawValue == "Hello")
+        #expect(plainArgument.posixShellEscapedValue == "Hello")
+        #expect(quotedArgument.posixShellEscapedValue == "\"Hello, World!\"")
+        #expect(nestedQuotesArgument.posixShellEscapedValue == "\"echo \\\"John said, 'Hello'\\\"\"")
+    }
+
+    @Test
+    func testArgumentLiteralStorageViews() {
+        let stringArgument = Process.ArgumentLiteral("Hello")
+        let rawBytesArgument = Process.ArgumentLiteral(rawBytes: Array("Hello".utf8))
+
+        #expect(stringArgument.storage == .string("Hello"))
+        #expect(stringArgument.stringValue == "Hello")
+        #expect(stringArgument.rawBytes == Array("Hello".utf8))
+        #expect(rawBytesArgument.storage == .rawBytes(Array("Hello".utf8)))
+        #expect(rawBytesArgument.stringValue == "Hello")
+        #expect(rawBytesArgument.rawValue == "Hello")
+    }
+
+    @Test
+    func testArgumentLiteralRawBytesCanRepresentNonUTF8Values() {
+        let argument = Process.ArgumentLiteral(rawBytes: [0xff])
+
+        #expect(argument.storage == .rawBytes([0xff]))
+        #expect(argument.stringValue == nil)
+        #expect(argument.rawBytes == [0xff])
+    }
+
+    @Test
+    func testArgumentLiteralHasUsefulDebugReflection() {
+        let argument = Process.ArgumentLiteral("Hello, World!", isQuoted: true)
+        let mirrorLabels = Array(Mirror(reflecting: argument).children).map(\.label)
+
+        #expect(argument.description == "Hello, World!")
+        #expect(argument.debugDescription.contains("Process.ArgumentLiteral(.string(\"Hello, World!\""))
+        #expect(mirrorLabels == ["storage", "stringValue", "rawValue", "rawBytes", "options", "isQuoted"])
+    }
+
+    @Test
+    func testArgumentLiteralShellDialectRendering() {
+        let argument = Process.ArgumentLiteral("Hello, World!", isQuoted: true)
+
+        #expect(argument.escapedValue(for: .posix) == argument.posixShellEscapedValue)
+    }
+
+    @Test
+    func testArgumentLiteralURLRepresentation() {
+        let url = URL(fileURLWithPath: "/tmp/Some File")
+
+        #expect(Process.ArgumentLiteral(url).rawValue == "/tmp/Some File")
+        #expect(Process.ArgumentLiteral(url, representation: .absoluteString).rawValue == "file:///tmp/Some%20File")
     }
 
     @Test

@@ -15,6 +15,7 @@ extension CommandLineToolInvocationSummary {
 @available(macCatalyst, unavailable)
 @available(tvOS, unavailable)
 @available(watchOS, unavailable)
+/// Tuple-backed collection of switch branches produced by the case-condition result builder.
 public struct InvocationSummaryTupleCaseCondition<Command: AnyCommandLineTool, Value: InvocationSummaryValue, ValueType>: InvocationSummarySwitchCaseProtocol {
     public var value: ValueType
 

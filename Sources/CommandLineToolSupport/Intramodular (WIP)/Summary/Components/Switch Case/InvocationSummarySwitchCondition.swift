@@ -15,6 +15,7 @@ extension CommandLineToolInvocationSummary {
 @available(macCatalyst, unavailable)
 @available(tvOS, unavailable)
 @available(watchOS, unavailable)
+/// Switch-style summary node that chooses a branch based on one property-wrapper value.
 public struct InvocationSummarySwitchCondition<Command: AnyCommandLineTool, Value: InvocationSummaryValue, CaseCondition: InvocationSummarySwitchCaseProtocol>: InvocationSummary where CaseCondition.Command == Command, CaseCondition.Value == Value {
     private let keyPath: KeyPath<Command, Value>
     private let conditions: CaseCondition

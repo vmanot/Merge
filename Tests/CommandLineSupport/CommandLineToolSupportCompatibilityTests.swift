@@ -54,6 +54,10 @@ final class TrueCompatibilityTool: AnyCommandLineTool, CommandLineTool {
     }
 }
 
+final class RawCommandCompatibilityTool: AnyCommandLineTool {
+
+}
+
 final class OptionalParameterTool: AnyCommandLineTool, CommandLineTool {
     @Parameter
     var value: Any?
@@ -107,7 +111,7 @@ final class SummaryModeTool: AnyCommandLineTool, CommandLineTool {
             DefaultCase {
                 ""
             }
-            Case(.stdout) {
+            Case(value: .stdout) {
                 "-emit-loaded-module-trace"
                 \.$emitLoadedModuleTracePath
             }
@@ -151,7 +155,7 @@ final class ConditionalSummaryTool: AnyCommandLineTool, CommandLineTool {
     var verbose: Bool = false
 
     var invocationSummary: some CommandLineToolInvocationSummary.InvocationSummary {
-        When(\.$output, .hasValue) {
+        When(\.$output, .isPresent) {
             "write"
             \.$output
         } else: {
@@ -162,9 +166,121 @@ final class ConditionalSummaryTool: AnyCommandLineTool, CommandLineTool {
     }
 }
 
+final class ParentReferencedSummaryTool: AnyCommandLineTool, CommandLineTool {
+    override var _commandName: String {
+        "parent-summary"
+    }
+
+    @Parameter(name: "sdk")
+    var sdk: String? = nil
+
+    @Subcommand(of: ParentReferencedSummaryTool.self, name: "compile", command: Compile())
+    var compile
+
+    final class Compile: AnyCommandLineTool, CommandLineTool, _Subcommand {
+        typealias ParentCommand = ParentReferencedSummaryTool
+
+        @Parameter(name: nil)
+        var input: String? = nil
+
+        var invocationSummary: some CommandLineToolInvocationSummary.InvocationSummary {
+            self.$sdk
+
+            When(self.$sdk, equals: "macosx") {
+                "--sdk-forwarded"
+            }
+
+            \.$input
+        }
+    }
+}
+
+final class ExactConditionalSummaryTool: AnyCommandLineTool, CommandLineTool {
+    @Parameter(name: "format")
+    var format: String? = nil
+
+    var invocationSummary: some CommandLineToolInvocationSummary.InvocationSummary {
+        When(\.$format, equals: "json") {
+            "--json"
+        } else: {
+            "--text"
+        }
+    }
+}
+
+final class ResolvedDescriptionTool: AnyCommandLineTool, CommandLineTool {
+    override var _commandName: String {
+        "resolved-description"
+    }
+
+    @Parameter(name: "target")
+    var target: String? = nil
+
+    @Parameter(name: nil)
+    var inputs: [String] = []
+
+    @Flag(name: "v")
+    var verbosity: Int = 0
+
+    @Flag(name: "trace")
+    var trace: Bool = false
+}
+
+final class ConstructorBackedFlagTool: AnyCommandLineTool, CommandLineTool {
+    override var _commandName: String {
+        "constructor-flag"
+    }
+
+    @Flag(name: "disable-colored-output")
+    var disableColoredOutput: Bool = false
+
+    init(disableColoredOutput: Bool = false) {
+        self._disableColoredOutput = Flag(
+            wrappedValue: disableColoredOutput,
+            defaultValue: false,
+            name: "disable-colored-output"
+        )
+
+        super.init()
+    }
+}
+
 final class SelectingToolFixture: AnyCommandLineToolWithSelectedTool, CommandLineTool {
     override var _commandName: String {
         "selectingtool"
+    }
+}
+
+final class PrintfSelectingTool: AnyCommandLineToolWithSelectedTool, CommandLineTool {
+    override var _commandName: String {
+        "printf"
+    }
+
+    @SelectedTool(of: PrintfSelectingTool.self, name: "selected-tool", tool: SelectedPrintfPayloadTool())
+    var payload
+}
+
+final class SelectedPrintfPayloadTool: AnyCommandLineTool, CommandLineTool {
+    override var _commandName: String {
+        "underlying-selected-tool"
+    }
+}
+
+final class SelectedPrintfPayloadWithSubcommandTool: AnyCommandLineTool, CommandLineTool {
+    override var _commandName: String {
+        "underlying-selected-parent"
+    }
+
+    @Flag(name: "verbose")
+    var verbose: Bool = false
+
+    @Subcommand(of: SelectedPrintfPayloadWithSubcommandTool.self, name: "child", command: Child())
+    var child
+
+    final class Child: AnyCommandLineTool, CommandLineTool {
+        override var _commandName: String {
+            "child"
+        }
     }
 }
 
@@ -199,6 +315,38 @@ struct CommandLineToolSupportCompatibilityTests {
     }
 
     @Test
+    func xcrunKnownSelectedToolRendersIndependentSwiftCompiler() throws {
+        let command = ExampleXcrunTool()
+            .with(\.sdk, "macosx")
+            .swiftc()
+            .with(\.typecheck, true)
+            .with(\.inputFiles, ["Foo.swift"])
+
+        #expect(try command.invocation == "xcrun -sdk macosx swiftc -typecheck Foo.swift")
+    }
+
+    @Test
+    func xcrunCanSelectExternallyModeledSwiftCompiler() throws {
+        let command = ExampleXcrunTool()
+            .with(\.sdk, "macosx")
+            .selecting(ExampleSwiftCompilerTool())
+            .with(\.typecheck, true)
+            .with(\.inputFiles, ["Foo.swift"])
+
+        #expect(try command.invocation == "xcrun -sdk macosx swiftc -typecheck Foo.swift")
+    }
+
+    @Test
+    func xcrunCanSelectExternallyModeledToolWithItsOwnSubcommands() throws {
+        let command = ExampleXcrunTool()
+            .selecting(ExampleSimulatorControlTool())
+            .with(\.verbose, true)
+            .io()
+
+        #expect(try command.invocation == "xcrun simctl --verbose io")
+    }
+
+    @Test
     func selectedToolSemanticsDefaultToStaticExplicitArgument() {
         let semantics = SelectingToolFixture().toolSelectionSemantics
 
@@ -206,6 +354,30 @@ struct CommandLineToolSupportCompatibilityTests {
         #expect(semantics.mutability == .fixedOnceSelected)
         #expect(semantics.disclosure == .explicitArgument)
         #expect(semantics.argumentBoundary == .selectedToolConsumesRemainingArguments)
+    }
+
+    @Test
+    func selectedToolProtocolExposesTypedSelectingAndSelectedTools() {
+        let selectingTool = SelectingToolFixture()
+        let selectedTool = CompatibilityLeafTool()
+        let tool: GenericSelectedCommandLineTool<SelectingToolFixture, CompatibilityLeafTool> = selectingTool.selecting(selectedTool)
+
+        #expect(tool.selectingTool === selectingTool)
+        #expect(tool.selectedTool === selectedTool)
+        #expect(tool._commandName == "leaf")
+        #expect(tool.toolSelectionSemantics == .staticExplicitArgument)
+        #expect(tool.description == "selectingtool selecting leaf")
+        #expect(tool.debugDescription.contains("GenericSelectedCommandLineTool"))
+    }
+
+    @Test
+    func resolvingAndInvokingSelectedToolProtocolHasDefaultResolutionSemantics() {
+        let tool = SelectingToolFixture().selecting(CompatibilityLeafTool())
+        let semantics = tool.selectedToolResolutionSemantics
+
+        #expect(semantics.phase == .beforeInvocation)
+        #expect(semantics.invocation == .throughSelectingTool)
+        #expect(semantics.executableDisclosure == .selectedToolName)
     }
 
     @Test
@@ -225,11 +397,52 @@ struct CommandLineToolSupportCompatibilityTests {
 
         let invocation = try command.commandInvocation
 
-        #expect(invocation.components == ["root", "--force", "Sources"])
+        #expect(invocation.components == [
+            CommandLineToolInvocation.Argument("root"),
+            CommandLineToolInvocation.Argument("--force"),
+            CommandLineToolInvocation.Argument("Sources")
+        ])
+        #expect(invocation.rawComponents == ["root", "--force", "Sources"])
         #expect(invocation.commandName == "root")
-        #expect(invocation.arguments == ["--force", "Sources"])
+        #expect(invocation.arguments.map(\.rawValue) == ["--force", "Sources"])
         #expect(invocation.commandLine == (try command.invocation))
+        #expect(invocation.posixShellCommandLine == "'root' '--force' 'Sources'")
         #expect(String(describing: invocation) == (try command.invocation))
+    }
+
+    @Test
+    func structuredInvocationHasUsefulDebugReflection() throws {
+        let invocation = try CompatibilityRootTool()
+            .with(\.force, true)
+            .with(\.path, "Sources")
+            .commandInvocation
+        let argument = try #require(invocation.arguments.first)
+        let mirrorLabels = Array(Mirror(reflecting: invocation).children).map(\.label)
+        let argumentMirrorLabels = Array(Mirror(reflecting: argument).children).map(\.label)
+
+        #expect(invocation.description == "root --force Sources")
+        #expect(invocation.debugDescription == "CommandLineToolInvocation(\"root --force Sources\")")
+        #expect(mirrorLabels == ["components", "rawComponents", "commandName", "arguments", "commandLine"])
+        #expect(argument.description == "--force")
+        #expect(argument.posixShellEscapedValue == "'--force'")
+        #expect(argument.debugDescription == "CommandLineToolInvocation.Argument(.string(\"--force\"))")
+        #expect(argumentMirrorLabels == ["storage", "stringValue", "rawValue", "rawBytes"])
+    }
+
+    @Test
+    func structuredInvocationArgumentReflectsRawBytes() throws {
+        let argument = CommandLineToolInvocation.Argument(rawBytes: [0xff])
+        let emptyArgument = CommandLineToolInvocation.Argument("")
+        let quotedArgument = CommandLineToolInvocation.Argument("it's here")
+        let mirrorLabels = Array(Mirror(reflecting: argument).children).map(\.label)
+
+        #expect(argument.storage == .rawBytes([0xff]))
+        #expect(argument.stringValue == nil)
+        #expect(argument.rawBytes == [0xff])
+        #expect(emptyArgument.posixShellEscapedValue == "''")
+        #expect(quotedArgument.posixShellEscapedValue == "'it'\\''s here'")
+        #expect(argument.debugDescription == "CommandLineToolInvocation.Argument(.rawBytes([255]))")
+        #expect(mirrorLabels == ["storage", "stringValue", "rawValue", "rawBytes"])
     }
 
     @Test
@@ -268,6 +481,99 @@ struct CommandLineToolSupportCompatibilityTests {
         #expect(record.commandLine == invocation.commandLine)
         #expect(record.stdoutString == "modeled-record")
         #expect(try record.toString() == "modeled-record")
+        #expect(record.description == "echo modeled-record")
+        #expect(record.debugDescription.contains("EchoCompatibilityTool"))
+        #expect(record.source.description == "echo modeled-record")
+        #expect(record.source.debugDescription.contains("modeledInvocation"))
+        #expect(Array(Mirror(reflecting: record).children).map(\.label) == ["tool", "source", "processResult", "selectedToolInvocation", "commandLine"])
+        #expect(Array(Mirror(reflecting: record.source).children).map(\.label) == ["case", "invocation", "commandLine"])
+    }
+
+    @Test("Invocation arguments compose with modeled root invocations")
+    func invocationArgumentsComposeWithModeledRootInvocations() throws {
+        let arguments: CommandLineToolInvocation.Arguments = ["status", "--porcelain"]
+        let invocation = try CompatibilityRootTool()
+            .with(\.force, true)
+            .with(\.path, "Sources")
+            ._invocation(appending: arguments)
+
+        #expect(arguments.rawValues == ["status", "--porcelain"])
+        #expect(arguments.description == "status --porcelain")
+        #expect(arguments.debugDescription == "CommandLineToolInvocation.Arguments([\"status\", \"--porcelain\"])")
+        #expect(invocation.rawComponents == ["root", "--force", "Sources", "status", "--porcelain"])
+        #expect(invocation.arguments.map(\.rawValue) == ["--force", "Sources", "status", "--porcelain"])
+        #expect(Array(Mirror(reflecting: arguments).children).map(\.label) == ["elements", "rawValues"])
+    }
+
+    @Test("Invocation arguments preserve empty argv elements at the model layer")
+    func invocationArgumentsPreserveEmptyArgvElementsAtModelLayer() throws {
+        let arguments: CommandLineToolInvocation.Arguments = ["status", "", "--porcelain"]
+        let invocation = try CompatibilityRootTool()
+            ._invocation(appending: arguments)
+
+        #expect(arguments.rawValues == ["status", "", "--porcelain"])
+        #expect(invocation.rawComponents == ["root", "status", "", "--porcelain"])
+        #expect(invocation.arguments.map(\.rawValue) == ["status", "", "--porcelain"])
+    }
+
+    @Test("CommandLineTool _run can execute structured invocation arguments")
+    func commandLineToolRunExecutesStructuredInvocationArguments() async throws {
+        let tool = EchoCompatibilityTool()
+        let record = try await tool._run(
+            appending: ["arguments-record"],
+            applying: .standardStreamMirroring(.disabled)
+        )
+
+        guard case .modeledInvocation(let invocation) = record.source else {
+            Issue.record("Expected invocation-arguments _run to preserve modeled invocation source metadata.")
+            return
+        }
+
+        #expect(record.tool === tool)
+        #expect(invocation.commandLine == "echo arguments-record")
+        #expect(invocation.arguments.map(\.rawValue) == ["arguments-record"])
+        #expect(record.commandLine == "echo arguments-record")
+        #expect(record.stdoutString == "arguments-record")
+    }
+
+    @Test("CommandLineTool _runCollectingOutput captures output without terminal mirroring")
+    func commandLineToolRunCollectingOutputCapturesOutput() async throws {
+        let tool = EchoCompatibilityTool()
+        let record = try await tool._runCollectingOutput(appending: ["collected-record"])
+
+        guard case .modeledInvocation(let invocation) = record.source else {
+            Issue.record("Expected _runCollectingOutput to preserve modeled invocation source metadata.")
+            return
+        }
+
+        #expect(record.tool === tool)
+        #expect(invocation.commandLine == "echo collected-record")
+        #expect(record.stdoutString == "collected-record")
+    }
+
+    @Test("CommandLineTool _run can execute explicitly constructed invocations")
+    func commandLineToolRunExecutesExplicitInvocations() async throws {
+        let tool = EchoCompatibilityTool()
+        let invocation = CommandLineToolInvocation(
+            components: [
+                CommandLineToolInvocation.Argument("echo"),
+                CommandLineToolInvocation.Argument("explicit invocation")
+            ]
+        )
+        let record = try await tool._run(
+            invocation: invocation,
+            applying: .standardStreamMirroring(.disabled)
+        )
+
+        guard case .modeledInvocation(let recordedInvocation) = record.source else {
+            Issue.record("Expected explicit invocation _run to preserve modeled invocation source metadata.")
+            return
+        }
+
+        #expect(record.tool === tool)
+        #expect(recordedInvocation == invocation)
+        #expect(record.commandLine == "echo explicit invocation")
+        #expect(record.stdoutString == "explicit invocation")
     }
 
     @Test("GenericSubcommand _run records the full modeled chain")
@@ -283,6 +589,64 @@ struct CommandLineToolSupportCompatibilityTests {
         #expect(invocation.commandLine == "echo nested")
         #expect(record.commandLine == "echo nested")
         #expect(record.stdoutString == "nested")
+        #expect(record.selectedToolInvocation == nil)
+    }
+
+    @Test("Coupled and decoupled selected-tool execution records expose equivalent metadata")
+    func coupledAndDecoupledSelectionProduceEquivalentMetadata() async throws {
+        let coupled = try await PrintfSelectingTool()
+            .payload()
+            ._run(applying: .standardStreamMirroring(.disabled))
+        let decoupled = try await PrintfSelectingTool()
+            .selecting(SelectedPrintfPayloadTool(), name: "selected-tool")
+            ._run(applying: .standardStreamMirroring(.disabled))
+
+        #expect(coupled.commandLine == "printf selected-tool")
+        #expect(decoupled.commandLine == "printf selected-tool")
+        #expect(coupled.tool.selectedTool._commandName == "underlying-selected-tool")
+        #expect(decoupled.tool.selectedTool._commandName == "underlying-selected-tool")
+        #expect(coupled.tool.selectedToolCommandName == "selected-tool")
+        #expect(decoupled.tool.selectedToolCommandName == "selected-tool")
+        #expect(coupled.stdoutString == "selected-tool")
+        #expect(decoupled.stdoutString == "selected-tool")
+        #expect(coupled.selectedToolInvocation?.selectingToolCommandName == "printf")
+        #expect(decoupled.selectedToolInvocation?.selectingToolCommandName == "printf")
+        #expect(coupled.selectedToolInvocation?.selectedToolCommandName == "selected-tool")
+        #expect(decoupled.selectedToolInvocation?.selectedToolCommandName == "selected-tool")
+        #expect(coupled.selectedToolInvocation?.selectedToolCommandPath == ["selected-tool"])
+        #expect(coupled.selectedToolInvocation?.selectedToolCommandPath == decoupled.selectedToolInvocation?.selectedToolCommandPath)
+        #expect(coupled.selectedToolInvocation?.commandLine == coupled.commandLine)
+
+        let selectedToolInvocation = try #require(coupled.selectedToolInvocation)
+
+        #expect(selectedToolInvocation.description == "printf selected-tool")
+        #expect(selectedToolInvocation.debugDescription.contains("selectedToolCommandName: \"selected-tool\""))
+        #expect(Array(Mirror(reflecting: selectedToolInvocation).children).map(\.label) == [
+            "renderedInvocation",
+            "selectingToolCommandName",
+            "selectedToolCommandName",
+            "selectedToolCommandPath",
+            "selectionSemantics",
+            "resolutionSemantics",
+            "commandLine"
+        ])
+    }
+
+    @Test("Selected-tool subcommands preserve selected-tool-local arguments and metadata")
+    func selectedToolSubcommandsPreserveSelectedToolLocalArgumentsAndMetadata() async throws {
+        let record = try await PrintfSelectingTool()
+            .selecting(SelectedPrintfPayloadWithSubcommandTool(), name: "selected-parent")
+            .with(\.verbose, true)
+            .child()
+            ._run(applying: .standardStreamMirroring(.disabled))
+
+        #expect(record.commandLine == "printf selected-parent --verbose child")
+        #expect(record.stdoutString == "selected-parent")
+        #expect(record.isSelectedToolInvocation)
+        #expect(record.selectedToolInvocation?.selectingToolCommandName == "printf")
+        #expect(record.selectedToolInvocation?.selectedToolCommandName == "selected-parent")
+        #expect(record.selectedToolInvocation?.selectedToolCommandPath == ["selected-parent", "child"])
+        #expect(record.selectedToolInvocation?.commandLine == record.commandLine)
     }
 
     @Test("AnyCommandLineTool _run(command:) records shell command lines")
@@ -302,6 +666,19 @@ struct CommandLineToolSupportCompatibilityTests {
         #expect(record.invocation == nil)
         #expect(record.commandLine == commandLine)
         #expect(record.stdoutString == "raw-shell")
+    }
+
+    @Test("AnyCommandLineTool _run(command:) is available without modeled CommandLineTool conformance")
+    func anyCommandLineToolRunCommandDoesNotRequireCommandLineToolConformance() async throws {
+        let tool = RawCommandCompatibilityTool()
+        let record = try await tool._run(
+            command: "printf raw-base",
+            applying: .standardStreamMirroring(.disabled)
+        )
+
+        #expect(record.tool === tool)
+        #expect(record.commandLine == "printf raw-base")
+        #expect(record.stdoutString == "raw-base")
     }
 
     @Test("Command-line tool _run applies scoped SystemShell configuration")
@@ -367,6 +744,98 @@ struct CommandLineToolSupportCompatibilityTests {
 
         #expect(writeCommand == "conditionalsummarytool write --output trace.json --verbose")
         #expect(dryRunCommand == "conditionalsummarytool dry-run --verbose")
+    }
+
+    @Test
+    func invocationSummaryCanUseReadableEqualityConditions() throws {
+        let jsonCommand = try ExactConditionalSummaryTool()
+            .with(\.format, "json")
+            .invocation
+
+        let textCommand = try ExactConditionalSummaryTool()
+            .with(\.format, "text")
+            .invocation
+
+        #expect(jsonCommand == "exactconditionalsummarytool --json --format json")
+        #expect(textCommand == "exactconditionalsummarytool --text --format text")
+    }
+
+    @Test
+    func resolvedDescriptionPreservesInvocationArgumentComponents() throws {
+        let description = try ResolvedDescriptionTool()
+            .with(\.target, "arm64-apple-macosx15.0")
+            .with(\.inputs, ["Sources/main.swift", "Sources/support.swift"])
+            .with(\.verbosity, 3)
+            .with(\.trace, true)
+            .resolve()
+
+        let target = try #require(description.arguments[id: .init(rawValue: "target", commandName: "resolved-description")])
+        let inputs = try #require(description.arguments[id: .init(rawValue: "inputs", commandName: "resolved-description")])
+        let verbosity = try #require(description.arguments[id: .init(rawValue: "verbosity", commandName: "resolved-description")])
+        let trace = try #require(description.arguments[id: .init(rawValue: "trace", commandName: "resolved-description")])
+
+        #expect(target.invocationArguments == ["--target", "arm64-apple-macosx15.0"])
+        #expect(target.invocationComponents == [
+            .option(
+                key: CommandLineToolInvocation.Argument("--target"),
+                separator: .space,
+                values: [CommandLineToolInvocation.Argument("arm64-apple-macosx15.0")]
+            )
+        ])
+        #expect(inputs.invocationArguments == ["Sources/main.swift", "Sources/support.swift"])
+        #expect(inputs.invocationComponents.map(\.kind) == [.positionalArgument, .positionalArgument])
+        #expect(inputs.invocationArgumentValues == [
+            CommandLineToolInvocation.Argument("Sources/main.swift"),
+            CommandLineToolInvocation.Argument("Sources/support.swift")
+        ])
+        #expect(inputs.invocationArgument == "Sources/main.swift Sources/support.swift")
+        #expect(verbosity.invocationArguments == ["-vvv"])
+        #expect(verbosity.invocationArgumentValues == [CommandLineToolInvocation.Argument("-vvv")])
+        #expect(trace.invocationArguments == ["--trace"])
+        #expect(trace.invocationArgumentValues == [CommandLineToolInvocation.Argument("--trace")])
+    }
+
+    @Test
+    func resolvedDescriptionHasUsefulDebugReflection() throws {
+        let description = try ResolvedDescriptionTool()
+            .with(\.inputs, ["Sources/main.swift"])
+            .with(\.trace, true)
+            .resolve()
+        let trace = try #require(description.arguments[id: .init(rawValue: "trace", commandName: "resolved-description")])
+        let descriptionMirrorLabels = Array(Mirror(reflecting: description).children).map(\.label)
+        let traceMirrorLabels = Array(Mirror(reflecting: trace).children).map(\.label)
+
+        #expect(description.description == "resolved-description")
+        #expect(description.debugDescription.contains("toolName: \"resolved-description\""))
+        #expect(descriptionMirrorLabels == ["toolName", "arguments", "subcommands"])
+        #expect(trace.description == "--trace")
+        #expect(trace.debugDescription.contains("resolved-description.trace"))
+        #expect(traceMirrorLabels == ["base", "id", "defaultPosition", "invocationComponents", "invocationArgumentValues", "invocationArguments", "invocationArgument"])
+    }
+
+    @Test
+    func invocationSummaryCanRenderParentCommandArgumentsFromSubcommands() throws {
+        let withoutParentValue = try ParentReferencedSummaryTool()
+            .compile()
+            .with(\.input, "main.swift")
+            .invocation
+
+        let withParentValue = try ParentReferencedSummaryTool()
+            .with(\.sdk, "macosx")
+            .compile()
+            .with(\.input, "main.swift")
+            .invocation
+
+        #expect(withoutParentValue == "parent-summary compile main.swift")
+        #expect(withParentValue == "parent-summary compile --sdk macosx --sdk-forwarded main.swift")
+    }
+
+    @Test
+    func booleanFlagsCanSeparateCurrentValueFromRenderDefault() throws {
+        #expect(try ConstructorBackedFlagTool().invocation == "constructor-flag")
+        #expect(
+            try ConstructorBackedFlagTool(disableColoredOutput: true).invocation == "constructor-flag --disable-colored-output"
+        )
     }
 
     @Test("Borrowed SystemShell rejects owned process teardown")

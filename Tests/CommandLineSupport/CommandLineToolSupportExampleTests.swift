@@ -29,17 +29,21 @@ struct CommandLineToolSupportExampleTests {
         let invocation = try command.commandInvocation
 
         #expect(invocation.commandName == "swift")
-        #expect(invocation.arguments == [
+        #expect(invocation.arguments.map(\.rawValue) == [
             "--verbose",
-            "-sdk /Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX.sdk",
+            "-sdk",
+            "/Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX.sdk",
             "build",
             "--release",
             "-vv",
             "--no-sandbox",
-            "--package-path Fixtures/Example Package",
+            "--package-path",
+            "Fixtures/Example Package",
             "--triple=arm64-apple-macosx15.0",
-            "-Xswiftc -DTRACE_IMPORTS -Xswiftc -emit-loaded-module-trace",
-            "ExampleCLI ExampleSupport"
+            "-Xswiftc -DTRACE_IMPORTS",
+            "-Xswiftc -emit-loaded-module-trace",
+            "ExampleCLI",
+            "ExampleSupport"
         ])
         #expect(
             invocation.commandLine == "swift --verbose -sdk /Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX.sdk build --release -vv --no-sandbox --package-path Fixtures/Example Package --triple=arm64-apple-macosx15.0 -Xswiftc -DTRACE_IMPORTS -Xswiftc -emit-loaded-module-trace ExampleCLI ExampleSupport"

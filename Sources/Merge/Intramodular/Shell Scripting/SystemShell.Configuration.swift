@@ -69,6 +69,11 @@ extension SystemShell.Configuration: Diffable {
             Self(standardStreamMirroring: .set(value))
         }
 
+        /// Collect process output without mirroring standard streams to the terminal.
+        public static var _collectingOutput: Self {
+            .standardStreamMirroring(.disabled)
+        }
+
         public mutating func mergeInPlace(
             with other: Self
         ) throws {

@@ -15,6 +15,7 @@ extension CommandLineToolInvocationSummary {
 @available(macCatalyst, unavailable)
 @available(tvOS, unavailable)
 @available(watchOS, unavailable)
+/// Fallback summary node that renders all unresolved/default arguments for a command.
 public struct DefaultInvocationSummary<Command: AnyCommandLineTool>: InvocationSummary {
     @usableFromInline
     init() { }
@@ -29,7 +30,13 @@ public struct DefaultInvocationSummary<Command: AnyCommandLineTool>: InvocationS
             .filter {
                 !context.argumentIsRendered(command: command, argumentName: $0.id.rawValue)
             }
-            .compactMap(\.invocationArgument)
+            .flatMap { argument in
+                defer {
+                    context.registerArgument(command: command, argumentName: argument.id.rawValue)
+                }
+
+                return argument.invocationArguments
+            }
     }
 }
 

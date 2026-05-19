@@ -1,10 +1,8 @@
+//
+// Copyright (c) Vatsal Manot
+//
+
 #if os(macOS)
-//
-//  InvocationSummaryValue.swift
-//  Merge
-//
-//  Created by Yanan Li on 2026/1/5.
-//
 
 import Foundation
 import Swallow
@@ -15,6 +13,7 @@ extension CommandLineToolInvocationSummary {
 @available(macCatalyst, unavailable)
 @available(tvOS, unavailable)
 @available(watchOS, unavailable)
+/// Summary node that renders one property-wrapper value from the current command.
 public struct InvocationSummaryValueReference<Command: AnyCommandLineTool, Value: InvocationSummaryValue>: InvocationSummary {
     let keyPath: KeyPath<Command, Value>
 
@@ -35,18 +34,14 @@ public struct InvocationSummaryValueReference<Command: AnyCommandLineTool, Value
         let resolved = try command[keyPath: keyPath].resolve(
             in: .init(
                 resolvingID: _ResolvedCommandLineToolDescription.ArgumentID(
-                    rawValue: UUID().uuidString, // construct a temporary string.
+                    rawValue: InvocationSummaryContext.argumentName(for: keyPath),
                     commandName: command._commandName
                 ),
                 defaultKeyConversion: command.keyConversion
             )
         )
 
-        if let argument = resolved.invocationArgument {
-            return [argument]
-        } else {
-            return []
-        }
+        return resolved.invocationArguments
     }
 }
 
@@ -55,7 +50,13 @@ public struct InvocationSummaryValueReference<Command: AnyCommandLineTool, Value
 @available(macCatalyst, unavailable)
 @available(tvOS, unavailable)
 @available(watchOS, unavailable)
-public protocol InvocationSummaryValue<WrappedValue>: PropertyWrapper, Resolvable where Result == _AnyResolvedCommandLineToolInvocationArgument, Context == _CommandLineToolResolutionContext {
+/// Property-wrapper requirement for values that can be referenced and rendered by an invocation summary.
+public protocol InvocationSummaryValue<WrappedValue>: PropertyWrapper {
+    associatedtype WrappedValue
+
+    func resolve(
+        in context: _CommandLineToolResolutionContext
+    ) throws -> _AnyResolvedCommandLineToolInvocationArgument
 
 }
 

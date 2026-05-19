@@ -16,6 +16,7 @@ extension CommandLineToolInvocationSummary {
 @available(macCatalyst, unavailable)
 @available(tvOS, unavailable)
 @available(watchOS, unavailable)
+/// Result builder that turns summary literals, value references, and conditional nodes into a summary tree.
 public struct InvocationSummaryBuilder<Command: AnyCommandLineTool> {
     @_alwaysEmitIntoClient
     public static func buildBlock() -> _EmptyInvocationSummary<Command> {
@@ -110,6 +111,7 @@ public struct InvocationSummaryBuilder<Command: AnyCommandLineTool> {
 @available(macCatalyst, unavailable)
 @available(tvOS, unavailable)
 @available(watchOS, unavailable)
+/// Summary node for a literal argument inserted directly into the rendered invocation.
 public struct _InvocationSummaryLiteral<Command: AnyCommandLineTool>: InvocationSummary {
     let text: String
 
@@ -131,6 +133,7 @@ public struct _InvocationSummaryLiteral<Command: AnyCommandLineTool>: Invocation
 @available(macCatalyst, unavailable)
 @available(tvOS, unavailable)
 @available(watchOS, unavailable)
+/// Summary node representing an intentionally empty branch.
 public struct _EmptyInvocationSummary<Command: AnyCommandLineTool>: InvocationSummary {
     @inlinable public init() { }
 
@@ -148,6 +151,7 @@ public struct _EmptyInvocationSummary<Command: AnyCommandLineTool>: InvocationSu
 @available(macCatalyst, unavailable)
 @available(tvOS, unavailable)
 @available(watchOS, unavailable)
+/// Summary node used by result-builder optional branches.
 public struct _OptionalInvocationSummary<Command: AnyCommandLineTool, Content: InvocationSummary>: InvocationSummary where Content.Command == Command {
     let content: Content?
 
@@ -177,6 +181,7 @@ public struct _OptionalInvocationSummary<Command: AnyCommandLineTool, Content: I
 @available(macCatalyst, unavailable)
 @available(tvOS, unavailable)
 @available(watchOS, unavailable)
+/// Summary node used by result-builder `if`/`else` branches while the first-class DSL settles.
 public enum _ConditionalInvocationSummary<Command: AnyCommandLineTool, TrueContent: InvocationSummary, FalseContent: InvocationSummary>: InvocationSummary where TrueContent.Command == Command, FalseContent.Command == Command {
     case first(TrueContent)
     case second(FalseContent)

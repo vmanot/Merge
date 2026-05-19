@@ -1,8 +1,8 @@
+//
+// Copyright (c) Vatsal Manot
+//
+
 #if os(macOS)
-//
-//  _Subcommand.swift
-//  Merge
-//
 
 import Foundation
 

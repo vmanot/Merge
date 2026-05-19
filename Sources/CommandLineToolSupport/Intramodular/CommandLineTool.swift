@@ -28,7 +28,14 @@ public protocol CommandLineTool: AnyCommandLineTool {
 }
 
 extension CommandLineTool {
-    private var _subcommandChain: [AnyCommandLineTool]? {
+    private var _commandChain: [AnyCommandLineTool]? {
+        if let selectedTool = self as? any _GenericSelectedCommandLineToolProtocol {
+            return [
+                selectedTool._opaqueSelectingTool,
+                self
+            ]
+        }
+
         guard let subcommand = self as? any _GenericSubcommandProtocol else {
             return nil
         }
@@ -36,9 +43,20 @@ extension CommandLineTool {
         var result: [AnyCommandLineTool] = [subcommand._opaqueCommand]
         var parent = subcommand._opaqueParent
 
-        while let parentSubcommand = parent as? any _GenericSubcommandProtocol {
-            result.insert(parentSubcommand._opaqueCommand, at: 0)
-            parent = parentSubcommand._opaqueParent
+        while true {
+            if let parentSubcommand = parent as? any _GenericSubcommandProtocol {
+                result.insert(parentSubcommand._opaqueCommand, at: 0)
+                parent = parentSubcommand._opaqueParent
+            } else if let selectedTool = parent as? any _GenericSelectedCommandLineToolProtocol {
+                guard let selectedToolWrapper = selectedTool as? AnyCommandLineTool else {
+                    preconditionFailure("Unable to resolve selected tool wrapper for \(type(of: selectedTool))")
+                }
+
+                result.insert(selectedToolWrapper, at: 0)
+                parent = selectedTool._opaqueSelectingTool
+            } else {
+                break
+            }
         }
 
         result.insert(parent, at: 0)
@@ -46,8 +64,91 @@ extension CommandLineTool {
         return result
     }
 
+    func _selectedToolInvocation(
+        renderedInvocation: CommandLineToolInvocation
+    ) -> _CommandLineToolSelectedToolInvocation? {
+        guard
+            let chain = _commandChain,
+            let selectingToolIndex = chain.firstIndex(where: { $0 is AnyCommandLineToolWithSelectedTool }),
+            chain.indices.contains(selectingToolIndex + 1),
+            let selectingTool = chain[selectingToolIndex] as? AnyCommandLineToolWithSelectedTool
+        else {
+            return nil
+        }
+
+        let selectedToolCommandPath = chain[(selectingToolIndex + 1)...]
+            .map(\._commandName)
+
+        guard let selectedToolCommandName = selectedToolCommandPath.first else {
+            return nil
+        }
+
+        return _CommandLineToolSelectedToolInvocation(
+            renderedInvocation: renderedInvocation,
+            selectingToolCommandName: selectingTool._commandName,
+            selectedToolCommandName: selectedToolCommandName,
+            selectedToolCommandPath: selectedToolCommandPath,
+            selectionSemantics: selectingTool.toolSelectionSemantics,
+            resolutionSemantics: selectingTool.selectedToolResolutionSemantics
+        )
+    }
+
     private func _sanitizeInvocationArguments(_ arguments: [String]) -> [String] {
         arguments.filter { !$0.isEmpty }
+    }
+
+    private func _makeCommandChainInvocationArguments(
+        chain: [AnyCommandLineTool],
+        leafArguments: [String],
+        context: CommandLineToolInvocationSummary.InvocationSummaryContext
+    ) throws -> [String] {
+        guard let root = chain.first else {
+            return leafArguments
+        }
+
+        var arguments = [String]()
+
+        arguments.append(root._commandName)
+        try arguments.append(
+            contentsOf: root._defaultInvocationArguments(
+                context: context,
+                positions: [.local]
+            )
+        )
+
+        for (index, command) in chain.dropFirst().enumerated() {
+            let parent = chain[index]
+
+            arguments.append(command._commandName)
+            try arguments.append(
+                contentsOf: parent._defaultInvocationArguments(
+                    context: context,
+                    positions: [.nextCommand]
+                )
+            )
+
+            if index < chain.count - 2 {
+                try arguments.append(
+                    contentsOf: command._defaultInvocationArguments(
+                        context: context,
+                        positions: [.local]
+                    )
+                )
+            }
+        }
+
+        arguments.append(contentsOf: leafArguments.filter { !$0.isEmpty })
+
+        for command in chain.dropLast() {
+            try arguments.append(
+                contentsOf: command._defaultInvocationArguments(
+                    context: context,
+                    positions: [.lastCommand]
+                )
+            )
+        }
+
+        return arguments
     }
 
     public var invocationSummary: some CommandLineToolInvocationSummary.InvocationSummary {
@@ -66,8 +167,28 @@ extension CommandLineTool {
                         context: context
                     )
                 )
+            case let selectedTool as any _GenericSelectedCommandLineToolProtocol:
+                guard let chain = _commandChain else {
+                    preconditionFailure("Unable to resolve selected tool chain for \(type(of: self))")
+                }
+                guard let command = selectedTool._opaqueSelectedTool as? SummaryContent.Command else {
+                    preconditionFailure("GenericSelectedCommandLineTool \(type(of: selectedTool._opaqueSelectedTool)) not equals to \(SummaryContent.Command.self)")
+                }
+                let selfArgs = try invocationSummary.makeInvocationArguments(
+                    command: command,
+                    parent: selectedTool._opaqueSelectingTool,
+                    context: context
+                )
+
+                arguments.append(
+                    contentsOf: try _makeCommandChainInvocationArguments(
+                        chain: chain,
+                        leafArguments: selfArgs,
+                        context: context
+                    )
+                )
             case let subcommand as any _GenericSubcommandProtocol:
-                guard let chain = _subcommandChain, let root = chain.first else {
+                guard let chain = _commandChain else {
                     preconditionFailure("Unable to resolve subcommand chain for \(type(of: self))")
                 }
                 guard let command = subcommand.command as? SummaryContent.Command else {
@@ -79,50 +200,18 @@ extension CommandLineTool {
                     context: context
                 )
 
-                arguments.append(root._commandName)
-                try arguments.append(
-                    contentsOf: root._defaultInvocationArguments(
-                        context: context,
-                        positions: [.local]
+                arguments.append(
+                    contentsOf: try _makeCommandChainInvocationArguments(
+                        chain: chain,
+                        leafArguments: selfArgs,
+                        context: context
                     )
                 )
-
-                for (index, command) in chain.dropFirst().enumerated() {
-                    let parent = chain[index]
-
-                    arguments.append(command._commandName)
-                    try arguments.append(
-                        contentsOf: parent._defaultInvocationArguments(
-                            context: context,
-                            positions: [.nextCommand]
-                        )
-                    )
-
-                    if index < chain.count - 2 {
-                        try arguments.append(
-                            contentsOf: command._defaultInvocationArguments(
-                                context: context,
-                                positions: [.local]
-                            )
-                        )
-                    }
-                }
-
-                arguments.append(contentsOf: selfArgs.filter { !$0.isEmpty })
-
-                for command in chain.dropLast() {
-                    try arguments.append(
-                        contentsOf: command._defaultInvocationArguments(
-                            context: context,
-                            positions: [.lastCommand]
-                        )
-                    )
-                }
             default:
                 preconditionFailure("\(type(of: self)) not equals to \(SummaryContent.Command.self)")
         }
 
-        if !(self is any _GenericSubcommandProtocol) && !(SummaryContent.self == CommandLineToolInvocationSummary.DefaultInvocationSummary<Self>.self) {
+        if !(self is any _GenericSubcommandProtocol) && !(self is any _GenericSelectedCommandLineToolProtocol) && !(SummaryContent.self == CommandLineToolInvocationSummary.DefaultInvocationSummary<Self>.self) {
             try arguments.append(
                 contentsOf: CommandLineToolInvocationSummary.DefaultInvocationSummary<Self>().makeInvocationArguments(
                     command: self,
@@ -147,63 +236,6 @@ extension CommandLineTool {
         }
     }
 
-    @discardableResult
-    public func _run(
-        applying differences: SystemShell.Configuration.Difference...
-    ) async throws -> _CommandLineToolExecutionRecord<Self> {
-        try await _run(applying: differences)
-    }
-
-    @discardableResult
-    public func _run(
-        applying differences: [SystemShell.Configuration.Difference]
-    ) async throws -> _CommandLineToolExecutionRecord<Self> {
-        let invocation = try commandInvocation
-
-        return try await withUnsafeSystemShell { shell in
-            try await shell.withConfiguration(applying: differences) { shell in
-                let processResult = try await shell.run(command: invocation.commandLine)
-
-                return _CommandLineToolExecutionRecord(
-                    tool: self,
-                    source: .modeledInvocation(invocation),
-                    processResult: processResult
-                )
-            }
-        }
-    }
-
-    @discardableResult
-    public func _run(
-        command commandLine: String,
-        input: String? = nil,
-        applying differences: SystemShell.Configuration.Difference...
-    ) async throws -> _CommandLineToolExecutionRecord<Self> {
-        try await _run(
-            command: commandLine,
-            input: input,
-            applying: differences
-        )
-    }
-
-    @discardableResult
-    public func _run(
-        command commandLine: String,
-        input: String? = nil,
-        applying differences: [SystemShell.Configuration.Difference]
-    ) async throws -> _CommandLineToolExecutionRecord<Self> {
-        try await withUnsafeSystemShell { shell in
-            try await shell.withConfiguration(applying: differences) { shell in
-                let processResult = try await shell.run(command: commandLine, input: input)
-
-                return _CommandLineToolExecutionRecord(
-                    tool: self,
-                    source: .shellCommandLine(commandLine),
-                    processResult: processResult
-                )
-            }
-        }
-    }
 }
 
 extension CommandLineTool {

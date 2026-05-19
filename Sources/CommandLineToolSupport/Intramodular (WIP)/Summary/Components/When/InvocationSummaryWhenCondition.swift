@@ -1,10 +1,8 @@
+//
+// Copyright (c) Vatsal Manot
+//
+
 #if os(macOS)
-//
-//  InvocationSummaryWhenCondition.swift
-//  Merge
-//
-//  Created by Yanan Li on 2026/1/5.
-//
 
 import Foundation
 import Swallow
@@ -15,6 +13,7 @@ extension CommandLineToolInvocationSummary {
 @available(macCatalyst, unavailable)
 @available(tvOS, unavailable)
 @available(watchOS, unavailable)
+/// Conditional summary node that renders one branch when a command/value predicate matches.
 public struct InvocationSummaryWhenCondition<Command: AnyCommandLineTool>: InvocationSummary {
     internal let condition: InvocationSummaryCondition<Command>
     internal let trueBranch: any InvocationSummary<Command>
@@ -103,6 +102,23 @@ extension CommandLineToolInvocationSummary.InvocationSummaryWhenCondition {
     ) where Value.WrappedValue: Equatable, TrueContent.Command == Command, FalseContent.Command == Command {
         self.init(value, .equalsTo(expected), content, else: elseContent)
     }
+
+    public init<TrueContent: CommandLineToolInvocationSummary.InvocationSummary, Value: CommandLineToolInvocationSummary.InvocationSummaryValue>(
+        _ value: KeyPath<Command, Value>,
+        equals expected: Value.WrappedValue,
+        @CommandLineToolInvocationSummary.InvocationSummaryBuilder<Command> _ content: () -> TrueContent
+    ) where Value.WrappedValue: Equatable, TrueContent.Command == Command {
+        self.init(value, .equals(expected), content)
+    }
+
+    public init<TrueContent: CommandLineToolInvocationSummary.InvocationSummary, FalseContent: CommandLineToolInvocationSummary.InvocationSummary, Value: CommandLineToolInvocationSummary.InvocationSummaryValue>(
+        _ value: KeyPath<Command, Value>,
+        equals expected: Value.WrappedValue,
+        @CommandLineToolInvocationSummary.InvocationSummaryBuilder<Command> _ content: () -> TrueContent,
+        @CommandLineToolInvocationSummary.InvocationSummaryBuilder<Command> `else` elseContent: () -> FalseContent
+    ) where Value.WrappedValue: Equatable, TrueContent.Command == Command, FalseContent.Command == Command {
+        self.init(value, .equals(expected), content, else: elseContent)
+    }
 }
 
 // MARK: - Property reference to parent command
@@ -145,6 +161,23 @@ extension CommandLineToolInvocationSummary.InvocationSummaryWhenCondition {
         @CommandLineToolInvocationSummary.InvocationSummaryBuilder<Command> `else` elseContent: () -> FalseContent
     ) where Value.WrappedValue: Equatable, TrueContent.Command == Command, FalseContent.Command == Command {
         self.init(value, .equalsTo(expected), content, else: elseContent)
+    }
+
+    public init<Parent: AnyCommandLineTool, TrueContent: CommandLineToolInvocationSummary.InvocationSummary, Value: CommandLineToolInvocationSummary.InvocationSummaryValue>(
+        _ value: CommandLineToolInvocationSummary.InvocationSummaryValueReferenceFromParent<Parent, Command, Value>,
+        equals expected: Value.WrappedValue,
+        @CommandLineToolInvocationSummary.InvocationSummaryBuilder<Command> _ content: () -> TrueContent
+    ) where Value.WrappedValue: Equatable, TrueContent.Command == Command {
+        self.init(value, .equals(expected), content)
+    }
+
+    public init<Parent: AnyCommandLineTool, TrueContent: CommandLineToolInvocationSummary.InvocationSummary, FalseContent: CommandLineToolInvocationSummary.InvocationSummary, Value: CommandLineToolInvocationSummary.InvocationSummaryValue>(
+        _ value: CommandLineToolInvocationSummary.InvocationSummaryValueReferenceFromParent<Parent, Command, Value>,
+        equals expected: Value.WrappedValue,
+        @CommandLineToolInvocationSummary.InvocationSummaryBuilder<Command> _ content: () -> TrueContent,
+        @CommandLineToolInvocationSummary.InvocationSummaryBuilder<Command> `else` elseContent: () -> FalseContent
+    ) where Value.WrappedValue: Equatable, TrueContent.Command == Command, FalseContent.Command == Command {
+        self.init(value, .equals(expected), content, else: elseContent)
     }
 }
 

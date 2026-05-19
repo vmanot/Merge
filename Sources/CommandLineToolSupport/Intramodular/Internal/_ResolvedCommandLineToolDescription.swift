@@ -1,43 +1,182 @@
+//
+// Copyright (c) Vatsal Manot
+//
+
 #if os(macOS)
-//
-//  _ResolvedCommandLineToolDescription.swift
-//  Merge
-//
-//  Created by Yanan Li on 2025/12/11.
-//
 
 import Foundation
 import Swallow
 import Collections
 
 /// The most granular and "resolved" representation of a command-line tool within some context.
-public struct _ResolvedCommandLineToolDescription: MergeOperatable {
-    public struct ArgumentID: Hashable, Sendable {
+public struct _ResolvedCommandLineToolDescription: CustomStringConvertible, CustomDebugStringConvertible, CustomReflectable, MergeOperatable {
+    public struct ArgumentID: CustomStringConvertible, CustomDebugStringConvertible, CustomReflectable, Hashable, Sendable {
         public let rawValue: String // the property name.
         public let commandName: String
+
+        public init(
+            rawValue: String,
+            commandName: String
+        ) {
+            self.rawValue = rawValue
+            self.commandName = commandName
+        }
+
+        public var description: String {
+            "\(commandName).\(rawValue)"
+        }
+
+        public var debugDescription: String {
+            "ArgumentID(rawValue: \(String(reflecting: rawValue)), commandName: \(String(reflecting: commandName)))"
+        }
+
+        public var customMirror: Mirror {
+            Mirror(
+                self,
+                children: [
+                    "rawValue": rawValue,
+                    "commandName": commandName
+                ],
+                displayStyle: .struct
+            )
+        }
+    }
+
+    public struct InvocationComponent: CustomStringConvertible, CustomDebugStringConvertible, CustomReflectable, Hashable, Sendable {
+        public enum Kind: Hashable, Sendable {
+            case positionalArgument
+            case option
+            case flag
+        }
+
+        public var kind: Kind
+        public var key: CommandLineToolInvocation.Argument?
+        public var separator: _CommandLineToolParameterKeyValueSeparator?
+        public var values: [CommandLineToolInvocation.Argument]
+        public var multiValueEncoding: MultiValueParameterEncodingStrategy?
+
+        public init(
+            kind: Kind,
+            key: CommandLineToolInvocation.Argument? = nil,
+            separator: _CommandLineToolParameterKeyValueSeparator? = nil,
+            values: [CommandLineToolInvocation.Argument],
+            multiValueEncoding: MultiValueParameterEncodingStrategy? = nil
+        ) {
+            self.kind = kind
+            self.key = key
+            self.separator = separator
+            self.values = values
+            self.multiValueEncoding = multiValueEncoding
+        }
+
+        public static func positionalArgument(
+            _ value: CommandLineToolInvocation.Argument
+        ) -> Self {
+            Self(kind: .positionalArgument, values: [value])
+        }
+
+        public static func option(
+            key: CommandLineToolInvocation.Argument,
+            separator: _CommandLineToolParameterKeyValueSeparator,
+            values: [CommandLineToolInvocation.Argument],
+            multiValueEncoding: MultiValueParameterEncodingStrategy? = nil
+        ) -> Self {
+            Self(
+                kind: .option,
+                key: key,
+                separator: separator,
+                values: values,
+                multiValueEncoding: multiValueEncoding
+            )
+        }
+
+        public static func flag(
+            _ value: CommandLineToolInvocation.Argument
+        ) -> Self {
+            Self(kind: .flag, values: [value])
+        }
+
+        public var invocationArgumentValues: [CommandLineToolInvocation.Argument] {
+            switch kind {
+                case .positionalArgument, .flag:
+                    return values
+                case .option:
+                    guard let key, let separator, !values.isEmpty else {
+                        return []
+                    }
+
+                    if multiValueEncoding == .spaceSeparated {
+                        return [key] + values
+                    }
+
+                    if separator == .space, values.count == 1 {
+                        return [key, values[0]]
+                    }
+
+                    return values.map { value in
+                        CommandLineToolInvocation.Argument("\(key.rawValue)\(separator.rawValue)\(value.rawValue)")
+                    }
+            }
+        }
+
+        public var description: String {
+            invocationArgumentValues.map(\.rawValue).joined(separator: " ")
+        }
+
+        public var debugDescription: String {
+            "InvocationComponent(kind: \(kind), key: \(String(describing: key)), separator: \(String(describing: separator)), values: \(values), multiValueEncoding: \(String(describing: multiValueEncoding)))"
+        }
+
+        public var customMirror: Mirror {
+            Mirror(
+                self,
+                children: [
+                    "kind": kind,
+                    "key": key as Any,
+                    "separator": separator as Any,
+                    "values": values,
+                    "multiValueEncoding": multiValueEncoding as Any,
+                    "invocationArgumentValues": invocationArgumentValues
+                ],
+                displayStyle: .struct
+            )
+        }
     }
 
     public typealias ResolvedArguments = IdentifierIndexingArrayOf<_AnyResolvedCommandLineToolInvocationArgument>
     public typealias ResolvedSubcommands = IdentifierIndexingArrayOf<Subcommand>
 
     /// A resolved argument.
-    public struct Argument: _ResolvedCommandLineToolInvocationArgument {
+    public struct Argument: CustomStringConvertible, CustomDebugStringConvertible, CustomReflectable, _ResolvedCommandLineToolInvocationArgument {
         public let id: _ResolvedCommandLineToolDescription.ArgumentID
         public let defaultPosition: _CommandLineToolArgumentPosition
         public let value: Any
         public let valueType: any Any.Type
 
-        public var invocationArgument: String? {
-            if let array = value as? [any CLT.ArgumentValueConvertible] {
-                return array.map(\.argumentValue).joined(separator: " ")
+        public var invocationComponents: [InvocationComponent] {
+            if let optionValue = value as? any OptionalProtocol, optionValue.isNil {
+                return []
             }
 
-            return (value as? CLT.ArgumentValueConvertible)?.argumentValue
+            if let array = value as? [any CLT.ArgumentValueConvertible] {
+                return array
+                    .map(\.argumentValue)
+                    .filter { !$0.isEmpty }
+                    .map { InvocationComponent.positionalArgument(CommandLineToolInvocation.Argument($0)) }
+            }
+
+            guard let argument = (value as? CLT.ArgumentValueConvertible)?.argumentValue else {
+                return []
+            }
+
+            return argument.isEmpty ? [] : [
+                InvocationComponent.positionalArgument(CommandLineToolInvocation.Argument(argument))
+            ]
         }
     }
 
     /// A resolved option.
-    public struct Option: _ResolvedCommandLineToolInvocationArgument {
+    public struct Option: CustomStringConvertible, CustomDebugStringConvertible, CustomReflectable, _ResolvedCommandLineToolInvocationArgument {
         public let id: _ResolvedCommandLineToolDescription.ArgumentID
         public let defaultPosition: _CommandLineToolArgumentPosition
         public let conversion: _CommandLineToolOptionKeyConversion
@@ -47,43 +186,65 @@ public struct _ResolvedCommandLineToolDescription: MergeOperatable {
         public let value: Any
         public let valueType: any Any.Type
 
-        public var invocationArgument: String? {
+        public var invocationComponents: [InvocationComponent] {
             if let optionValue = value as? any OptionalProtocol, optionValue.isNil {
-                return nil
+                return []
             }
 
-            let key = conversion.argumentKey(for: name)
+            let key = CommandLineToolInvocation.Argument(conversion.argumentKey(for: name))
 
             if let multiValueEncoding {
                 if let array = value as? [any CLT.ArgumentValueConvertible] {
+                    let values = array
+                        .map(\.argumentValue)
+                        .filter { !$0.isEmpty }
+                        .map { CommandLineToolInvocation.Argument($0) }
+
                     switch multiValueEncoding {
                         case .spaceSeparated:
                             assert(
                                 separator == .space,
                                 "key value separator conflicts with the multi value encoding strategy. You must specify set both to `.space`."
                             )
-                            let values = array.map(\.argumentValue)
-                            return ([key] + values).joined(separator: " ")
+                            return values.isEmpty ? [] : [
+                                .option(
+                                    key: key,
+                                    separator: separator,
+                                    values: values,
+                                    multiValueEncoding: multiValueEncoding
+                                )
+                            ]
                         case .singleValue:
-                            return array
-                                .map { "\(key)\(separator.rawValue)\($0.argumentValue)" }
-                                .joined(separator: " ")
+                            return values.isEmpty ? [] : [
+                                .option(
+                                    key: key,
+                                    separator: separator,
+                                    values: values,
+                                    multiValueEncoding: multiValueEncoding
+                                )
+                            ]
                     }
                 } else {
-                    return nil
+                    return []
                 }
             }
 
             if let convertible = value as? CLT.ArgumentValueConvertible, !convertible.argumentValue.isEmpty {
-                return "\(key)\(separator.rawValue)\(convertible.argumentValue)"
+                return [
+                    .option(
+                        key: key,
+                        separator: separator,
+                        values: [CommandLineToolInvocation.Argument(convertible.argumentValue)]
+                    )
+                ]
             } else {
-                return nil
+                return []
             }
         }
     }
 
     /// A resolved boolean flag.
-    public struct BooleanFlag: _ResolvedCommandLineToolInvocationArgument {
+    public struct BooleanFlag: CustomStringConvertible, CustomDebugStringConvertible, CustomReflectable, _ResolvedCommandLineToolInvocationArgument {
         public let id: _ResolvedCommandLineToolDescription.ArgumentID
         public let defaultPosition: _CommandLineToolArgumentPosition
         public let conversion: _CommandLineToolOptionKeyConversion
@@ -92,23 +253,27 @@ public struct _ResolvedCommandLineToolDescription: MergeOperatable {
         public let defaultBooleanValue: Bool?
         public let isOn: Bool?
 
-        public var invocationArgument: String? {
-            guard let isOn else { return nil }
+        public var invocationComponents: [InvocationComponent] {
+            guard let isOn else { return [] }
 
             if let inversion {
-                return inversion.argument(conversion: conversion, name: name, value: isOn)
+                return [
+                    .flag(CommandLineToolInvocation.Argument(inversion.argument(conversion: conversion, name: name, value: isOn)))
+                ]
+            }
+
+            if defaultBooleanValue != isOn {
+                return [
+                    .flag(CommandLineToolInvocation.Argument("\(conversion.argumentKey(for: name))"))
+                ]
             } else {
-                return if defaultBooleanValue != isOn {
-                    "\(conversion.argumentKey(for: name))"
-                } else {
-                    nil
-                }
+                return []
             }
         }
     }
 
     /// A resolved simple flag.
-    public struct CounterFlag: _ResolvedCommandLineToolInvocationArgument {
+    public struct CounterFlag: CustomStringConvertible, CustomDebugStringConvertible, CustomReflectable, _ResolvedCommandLineToolInvocationArgument {
         public let id: _ResolvedCommandLineToolDescription.ArgumentID
         public let defaultPosition: _CommandLineToolArgumentPosition
         public let conversion: _CommandLineToolOptionKeyConversion
@@ -116,50 +281,73 @@ public struct _ResolvedCommandLineToolDescription: MergeOperatable {
         public let count: Int
         public let isClustered: Bool
 
-        public var invocationArgument: String? {
-            guard count > 0 else { return nil }
+        public var invocationComponents: [InvocationComponent] {
+            guard count > 0 else { return [] }
 
-            return if isClustered {
-                "\(conversion.argumentKey(for: (0..<count).map({ _ in name }).joined()))"
-            } else {
-                (0..<count)
-                    .map({ _ in "\(conversion.argumentKey(for: name))" })
-                    .joined(separator: " ")
+            if isClustered {
+                return [
+                    .flag(CommandLineToolInvocation.Argument("\(conversion.argumentKey(for: (0..<count).map({ _ in name }).joined()))"))
+                ]
             }
+
+            return (0..<count)
+                .map { _ in "\(conversion.argumentKey(for: name))" }
+                .map { InvocationComponent.flag(CommandLineToolInvocation.Argument($0)) }
         }
     }
 
     /// A resolved custom flag.
-    public struct CustomFlag: _ResolvedCommandLineToolInvocationArgument {
+    public struct CustomFlag: CustomStringConvertible, CustomDebugStringConvertible, CustomReflectable, _ResolvedCommandLineToolInvocationArgument {
         public let id: _ResolvedCommandLineToolDescription.ArgumentID
         public let defaultPosition: _CommandLineToolArgumentPosition
 
         public let value: Any
         public let valueType: any Any.Type
 
-        public var invocationArgument: String? {
+        public var invocationComponents: [InvocationComponent] {
             if let optionValue = value as? any OptionalProtocol, optionValue.isNil {
-                return nil
+                return []
             }
 
-            return switch value {
-                case let array as Array<any CLT.OptionKeyConvertible>:
-                    array.compactMap {
-                        $0.conversion.argumentKey(for: $0.name)
-                    }.joined(separator: " ")
-                case let optionKeyConvertible as CLT.OptionKeyConvertible:
-                    optionKeyConvertible.conversion.argumentKey(for: optionKeyConvertible.name)
-                default:
-                    nil
+            if let array = value as? Array<any CLT.OptionKeyConvertible> {
+                return array
+                    .compactMap { $0.conversion.argumentKey(for: $0.name) }
+                    .map { InvocationComponent.flag(CommandLineToolInvocation.Argument($0)) }
+            } else if let optionKeyConvertible = value as? CLT.OptionKeyConvertible {
+                return [
+                    .flag(CommandLineToolInvocation.Argument(optionKeyConvertible.conversion.argumentKey(for: optionKeyConvertible.name)))
+                ]
+            } else {
+                return []
             }
         }
     }
 
     /// A resolved subcommand.
-    public struct Subcommand: Identifiable {
+    public struct Subcommand: CustomStringConvertible, CustomDebugStringConvertible, CustomReflectable, Identifiable {
         public let id: _ResolvedCommandLineToolDescription.ArgumentID
         public let name: String
         public let _resolvedDescription: _ResolvedCommandLineToolDescription
+
+        public var description: String {
+            name
+        }
+
+        public var debugDescription: String {
+            "Subcommand(name: \(String(reflecting: name)), id: \(id.debugDescription))"
+        }
+
+        public var customMirror: Mirror {
+            Mirror(
+                self,
+                children: [
+                    "id": id,
+                    "name": name,
+                    "resolvedDescription": _resolvedDescription
+                ],
+                displayStyle: .struct
+            )
+        }
     }
 
     public var toolName: String
@@ -177,12 +365,144 @@ public struct _ResolvedCommandLineToolDescription: MergeOperatable {
         arguments.append(contentsOf: other.arguments)
         subcommands.append(contentsOf: other.subcommands)
     }
+
+    public var description: String {
+        toolName
+    }
+
+    public var debugDescription: String {
+        "_ResolvedCommandLineToolDescription(toolName: \(String(reflecting: toolName)), arguments: \(arguments.count), subcommands: \(subcommands.count))"
+    }
+
+    public var customMirror: Mirror {
+        Mirror(
+            self,
+            children: [
+                "toolName": toolName,
+                "arguments": arguments,
+                "subcommands": subcommands
+            ],
+            displayStyle: .struct
+        )
+    }
 }
 
 public protocol _ResolvedCommandLineToolInvocationArgument {
     var id: _ResolvedCommandLineToolDescription.ArgumentID { get }
     var defaultPosition: _CommandLineToolArgumentPosition { get }
+    var invocationComponents: [_ResolvedCommandLineToolDescription.InvocationComponent] { get }
+    var invocationArgumentValues: [CommandLineToolInvocation.Argument] { get }
+    var invocationArguments: [String] { get }
     var invocationArgument: String? { get }
+}
+
+extension _ResolvedCommandLineToolInvocationArgument {
+    fileprivate var _resolvedArgumentDescription: String {
+        invocationArgument ?? ""
+    }
+
+    fileprivate var _resolvedArgumentDebugDescription: String {
+        "\(Self.self)(id: \(id.description), resolvedID: \(id.debugDescription), defaultPosition: \(defaultPosition), invocationArguments: \(invocationArguments))"
+    }
+
+    fileprivate var _resolvedArgumentCustomMirror: Mirror {
+        Mirror(
+            self,
+            children: [
+                "id": id,
+                "defaultPosition": defaultPosition,
+                "invocationComponents": invocationComponents,
+                "invocationArgumentValues": invocationArgumentValues,
+                "invocationArguments": invocationArguments,
+                "invocationArgument": invocationArgument as Any
+            ],
+            displayStyle: .struct
+        )
+    }
+
+    public var invocationArgumentValues: [CommandLineToolInvocation.Argument] {
+        invocationComponents.flatMap(\.invocationArgumentValues)
+    }
+
+    public var invocationArguments: [String] {
+        invocationArgumentValues.map(\.rawValue)
+    }
+
+    public var invocationArgument: String? {
+        let arguments = invocationArguments.filter { !$0.isEmpty }
+
+        return arguments.isEmpty ? nil : arguments.joined(separator: " ")
+    }
+}
+
+extension _ResolvedCommandLineToolDescription.Argument {
+    public var description: String {
+        _resolvedArgumentDescription
+    }
+
+    public var debugDescription: String {
+        _resolvedArgumentDebugDescription
+    }
+
+    public var customMirror: Mirror {
+        _resolvedArgumentCustomMirror
+    }
+}
+
+extension _ResolvedCommandLineToolDescription.Option {
+    public var description: String {
+        _resolvedArgumentDescription
+    }
+
+    public var debugDescription: String {
+        _resolvedArgumentDebugDescription
+    }
+
+    public var customMirror: Mirror {
+        _resolvedArgumentCustomMirror
+    }
+}
+
+extension _ResolvedCommandLineToolDescription.BooleanFlag {
+    public var description: String {
+        _resolvedArgumentDescription
+    }
+
+    public var debugDescription: String {
+        _resolvedArgumentDebugDescription
+    }
+
+    public var customMirror: Mirror {
+        _resolvedArgumentCustomMirror
+    }
+}
+
+extension _ResolvedCommandLineToolDescription.CounterFlag {
+    public var description: String {
+        _resolvedArgumentDescription
+    }
+
+    public var debugDescription: String {
+        _resolvedArgumentDebugDescription
+    }
+
+    public var customMirror: Mirror {
+        _resolvedArgumentCustomMirror
+    }
+}
+
+extension _ResolvedCommandLineToolDescription.CustomFlag {
+    public var description: String {
+        _resolvedArgumentDescription
+    }
+
+    public var debugDescription: String {
+        _resolvedArgumentDebugDescription
+    }
+
+    public var customMirror: Mirror {
+        _resolvedArgumentCustomMirror
+    }
 }
 
 // MARK: - Type erasing
@@ -193,7 +513,7 @@ extension _ResolvedCommandLineToolInvocationArgument {
     }
 }
 
-public struct _AnyResolvedCommandLineToolInvocationArgument: _UnwrappableTypeEraser, _ResolvedCommandLineToolInvocationArgument, Identifiable {
+public struct _AnyResolvedCommandLineToolInvocationArgument: CustomStringConvertible, CustomDebugStringConvertible, CustomReflectable, _UnwrappableTypeEraser, _ResolvedCommandLineToolInvocationArgument, Identifiable {
     public typealias _UnwrappedBaseType = any _ResolvedCommandLineToolInvocationArgument
 
     public let base: any _ResolvedCommandLineToolInvocationArgument
@@ -208,6 +528,42 @@ public struct _AnyResolvedCommandLineToolInvocationArgument: _UnwrappableTypeEra
 
     public var invocationArgument: String? {
         base.invocationArgument
+    }
+
+    public var invocationArguments: [String] {
+        base.invocationArguments
+    }
+
+    public var invocationComponents: [_ResolvedCommandLineToolDescription.InvocationComponent] {
+        base.invocationComponents
+    }
+
+    public var invocationArgumentValues: [CommandLineToolInvocation.Argument] {
+        base.invocationArgumentValues
+    }
+
+    public var description: String {
+        base.invocationArgument ?? ""
+    }
+
+    public var debugDescription: String {
+        "_AnyResolvedCommandLineToolInvocationArgument(base: \(String(reflecting: type(of: base))), id: \(id.description), resolvedID: \(id.debugDescription), invocationArguments: \(invocationArguments))"
+    }
+
+    public var customMirror: Mirror {
+        Mirror(
+            self,
+            children: [
+                "base": base,
+                "id": id,
+                "defaultPosition": defaultPosition,
+                "invocationComponents": invocationComponents,
+                "invocationArgumentValues": invocationArgumentValues,
+                "invocationArguments": invocationArguments,
+                "invocationArgument": invocationArgument as Any
+            ],
+            displayStyle: .struct
+        )
     }
 
     public init(_erasing x: any _ResolvedCommandLineToolInvocationArgument) {

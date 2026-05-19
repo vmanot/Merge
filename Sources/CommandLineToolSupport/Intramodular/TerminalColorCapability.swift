@@ -70,7 +70,9 @@ public enum TerminalColorCapability {
     private static func checkCIEnvironment(
         _ env: [String: String]
     ) -> TerminalColorCapability? {
-        guard env["CI"] != nil else { return nil }
+        guard env["CI"] != nil else {
+            return nil
+        }
         
         let ciPlatforms = ["TRAVIS", "CIRCLECI", "APPVEYOR", "GITLAB_CI"]
         
@@ -111,7 +113,9 @@ public enum TerminalColorCapability {
     private static func checkTerminalType(
         _ env: [String: String]
     ) -> TerminalColorCapability? {
-        guard let term = env["TERM"]?.lowercased() else { return nil }
+        guard let term = env["TERM"]?.lowercased() else {
+            return nil
+        }
         
         if term.matches("-256(color)?$") {
             return .ansi256

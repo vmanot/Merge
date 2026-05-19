@@ -14,6 +14,7 @@ extension CommandLineToolInvocationSummary {
 @available(macCatalyst, unavailable)
 @available(tvOS, unavailable)
 @available(watchOS, unavailable)
+/// Fallback summary-switch branch used when no value-specific case matches.
 public struct InvocationSummaryDefaultCaseCondition<Command: AnyCommandLineTool, Value: InvocationSummaryValue, Summary: InvocationSummary>: InvocationSummarySwitchCaseProtocol where Summary.Command == Command {
     let summary: Summary
 

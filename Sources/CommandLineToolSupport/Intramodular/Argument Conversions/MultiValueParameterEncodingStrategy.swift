@@ -8,7 +8,7 @@
 import Foundation
 
 /// Describes how multi-value parameters are encoded on the command line.
-public enum MultiValueParameterEncodingStrategy {
+public enum MultiValueParameterEncodingStrategy: Hashable, Sendable {
     /// Each parameter value is attached to an independent key.
     ///
     /// For example: `-Xcc -fmodule-map-file=foo.modulemap -Xcc -fmodules` for `xcrun_swiftc`

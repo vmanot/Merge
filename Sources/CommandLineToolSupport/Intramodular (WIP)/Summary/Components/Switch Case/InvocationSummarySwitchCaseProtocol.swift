@@ -15,6 +15,7 @@ extension CommandLineToolInvocationSummary {
 @available(macCatalyst, unavailable)
 @available(tvOS, unavailable)
 @available(watchOS, unavailable)
+/// A branch candidate used by the invocation-summary `Switch` DSL.
 public protocol InvocationSummarySwitchCaseProtocol<Value> {
     associatedtype Command: AnyCommandLineTool
     associatedtype Value: InvocationSummaryValue
@@ -30,6 +31,7 @@ public protocol InvocationSummarySwitchCaseProtocol<Value> {
 @available(macCatalyst, unavailable)
 @available(tvOS, unavailable)
 @available(watchOS, unavailable)
+/// Internal matching failure for provisional summary-switch lowering.
 enum InvocationSummarySwitchCaseError: Error {
     case caseNotMatch
     case noCaseMatched

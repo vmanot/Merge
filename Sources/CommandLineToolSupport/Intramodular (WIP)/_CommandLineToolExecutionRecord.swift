@@ -1,7 +1,8 @@
-#if os(macOS)
 //
 // Copyright (c) Vatsal Manot
 //
+
+#if os(macOS)
 
 import Foundation
 import Merge
@@ -11,50 +12,52 @@ import Merge
 @available(macCatalyst, unavailable)
 @available(tvOS, unavailable)
 @available(watchOS, unavailable)
-public struct _CommandLineToolExecutionRecord<Tool: AnyCommandLineTool> {
+/// Provisional typed carrier that preserves the modeled tool alongside the raw process result.
+public struct _CommandLineToolExecutionRecord<Tool: AnyCommandLineTool>: CustomStringConvertible, CustomDebugStringConvertible, CustomReflectable {
     public let tool: Tool
     public let source: _CommandLineToolExecutionSource
     public let processResult: Process.RunResult
+    public let selectedToolInvocation: _CommandLineToolSelectedToolInvocation?
 
     public init(
         tool: Tool,
         source: _CommandLineToolExecutionSource,
-        processResult: Process.RunResult
+        processResult: Process.RunResult,
+        selectedToolInvocation: _CommandLineToolSelectedToolInvocation? = nil
     ) {
         self.tool = tool
         self.source = source
         self.processResult = processResult
+        self.selectedToolInvocation = selectedToolInvocation
     }
 }
 
+/// Transitional compatibility alias for the provisional command-line tool execution carrier.
 public typealias _CommandLineToolRunResult<Command: CommandLineTool> = _CommandLineToolExecutionRecord<Command>
 
-public enum _CommandLineToolExecutionSource: Hashable, Sendable {
-    case modeledInvocation(CommandLineToolInvocation)
-    case shellCommandLine(String)
-}
-
-extension _CommandLineToolExecutionSource {
-    public var commandLine: String {
-        switch self {
-            case .modeledInvocation(let invocation):
-                invocation.commandLine
-            case .shellCommandLine(let commandLine):
-                commandLine
-        }
-    }
-
-    public var invocation: CommandLineToolInvocation? {
-        switch self {
-            case .modeledInvocation(let invocation):
-                invocation
-            case .shellCommandLine:
-                nil
-        }
-    }
-}
-
 extension _CommandLineToolExecutionRecord {
+    public var description: String {
+        commandLine
+    }
+
+    public var debugDescription: String {
+        "_CommandLineToolExecutionRecord(tool: \(String(reflecting: Tool.self)), commandLine: \(String(reflecting: commandLine)), selectedToolInvocation: \(selectedToolInvocation.debugDescription))"
+    }
+
+    public var customMirror: Mirror {
+        Mirror(
+            self,
+            children: [
+                "tool": tool,
+                "source": source,
+                "processResult": processResult,
+                "selectedToolInvocation": selectedToolInvocation as Any,
+                "commandLine": commandLine
+            ],
+            displayStyle: .struct
+        )
+    }
+
     public var commandLine: String {
         source.commandLine
     }
@@ -81,6 +84,10 @@ extension _CommandLineToolExecutionRecord {
 
     public var terminationError: ProcessTerminationError? {
         processResult.terminationError
+    }
+
+    public var isSelectedToolInvocation: Bool {
+        selectedToolInvocation != nil
     }
 
     public func validate() throws {

@@ -1,8 +1,8 @@
+//
+// Copyright (c) Vatsal Manot
+//
+
 #if os(macOS)
-//
-//  InvocationSummaryContext.swift
-//  Merge
-//
 
 import Foundation
 
@@ -12,12 +12,19 @@ extension CommandLineToolInvocationSummary {
 @available(macCatalyst, unavailable)
 @available(tvOS, unavailable)
 @available(watchOS, unavailable)
+/// Tracks arguments already rendered by explicit summary nodes so default rendering can avoid duplicates.
 public final class InvocationSummaryContext {
     private(set) var renderedArguments: Set<Argument> = []
 
     struct Argument: Hashable, Sendable {
         var name: String
         var owningCommandName: String
+    }
+
+    static func argumentName<Command: AnyCommandLineTool, Value: InvocationSummaryValue>(
+        for keyPath: KeyPath<Command, Value>
+    ) -> String {
+        String(describing: keyPath).dropPrefixIfPresent("\\\(String(describing: Command.self)).$")
     }
 
     @discardableResult
@@ -27,7 +34,7 @@ public final class InvocationSummaryContext {
     ) -> Bool {
         renderedArguments.insert(
             .init(
-                name: String(describing: keyPath).dropPrefixIfPresent("\\\(String(describing: Command.self)).$"),
+                name: Self.argumentName(for: keyPath),
                 owningCommandName: command._commandName
             )
         ).inserted
@@ -39,7 +46,7 @@ public final class InvocationSummaryContext {
     ) -> Bool {
         renderedArguments.contains(
             .init(
-                name: String(describing: keyPath).dropPrefixIfPresent("\\\(String(describing: Command.self)).$"),
+                name: Self.argumentName(for: keyPath),
                 owningCommandName: command._commandName
             )
         )

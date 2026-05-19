@@ -1,10 +1,8 @@
+//
+// Copyright (c) Vatsal Manot
+//
+
 #if os(macOS)
-//
-//  _CommandLineToolSubcommand.swift
-//  Merge
-//
-//  Created by Yanan Li on 2025/12/11.
-//
 
 import Foundation
 import Swallow
@@ -20,7 +18,7 @@ extension CommandLineTool {
 
 public protocol _CommandLineToolSubcommandProtocol /* PropertyWrapper */ {
     associatedtype Subcommand : AnyCommandLineTool
-    
+
     var name: String { get }
     var command: Subcommand { get }
 }
@@ -36,19 +34,19 @@ public struct _CommandLineToolSubcommand<Parent, Command>: _CommandLineToolSubco
     public var command: Command
 
     public typealias WrappedValue = GenericSubcommand<Parent, Command>
-    
+
     @available(*, unavailable, message: "This must never be accessed directly. Use this property inside a `class` instead.")
     public var wrappedValue: WrappedValue {
         fatalError(.unavailable)
     }
-    
+
     public static subscript(
         _enclosingInstance parent: Parent,
         wrapped wrappedKeyPath: KeyPath<Parent, WrappedValue>,
         storage storageKeyPath: KeyPath<Parent, Self>
     ) -> WrappedValue {
         let subcommandPropertyWrapper = parent[keyPath: storageKeyPath]
-        
+
         return GenericSubcommand(
             parent: parent,
             command: subcommandPropertyWrapper.command
@@ -71,7 +69,7 @@ public struct _CommandLineToolSubcommand<Parent, Command>: _CommandLineToolSubco
         self.name = name
         self.command = command
     }
-    
+
     public init(
         of parent: Parent.Type,
         name: String

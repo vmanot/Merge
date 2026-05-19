@@ -9,6 +9,7 @@
 import Foundation
 import Swallow
 
+/// Namespace for the provisional invocation-summary DSL used to intentionally render command arguments.
 public enum CommandLineToolInvocationSummary {
 
 }
@@ -19,6 +20,7 @@ extension CommandLineToolInvocationSummary {
 @available(macCatalyst, unavailable)
 @available(tvOS, unavailable)
 @available(watchOS, unavailable)
+/// A summary node that can lower part of a command model into rendered invocation arguments.
 public protocol InvocationSummary<Command> {
     associatedtype Command: AnyCommandLineTool
     typealias Context = InvocationSummaryContext
@@ -35,6 +37,7 @@ public protocol InvocationSummary<Command> {
 @available(macCatalyst, unavailable)
 @available(tvOS, unavailable)
 @available(watchOS, unavailable)
+/// Type eraser used when switch/case summary branches produce different concrete summary node types.
 public struct AnyInvocationSummary<Command: AnyCommandLineTool>: InvocationSummary {
     let base: any InvocationSummary<Command>
 
@@ -58,6 +61,7 @@ public struct AnyInvocationSummary<Command: AnyCommandLineTool>: InvocationSumma
 @available(macCatalyst, unavailable)
 @available(tvOS, unavailable)
 @available(watchOS, unavailable)
+/// Tuple-backed summary node produced by result builders when a summary contains multiple child nodes.
 public struct TupleInvocationSummary<Command: AnyCommandLineTool, T>: InvocationSummary {
     public var value: T
 
