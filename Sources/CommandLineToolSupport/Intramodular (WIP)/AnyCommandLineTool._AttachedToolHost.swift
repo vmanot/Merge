@@ -33,7 +33,7 @@ extension AnyCommandLineTool {
                 case .toolThatResolvesAndInvokesSelectedTool(let selectingTool, let selectedToolCommandName):
                     let selectedToolDescription = selectedToolCommandName.map { " selecting \($0)" } ?? ""
 
-                    return "\(selectingTool._commandName)\(selectedToolDescription)"
+                    return "\(selectingTool.requireCommandName().rawValue)\(selectedToolDescription)"
             }
         }
 
@@ -84,7 +84,7 @@ extension AnyCommandLineTool._AttachedToolHost {
         switch self {
             case .toolThatResolvesAndInvokesSelectedTool(let selectingTool, let selectedToolCommandName):
                 var result = CommandLineToolInvocation.Arguments([
-                    CommandLineToolInvocation.Argument(selectingTool._commandName)
+                    CommandLineToolInvocation.Argument(selectingTool.requireCommandName().rawValue)
                 ])
 
                 try result.append(
@@ -101,7 +101,7 @@ extension AnyCommandLineTool._AttachedToolHost {
                 }
 
                 result.elements.append(
-                    CommandLineToolInvocation.Argument(selectedToolCommandName ?? selectedTool._commandName)
+                    CommandLineToolInvocation.Argument(selectedToolCommandName ?? selectedTool.requireCommandName().rawValue)
                 )
                 result.elements.append(contentsOf: selectedInvocationArguments.elements)
 

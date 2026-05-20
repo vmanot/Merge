@@ -14,6 +14,7 @@ extension AnyCommandLineTool {
         case failedToKillShellSessions(failedSessionCount: Int, totalSessionCount: Int)
         case outputFormatterToolAlreadyAttached
         case hostToolAlreadyAttached
+        case missingRequiredCommandName(toolType: String)
 
         public var description: String {
             switch self {
@@ -25,6 +26,8 @@ extension AnyCommandLineTool {
                     return "Cannot attach more than one output formatter tool to the same command-line tool serializer state."
                 case .hostToolAlreadyAttached:
                     return "Cannot attach more than one host tool to the same command-line tool serializer state."
+                case .missingRequiredCommandName(let toolType):
+                    return "Cannot render or resolve \(toolType) as a named command-line tool because commandName is nil."
             }
         }
     }

@@ -404,15 +404,15 @@ public struct _ResolvedCommandLineToolDescription: CustomStringConvertible, Cust
         }
     }
 
-    public var toolName: String
+    public var commandName: String
     public var arguments: ResolvedArguments
     public var subcommands: ResolvedSubcommands
 
     public var inheritedArguments: ResolvedArguments {
-        arguments.filter({ $0.id.commandName != toolName })
+        arguments.filter({ $0.id.commandName != commandName })
     }
     public var localArguments: ResolvedArguments {
-        arguments.filter({ $0.id.commandName == toolName })
+        arguments.filter({ $0.id.commandName == commandName })
     }
 
     public mutating func mergeInPlace(with other: _ResolvedCommandLineToolDescription) {
@@ -421,18 +421,18 @@ public struct _ResolvedCommandLineToolDescription: CustomStringConvertible, Cust
     }
 
     public var description: String {
-        toolName
+        commandName
     }
 
     public var debugDescription: String {
-        "_ResolvedCommandLineToolDescription(toolName: \(String(reflecting: toolName)), arguments: \(arguments.count), subcommands: \(subcommands.count))"
+        "_ResolvedCommandLineToolDescription(commandName: \(String(reflecting: commandName)), arguments: \(arguments.count), subcommands: \(subcommands.count))"
     }
 
     public var customMirror: Mirror {
         Mirror(
             self,
             children: [
-                "toolName": toolName,
+                "commandName": commandName,
                 "arguments": arguments,
                 "subcommands": subcommands
             ],

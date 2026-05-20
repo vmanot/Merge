@@ -6,7 +6,7 @@ import Merge
 import Testing
 
 final class CompatibilityRootTool: AnyCommandLineTool, CommandLineTool {
-    override var _commandName: String {
+    override var commandName: CommandLineTool.Name? {
         "root"
     }
 
@@ -24,13 +24,13 @@ final class CompatibilityRootTool: AnyCommandLineTool, CommandLineTool {
 }
 
 final class CompatibilityLeafTool: AnyCommandLineTool, CommandLineTool {
-    override var _commandName: String {
+    override var commandName: CommandLineTool.Name? {
         "leaf"
     }
 }
 
 final class EchoCompatibilityTool: AnyCommandLineTool, CommandLineTool {
-    override var _commandName: String {
+    override var commandName: CommandLineTool.Name? {
         "echo"
     }
 
@@ -42,24 +42,28 @@ final class EchoCompatibilityTool: AnyCommandLineTool, CommandLineTool {
 }
 
 final class EchoNestedCompatibilityTool: AnyCommandLineTool, CommandLineTool {
-    override var _commandName: String {
+    override var commandName: CommandLineTool.Name? {
         "nested"
     }
 }
 
 final class TrueCompatibilityTool: AnyCommandLineTool, CommandLineTool {
-    override var _commandName: String {
+    override var commandName: CommandLineTool.Name? {
         "true"
     }
 }
 
 final class FormatterCompatibilityTool: AnyCommandLineTool, CommandLineToolOutputFormatterTool {
-    override var _commandName: String {
+    override var commandName: CommandLineTool.Name? {
         "formatter"
     }
 }
 
 final class OptionalParameterTool: AnyCommandLineTool, CommandLineTool {
+    override var commandName: CommandLineTool.Name? {
+        "optional-parameter"
+    }
+
     @Argument
     var value: Any?
 
@@ -73,6 +77,10 @@ final class DefaultValueParameterTool: AnyCommandLineTool, CommandLineTool {
         case disabled
     }
 
+    override var commandName: CommandLineTool.Name? {
+        "default-value-parameter"
+    }
+
     @Argument
     var mode: Mode = .disabled
 
@@ -81,7 +89,7 @@ final class DefaultValueParameterTool: AnyCommandLineTool, CommandLineTool {
 }
 
 final class SummaryModeTool: AnyCommandLineTool, CommandLineTool {
-    override var _commandName: String {
+    override var commandName: CommandLineTool.Name? {
         "swiftc"
     }
 
@@ -149,6 +157,10 @@ extension SummaryModeTool {
 }
 
 final class ConditionalSummaryTool: AnyCommandLineTool, CommandLineTool {
+    override var commandName: CommandLineTool.Name? {
+        "conditional-summary"
+    }
+
     @Option(name: "output")
     var output: String? = nil
 
@@ -168,7 +180,7 @@ final class ConditionalSummaryTool: AnyCommandLineTool, CommandLineTool {
 }
 
 final class ParentReferencedSummaryTool: AnyCommandLineTool, CommandLineTool {
-    override var _commandName: String {
+    override var commandName: CommandLineTool.Name? {
         "parent-summary"
     }
 
@@ -180,6 +192,10 @@ final class ParentReferencedSummaryTool: AnyCommandLineTool, CommandLineTool {
 
     final class Compile: AnyCommandLineTool, CommandLineTool, _Subcommand {
         typealias ParentCommand = ParentReferencedSummaryTool
+
+        override var commandName: CommandLineTool.Name? {
+            "compile"
+        }
 
         @Argument(name: nil)
         var input: String? = nil
@@ -197,6 +213,10 @@ final class ParentReferencedSummaryTool: AnyCommandLineTool, CommandLineTool {
 }
 
 final class ExactConditionalSummaryTool: AnyCommandLineTool, CommandLineTool {
+    override var commandName: CommandLineTool.Name? {
+        "exact-conditional-summary"
+    }
+
     @Option(name: "format")
     var format: String? = nil
 
@@ -210,7 +230,7 @@ final class ExactConditionalSummaryTool: AnyCommandLineTool, CommandLineTool {
 }
 
 final class DuplicateSummaryReferenceTool: AnyCommandLineTool, CommandLineTool {
-    override var _commandName: String {
+    override var commandName: CommandLineTool.Name? {
         "duplicate-summary-reference"
     }
 
@@ -227,7 +247,7 @@ final class DuplicateSummaryReferenceTool: AnyCommandLineTool, CommandLineTool {
 }
 
 final class CollectionPresenceSummaryTool: AnyCommandLineTool, CommandLineTool {
-    override var _commandName: String {
+    override var commandName: CommandLineTool.Name? {
         "collection-presence"
     }
 
@@ -244,7 +264,7 @@ final class CollectionPresenceSummaryTool: AnyCommandLineTool, CommandLineTool {
 }
 
 final class ResultBuilderBranchSummaryTool: AnyCommandLineTool, CommandLineTool {
-    override var _commandName: String {
+    override var commandName: CommandLineTool.Name? {
         "result-builder-branch"
     }
 
@@ -264,7 +284,7 @@ final class ResultBuilderBranchSummaryTool: AnyCommandLineTool, CommandLineTool 
 }
 
 final class SwitchWithoutDefaultSummaryTool: AnyCommandLineTool, CommandLineTool {
-    override var _commandName: String {
+    override var commandName: CommandLineTool.Name? {
         "switch-without-default"
     }
 
@@ -281,7 +301,7 @@ final class SwitchWithoutDefaultSummaryTool: AnyCommandLineTool, CommandLineTool
 }
 
 final class MultiValueOptionCompatibilityTool: AnyCommandLineTool, CommandLineTool {
-    override var _commandName: String {
+    override var commandName: CommandLineTool.Name? {
         "multi-value-options"
     }
 
@@ -296,7 +316,7 @@ final class MultiValueOptionCompatibilityTool: AnyCommandLineTool, CommandLineTo
 }
 
 final class OptionalBooleanInversionCompatibilityTool: AnyCommandLineTool, CommandLineTool {
-    override var _commandName: String {
+    override var commandName: CommandLineTool.Name? {
         "optional-boolean-inversion"
     }
 
@@ -317,7 +337,7 @@ final class CustomFlagArrayCompatibilityTool: AnyCommandLineTool, CommandLineToo
         }
     }
 
-    override var _commandName: String {
+    override var commandName: CommandLineTool.Name? {
         "custom-flag-array"
     }
 
@@ -329,7 +349,7 @@ final class CustomFlagArrayCompatibilityTool: AnyCommandLineTool, CommandLineToo
 }
 
 final class ParentChildConversionSummaryTool: AnyCommandLineTool, CommandLineTool {
-    override var _commandName: String {
+    override var commandName: CommandLineTool.Name? {
         "parent-child-conversion"
     }
 
@@ -346,7 +366,7 @@ final class ParentChildConversionSummaryTool: AnyCommandLineTool, CommandLineToo
     final class Compile: AnyCommandLineTool, CommandLineTool, _Subcommand {
         typealias ParentCommand = ParentChildConversionSummaryTool
 
-        override var _commandName: String {
+        override var commandName: CommandLineTool.Name? {
             "compile"
         }
 
@@ -365,7 +385,7 @@ final class ParentChildConversionSummaryTool: AnyCommandLineTool, CommandLineToo
 }
 
 final class ResolvedDescriptionTool: AnyCommandLineTool, CommandLineTool {
-    override var _commandName: String {
+    override var commandName: CommandLineTool.Name? {
         "resolved-description"
     }
 
@@ -383,7 +403,7 @@ final class ResolvedDescriptionTool: AnyCommandLineTool, CommandLineTool {
 }
 
 final class URLParameterCompatibilityTool: AnyCommandLineTool, CommandLineTool {
-    override var _commandName: String {
+    override var commandName: CommandLineTool.Name? {
         "url-parameter"
     }
 
@@ -392,7 +412,7 @@ final class URLParameterCompatibilityTool: AnyCommandLineTool, CommandLineTool {
 }
 
 final class ConstructorBackedFlagTool: AnyCommandLineTool, CommandLineTool {
-    override var _commandName: String {
+    override var commandName: CommandLineTool.Name? {
         "constructor-flag"
     }
 
@@ -411,13 +431,13 @@ final class ConstructorBackedFlagTool: AnyCommandLineTool, CommandLineTool {
 }
 
 final class SelectingToolFixture: AnyCommandLineToolWithSelectedTool, CommandLineTool {
-    override var _commandName: String {
+    override var commandName: CommandLineTool.Name? {
         "selectingtool"
     }
 }
 
 final class XcrunHostToolFixture: AnyCommandLineToolWithSelectedTool, CommandLineTool {
-    override var _commandName: String {
+    override var commandName: CommandLineTool.Name? {
         "xcrun"
     }
 
@@ -426,7 +446,7 @@ final class XcrunHostToolFixture: AnyCommandLineToolWithSelectedTool, CommandLin
 }
 
 final class HostedNotarytoolFixture: AnyCommandLineTool, CommandLineTool {
-    override var _commandName: String {
+    override var commandName: CommandLineTool.Name? {
         "notarytool"
     }
 
@@ -440,14 +460,14 @@ final class HostedNotarytoolFixture: AnyCommandLineTool, CommandLineTool {
     }
 
     final class Submit: AnyCommandLineTool, CommandLineTool {
-        override var _commandName: String {
+        override var commandName: CommandLineTool.Name? {
             "submit"
         }
     }
 }
 
 final class PrintfSelectingTool: AnyCommandLineToolWithSelectedTool, CommandLineTool {
-    override var _commandName: String {
+    override var commandName: CommandLineTool.Name? {
         "printf"
     }
 
@@ -456,13 +476,13 @@ final class PrintfSelectingTool: AnyCommandLineToolWithSelectedTool, CommandLine
 }
 
 final class SelectedPrintfPayloadTool: AnyCommandLineTool, CommandLineTool {
-    override var _commandName: String {
+    override var commandName: CommandLineTool.Name? {
         "underlying-selected-tool"
     }
 }
 
 final class SelectedPrintfPayloadWithSubcommandTool: AnyCommandLineTool, CommandLineTool {
-    override var _commandName: String {
+    override var commandName: CommandLineTool.Name? {
         "underlying-selected-parent"
     }
 
@@ -473,17 +493,25 @@ final class SelectedPrintfPayloadWithSubcommandTool: AnyCommandLineTool, Command
     var child
 
     final class Child: AnyCommandLineTool, CommandLineTool {
-        override var _commandName: String {
+        override var commandName: CommandLineTool.Name? {
             "child"
         }
     }
 }
 
-@CommandLineTool
+@CommandLineTool("macro-backed")
 final class MacroBackedCompatibilityTool: AnyCommandLineTool {
-    override var _commandName: String {
-        "macro-backed"
-    }
+
+}
+
+@CommandLineTool(name: CommandLineTool.Name("macro-name-backed"))
+final class MacroNameBackedCompatibilityTool: AnyCommandLineTool {
+
+}
+
+@CommandLineTool(_CommandLineTool_Name("legacy-macro-name-backed"))
+final class LegacyMacroNameBackedCompatibilityTool: AnyCommandLineTool {
+
 }
 
 @Suite
@@ -858,7 +886,7 @@ struct CommandLineToolSupportTests {
 
         #expect(tool.selectingTool === selectingTool)
         #expect(tool.selectedTool === selectedTool)
-        #expect(tool._commandName == "leaf")
+        #expect(tool.requireCommandName().rawValue == "leaf")
         #expect(tool.toolSelectionSemantics == .staticExplicitArgument)
         #expect(tool.description == "selectingtool selecting leaf")
         #expect(tool.debugDescription.contains("GenericSelectedCommandLineTool"))
@@ -909,9 +937,13 @@ struct CommandLineToolSupportTests {
     func commandLineToolModelMacroSynthesizesCommandLineToolConformance() {
         let executionRecordType: _CommandLineToolExecutionRecord<MacroBackedCompatibilityTool>.Type = _CommandLineToolExecutionRecord<MacroBackedCompatibilityTool>.self
         let tool: any CommandLineTool = MacroBackedCompatibilityTool()
+        let nameBackedTool: any CommandLineTool = MacroNameBackedCompatibilityTool()
+        let legacyNameBackedTool: any CommandLineTool = LegacyMacroNameBackedCompatibilityTool()
 
         #expect(executionRecordType == _CommandLineToolExecutionRecord<MacroBackedCompatibilityTool>.self)
-        #expect(tool._commandName == "macro-backed")
+        #expect(tool.requireCommandName().rawValue == "macro-backed")
+        #expect(nameBackedTool.requireCommandName().rawValue == "macro-name-backed")
+        #expect(legacyNameBackedTool.requireCommandName().rawValue == "legacy-macro-name-backed")
     }
 
     @Test
@@ -1007,7 +1039,7 @@ struct CommandLineToolSupportTests {
 
     @Test
     func optionalNonEquatableParametersCanBeModeled() throws {
-        #expect(try OptionalParameterTool().invocation == "optionalparametertool")
+        #expect(try OptionalParameterTool().invocation == "optional-parameter")
     }
 
     @Test("CommandLineTool callAsFunction still returns Process.RunResult")
@@ -1212,8 +1244,8 @@ struct CommandLineToolSupportTests {
 
         #expect(coupled.commandLine == "printf selected-tool")
         #expect(decoupled.commandLine == "printf selected-tool")
-        #expect(coupled.tool.selectedTool._commandName == "underlying-selected-tool")
-        #expect(decoupled.tool.selectedTool._commandName == "underlying-selected-tool")
+        #expect(coupled.tool.selectedTool.requireCommandName().rawValue == "underlying-selected-tool")
+        #expect(decoupled.tool.selectedTool.requireCommandName().rawValue == "underlying-selected-tool")
         #expect(coupled.tool.selectedToolCommandName == "selected-tool")
         #expect(decoupled.tool.selectedToolCommandName == "selected-tool")
         #expect(coupled.stdoutString == "selected-tool")
@@ -1292,8 +1324,8 @@ struct CommandLineToolSupportTests {
             .with(\.verbose, true)
             .invocation
 
-        #expect(writeCommand == "conditionalsummarytool write --output trace.json --verbose")
-        #expect(dryRunCommand == "conditionalsummarytool dry-run --verbose")
+        #expect(writeCommand == "conditional-summary write --output trace.json --verbose")
+        #expect(dryRunCommand == "conditional-summary dry-run --verbose")
     }
 
     @Test
@@ -1306,8 +1338,8 @@ struct CommandLineToolSupportTests {
             .with(\.format, "text")
             .invocation
 
-        #expect(jsonCommand == "exactconditionalsummarytool --json --format json")
-        #expect(textCommand == "exactconditionalsummarytool --text --format text")
+        #expect(jsonCommand == "exact-conditional-summary --json --format json")
+        #expect(textCommand == "exact-conditional-summary --text --format text")
     }
 
     @Test
@@ -1483,8 +1515,8 @@ struct CommandLineToolSupportTests {
         let traceMirrorLabels = Array(Mirror(reflecting: trace).children).map(\.label)
 
         #expect(description.description == "resolved-description")
-        #expect(description.debugDescription.contains("toolName: \"resolved-description\""))
-        #expect(descriptionMirrorLabels == ["toolName", "arguments", "subcommands"])
+        #expect(description.debugDescription.contains("commandName: \"resolved-description\""))
+        #expect(descriptionMirrorLabels == ["commandName", "arguments", "subcommands"])
         #expect(trace.description == "--trace")
         #expect(trace.debugDescription.contains("resolved-description.trace"))
         #expect(traceMirrorLabels == ["base", "id", "defaultPosition", "invocationComponents", "publicInvocationComponents", "invocationArgumentValues", "invocationArguments", "invocationArgument"])

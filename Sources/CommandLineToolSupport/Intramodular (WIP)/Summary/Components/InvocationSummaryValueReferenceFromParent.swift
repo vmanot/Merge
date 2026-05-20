@@ -35,7 +35,7 @@ public struct InvocationSummaryValueReferenceFromParent<Parent: AnyCommandLineTo
             in: .init(
                 resolvingID: _ResolvedCommandLineToolDescription.ArgumentID(
                     rawValue: InvocationSummaryContext.argumentName(for: keyPath),
-                    commandName: parent._commandName
+                    commandName: parent.requireCommandName().rawValue
                 ),
                 defaultKeyConversion: parent.keyConversion
             )

@@ -25,15 +25,9 @@ open class AnyCommandLineTool: Logging, ObjectDidChangeObservableObject {
         _internalState.objectDidChange.eraseToAnyPublisher()
     }
 
-    /// The name of the command-line tool or information being used.
-    ///
-    /// By default, the lowercased version of the type name would be used if you don't override it.
-    ///
-    /// Ideally, it should only contain one argument without whitespaces, for example:
-    /// - `xcrun` / `swiftc` / `simctl` / etc.
-    /// - `git` / `commit` / `push`, etc.
-    open var _commandName: String {
-        "\(Self.self)".lowercased()
+    /// The semantic command-line tool name represented as a single invocation argument, when the tool has one.
+    open var commandName: CommandLineToolName? {
+        nil
     }
 
     open var keyConversion: _CommandLineToolOptionKeyConversion? {

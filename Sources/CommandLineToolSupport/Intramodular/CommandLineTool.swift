@@ -84,7 +84,7 @@ extension CommandLineTool {
             let selectingTool = chain[selectingToolIndex] as? AnyCommandLineToolWithSelectedTool
         {
             let selectedToolCommandPath = chain[(selectingToolIndex + 1)...]
-                .map(\._commandName)
+                .map { $0.requireCommandName().rawValue }
 
             guard let selectedToolCommandName = selectedToolCommandPath.first else {
                 return nil
@@ -92,7 +92,7 @@ extension CommandLineTool {
 
             return _CommandLineToolSelectedToolInvocation(
                 renderedInvocation: renderedInvocation,
-                selectingToolCommandName: selectingTool._commandName,
+                selectingToolCommandName: selectingTool.requireCommandName().rawValue,
                 selectedToolCommandName: selectedToolCommandName,
                 selectedToolCommandPath: selectedToolCommandPath,
                 selectionSemantics: selectingTool.toolSelectionSemantics,
@@ -121,9 +121,9 @@ extension CommandLineTool {
 
         let selectedToolCommandPath = chain[selectedToolIndex...].enumerated().map { offset, command in
             if offset == 0 {
-                return hostTool._selectedToolCommandNameOverride ?? command._commandName
+                return hostTool._selectedToolCommandNameOverride ?? command.requireCommandName().rawValue
             } else {
-                return command._commandName
+                return command.requireCommandName().rawValue
             }
         }
 
@@ -135,7 +135,7 @@ extension CommandLineTool {
 
         return _CommandLineToolSelectedToolInvocation(
             renderedInvocation: renderedInvocation,
-            selectingToolCommandName: selectingTool._commandName,
+            selectingToolCommandName: selectingTool.requireCommandName().rawValue,
             selectedToolCommandName: selectedToolCommandName,
             selectedToolCommandPath: selectedToolCommandPath,
             selectionSemantics: selectingTool.toolSelectionSemantics,
@@ -177,7 +177,7 @@ extension CommandLineTool {
 
         var arguments = CommandLineToolInvocation.Arguments()
 
-        arguments.elements.append(CommandLineToolInvocation.Argument(root._commandName))
+        arguments.elements.append(CommandLineToolInvocation.Argument(root.requireCommandName().rawValue))
         try arguments.append(
             contentsOf: root._defaultInvocationArguments(
                 context: context,
@@ -188,7 +188,7 @@ extension CommandLineTool {
         for (index, command) in chain.dropFirst().enumerated() {
             let parent = chain[index]
 
-            arguments.elements.append(CommandLineToolInvocation.Argument(command._commandName))
+            arguments.elements.append(CommandLineToolInvocation.Argument(command.requireCommandName().rawValue))
             try arguments.append(
                 contentsOf: parent._defaultInvocationArguments(
                     context: context,
@@ -232,7 +232,7 @@ extension CommandLineTool {
         switch self {
             case let command as SummaryContent.Command:
                 try arguments.append(
-                    contentsOf: CommandLineToolInvocation.Arguments([_commandName]) + invocationSummary.makeInvocationArguments(
+                    contentsOf: CommandLineToolInvocation.Arguments([requireCommandName().rawValue]) + invocationSummary.makeInvocationArguments(
                         command: command,
                         parent: nil,
                         context: context

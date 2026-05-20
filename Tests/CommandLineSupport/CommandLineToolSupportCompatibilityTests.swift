@@ -7,7 +7,7 @@ import Merge
 import Testing
 
 final class LegacyAnyCommandLineToolCompatibilityTool: AnyCommandLineTool {
-    override var _commandName: String {
+    override var commandName: CommandLineTool.Name? {
         "legacy-any-command-line-tool"
     }
 }

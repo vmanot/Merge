@@ -4,7 +4,7 @@ import CommandLineToolSupport
 import Foundation
 
 final class ExampleGitTool: AnyCommandLineTool, CommandLineTool {
-    override var _commandName: String {
+    override var commandName: CommandLineTool.Name? {
         "git"
     }
 

@@ -3,7 +3,7 @@
 import CommandLineToolSupport
 
 final class ExampleSandboxExecTool: AnyCommandLineTool, CommandLineTool {
-    override var _commandName: String {
+    override var commandName: CommandLineTool.Name? {
         "sandbox-exec"
     }
 

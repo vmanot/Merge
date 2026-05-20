@@ -3,8 +3,38 @@
 //
 
 import MacroBuilder
+import SwiftSyntax
+import SwiftSyntaxBuilder
+import SwiftSyntaxMacros
 
-public struct CommandLineToolMacro: ExtensionMacro {
+public struct CommandLineToolMacro {
+    fileprivate static func commandNameExpression(
+        from node: AttributeSyntax
+    ) -> String? {
+        node.arguments?
+            .as(LabeledExprListSyntax.self)?
+            .first?
+            .expression
+            .trimmed
+            .description
+    }
+    
+    fileprivate static func accessModifier(
+        for declaration: some DeclGroupSyntax
+    ) -> String {
+        let publicAccessModifiers: Set<String> = ["open", "public", "package"]
+        
+        guard let modifier = declaration.modifiers.first(where: {
+            publicAccessModifiers.contains($0.name.text)
+        }) else {
+            return ""
+        }
+        
+        return "\(modifier.name.text) "
+    }
+}
+
+extension CommandLineToolMacro: ExtensionMacro {
     public static func expansion(
         of node: AttributeSyntax,
         attachedTo declaration: some DeclGroupSyntax,
@@ -18,21 +48,45 @@ public struct CommandLineToolMacro: ExtensionMacro {
             )
         }
 
-        guard !protocols.isEmpty else {
-            return []
+        let inheritanceClause: String
+
+        if protocols.isEmpty {
+            inheritanceClause = ""
+        } else {
+            inheritanceClause = ": " + protocols.map(\.trimmedDescription).joined(separator: ", ")
         }
 
-        return [
+        return try [
             ExtensionDeclSyntax(
-                extendedType: type,
-                inheritanceClause: InheritanceClauseSyntax(
-                    inheritedTypes: InheritedTypeListSyntax(itemsBuilder: {
-                        for `protocol` in protocols {
-                            InheritedTypeSyntax(type: `protocol`)
-                        }
-                    })
-                ),
-                memberBlock: MemberBlockSyntax(members: "")
+                """
+                extension \(type.trimmed)\(raw: inheritanceClause) {
+                }
+                """
+            )
+        ]
+    }
+}
+
+extension CommandLineToolMacro: MemberMacro {
+    public static func expansion(
+        of node: AttributeSyntax,
+        providingMembersOf declaration: some DeclGroupSyntax,
+        conformingTo protocols: [TypeSyntax],
+        in context: some MacroExpansionContext
+    ) throws -> [DeclSyntax] {
+        guard let commandNameExpression = commandNameExpression(from: node) else {
+            return []
+        }
+        
+        let accessModifier = accessModifier(for: declaration)
+        
+        return [
+            DeclSyntax(
+                """
+                \(raw: accessModifier)override var commandName: CommandLineTool.Name? {
+                    \(raw: commandNameExpression)
+                }
+                """
             )
         ]
     }

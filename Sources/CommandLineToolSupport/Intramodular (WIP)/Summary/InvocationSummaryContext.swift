@@ -35,7 +35,7 @@ public final class InvocationSummaryContext {
         renderedArguments.insert(
             .init(
                 name: Self.argumentName(for: keyPath),
-                owningCommandName: command._commandName
+                owningCommandName: command.requireCommandName().rawValue
             )
         ).inserted
     }
@@ -47,7 +47,7 @@ public final class InvocationSummaryContext {
         renderedArguments.contains(
             .init(
                 name: Self.argumentName(for: keyPath),
-                owningCommandName: command._commandName
+                owningCommandName: command.requireCommandName().rawValue
             )
         )
     }
@@ -59,7 +59,7 @@ public final class InvocationSummaryContext {
         renderedArguments.contains(
             .init(
                 name: argumentName,
-                owningCommandName: command._commandName
+                owningCommandName: command.requireCommandName().rawValue
             )
         )
     }
@@ -72,7 +72,7 @@ public final class InvocationSummaryContext {
         renderedArguments.insert(
             .init(
                 name: argumentName,
-                owningCommandName: command._commandName
+                owningCommandName: command.requireCommandName().rawValue
             )
         ).inserted
     }

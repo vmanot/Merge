@@ -22,8 +22,8 @@ public class EmptyCommandLineToolSubcommand: AnyCommandLineTool, CommandLineTool
         self.name = name
     }
 
-    public override var _commandName: String {
-        name
+    public override var commandName: CommandLineTool.Name? {
+        CommandLineTool.Name(name)
     }
 }
 
@@ -60,8 +60,8 @@ public class GenericSubcommand<Parent, Command>: AnyCommandLineTool, CommandLine
     public let parent: Parent
     public var command: Command
 
-    public override var _commandName: String {
-        command._commandName
+    public override var commandName: CommandLineTool.Name? {
+        command.requireCommandName()
     }
 
     public subscript<SubSubcommand: AnyCommandLineTool>(

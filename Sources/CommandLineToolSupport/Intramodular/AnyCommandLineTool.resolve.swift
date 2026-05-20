@@ -108,7 +108,7 @@ extension AnyCommandLineTool {
             for (key, value) in mirror.children {
                 let resolvingID = _ResolvedCommandLineToolDescription.ArgumentID(
                     rawValue: key.stringValue.dropPrefixIfPresent("_"), // property wrapper always includes a prefix `_`
-                    commandName: _commandName
+                    commandName: requireCommandName().rawValue
                 )
 
                 let context = _CommandLineToolResolutionContext(
@@ -135,7 +135,7 @@ extension AnyCommandLineTool {
         }
 
         return _ResolvedCommandLineToolDescription(
-            toolName: _commandName,
+            commandName: requireCommandName().rawValue,
             arguments: _resolvedArguments,
             subcommands: _resolvedSubcommmands
         )
@@ -190,7 +190,7 @@ extension AnyCommandLineTool {
         try resolved.append(
             _ResolvedCommandLineToolDescription.Subcommand(
                 id: resolvingID,
-                name: subcommand.command._commandName,
+                name: subcommand.command.requireCommandName().rawValue,
                 _resolvedDescription: subcommand.command.resolve()
             )
         )

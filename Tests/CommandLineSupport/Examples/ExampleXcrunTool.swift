@@ -4,7 +4,7 @@ import CommandLineToolSupport
 
 // Test fixture intentionally mirrors command-line tool spelling.
 final class ExampleXcrunTool: AnyCommandLineToolWithSelectedTool, CommandLineTool {
-    override var _commandName: String {
+    override var commandName: CommandLineTool.Name? {
         "xcrun"
     }
 
@@ -19,7 +19,7 @@ final class ExampleXcrunTool: AnyCommandLineToolWithSelectedTool, CommandLineToo
 }
 
 final class ExampleSwiftCompilerTool: AnyCommandLineTool, CommandLineTool {
-    override var _commandName: String {
+    override var commandName: CommandLineTool.Name? {
         "swiftc"
     }
 
@@ -31,7 +31,7 @@ final class ExampleSwiftCompilerTool: AnyCommandLineTool, CommandLineTool {
 }
 
 final class ExampleSimulatorControlTool: AnyCommandLineTool, CommandLineTool {
-    override var _commandName: String {
+    override var commandName: CommandLineTool.Name? {
         "simctl"
     }
 
@@ -42,7 +42,7 @@ final class ExampleSimulatorControlTool: AnyCommandLineTool, CommandLineTool {
     var io
 
     final class IO: AnyCommandLineTool, CommandLineTool {
-        override var _commandName: String {
+        override var commandName: CommandLineTool.Name? {
             "io"
         }
     }

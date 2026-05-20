@@ -3,7 +3,7 @@
 import CommandLineToolSupport
 
 final class ExampleSwiftTool: AnyCommandLineTool, CommandLineTool {
-    override var _commandName: String {
+    override var commandName: CommandLineTool.Name? {
         "swift"
     }
 
@@ -22,7 +22,7 @@ final class ExampleSwiftTool: AnyCommandLineTool, CommandLineTool {
 }
 
 final class ExampleSwiftBuildTool: AnyCommandLineTool, CommandLineTool {
-    override var _commandName: String {
+    override var commandName: CommandLineTool.Name? {
         "build"
     }
 

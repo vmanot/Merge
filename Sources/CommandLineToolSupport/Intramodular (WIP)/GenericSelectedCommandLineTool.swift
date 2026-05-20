@@ -23,8 +23,8 @@ public final class GenericSelectedCommandLineTool<SelectingTool, SelectedTool>: 
     public var selectedTool: SelectedTool
     public let selectedToolCommandName: String
 
-    public override var _commandName: String {
-        selectedToolCommandName
+    public override var commandName: CommandLineTool.Name? {
+        CommandLineTool.Name(selectedToolCommandName)
     }
 
     public subscript<Subcommand: AnyCommandLineTool>(
@@ -45,7 +45,7 @@ public final class GenericSelectedCommandLineTool<SelectingTool, SelectedTool>: 
     ) {
         self.selectingTool = selectingTool
         self.selectedTool = selectedTool
-        self.selectedToolCommandName = selectedToolCommandName ?? selectedTool._commandName
+        self.selectedToolCommandName = selectedToolCommandName ?? selectedTool.requireCommandName().rawValue
     }
 
     public var invocationSummary: SelectedTool.SummaryContent {
@@ -53,7 +53,7 @@ public final class GenericSelectedCommandLineTool<SelectingTool, SelectedTool>: 
     }
 
     public var description: String {
-        "\(selectingTool._commandName) selecting \(selectedToolCommandName)"
+        "\(selectingTool.requireCommandName().rawValue) selecting \(selectedToolCommandName)"
     }
 
     public var debugDescription: String {
