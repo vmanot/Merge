@@ -55,7 +55,7 @@ extension _CommandLineToolFlag {
         defaultPosition: _CommandLineToolArgumentPosition = .local
     ) where WrappedValue == Bool {
         self._wrappedValue = wrappedValue
-        self._representaton = .boolean(
+        self._representation = .boolean(
             conversion: conversion,
             name: name,
             defaultValue: wrappedValue
@@ -71,7 +71,7 @@ extension _CommandLineToolFlag {
         defaultPosition: _CommandLineToolArgumentPosition = .local
     ) where WrappedValue == Bool {
         self._wrappedValue = wrappedValue
-        self._representaton = .boolean(
+        self._representation = .boolean(
             conversion: conversion,
             name: name,
             defaultValue: defaultValue
@@ -107,7 +107,7 @@ extension _CommandLineToolFlag {
         defaultPosition: _CommandLineToolArgumentPosition = .local
     ) where WrappedValue == Bool? {
         self._wrappedValue = wrappedValue
-        self._representaton = .optionalBoolean(
+        self._representation = .optionalBoolean(
             conversion: conversion,
             name: name,
             inversion: inversion
@@ -138,7 +138,7 @@ extension _CommandLineToolFlag {
         defaultPosition: _CommandLineToolArgumentPosition = .local
     ) where WrappedValue == Int {
         self._wrappedValue = wrappedValue
-        self._representaton = .counter(
+        self._representation = .counter(
             conversion: conversion,
             name: name
         )
@@ -162,7 +162,7 @@ extension _CommandLineToolFlag {
         defaultPosition: _CommandLineToolArgumentPosition = .local
     ) where WrappedValue : CLT.OptionKeyConvertible {
         self._wrappedValue = wrappedValue
-        self._representaton = .custom
+        self._representation = .custom
         self.defaultPosition = defaultPosition
     }
 
@@ -183,7 +183,7 @@ extension _CommandLineToolFlag {
         defaultPosition: _CommandLineToolArgumentPosition = .local
     ) where WrappedValue == [T], T : CLT.OptionKeyConvertible {
         self._wrappedValue = wrappedValue
-        self._representaton = .custom
+        self._representation = .custom
         self.defaultPosition = defaultPosition
     }
 
@@ -204,7 +204,7 @@ extension _CommandLineToolFlag {
         defaultPosition: _CommandLineToolArgumentPosition = .local
     ) where WrappedValue == [T]?, T : CLT.OptionKeyConvertible {
         self._wrappedValue = wrappedValue
-        self._representaton = .custom
+        self._representation = .custom
         self.defaultPosition = defaultPosition
     }
 

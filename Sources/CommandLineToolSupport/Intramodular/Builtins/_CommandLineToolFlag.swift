@@ -15,13 +15,18 @@ public protocol _CommandLineToolFlagProtocol: PropertyWrapper, CommandLineToolIn
     /// The representation of the `_CommandLineToolFlag`.
     ///
     /// This must aligned with the `WrappedValue`, for example: `.counter(key:)` assumes `WrappedValue` is `Int`, etc.
-    var _representaton: _CommandLineToolFlagRepresentation { get }
+    var _representation: _CommandLineToolFlagRepresentation { get }
 
     /// Positional hint for where this flag should appear in the invocation.
     var defaultPosition: _CommandLineToolArgumentPosition { get }
 }
 
 extension _CommandLineToolFlagProtocol {
+    @available(*, deprecated, renamed: "_representation")
+    public var _representaton: _CommandLineToolFlagRepresentation {
+        _representation
+    }
+
     /// Positional hint for where this flag should appear in the invocation.
     public var placement: CommandLineToolArgumentPlacement {
         defaultPosition
@@ -64,7 +69,15 @@ public enum _CommandLineToolFlagRepresentation {
 public struct _CommandLineToolFlag<WrappedValue: Equatable>: _CommandLineToolFlagProtocol {
     var _wrappedValue: WrappedValue
 
-    public var _representaton: _CommandLineToolFlagRepresentation
+    public var _representation: _CommandLineToolFlagRepresentation
+    @available(*, deprecated, renamed: "_representation")
+    public var _representaton: _CommandLineToolFlagRepresentation {
+        get {
+            _representation
+        } set {
+            _representation = newValue
+        }
+    }
     public var defaultPosition: _CommandLineToolArgumentPosition
 
     /// Positional hint for where this flag should appear in the invocation.
@@ -91,12 +104,12 @@ public struct _CommandLineToolFlag<WrappedValue: Equatable>: _CommandLineToolFla
     public func resolve(
         in context: _CommandLineToolResolutionContext
     ) throws -> _AnyResolvedCommandLineToolInvocationArgument {
-        switch _representaton {
+        switch _representation {
             case .custom:
                 _ResolvedCommandLineToolDescription.CustomFlag(
                     id: context.resolvingID,
                     defaultPosition: defaultPosition,
-                    value: (wrappedValue as! CLT.OptionKeyConvertible),
+                    value: wrappedValue,
                     valueType: type(of: wrappedValue),
                 ).erasedToAnyResolvedCommandLineToolInvocationArgument()
             case .counter(let conversion, let name):

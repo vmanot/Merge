@@ -109,6 +109,10 @@ public struct _ResolvedCommandLineToolDescription: CustomStringConvertible, Cust
                         return [key] + values
                     }
 
+                    if multiValueEncoding == .singleValue, separator == .space {
+                        return values.flatMap { [key, $0] }
+                    }
+
                     if separator == .space, values.count == 1 {
                         return [key, values[0]]
                     }
@@ -116,6 +120,32 @@ public struct _ResolvedCommandLineToolDescription: CustomStringConvertible, Cust
                     return values.map { value in
                         CommandLineToolInvocation.Argument("\(key.rawValue)\(separator.rawValue)\(value.rawValue)")
                     }
+            }
+        }
+
+        public var publicInvocationComponent: CommandLineToolInvocation.Component {
+            switch kind {
+                case .positionalArgument:
+                    return CommandLineToolInvocation.Component(
+                        kind: .positionalArgument,
+                        arguments: CommandLineToolInvocation.Arguments(values)
+                    )
+                case .flag:
+                    return CommandLineToolInvocation.Component(
+                        kind: .flag,
+                        arguments: CommandLineToolInvocation.Arguments(values)
+                    )
+                case .option:
+                    guard let key, let separator else {
+                        return .option(arguments: CommandLineToolInvocation.Arguments(invocationArgumentValues))
+                    }
+
+                    return .option(
+                        key: key,
+                        separator: separator,
+                        values: values,
+                        multiValueEncoding: multiValueEncoding
+                    )
             }
         }
 
@@ -309,17 +339,41 @@ public struct _ResolvedCommandLineToolDescription: CustomStringConvertible, Cust
                 return []
             }
 
-            if let array = value as? Array<any CLT.OptionKeyConvertible> {
-                return array
-                    .compactMap { $0.conversion.argumentKey(for: $0.name) }
+            if let values = Self.optionKeyConvertibleValues(from: value) {
+                return values
+                    .map { $0.conversion.argumentKey(for: $0.name) }
                     .map { InvocationComponent.flag(CommandLineToolInvocation.Argument($0)) }
-            } else if let optionKeyConvertible = value as? CLT.OptionKeyConvertible {
-                return [
-                    .flag(CommandLineToolInvocation.Argument(optionKeyConvertible.conversion.argumentKey(for: optionKeyConvertible.name)))
-                ]
             } else {
                 return []
             }
+        }
+
+        private static func optionKeyConvertibleValues(
+            from value: Any
+        ) -> [any CLT.OptionKeyConvertible]? {
+            if let value = value as? any CLT.OptionKeyConvertible {
+                return [value]
+            }
+
+            let mirror = Mirror(reflecting: value)
+
+            if mirror.displayStyle == .optional {
+                guard let child = mirror.children.first else {
+                    return nil
+                }
+
+                return optionKeyConvertibleValues(from: child.value)
+            }
+
+            guard mirror.displayStyle == .collection || mirror.displayStyle == .set else {
+                return nil
+            }
+
+            let values = mirror.children.compactMap { child -> (any CLT.OptionKeyConvertible)? in
+                child.value as? any CLT.OptionKeyConvertible
+            }
+
+            return values.count == mirror.children.count ? values : nil
         }
     }
 
@@ -391,6 +445,7 @@ public protocol _ResolvedCommandLineToolInvocationArgument {
     var id: _ResolvedCommandLineToolDescription.ArgumentID { get }
     var defaultPosition: _CommandLineToolArgumentPosition { get }
     var invocationComponents: [_ResolvedCommandLineToolDescription.InvocationComponent] { get }
+    var publicInvocationComponents: [CommandLineToolInvocation.Component] { get }
     var invocationArgumentValues: [CommandLineToolInvocation.Argument] { get }
     var invocationArguments: [String] { get }
     var invocationArgument: String? { get }
@@ -412,6 +467,7 @@ extension _ResolvedCommandLineToolInvocationArgument {
                 "id": id,
                 "defaultPosition": defaultPosition,
                 "invocationComponents": invocationComponents,
+                "publicInvocationComponents": publicInvocationComponents,
                 "invocationArgumentValues": invocationArgumentValues,
                 "invocationArguments": invocationArguments,
                 "invocationArgument": invocationArgument as Any
@@ -422,6 +478,10 @@ extension _ResolvedCommandLineToolInvocationArgument {
 
     public var invocationArgumentValues: [CommandLineToolInvocation.Argument] {
         invocationComponents.flatMap(\.invocationArgumentValues)
+    }
+
+    public var publicInvocationComponents: [CommandLineToolInvocation.Component] {
+        invocationComponents.map(\.publicInvocationComponent)
     }
 
     public var invocationArguments: [String] {
@@ -538,6 +598,10 @@ public struct _AnyResolvedCommandLineToolInvocationArgument: CustomStringConvert
         base.invocationComponents
     }
 
+    public var publicInvocationComponents: [CommandLineToolInvocation.Component] {
+        base.publicInvocationComponents
+    }
+
     public var invocationArgumentValues: [CommandLineToolInvocation.Argument] {
         base.invocationArgumentValues
     }
@@ -558,6 +622,7 @@ public struct _AnyResolvedCommandLineToolInvocationArgument: CustomStringConvert
                 "id": id,
                 "defaultPosition": defaultPosition,
                 "invocationComponents": invocationComponents,
+                "publicInvocationComponents": publicInvocationComponents,
                 "invocationArgumentValues": invocationArgumentValues,
                 "invocationArguments": invocationArguments,
                 "invocationArgument": invocationArgument as Any

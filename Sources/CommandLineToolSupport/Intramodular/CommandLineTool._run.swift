@@ -18,18 +18,11 @@ extension CommandLineTool {
         invocation: CommandLineToolInvocation,
         applying differences: [SystemShell.Configuration.Difference] = []
     ) async throws -> _CommandLineToolExecutionRecord<Self> {
-        try await withUnsafeSystemShell { shell in
-            try await shell.withConfiguration(applying: differences) { shell in
-                let processResult = try await shell.run(command: invocation.posixShellCommandLine)
-
-                return _CommandLineToolExecutionRecord(
-                    tool: self,
-                    source: .modeledInvocation(invocation),
-                    processResult: processResult,
-                    selectedToolInvocation: _selectedToolInvocation(renderedInvocation: invocation)
-                )
-            }
-        }
+        try await _executionPlan(
+            invocation: invocation,
+            applying: differences
+        )
+        ._run()
     }
 
     @_disfavoredOverload
@@ -79,6 +72,18 @@ extension CommandLineTool {
         )
     }
 
+    @_disfavoredOverload
+    @discardableResult
+    public func _run(
+        appending arguments: [String],
+        applying differences: [SystemShell.Configuration.Difference] = []
+    ) async throws -> _CommandLineToolExecutionRecord<Self> {
+        try await _run(
+            appending: CommandLineToolInvocation.Arguments(arguments),
+            applying: differences
+        )
+    }
+
     @discardableResult
     public func _runCollectingOutput(
         appending arguments: CommandLineToolInvocation.Arguments = [],
@@ -101,11 +106,35 @@ extension CommandLineTool {
     @_disfavoredOverload
     @discardableResult
     public func _runCollectingOutput(
+        appending arguments: [String],
+        applying differences: [SystemShell.Configuration.Difference] = []
+    ) async throws -> _CommandLineToolExecutionRecord<Self> {
+        try await _runCollectingOutput(
+            appending: CommandLineToolInvocation.Arguments(arguments),
+            applying: differences
+        )
+    }
+
+    @_disfavoredOverload
+    @discardableResult
+    public func _runCollectingOutput(
         appending arguments: CommandLineToolInvocation.Arguments = [],
         applying differences: SystemShell.Configuration.Difference...
     ) async throws -> _CommandLineToolExecutionRecord<Self> {
         try await _runCollectingOutput(
             appending: arguments,
+            applying: differences
+        )
+    }
+
+    @_disfavoredOverload
+    @discardableResult
+    public func _runCollectingOutput(
+        appending arguments: [String],
+        applying differences: SystemShell.Configuration.Difference...
+    ) async throws -> _CommandLineToolExecutionRecord<Self> {
+        try await _runCollectingOutput(
+            appending: CommandLineToolInvocation.Arguments(arguments),
             applying: differences
         )
     }
@@ -118,6 +147,18 @@ extension CommandLineTool {
     ) async throws -> _CommandLineToolExecutionRecord<Self> {
         try await _run(
             appending: arguments,
+            applying: differences
+        )
+    }
+
+    @_disfavoredOverload
+    @discardableResult
+    public func _run(
+        appending arguments: [String],
+        applying differences: SystemShell.Configuration.Difference...
+    ) async throws -> _CommandLineToolExecutionRecord<Self> {
+        try await _run(
+            appending: CommandLineToolInvocation.Arguments(arguments),
             applying: differences
         )
     }

@@ -7,6 +7,10 @@ import Foundation
 import Swallow
 
 extension CommandLineTool {
+    public typealias Argument<T> = _CommandLineToolParameter<T>
+    public typealias Option<T> = _CommandLineToolParameter<T>
+
+    @available(*, deprecated, message: "Use @Argument for positional arguments or @Option for keyed options.")
     public typealias Parameter<T> = _CommandLineToolParameter<T>
 }
 

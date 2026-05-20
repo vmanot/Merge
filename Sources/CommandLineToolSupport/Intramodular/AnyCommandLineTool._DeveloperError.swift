@@ -12,6 +12,7 @@ extension AnyCommandLineTool {
     public enum _DeveloperError: Swift.Error, Hashable, CustomStringConvertible {
         case killedInstanceUsage
         case failedToKillShellSessions(failedSessionCount: Int, totalSessionCount: Int)
+        case outputFormatterToolAlreadyAttached
 
         public var description: String {
             switch self {
@@ -19,6 +20,8 @@ extension AnyCommandLineTool {
                     return "Cannot use an AnyCommandLineTool instance after kill() has been called on it."
                 case .failedToKillShellSessions(let failedSessionCount, let totalSessionCount):
                     return "Failed to kill running command-line tool work: \(failedSessionCount) of \(totalSessionCount) tracked shell session(s) remained incomplete after teardown."
+                case .outputFormatterToolAlreadyAttached:
+                    return "Cannot attach more than one output formatter tool to the same command-line tool serializer state."
             }
         }
     }

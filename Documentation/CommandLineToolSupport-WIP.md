@@ -15,14 +15,14 @@ Working notes for the CommandLineToolSupport API, current implementation, migrat
   - [`swiftc`](#swiftc)
   - [Design Direction](#design-direction)
 - [Current Holes In The Modeling Effort](#current-holes-in-the-modeling-effort)
-  - [1. Semantic Argv Is Stored, But Not Yet Launched Directly](#1-semantic-argv-is-stored-but-not-yet-launched-directly)
+  - [1. Semantic Argv Is Stored, But Direct Launch Is Partial](#1-semantic-argv-is-stored-but-direct-launch-is-partial)
   - [2. Argument Conversion Still Mixes Semantic Values With Shell Escaping](#2-argument-conversion-still-mixes-semantic-values-with-shell-escaping)
   - [3. Resolved Descriptions Are Close, But Not Yet A Real Intermediate Representation](#3-resolved-descriptions-are-close-but-not-yet-a-real-intermediate-representation)
-  - [4. Execution Has Records, But Not Launch Plans](#4-execution-has-records-but-not-launch-plans)
+  - [4. Execution Has Records And Initial Plans, But Plans Are Thin](#4-execution-has-records-and-initial-plans-but-plans-are-thin)
   - [5. Shell Strings Still Carry Too Much Semantic Weight](#5-shell-strings-still-carry-too-much-semantic-weight)
   - [6. Tool Selection Is Modeled, But Composition Boundaries Remain Thin](#6-tool-selection-is-modeled-but-composition-boundaries-remain-thin)
-  - [7. Output Formatter Tools Have No Execution Graph](#7-output-formatter-tools-have-no-execution-graph)
-  - [8. Invocation Summary Is Powerful But Still Too Runtime-Reflection Heavy](#8-invocation-summary-is-powerful-but-still-too-runtime-reflection-heavy)
+  - [7. Output Formatter Tools Need Standard-Stream Wiring](#7-output-formatter-tools-need-standard-stream-wiring)
+  - [8. Invocation Summary Needs Sharper Runtime Diagnostics](#8-invocation-summary-needs-sharper-runtime-diagnostics)
   - [9. Runtime Discipline Is Ahead Of Modeling Discipline](#9-runtime-discipline-is-ahead-of-modeling-discipline)
   - [10. Diagnostics Are Not Yet A First-Class Product](#10-diagnostics-are-not-yet-a-first-class-product)
   - [11. Macro Support Is Alias-Level Only](#11-macro-support-is-alias-level-only)
@@ -104,10 +104,10 @@ Current implementation spans:
 | `xcrun swiftc` | Primary real-world model, loaded-module-trace invocation renders. | Finish actual execution/decoding and replace manual call site. |
 | `xcodebuild` | Partially migrated to typed parameters/env vars. | Preserve compatibility while replacing manual serialization. |
 | `git` / `tar` | Stress tests for placement, subcommands, counters, typed flags. | Move generic examples into Merge tests or proper modules. |
-| `xcbeautify` | Implemented in DeveloperAutomation as `CLT.xcbeautify`; conforms to Merge WIP `CommandLineToolOutputFormatterTool`. | Integrate with `xcodebuild` through an explicit formatter composition model. |
+| `xcbeautify` | Implemented in DeveloperAutomation as `CLT.xcbeautify`; conforms to Merge WIP `CommandLineToolOutputFormatterTool`. | Move from compatibility attachment into a first-class composition API once execution strategy is clearer. |
 | Shell execution | Still real-shell coupled. | Make testable, preferably with injectable executor on concrete `SystemShell`. |
 | Execution records | Provisional `_CommandLineToolExecutionRecord<Tool>` and `_CommandLineToolExecutionSource` exist; `_run` is additive and underscored on `CommandLineTool`; `_runCollectingOutput` now captures without terminal mirroring. | Decide operation identity, public promotion path, external-client extension story, and structured argv vs shell-string split. |
-| Output formatter tools | WIP `CommandLineToolOutputFormatterTool` exists under `Intramodular (WIP)`. | Decide attachment/composition API without breaking current hardcoded `xcodebuild` formatter behavior. |
+| Output formatter tools | WIP `CommandLineToolOutputFormatterTool` exists under `Intramodular (WIP)`; execution plans can carry nested `StandardStreamWiring`. | Decide public composition API without exposing the compatibility attachment used by `CLT.xcodebuild`. |
 
 ## Current Execution Increment
 
@@ -211,7 +211,7 @@ Important semantics:
 
 - Appended-argument execution records `.modeledInvocation`, not `.shellCommandLine`.
 - The source record still uses `CommandLineToolInvocation`, so existing execution record helpers keep working.
-- This is still partial argv structure today. `_run(invocation:)` uses `posixShellCommandLine`, but `CommandLineToolInvocation` now stores `components: [Argument]`, so the next hole is direct executable-plus-argv execution instead of shell rendering.
+- Plain modeled invocations now have a first direct executable-plus-argv lowering path. Selected-tool invocations intentionally still use rendered command lines until selected-tool resolution semantics are represented in the launch plan.
 - `_run(command:)` remains the honest escape hatch for pipelines, shell operators, and legacy hand-rendered strings.
 
 This gives clients an incremental migration ladder:
@@ -222,7 +222,7 @@ This gives clients an incremental migration ladder:
 | `serializedCommand(action: "rev-parse --abbrev-ref HEAD")` | `_run(appending: ["rev-parse", "--abbrev-ref", "HEAD"])` | domain `currentBranch()` keeps returning `Branch` |
 | `serializedCommand(action: "diff -- ... | parser")` | keep `_run(command:)` | explicit pipeline/formatter model later |
 
-The next pressure point is execution correctness. `CommandLineToolInvocation.Argument` is now the stored carrier, but modeled invocations still execute by rendering a POSIX shell command line. That is good enough to remove `serializedCommand(action:)` from simple cases, but not good enough to claim a complete direct-argv execution model.
+The next pressure point is execution correctness across the hard cases. `CommandLineToolInvocation.Argument` is now the stored carrier, and plain modeled invocations can execute without shell stringification, but selected tools, formatter pipelines, builtins, and shell operators still require explicit modeling before they can honestly become direct launch plans.
 
 ### Collected Output Convenience
 
@@ -433,28 +433,19 @@ This remains a later option, not the immediate next step.
 
 #### 5. Macro Affordances Should Stay Inert
 
-Macros should keep naming things, not running things. The next macro-only improvement worth considering is extension-aware aliases:
+Macros should keep declaring boilerplate, not running things. The current macro spelling is `@CommandLineTool`, and its job is deliberately small: synthesize the obvious `CommandLineTool` conformance for old and new model styles without generating execution behavior.
 
 ```swift
-@_CommandLineToolModel
-extension CLT.xcodebuild {}
-```
-
-Generated shape:
-
-```swift
-public typealias _ExecutionRecord =
-    _CommandLineToolExecutionRecord<CLT.xcodebuild>
-
-@available(*, deprecated, renamed: "_ExecutionRecord")
-public typealias _RunResult = _ExecutionRecord
-
-public typealias _RawRunResult = Process.RunResult
+@CommandLineTool
+final class swiftc: AnyCommandLineTool {
+    override var _commandName: String { "swiftc" }
+}
 ```
 
 Useful boundary:
 
 - Do not generate `_run`.
+- Do not generate typealiases for execution records.
 - Do not infer operation identity from method bodies.
 - Do not generate validation, decoding, retries, or shell configuration.
 - Do not attempt semantic conformance checking from SwiftSyntax.
@@ -592,12 +583,12 @@ tool model -> runtime reflection -> [String] -> shell command line -> Process.Ru
 
 That is why clients like `CLT.git`, `CLT.xcodebuild`, `CLT.gh`, and `CLT.defaults` still leak rendering/execution mechanics into domain methods.
 
-### 1. Semantic Argv Is Stored, But Not Yet Launched Directly
+### 1. Semantic Argv Is Stored, But Direct Launch Is Partial
 
-`CommandLineToolInvocation.Argument` now exists and can store strings or raw bytes, and `CommandLineToolInvocation` itself now stores:
+`CommandLineToolInvocation.Argument` now exists and can store strings or raw bytes, and `CommandLineToolInvocation` itself now stores grammar-aware components:
 
 ```swift
-public var components: [CommandLineToolInvocation.Argument]
+public var components: [CommandLineToolInvocation.Component]
 ```
 
 This fixes the old storage bug where `CommandLineToolInvocation(components: [Argument])` immediately mapped arguments to `rawValue` and lost storage identity. The remaining modeling hole is making sure every lowering layer preserves whether a value is:
@@ -608,7 +599,7 @@ This fixes the old storage bug where `CommandLineToolInvocation(components: [Arg
 - a display-only component;
 - a joined `--key=value` token that actually contains both key and value.
 
-The next durable shape should move launch/execution to use these arguments directly instead of requiring `posixShellCommandLine`.
+The first direct launch path now uses these arguments for plain executable-plus-argv modeled invocations. The remaining durable shape is preserving the same argument identity through selected tools, formatters, shell builtins, and other executions that cannot be honestly lowered to a single executable plus argv yet.
 
 ### 2. Argument Conversion Still Mixes Semantic Values With Shell Escaping
 
@@ -661,7 +652,7 @@ The immediate risk is that `_ResolvedCommandLineToolDescription.Option` currentl
 
 That is valid argv for many tools, but semantically it hides the key/value boundary. The IR should preserve both and let renderers decide whether to join.
 
-### 4. Execution Has Records, But Not Launch Plans
+### 4. Execution Has Records And Initial Plans, But Plans Are Thin
 
 `_CommandLineToolExecutionRecord<Tool>` is useful, but it records after the fact:
 
@@ -670,26 +661,25 @@ public let source: _CommandLineToolExecutionSource
 public let processResult: Process.RunResult
 ```
 
-The missing pre-execution value is a launch plan: executable identity, argv, environment, cwd, stream policy, selected-tool metadata, and whether execution goes through a shell.
+The first pre-execution value now exists as `_CommandLineToolExecutionPlan<Tool>`. It carries the tool, source, standard input, configuration differences, and selected-tool metadata, and it is the right place to keep moving execution decisions before they become a `Process.RunResult`.
 
-Without a launch plan:
+The remaining thinness is deliberate:
 
-- `_run(command:)` remains too attractive because shell strings are easy to hand to `SystemShell`;
-- `_run(invocation:)` must render through a POSIX shell string even when it conceptually has argv;
-- execution records cannot reliably tell whether a command was shell-mediated or argv-executed;
-- formatter/pipeline composition has nowhere honest to live.
+- modeled invocations can lower directly only when they are plain executable-plus-argv shapes;
+- selected-tool invocations still fall back to rendered command lines until selecting-tool resolution becomes explicit;
+- formatter/pipeline composition still has nowhere honest to live;
+- records do not yet expose whether a process was shell-mediated or directly launched.
 
-The likely next WIP type is not a richer result first. It is a source/plan value before execution, something like:
+The next plan increment is not a richer result first. It is making the plan expose execution strategy explicitly:
 
 ```swift
-public enum _CommandLineToolExecutionSource {
-    case modeledInvocation(CommandLineToolInvocation)
-    case executable(name: String, arguments: CommandLineToolInvocation.Arguments)
+public enum _CommandLineToolExecutionStrategy {
+    case directExecutable(CommandLineToolInvocation.ExecutableInvocation)
     case shellCommandLine(String)
 }
 ```
 
-or a separate `_CommandLineToolLaunchPlan` if overloading `ExecutionSource` becomes semantically cramped.
+That should stay separate from `_CommandLineToolExecutionSource`, which is still compatibility-sensitive metadata about where the execution came from.
 
 ### 5. Shell Strings Still Carry Too Much Semantic Weight
 
@@ -716,7 +706,7 @@ Selected-tool modeling now distinguishes `xcrun swiftc` from `git remote`, which
 
 The sidecar strategy is a good compatibility increment. It should not become the final model if selected-tool chains need parsing, documentation, completion, or launch-plan behavior.
 
-### 7. Output Formatter Tools Have No Execution Graph
+### 7. Output Formatter Tools Need Standard-Stream Wiring
 
 `CommandLineToolOutputFormatterTool` names the concept, and `CLT.xcbeautify` proves the concrete pressure. But there is still no model for:
 
@@ -726,27 +716,80 @@ The sidecar strategy is a good compatibility increment. It should not become the
 - mirroring or collecting pre-format vs post-format output;
 - keeping current hardcoded `CLT.xcodebuild` behavior source-compatible.
 
-The abstraction should probably not be "formatter as argument." It is closer to an execution graph:
+The abstraction should not be "formatter as argument." It is closer to execution wiring:
 
 ```swift
 xcodebuild invocation -> stdout stream -> xcbeautify invocation -> terminal / collected output
 ```
 
-The first public increment can stay smaller, but the model should not erase the distinction between a command's arguments and a downstream output transformer.
+The current increment is `_CommandLineToolExecutionPlan.StandardStreamWiring`. The name is deliberately nested under the execution plan: it is not a general process-graph type, not a Foundation `Pipe`, and not an OS port concept.
 
-### 8. Invocation Summary Is Powerful But Still Too Runtime-Reflection Heavy
+```swift
+_CommandLineToolExecutionPlan<AnyCommandLineTool>.StandardStreamWiring(
+    stages: [
+        .init(role: .primaryInvocation, commandName: "xcrun xcodebuild"),
+        .init(role: .external, commandName: "xcodebuild-build-progress-observation"),
+        .init(
+            role: .outputFormatterTool,
+            commandName: "xcbeautify",
+            streamEffects: [.humanReadableFormatting]
+        )
+    ],
+    streamConnections: [
+        .init(
+            output: .init(stageID: xcodebuildStage.id, stream: .standardOutput),
+            input: .init(stageID: buildProgressObservationStage.id, stream: .standardInput)
+        ),
+        .init(
+            output: .init(stageID: buildProgressObservationStage.id, stream: .standardOutput),
+            input: .init(stageID: formatterStage.id, stream: .standardInput)
+        )
+    ]
+)
+```
 
-Invocation summaries are important because declaration order is not enough. The current implementation supports `When`, `Switch`, `Case`, parent references, and default fallback, but it still depends heavily on runtime reflection and force-cast/precondition boundaries.
+The standard-stream vocabulary is nested inside `StandardStreamWiring`. There is intentionally no global `_CommandLineToolStandardStream` enum; a standalone stream enum would be too broad and would invite unrelated code to depend on an underfledged noun.
+
+Validation currently checks:
+
+- every referenced stage exists;
+- connection outputs are producer-side endpoints: `standardOutput` or `standardError`, not `standardInput`;
+- connection inputs are consumer-side endpoints: `standardInput`, not `standardOutput` or `standardError`;
+- one output endpoint does not fan out accidentally;
+- one input endpoint does not receive multiple upstream outputs accidentally;
+- stage traversal is acyclic;
+- repeated exclusive formatter stream effects fail.
+
+Current runtime errors are intentionally conservative. Accidental fanout/fanin is rejected because we do not yet have a first-class tee/broadcast/merge model. Backwards endpoint directions are rejected because a standard input stream cannot produce bytes for another stage, and a standard output/error stream should not be treated as a receiving side of a connection.
+
+The model does allow independent stream walks to apply the same exclusive stream effect. This matters for scenarios where one execution plan carries multiple unrelated producer/formatter chains; exclusivity is per stream walk, not global across the entire plan.
+
+The formatter remains semantic metadata on the command-line tool model. The stream connection is topology: stdout flows into stdin. Those are related, but they are not the same abstraction.
+
+The first public increment can stay smaller, but the model must not erase the distinction between a command's arguments and a downstream output transformer.
+
+### 8. Invocation Summary Needs Sharper Runtime Diagnostics
+
+Invocation summaries are important because declaration order is not enough. Runtime reflection and preconditions are not inherently bad pressure here: they are valid tools for encoding framework invariants and developer discipline when static Swift cannot express the shape. The problem is weaker diagnostics when reflection-derived failures are far from the declaration that caused them.
 
 Holes:
 
 - poor typed diagnostics when a summary references a property incompatible with the active command/parent;
-- unclear story for illegal combinations;
+- unclear story for illegal combinations that should be runtime developer errors;
 - unclear story for schema export/documentation;
 - unclear story for command-line parsing back into a model;
 - parent projection is useful but still not cleanly exposed as public API vocabulary.
 
-The AppIntents-style direction remains good: summaries should be inspectable syntax trees, not arbitrary Swift control flow. But the lowering result should become structured IR, not `[String]`.
+The AppIntents-style direction remains good: summaries should be inspectable syntax trees, not arbitrary Swift control flow. Runtime checks should stay, but the failure surface should become sharper and more local: declaration metadata, resolved descriptions, and command invocation components should carry enough structure to explain exactly which modeled argument could not lower.
+
+New coverage from the WIP suite sharpened a few rules:
+
+- explicit value references suppress default fallback rendering for that same modeled argument;
+- `.isPresent` treats empty strings and empty collections as absent;
+- ordinary Swift result-builder branches are supported, but the first-class `When` / `Switch` nodes remain the preferred inspectable shape;
+- `Switch` can now be expressed without a `DefaultCase`, and a non-matching value throws at runtime instead of silently producing an invocation.
+
+That last point is useful for dogfooding, but the diagnostic is still too weak. A production-grade reverse argument parser should say which summary switch failed, which modeled value was inspected, and which cases were available.
 
 ### 9. Runtime Discipline Is Ahead Of Modeling Discipline
 
@@ -1433,7 +1476,7 @@ public struct CommandLineToolInvocation.Argument {
 }
 ```
 
-Current caveat: `components` are now semantic argument values, but execution still goes through `posixShellCommandLine`. This fixes storage, not the whole launch model.
+Current caveat: `components` are now semantic argument values, and plain modeled invocations have a direct executable-plus-argv path, but selected tools, shell operators, and formatter-style compositions still need explicit strategy before they can avoid rendered command lines.
 
 Current renderers:
 
@@ -1502,6 +1545,20 @@ When(\.$format, equals: "json") {
 ```
 
 Preferred direction: first-class `When` / `Switch` nodes, not arbitrary Swift `if` / `switch`, so summaries can be inspected, diagnosed, lowered, and eventually parsed.
+
+Current semantics:
+
+- `\.$value` renders that modeled property and marks it rendered in `InvocationSummaryContext`.
+- Default fallback renders unresolved modeled properties after the custom summary.
+- Literal strings are additive and do not mark any modeled property rendered.
+- `.isPresent` means non-`nil`, non-empty string, and non-empty collection.
+- `Switch` without `DefaultCase` is allowed; if no case matches, invocation lowering throws.
+- Parent references use the parent command's key conversion, not the child command's key conversion.
+- Multi-value options preserve their encoding strategy: `.singleValue` repeats key/value pairs, while `.spaceSeparated` emits one key followed by many values.
+- Optional boolean inversion preserves the three distinct states: absent, true, false.
+- Custom flag arrays resolve from concrete arrays and optional concrete arrays without scalar-casting crashes.
+
+This is the core distinction from thin `Process` wrappers: the summary is still a grammar model. It can intentionally emit syntax, suppress fallback emission for modeled properties, and fail when the modeled grammar is incomplete.
 
 #### Parent References
 
@@ -1574,14 +1631,14 @@ WIP protocol:
 
 ```swift
 public protocol CommandLineToolOutputFormatterTool: CommandLineTool {
-    var outputFormattingSemantics: CommandLineToolOutputFormattingSemantics { get }
+    var outputFormattingSemantics: Semantics { get }
 }
 ```
 
 Current default semantics:
 
 ```swift
-CommandLineToolOutputFormattingSemantics.standardOutputFormatter
+CommandLineToolOutputFormatterTool.Semantics.standardOutputFormatter
 ```
 
 Meaning:
@@ -1611,7 +1668,17 @@ extension CLT {
 }
 ```
 
-This is deliberately not yet an attachment/composition API. The next design step is to preserve current `CLT.xcodebuild` behavior while moving from hardcoded shell-pipeline text toward explicit formatter metadata.
+This is deliberately not yet a public attachment/composition API. The compatibility bridge is internal: older class-style tools can temporarily set `_attachedOutputFormatterTool` and `_attachedStandardStreamWiring` while still rendering their legacy shell command lines.
+
+The older top-level `CommandLineToolOutputFormattingSemantics` spelling remains as a deprecated compatibility alias. Swift does not allow a concrete nested type inside the protocol itself, so the implementation carrier is `_CommandLineToolOutputFormatterTool_Semantics` and the protocol exposes it as `CommandLineToolOutputFormatterTool.Semantics`. That better reflects that these semantics only describe formatter-tool intent; they do not describe the whole process graph.
+
+Formatter semantics now also carry `streamEffects`. The default `humanReadableFormatting` effect is exclusive, which lets execution-plan validation reject accidental chains like:
+
+```console
+xcodebuild ... | xcbeautify | xcbeautify
+```
+
+That rule is not hardcoded as "formatter tools can never be repeated." A future formatter can declare a repeatable effect if double application is meaningful.
 
 Candidate directions to evaluate:
 
@@ -1968,15 +2035,15 @@ That should lower to argv, support summaries/docs/diagnostics, preserve tool-spe
 | Execution spelling | Avoid making `()` primarily mean execution for subcommands; keep existing async `callAsFunction` compatibility and use underscored `_run` as the provisional typed carrier surface. | In progress |
 | `showSDKPath`-style actions | Model no-argument operations as typed flags/properties first; add action wrapper only if needed. | Needs design |
 | Return metadata | Keep legacy execution return as `Process.RunResult`; use provisional `_CommandLineToolExecutionRecord<Tool>` for typed carrier experimentation. | In progress |
-| Key conversion precedence | Support command-level default and per-argument override. | Implemented; needs tests |
-| `xcrun swiftc` summary | Partial summary plus default fallback is pragmatic; parent-reference summary behavior now has Merge coverage. | Needs broader edge tests |
+| Key conversion precedence | Support command-level default and per-argument override. | Implemented; parent/child summary projection now covered |
+| `xcrun swiftc` summary | Partial summary plus default fallback is pragmatic; parent-reference summary behavior now has Merge coverage. | Needs real-client migration pressure |
 | `xcodebuild` modeling | Eventually model as `xcrun.xcodebuild`; avoid breaking existing clients. | Pending |
 | Module boundaries | Move generic `git`/`tar` experiments into Merge tests or proper modules. | Pending |
 | collected output | Prefer shared `_runCollectingOutput` / `._collectingOutput` vocabulary over one-off client helpers like `runQuietGit`; keep underscored while semantics settle. | Implemented as provisional |
-| argv vs shell strings | Make `CommandLineToolInvocation.Argument` the storage source of truth; derive shell/display strings separately. | Implemented for storage; execution still needs launch plans |
-| launch plans | Add a pre-execution representation that separates executable identity, argv, shell mediation, cwd/env, stream policy, and selected-tool metadata. | Needs design |
+| argv vs shell strings | Make `CommandLineToolInvocation.Argument` the storage source of truth; derive shell/display strings separately. | Implemented for storage and plain direct execution; selected tools/pipelines still need explicit strategy |
+| execution plans | Add a pre-execution representation that separates source, configuration, selected-tool metadata, and eventual direct-vs-shell strategy. | First `_CommandLineToolExecutionPlan` implemented; needs strategy model |
 | URL/path arguments | Stop shell-escaping `URL.argumentValue` as the semantic default while preserving compatibility for older code. | Needs migration |
-| output formatter graph | Treat formatter tools as execution graph participants, not ordinary arguments. | Needs design |
+| output formatter graph | Treat formatter tools as execution-plan participants, not ordinary arguments; keep standard-stream wiring nested under `_CommandLineToolExecutionPlan`. | First nested `StandardStreamWiring` model implemented |
 | Error handling | Public rendering should throw typed errors; reserve assertions for impossible internal states. | Needs cleanup |
 
 ## Completion Work
@@ -1987,36 +2054,32 @@ That should lower to argv, support summaries/docs/diagnostics, preserve tool-spe
 - Prefer one-line type documentation in WIP source files: it should explain why the type exists, not restate its stored properties.
 - Keep module-wise tests under `Tests/CommandLineSupport`.
 - Add tests for:
-  - `Switch` without matching default;
-  - parent key conversion when parent/child defaults differ;
-  - `.singleValue` vs `.spaceSeparated`;
-  - optional boolean inversion;
-  - array custom flags;
   - nested subcommands with parent and child summaries.
 - Clean up spelling/API roughness:
   - `_CommandLineToolOptionKeyConvension`;
   - `_representaton`;
   - global namespace leakage.
 - Decide whether `@Subcommand(name:)` affects rendering or `_commandName` is sole source of truth.
-- Clarify `CommandLineToolInvocation`: semantic arguments are now stored, but display rendering and shell rendering are still separate views.
-- Preserve the new `[CommandLineToolInvocation.Argument]` storage direction while moving execution toward direct argv launch plans.
+- Clarify `CommandLineToolInvocation`: semantic arguments are now stored, but display rendering, shell rendering, and direct execution are separate views.
+- Preserve the new `CommandLineToolInvocation.Component` storage direction while moving execution plans toward explicit direct-vs-shell strategy.
 - Split semantic argument conversion from shell rendering; specifically migrate away from shell-escaped `URL.argumentValue` without breaking older clients.
-- Add launch-plan/source tests covering modeled invocation, executable-plus-argv, and raw shell command lines.
+- Expand execution-plan/source tests covering selected tools, builtins, executable URLs, formatter pipelines, and raw shell command lines.
 - Replace crashes/force casts in public rendering paths with typed errors.
 - Keep `Resolvable` removed unless another non-CLT use case appears; `InvocationSummaryValue` now states its exact `resolve(in:)` requirement directly.
 - Continue nudging parent-reference summaries toward a public, non-underscored spelling without losing current DeveloperAutomation compatibility.
-- Add formatter composition tests only after agreeing on the relationship between `CLT.xcodebuild` and `CLT.xcbeautify`.
+- Add formatter composition tests only after agreeing on the relationship between `CLT.xcodebuild`, `CLT.xcbeautify`, and nested standard-stream wiring.
 - Keep client-local bridges like `CLT.git._runGit(_:)` only while they identify real shared holes; remove them once URL/path conversion and invocation storage are fixed.
 
 ## Suggested Plan
 
 1. Split semantic value conversion from shell rendering, starting with a compatibility-preserving path for `URL.argumentValue`.
-2. Add a launch-plan/source value so modeled invocations can execute as executable-plus-argv instead of always becoming shell strings.
-3. Migrate `CLT.git._runGit(_:)` away once root `-C` path rendering is fixed by shared modeling.
-4. Model formatter execution as a graph/sidecar for `xcodebuild | xcbeautify`, preserving existing `CLT.xcodebuild` public behavior.
-5. Add summary + placement edge tests, especially parent projection, selected-tool paths, and key-conversion conflicts.
-6. Replace public-path preconditions/force casts with typed modeling/rendering errors.
-7. Keep this document updated as decisions land; stale client bridges should be called out explicitly instead of normalized.
+2. Add explicit execution strategy to `_CommandLineToolExecutionPlan` so records can distinguish direct executable launch from shell-mediated launch.
+3. Teach selected-tool plans how to choose between selecting-tool execution and resolved selected-tool execution without erasing metadata.
+4. Migrate `CLT.git._runGit(_:)` away once root `-C` path rendering is fixed by shared modeling.
+5. Grow formatter execution from the current nested `StandardStreamWiring` sidecar for `xcodebuild | xcbeautify`, preserving existing `CLT.xcodebuild` public behavior.
+6. Add summary + placement edge tests, especially parent projection, selected-tool paths, and key-conversion conflicts.
+7. Replace public-path force casts and vague preconditions with typed modeling/rendering errors or sharper developer-error preconditions.
+8. Keep this document updated as decisions land; stale client bridges should be called out explicitly instead of normalized.
 
 ---
 

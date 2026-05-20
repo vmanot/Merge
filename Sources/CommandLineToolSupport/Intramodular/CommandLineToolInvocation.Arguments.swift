@@ -14,12 +14,16 @@ import Foundation
 extension CommandLineToolInvocation {
     /// Additional argv values that can be composed onto a modeled command-line tool invocation.
     public struct Arguments: CustomStringConvertible, CustomDebugStringConvertible, CustomReflectable, ExpressibleByArrayLiteral, Hashable, Sendable {
-        public typealias ArrayLiteralElement = String
+        public typealias ArrayLiteralElement = Argument
 
         public var elements: [Argument]
 
         public init(elements: [Argument]) {
             self.elements = elements
+        }
+
+        public init() {
+            self.init(elements: [])
         }
 
         public init(_ elements: [Argument]) {
@@ -38,7 +42,7 @@ extension CommandLineToolInvocation {
             self.init(elements)
         }
 
-        public init(arrayLiteral elements: String...) {
+        public init(arrayLiteral elements: Argument...) {
             self.init(elements)
         }
 
@@ -48,6 +52,40 @@ extension CommandLineToolInvocation {
 
         public var isEmpty: Bool {
             elements.isEmpty
+        }
+
+        public mutating func append(
+            _ argument: Argument
+        ) {
+            elements.append(argument)
+        }
+
+        public mutating func append(
+            contentsOf arguments: Arguments
+        ) {
+            elements.append(contentsOf: arguments.elements)
+        }
+
+        @_disfavoredOverload
+        public mutating func append(
+            contentsOf arguments: [String]
+        ) {
+            append(contentsOf: Arguments(arguments))
+        }
+
+        public static func + (
+            lhs: Self,
+            rhs: Self
+        ) -> Self {
+            Self(elements: lhs.elements + rhs.elements)
+        }
+
+        @_disfavoredOverload
+        public static func + (
+            lhs: Self,
+            rhs: [String]
+        ) -> Self {
+            lhs + Self(rhs)
         }
 
         public var description: String {
@@ -73,7 +111,7 @@ extension CommandLineToolInvocation {
     public func appending(
         _ arguments: Arguments
     ) -> Self {
-        Self(components: components + arguments.elements)
+        Self(argumentValues: argumentValues + arguments.elements)
     }
 }
 

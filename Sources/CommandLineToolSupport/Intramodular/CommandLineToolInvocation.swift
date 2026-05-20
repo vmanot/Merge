@@ -110,42 +110,75 @@ public struct CommandLineToolInvocation: CustomStringConvertible, CustomDebugStr
         }
     }
 
-    /// The semantic invocation arguments, including the command name.
-    public var components: [Argument]
+    /// The semantic invocation components, including the command name.
+    public var components: [Component]
 
-    public init(components: [String]) {
+    public init(components: [Component]) {
         self.components = components
-            .filter { !$0.isEmpty }
-            .map { Argument($0) }
+    }
+
+    public init(argumentValues: [Argument]) {
+        self.init(components: Self._components(from: argumentValues))
     }
 
     public init(components: [Argument]) {
-        self.components = components
+        self.init(argumentValues: components)
+    }
+
+    public init(components: Arguments) {
+        self.init(argumentValues: components.elements)
+    }
+
+    @_disfavoredOverload
+    public init(components: [String]) {
+        self.init(
+            argumentValues: components
+                .filter { !$0.isEmpty }
+                .map { Argument($0) }
+        )
+    }
+
+    private static func _components(
+        from argumentValues: [Argument]
+    ) -> [Component] {
+        argumentValues.enumerated().map { offset, argument in
+            if offset == 0 {
+                return .executable(argument)
+            } else {
+                return .positionalArgument(argument)
+            }
+        }
+    }
+
+    public var argumentValues: [Argument] {
+        components.flatMap(\.argumentValues)
     }
 
     public var rawComponents: [String] {
-        components.map(\.rawValue)
+        argumentValues.map(\.rawValue)
     }
 
     /// The rendered command name component, when present.
     public var commandName: String? {
-        components.first?.rawValue
+        argumentValues.first?.rawValue
     }
 
     /// The semantic argument components after the command name.
     public var arguments: [Argument] {
-        Array(components.dropFirst())
+        Array(argumentValues.dropFirst())
+    }
+
+    public var argumentList: Arguments {
+        Arguments(arguments)
     }
 
     /// The shell-rendered display command line.
     public var commandLine: String {
-        rawComponents.joined(separator: " ")
+        renderedCommandLine(using: .legacyShellCommandLine)
     }
 
     public var posixShellCommandLine: String {
-        components
-            .map(\.posixShellEscapedValue)
-            .joined(separator: " ")
+        renderedCommandLine(using: .posixShellCommandLine)
     }
 
     public var description: String {
@@ -159,12 +192,13 @@ public struct CommandLineToolInvocation: CustomStringConvertible, CustomDebugStr
     public var customMirror: Mirror {
         Mirror(
             self,
-            children: [
-                "components": components,
-                "rawComponents": rawComponents,
-                "commandName": commandName as Any,
-                "arguments": arguments,
-                "commandLine": commandLine
+                children: [
+                    "components": components,
+                    "argumentValues": argumentValues,
+                    "rawComponents": rawComponents,
+                    "commandName": commandName as Any,
+                    "arguments": arguments,
+                    "commandLine": commandLine
             ],
             displayStyle: .struct
         )
@@ -179,16 +213,29 @@ extension CommandLineTool {
     /// A structured representation of this tool's rendered invocation.
     public var commandInvocation: CommandLineToolInvocation {
         get throws {
-            try CommandLineToolInvocation(
-                components: invocationArguments(context: CommandLineToolInvocationSummary.InvocationSummaryContext())
-            )
+            try CommandLineToolInvocation(components: invocationArgumentValues(context: CommandLineToolInvocationSummary.InvocationSummaryContext()))
+        }
+    }
+
+    /// The semantic invocation components, including the command name.
+    public var commandInvocationComponents: [CommandLineToolInvocation.Component] {
+        get throws {
+            try commandInvocation.components
         }
     }
 
     /// The semantic invocation arguments, including the command name.
+    public var invocationArguments: [CommandLineToolInvocation.Argument] {
+        get throws {
+            try commandInvocation.argumentValues
+        }
+    }
+
+    /// The semantic invocation arguments, including the command name.
+    @available(*, deprecated, renamed: "invocationArguments")
     public var invocationComponents: [CommandLineToolInvocation.Argument] {
         get throws {
-            try commandInvocation.components
+            try invocationArguments
         }
     }
 }

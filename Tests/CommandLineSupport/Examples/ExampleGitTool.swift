@@ -8,7 +8,7 @@ final class ExampleGitTool: AnyCommandLineTool, CommandLineTool {
         "git"
     }
 
-    @Parameter(name: "C")
+    @Option(name: "C")
     var localRepositoryURL: URL? = nil
 
     @Flag(name: "tags", inversion: .prefixedNo, placement: .finalCommand)
@@ -39,7 +39,7 @@ final class ExampleGitTool: AnyCommandLineTool, CommandLineTool {
         @Flag(name: "verify", inversion: .prefixedNo)
         var verify: Bool? = nil
 
-        @Parameter(name: "signed")
+        @Option(name: "signed")
         var signed: SignedPushRequestMode? = nil
     }
 

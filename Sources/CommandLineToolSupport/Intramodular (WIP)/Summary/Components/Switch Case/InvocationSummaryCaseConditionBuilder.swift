@@ -18,6 +18,23 @@ extension CommandLineToolInvocationSummary {
 /// Result builder for provisional summary-switch case lists.
 public struct InvocationSummaryCaseConditionBuilder<Command: AnyCommandLineTool, Value: InvocationSummaryValue> {
     @_alwaysEmitIntoClient
+    public static func buildBlock<Content>(
+        _ content: Content
+    ) -> Content where Content: InvocationSummarySwitchCaseProtocol, Content.Value == Value, Content.Command == Command {
+        content
+    }
+
+    @_disfavoredOverload
+    @_alwaysEmitIntoClient
+    public static func buildBlock<each CaseCondition>(
+        _ condition: repeat each CaseCondition
+    ) -> InvocationSummaryTupleCaseCondition<Command, Value, (repeat each CaseCondition)> where repeat each CaseCondition: InvocationSummarySwitchCaseProtocol {
+        InvocationSummaryTupleCaseCondition(
+            (repeat each condition)
+        )
+    }
+
+    @_alwaysEmitIntoClient
     public static func buildBlock<each CaseCondition, DefaultSummary>(
         _ `default`: InvocationSummaryDefaultCaseCondition<Command, Value, DefaultSummary>,
         _ condition: repeat each CaseCondition,

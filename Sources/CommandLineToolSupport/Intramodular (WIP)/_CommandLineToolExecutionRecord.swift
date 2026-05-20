@@ -32,9 +32,6 @@ public struct _CommandLineToolExecutionRecord<Tool: AnyCommandLineTool>: CustomS
     }
 }
 
-/// Transitional compatibility alias for the provisional command-line tool execution carrier.
-public typealias _CommandLineToolRunResult<Command: CommandLineTool> = _CommandLineToolExecutionRecord<Command>
-
 extension _CommandLineToolExecutionRecord {
     public var description: String {
         commandLine

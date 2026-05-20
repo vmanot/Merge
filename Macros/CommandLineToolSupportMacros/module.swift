@@ -7,11 +7,10 @@ import MacroBuilder
 @main
 public struct module: CompilerPlugin {
     public let providingMacros: [Macro.Type] = [
-        _CommandLineToolModelMacro.self,
+        CommandLineToolMacro.self,
     ]
 
     public init() {
 
     }
 }
-

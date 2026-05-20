@@ -93,22 +93,26 @@ extension CommandLineTool {
         )
     }
 
-    private func _sanitizeInvocationArguments(_ arguments: [String]) -> [String] {
-        arguments.filter { !$0.isEmpty }
+    private func _sanitizeInvocationArguments(
+        _ arguments: CommandLineToolInvocation.Arguments
+    ) -> CommandLineToolInvocation.Arguments {
+        CommandLineToolInvocation.Arguments(
+            arguments.elements.filter { !$0.rawValue.isEmpty }
+        )
     }
 
     private func _makeCommandChainInvocationArguments(
         chain: [AnyCommandLineTool],
-        leafArguments: [String],
+        leafArguments: CommandLineToolInvocation.Arguments,
         context: CommandLineToolInvocationSummary.InvocationSummaryContext
-    ) throws -> [String] {
+    ) throws -> CommandLineToolInvocation.Arguments {
         guard let root = chain.first else {
             return leafArguments
         }
 
-        var arguments = [String]()
+        var arguments = CommandLineToolInvocation.Arguments()
 
-        arguments.append(root._commandName)
+        arguments.elements.append(CommandLineToolInvocation.Argument(root._commandName))
         try arguments.append(
             contentsOf: root._defaultInvocationArguments(
                 context: context,
@@ -119,7 +123,7 @@ extension CommandLineTool {
         for (index, command) in chain.dropFirst().enumerated() {
             let parent = chain[index]
 
-            arguments.append(command._commandName)
+            arguments.elements.append(CommandLineToolInvocation.Argument(command._commandName))
             try arguments.append(
                 contentsOf: parent._defaultInvocationArguments(
                     context: context,
@@ -137,7 +141,7 @@ extension CommandLineTool {
             }
         }
 
-        arguments.append(contentsOf: leafArguments.filter { !$0.isEmpty })
+        arguments.elements.append(contentsOf: leafArguments.elements.filter { !$0.rawValue.isEmpty })
 
         for command in chain.dropLast() {
             try arguments.append(
@@ -155,13 +159,15 @@ extension CommandLineTool {
         CommandLineToolInvocationSummary.DefaultInvocationSummary<Self>()
     }
 
-    public func invocationArguments(context: CommandLineToolInvocationSummary.InvocationSummaryContext) throws -> [String] {
-        var arguments = [String]()
+    public func invocationArgumentValues(
+        context: CommandLineToolInvocationSummary.InvocationSummaryContext
+    ) throws -> CommandLineToolInvocation.Arguments {
+        var arguments = CommandLineToolInvocation.Arguments()
 
         switch self {
             case let command as SummaryContent.Command:
                 try arguments.append(
-                    contentsOf: [_commandName] + invocationSummary.makeInvocationArguments(
+                    contentsOf: CommandLineToolInvocation.Arguments([_commandName]) + invocationSummary.makeInvocationArguments(
                         command: command,
                         parent: nil,
                         context: context
@@ -183,7 +189,7 @@ extension CommandLineTool {
                 arguments.append(
                     contentsOf: try _makeCommandChainInvocationArguments(
                         chain: chain,
-                        leafArguments: selfArgs,
+                        leafArguments: CommandLineToolInvocation.Arguments(selfArgs),
                         context: context
                     )
                 )
@@ -203,7 +209,7 @@ extension CommandLineTool {
                 arguments.append(
                     contentsOf: try _makeCommandChainInvocationArguments(
                         chain: chain,
-                        leafArguments: selfArgs,
+                        leafArguments: CommandLineToolInvocation.Arguments(selfArgs),
                         context: context
                     )
                 )
@@ -224,9 +230,13 @@ extension CommandLineTool {
         return _sanitizeInvocationArguments(arguments)
     }
 
+    public func invocationArguments(context: CommandLineToolInvocationSummary.InvocationSummaryContext) throws -> [String] {
+        try invocationArgumentValues(context: context).rawValues
+    }
+
     public var invocation: String {
         get throws {
-            try invocationArguments(context: CommandLineToolInvocationSummary.InvocationSummaryContext()).joined(separator: " ")
+            try invocationArgumentValues(context: CommandLineToolInvocationSummary.InvocationSummaryContext()).description
         }
     }
 

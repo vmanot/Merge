@@ -14,7 +14,7 @@ final class ExampleSwiftTool: AnyCommandLineTool, CommandLineTool {
     @Flag(name: "verbose", placement: .local)
     var verbose: Bool = false
 
-    @Parameter(conversion: .hyphenPrefixed, name: "sdk", placement: .local)
+    @Option(conversion: .hyphenPrefixed, name: "sdk", placement: .local)
     var sdk: String? = nil
 
     @Subcommand(of: ExampleSwiftTool.self, name: "build", command: ExampleSwiftBuildTool())
@@ -39,16 +39,16 @@ final class ExampleSwiftBuildTool: AnyCommandLineTool, CommandLineTool {
     @Flag(name: "sandbox", inversion: .prefixedNo)
     var sandbox: Bool? = nil
 
-    @Parameter(name: "package-path")
+    @Option(name: "package-path")
     var packagePath: String? = nil
 
-    @Parameter(name: "triple", separator: .equal)
+    @Option(name: "triple", separator: .equal)
     var triple: String? = nil
 
-    @Parameter(conversion: .hyphenPrefixed, name: "Xswiftc", encoding: .singleValue)
+    @Option(conversion: .hyphenPrefixed, name: "Xswiftc", encoding: .singleValue)
     var swiftcOptions: [SwiftcOption] = []
 
-    @Parameter(name: nil)
+    @Argument(name: nil)
     var explicitProducts: [String] = []
 }
 

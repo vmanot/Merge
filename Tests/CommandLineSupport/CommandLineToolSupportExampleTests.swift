@@ -40,8 +40,10 @@ struct CommandLineToolSupportExampleTests {
             "--package-path",
             "Fixtures/Example Package",
             "--triple=arm64-apple-macosx15.0",
-            "-Xswiftc -DTRACE_IMPORTS",
-            "-Xswiftc -emit-loaded-module-trace",
+            "-Xswiftc",
+            "-DTRACE_IMPORTS",
+            "-Xswiftc",
+            "-emit-loaded-module-trace",
             "ExampleCLI",
             "ExampleSupport"
         ])
@@ -68,6 +70,34 @@ struct CommandLineToolSupportExampleTests {
 
         #expect(pushInvocation == "git -C /tmp/repo push --tags --force")
         #expect(remoteUpdateInvocation == "git remote --verbose update --prune")
+    }
+
+    @Test
+    func modelsSandboxExecWrappingModeledSwiftInvocation() throws {
+        let swiftBuild = ExampleSwiftTool()
+            .build()
+            .with(\.configuration, .release)
+            .with(\.packagePath, "Fixtures/Example Package")
+            .with(\.explicitProducts, ["ExampleCLI"])
+
+        let command = try ExampleSandboxExecTool()
+            .with(\.profileFilePath, "Profiles/no-network.sb")
+            .executing(swiftBuild)
+
+        let invocation = try command.commandInvocation
+        let description = try command.resolve()
+        let profileFilePath = try #require(
+            description.arguments[id: .init(rawValue: "profileFilePath", commandName: "sandbox-exec")]
+        )
+        let commandAndArguments = try #require(
+            description.arguments[id: .init(rawValue: "commandAndArguments", commandName: "sandbox-exec")]
+        )
+
+        #expect(invocation.commandLine == "sandbox-exec -f Profiles/no-network.sb swift build --release --package-path Fixtures/Example Package ExampleCLI")
+        #expect(profileFilePath.publicInvocationComponents.map(\.kind) == [.option])
+        #expect(profileFilePath.publicInvocationComponents.first?.key?.rawValue == "-f")
+        #expect(profileFilePath.publicInvocationComponents.first?.values.rawValues == ["Profiles/no-network.sb"])
+        #expect(commandAndArguments.publicInvocationComponents.map(\.kind) == Array(repeating: .positionalArgument, count: 6))
     }
 }
 

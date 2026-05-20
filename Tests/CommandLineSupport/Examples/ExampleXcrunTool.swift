@@ -8,7 +8,7 @@ final class ExampleXcrunTool: AnyCommandLineToolWithSelectedTool, CommandLineToo
         "xcrun"
     }
 
-    @Parameter(conversion: .hyphenPrefixed, name: "sdk", placement: .local)
+    @Option(conversion: .hyphenPrefixed, name: "sdk", placement: .local)
     var sdk: String? = nil
 
     @SelectedTool(of: ExampleXcrunTool.self, name: "swiftc", tool: ExampleSwiftCompilerTool())
@@ -26,7 +26,7 @@ final class ExampleSwiftCompilerTool: AnyCommandLineTool, CommandLineTool {
     @Flag(conversion: .hyphenPrefixed, name: "typecheck")
     var typecheck: Bool = false
 
-    @Parameter(name: nil)
+    @Argument(name: nil)
     var inputFiles: [String] = []
 }
 

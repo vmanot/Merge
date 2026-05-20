@@ -53,6 +53,10 @@ public struct InvocationSummaryValuePredicate<Value> {
             return !string.isEmpty
         }
 
+        if mirror.displayStyle == .collection || mirror.displayStyle == .set || mirror.displayStyle == .dictionary {
+            return !mirror.children.isEmpty
+        }
+
         return true
     }
 
