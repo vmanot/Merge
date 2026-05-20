@@ -416,6 +416,36 @@ final class SelectingToolFixture: AnyCommandLineToolWithSelectedTool, CommandLin
     }
 }
 
+final class XcrunHostToolFixture: AnyCommandLineToolWithSelectedTool, CommandLineTool {
+    override var _commandName: String {
+        "xcrun"
+    }
+
+    @Option(conversion: .hyphenPrefixed, name: "sdk", placement: .local)
+    var sdk: String? = nil
+}
+
+final class HostedNotarytoolFixture: AnyCommandLineTool, CommandLineTool {
+    override var _commandName: String {
+        "notarytool"
+    }
+
+    @Subcommand(of: HostedNotarytoolFixture.self, name: "submit", command: Submit())
+    var submit
+
+    init(hostTool: XcrunHostToolFixture = XcrunHostToolFixture()) {
+        super.init()
+
+        try! _attachHostTool(.toolThatResolvesAndInvokesSelectedTool(hostTool))
+    }
+
+    final class Submit: AnyCommandLineTool, CommandLineTool {
+        override var _commandName: String {
+            "submit"
+        }
+    }
+}
+
 final class PrintfSelectingTool: AnyCommandLineToolWithSelectedTool, CommandLineTool {
     override var _commandName: String {
         "printf"
@@ -842,6 +872,37 @@ struct CommandLineToolSupportTests {
         #expect(semantics.phase == .beforeInvocation)
         #expect(semantics.invocation == .throughSelectingTool)
         #expect(semantics.executableDisclosure == .selectedToolName)
+    }
+
+    @Test
+    func attachedHostToolRendersToolThatResolvesAndInvokesSelectedTool() throws {
+        let command = HostedNotarytoolFixture(
+            hostTool: XcrunHostToolFixture().with(\.sdk, "macosx")
+        )
+        .submit()
+        let invocation = try command.commandInvocation
+        let plan = command._executionPlan(invocation: invocation)
+
+        #expect(invocation.commandLine == "xcrun -sdk macosx notarytool submit")
+        #expect(plan.selectedToolInvocation?.selectingToolCommandName == "xcrun")
+        #expect(plan.selectedToolInvocation?.selectedToolCommandName == "notarytool")
+        #expect(plan.selectedToolInvocation?.selectedToolCommandPath == ["notarytool", "submit"])
+        #expect(plan.selectedToolInvocation?.selectionSemantics == .staticExplicitArgument)
+        #expect(plan.selectedToolInvocation?.resolutionSemantics == .resolvesBeforeInvocationAndInvokesThroughSelectingTool)
+    }
+
+    @Test
+    func attachedHostToolRejectsDoubleAttachment() throws {
+        let tool = HostedNotarytoolFixture()
+
+        do {
+            try tool._attachHostTool(.toolThatResolvesAndInvokesSelectedTool(XcrunHostToolFixture()))
+
+            Issue.record("Expected double host tool attachment to fail.")
+        } catch AnyCommandLineTool._DeveloperError.hostToolAlreadyAttached {
+        } catch {
+            Issue.record("Expected hostToolAlreadyAttached, got \(error).")
+        }
     }
 
     @Test

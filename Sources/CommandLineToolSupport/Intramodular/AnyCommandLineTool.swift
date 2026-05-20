@@ -47,6 +47,7 @@ open class AnyCommandLineTool: Logging, ObjectDidChangeObservableObject {
     // MARK: Legacy Output Formatter Attachment
 
     private var __attachedOutputFormatterTool: (any CommandLineToolOutputFormatterTool)? = nil
+    private var __attachedHostTool: _AttachedToolHost? = nil
     private var __attachedStandardStreamWiring: _CommandLineToolExecutionPlan<AnyCommandLineTool>.StandardStreamWiring? = nil
 
     public var _attachedOutputFormatterTool: (any CommandLineToolOutputFormatterTool)? {
@@ -61,6 +62,21 @@ open class AnyCommandLineTool: Logging, ObjectDidChangeObservableObject {
             }
 
             __attachedOutputFormatterTool = newValue
+        }
+    }
+
+    public var _attachedHostTool: _AttachedToolHost? {
+        get {
+            __attachedHostTool
+        } set {
+            guard newValue == nil || __attachedHostTool == nil else {
+                let error = _DeveloperError.hostToolAlreadyAttached
+
+                runtimeIssue(error)
+                preconditionFailure(error.description)
+            }
+
+            __attachedHostTool = newValue
         }
     }
 
@@ -85,8 +101,25 @@ open class AnyCommandLineTool: Logging, ObjectDidChangeObservableObject {
         __attachedOutputFormatterTool = tool
     }
 
+    public func _attachHostTool(
+        _ tool: _AttachedToolHost?
+    ) throws {
+        guard tool == nil || __attachedHostTool == nil else {
+            let error = _DeveloperError.hostToolAlreadyAttached
+
+            runtimeIssue(error)
+            throw error
+        }
+
+        __attachedHostTool = tool
+    }
+
     public func _detachOutputFormatterTool() {
         __attachedOutputFormatterTool = nil
+    }
+
+    public func _detachHostTool() {
+        __attachedHostTool = nil
     }
 
     public func _detachStandardStreamWiring() {

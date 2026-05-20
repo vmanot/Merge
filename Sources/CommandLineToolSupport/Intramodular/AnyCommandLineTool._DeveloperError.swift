@@ -13,6 +13,7 @@ extension AnyCommandLineTool {
         case killedInstanceUsage
         case failedToKillShellSessions(failedSessionCount: Int, totalSessionCount: Int)
         case outputFormatterToolAlreadyAttached
+        case hostToolAlreadyAttached
 
         public var description: String {
             switch self {
@@ -22,6 +23,8 @@ extension AnyCommandLineTool {
                     return "Failed to kill running command-line tool work: \(failedSessionCount) of \(totalSessionCount) tracked shell session(s) remained incomplete after teardown."
                 case .outputFormatterToolAlreadyAttached:
                     return "Cannot attach more than one output formatter tool to the same command-line tool serializer state."
+                case .hostToolAlreadyAttached:
+                    return "Cannot attach more than one host tool to the same command-line tool serializer state."
             }
         }
     }

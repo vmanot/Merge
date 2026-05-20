@@ -28,7 +28,7 @@ public protocol CommandLineTool: AnyCommandLineTool {
 }
 
 extension CommandLineTool {
-    private var _commandChain: [AnyCommandLineTool]? {
+    var _commandChain: [AnyCommandLineTool]? {
         if let selectedTool = self as? any _GenericSelectedCommandLineToolProtocol {
             return [
                 selectedTool._opaqueSelectingTool,
@@ -64,24 +64,74 @@ extension CommandLineTool {
         return result
     }
 
+    private var _commandChainOrSelf: [AnyCommandLineTool] {
+        _commandChain ?? [self]
+    }
+
+    private var _attachedHostToolInCommandChain: (selectedTool: AnyCommandLineTool, hostTool: AnyCommandLineTool._AttachedToolHost)? {
+        _commandChainOrSelf.lazy.compactMap { tool in
+            tool._attachedHostTool.map { (tool, $0) }
+        }.first
+    }
+
     func _selectedToolInvocation(
         renderedInvocation: CommandLineToolInvocation
     ) -> _CommandLineToolSelectedToolInvocation? {
-        guard
+        if
             let chain = _commandChain,
             let selectingToolIndex = chain.firstIndex(where: { $0 is AnyCommandLineToolWithSelectedTool }),
             chain.indices.contains(selectingToolIndex + 1),
             let selectingTool = chain[selectingToolIndex] as? AnyCommandLineToolWithSelectedTool
+        {
+            let selectedToolCommandPath = chain[(selectingToolIndex + 1)...]
+                .map(\._commandName)
+
+            guard let selectedToolCommandName = selectedToolCommandPath.first else {
+                return nil
+            }
+
+            return _CommandLineToolSelectedToolInvocation(
+                renderedInvocation: renderedInvocation,
+                selectingToolCommandName: selectingTool._commandName,
+                selectedToolCommandName: selectedToolCommandName,
+                selectedToolCommandPath: selectedToolCommandPath,
+                selectionSemantics: selectingTool.toolSelectionSemantics,
+                resolutionSemantics: selectingTool.selectedToolResolutionSemantics
+            )
+        }
+
+        if let selectedToolInvocation = _attachedHostToolSelectedToolInvocation(renderedInvocation: renderedInvocation) {
+            return selectedToolInvocation
+        }
+
+        return nil
+    }
+
+    private func _attachedHostToolSelectedToolInvocation(
+        renderedInvocation: CommandLineToolInvocation
+    ) -> _CommandLineToolSelectedToolInvocation? {
+        let chain = _commandChainOrSelf
+
+        guard
+            let selectedToolIndex = chain.firstIndex(where: { $0._attachedHostTool != nil }),
+            let hostTool = chain[selectedToolIndex]._attachedHostTool
         else {
             return nil
         }
 
-        let selectedToolCommandPath = chain[(selectingToolIndex + 1)...]
-            .map(\._commandName)
+        let selectedToolCommandPath = chain[selectedToolIndex...].enumerated().map { offset, command in
+            if offset == 0 {
+                return hostTool._selectedToolCommandNameOverride ?? command._commandName
+            } else {
+                return command._commandName
+            }
+        }
 
         guard let selectedToolCommandName = selectedToolCommandPath.first else {
             return nil
         }
+
+        let selectingTool = hostTool._selectingTool
 
         return _CommandLineToolSelectedToolInvocation(
             renderedInvocation: renderedInvocation,
@@ -90,6 +140,21 @@ extension CommandLineTool {
             selectedToolCommandPath: selectedToolCommandPath,
             selectionSemantics: selectingTool.toolSelectionSemantics,
             resolutionSemantics: selectingTool.selectedToolResolutionSemantics
+        )
+    }
+
+    private func _applyingAttachedHostToolIfNeeded(
+        to arguments: CommandLineToolInvocation.Arguments,
+        context: CommandLineToolInvocationSummary.InvocationSummaryContext
+    ) throws -> CommandLineToolInvocation.Arguments {
+        guard let (selectedTool, hostTool) = _attachedHostToolInCommandChain else {
+            return arguments
+        }
+
+        return try hostTool._invocationArguments(
+            hosting: arguments,
+            selectedTool: selectedTool,
+            context: context
         )
     }
 
@@ -227,7 +292,10 @@ extension CommandLineTool {
             )
         }
 
-        return _sanitizeInvocationArguments(arguments)
+        return try _applyingAttachedHostToolIfNeeded(
+            to: _sanitizeInvocationArguments(arguments),
+            context: context
+        )
     }
 
     public func invocationArguments(context: CommandLineToolInvocationSummary.InvocationSummaryContext) throws -> [String] {
