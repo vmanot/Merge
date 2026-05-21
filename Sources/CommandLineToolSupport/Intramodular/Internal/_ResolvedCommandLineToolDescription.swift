@@ -51,14 +51,14 @@ public struct _ResolvedCommandLineToolDescription: CustomStringConvertible, Cust
         public var kind: Kind
         public var key: CommandLineToolInvocation.Argument?
         public var separator: _CommandLineToolParameterKeyValueSeparator?
-        public var values: [CommandLineToolInvocation.Argument]
+        public var values: CommandLineToolInvocation.Arguments
         public var multiValueEncoding: MultiValueParameterEncodingStrategy?
         
         public init(
             kind: Kind,
             key: CommandLineToolInvocation.Argument? = nil,
             separator: _CommandLineToolParameterKeyValueSeparator? = nil,
-            values: [CommandLineToolInvocation.Argument],
+            values: CommandLineToolInvocation.Arguments,
             multiValueEncoding: MultiValueParameterEncodingStrategy? = nil
         ) {
             self.kind = kind
@@ -71,13 +71,28 @@ public struct _ResolvedCommandLineToolDescription: CustomStringConvertible, Cust
         public static func positionalArgument(
             _ value: CommandLineToolInvocation.Argument
         ) -> Self {
-            Self(kind: .positionalArgument, values: [value])
+            Self(kind: .positionalArgument, values: CommandLineToolInvocation.Arguments([value]))
         }
         
         public static func option(
             key: CommandLineToolInvocation.Argument,
             separator: _CommandLineToolParameterKeyValueSeparator,
             values: [CommandLineToolInvocation.Argument],
+            multiValueEncoding: MultiValueParameterEncodingStrategy? = nil
+        ) -> Self {
+            Self(
+                kind: .option,
+                key: key,
+                separator: separator,
+                values: CommandLineToolInvocation.Arguments(values),
+                multiValueEncoding: multiValueEncoding
+            )
+        }
+
+        public static func option(
+            key: CommandLineToolInvocation.Argument,
+            separator: _CommandLineToolParameterKeyValueSeparator,
+            values: CommandLineToolInvocation.Arguments,
             multiValueEncoding: MultiValueParameterEncodingStrategy? = nil
         ) -> Self {
             Self(
@@ -92,33 +107,24 @@ public struct _ResolvedCommandLineToolDescription: CustomStringConvertible, Cust
         public static func flag(
             _ value: CommandLineToolInvocation.Argument
         ) -> Self {
-            Self(kind: .flag, values: [value])
+            Self(kind: .flag, values: CommandLineToolInvocation.Arguments([value]))
         }
         
         public var invocationArgumentValues: [CommandLineToolInvocation.Argument] {
             switch kind {
                 case .positionalArgument, .flag:
-                    return values
+                    return values.elements
                 case .option:
                     guard let key, let separator, !values.isEmpty else {
                         return []
                     }
-                    
-                    if multiValueEncoding == .spaceSeparated {
-                        return [key] + values
-                    }
-                    
-                    if multiValueEncoding == .singleValue, separator == .space {
-                        return values.flatMap { [key, $0] }
-                    }
-                    
-                    if separator == .space, values.count == 1 {
-                        return [key, values[0]]
-                    }
-                    
-                    return values.map { value in
-                        CommandLineToolInvocation.Argument("\(key.rawValue)\(separator.rawValue)\(value.rawValue)")
-                    }
+
+                    return CommandLineToolInvocation.Component._encodeOptionArguments(
+                        key: key,
+                        separator: separator,
+                        values: values,
+                        multiValueEncoding: multiValueEncoding
+                    ).elements
             }
         }
         
@@ -127,12 +133,12 @@ public struct _ResolvedCommandLineToolDescription: CustomStringConvertible, Cust
                 case .positionalArgument:
                     return CommandLineToolInvocation.Component(
                         kind: .positionalArgument,
-                        arguments: CommandLineToolInvocation.Arguments(values)
+                        arguments: values
                     )
                 case .flag:
                     return CommandLineToolInvocation.Component(
                         kind: .flag,
-                        arguments: CommandLineToolInvocation.Arguments(values)
+                        arguments: values
                     )
                 case .option:
                     guard let key, let separator else {

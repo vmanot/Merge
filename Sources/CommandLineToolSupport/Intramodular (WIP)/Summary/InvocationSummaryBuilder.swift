@@ -103,4 +103,114 @@ public struct InvocationSummaryBuilder<Command: AnyCommandLineTool> {
     }
 }
 
+@available(macOS 11.0, *)
+@available(iOS, unavailable)
+@available(macCatalyst, unavailable)
+@available(tvOS, unavailable)
+@available(watchOS, unavailable)
+public struct _EmptyInvocationSummary<Command: AnyCommandLineTool>: InvocationSummary {
+    @inlinable public init() { }
+
+    public func makeInvocationArguments(
+        command: Command,
+        parent: AnyCommandLineTool?,
+        context: InvocationSummaryContext
+    ) throws -> CommandLineToolInvocation.Arguments {
+        []
+    }
+}
+
+@available(macOS 11.0, *)
+@available(iOS, unavailable)
+@available(macCatalyst, unavailable)
+@available(tvOS, unavailable)
+@available(watchOS, unavailable)
+public struct _InvocationSummaryLiteral<Command: AnyCommandLineTool>: InvocationSummary {
+    let text: String
+
+    public init(text: String) {
+        self.text = text
+    }
+
+    public func makeInvocationArguments(
+        command: Command,
+        parent: AnyCommandLineTool?,
+        context: InvocationSummaryContext
+    ) throws -> CommandLineToolInvocation.Arguments {
+        CommandLineToolInvocation.Arguments([text])
+    }
+}
+
+@available(macOS 11.0, *)
+@available(iOS, unavailable)
+@available(macCatalyst, unavailable)
+@available(tvOS, unavailable)
+@available(watchOS, unavailable)
+public struct _OptionalInvocationSummary<Command: AnyCommandLineTool, Content: InvocationSummary>: InvocationSummary where Content.Command == Command {
+    let content: Content?
+
+    public init(_ content: Content?) {
+        self.content = content
+    }
+
+    public func makeInvocationArguments(
+        command: Command,
+        parent: AnyCommandLineTool?,
+        context: InvocationSummaryContext
+    ) throws -> CommandLineToolInvocation.Arguments {
+        guard let content else {
+            return []
+        }
+
+        return try content.makeInvocationArguments(
+            command: command,
+            parent: parent,
+            context: context
+        )
+    }
+}
+
+@available(macOS 11.0, *)
+@available(iOS, unavailable)
+@available(macCatalyst, unavailable)
+@available(tvOS, unavailable)
+@available(watchOS, unavailable)
+public enum _ConditionalInvocationSummary<Command: AnyCommandLineTool, TrueContent: InvocationSummary, FalseContent: InvocationSummary>: InvocationSummary where TrueContent.Command == Command, FalseContent.Command == Command {
+    case first(TrueContent)
+    case second(FalseContent)
+
+    public func makeInvocationArguments(
+        command: Command,
+        parent: AnyCommandLineTool?,
+        context: InvocationSummaryContext
+    ) throws -> CommandLineToolInvocation.Arguments {
+        switch self {
+            case .first(let content):
+                return try content.makeInvocationArguments(
+                    command: command,
+                    parent: parent,
+                    context: context
+                )
+            case .second(let content):
+                return try content.makeInvocationArguments(
+                    command: command,
+                    parent: parent,
+                    context: context
+                )
+        }
+    }
+}
+
+}
+
+extension Never: CommandLineToolInvocationSummary.InvocationSummary {
+    public typealias Command = AnyCommandLineTool
+
+    public func makeInvocationArguments(
+        command: Command,
+        parent: AnyCommandLineTool?,
+        context: CommandLineToolInvocationSummary.InvocationSummaryContext
+    ) throws -> CommandLineToolInvocation.Arguments {
+        fatalError(.unavailable)
+    }
 }

@@ -196,29 +196,18 @@ extension CommandLineToolInvocation {
             values: Arguments,
             multiValueEncoding: MultiValueParameterEncodingStrategy? = nil
         ) -> Self {
-            let arguments: Arguments
-
-            if multiValueEncoding == .spaceSeparated {
-                arguments = Arguments([key]) + values
-            } else if multiValueEncoding == .singleValue, separator == .space {
-                arguments = Arguments(values.elements.flatMap { [key, $0] })
-            } else if separator == .space, values.elements.count == 1 {
-                arguments = Arguments([key, values.elements[0]])
-            } else {
-                arguments = Arguments(
-                    values.elements.map { value in
-                        Argument("\(key.rawValue)\(separator.rawValue)\(value.rawValue)")
-                    }
-                )
-            }
-
             return Self(
                 kind: .option,
                 key: key,
                 separator: separator,
                 values: values,
                 multiValueEncoding: multiValueEncoding,
-                arguments: arguments
+                arguments: _encodeOptionArguments(
+                    key: key,
+                    separator: separator,
+                    values: values,
+                    multiValueEncoding: multiValueEncoding
+                )
             )
         }
 
@@ -292,6 +281,33 @@ extension CommandLineToolInvocation {
     }
 }
 
+extension CommandLineToolInvocation.Component {
+    package static func _encodeOptionArguments(
+        key: CommandLineToolInvocation.Argument,
+        separator: _CommandLineToolParameterKeyValueSeparator,
+        values: CommandLineToolInvocation.Arguments,
+        multiValueEncoding: MultiValueParameterEncodingStrategy?
+    ) -> CommandLineToolInvocation.Arguments {
+        if multiValueEncoding == .spaceSeparated {
+            return CommandLineToolInvocation.Arguments([key]) + values
+        }
+
+        if multiValueEncoding == .singleValue, separator == .space {
+            return CommandLineToolInvocation.Arguments(values.elements.flatMap { [key, $0] })
+        }
+
+        if separator == .space, values.elements.count == 1 {
+            return CommandLineToolInvocation.Arguments([key, values.elements[0]])
+        }
+
+        return CommandLineToolInvocation.Arguments(
+            values.elements.map { value in
+                CommandLineToolInvocation.Argument("\(key.rawValue)\(separator.rawValue)\(value.rawValue)")
+            }
+        )
+    }
+}
+
 extension CommandLineToolInvocation.Component.Storage {
     public var kind: CommandLineToolInvocation.Component.Kind {
         switch self {
@@ -356,4 +372,3 @@ extension CommandLineToolInvocation.Component.Storage {
         return nil
     }
 }
-

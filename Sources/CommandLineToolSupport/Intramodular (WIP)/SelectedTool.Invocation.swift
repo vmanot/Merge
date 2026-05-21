@@ -2,7 +2,6 @@
 // Copyright (c) Vatsal Manot
 //
 
-
 import Foundation
 
 @available(macOS 11.0, *)
@@ -10,7 +9,6 @@ import Foundation
 @available(macCatalyst, unavailable)
 @available(tvOS, unavailable)
 @available(watchOS, unavailable)
-/// Sidecar metadata describing the selected-tool portion of an execution record without changing its source shape.
 public struct _CommandLineToolSelectedToolInvocation: CustomStringConvertible, CustomDebugStringConvertible, CustomReflectable, Hashable, Sendable {
     public var renderedInvocation: CommandLineToolInvocation
     public var selectingToolCommandName: String
@@ -34,9 +32,7 @@ public struct _CommandLineToolSelectedToolInvocation: CustomStringConvertible, C
         self.selectionSemantics = selectionSemantics
         self.resolutionSemantics = resolutionSemantics
     }
-}
 
-extension _CommandLineToolSelectedToolInvocation {
     public var description: String {
         commandLine
     }
@@ -65,4 +61,3 @@ extension _CommandLineToolSelectedToolInvocation {
         renderedInvocation.commandLine
     }
 }
-

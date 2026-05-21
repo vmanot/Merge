@@ -16,18 +16,10 @@ extension CommandLineTool {
         appending arguments: CommandLineToolInvocation.Arguments = [],
         applying differences: [SystemShell.Configuration.Difference] = []
     ) async throws -> _CommandLineToolExecutionRecord<Self> {
-        let differences = differences + [
-            SystemShell.Configuration.Difference._collectingOutput
-        ]
-
-        if arguments.isEmpty {
-            return try await _run(applying: differences)
-        } else {
-            return try await _run(
-                appending: arguments,
-                applying: differences
-            )
-        }
+        try await _run(
+            appending: arguments,
+            applying: differences + [._collectingOutput]
+        )
     }
 
     @_disfavoredOverload

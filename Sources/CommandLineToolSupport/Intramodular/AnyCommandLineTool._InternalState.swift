@@ -13,6 +13,55 @@ import Merge
 @available(tvOS, unavailable)
 @available(watchOS, unavailable)
 extension AnyCommandLineTool {
+    package enum _LifecycleStatus: Hashable, Sendable {
+        case active
+        case killed
+    }
+
+    package struct _ShellSession: Identifiable, Sendable {
+        package typealias ID = SystemShell._ShellScope.ID
+
+        package let id: ID
+        package var scope: SystemShell._ShellScope
+        package let shellState: SystemShell._InternalState
+
+        package init(
+            scope: SystemShell._ShellScope,
+            shellState: SystemShell._InternalState
+        ) {
+            self.id = scope.id
+            self.scope = scope
+            self.shellState = shellState
+        }
+    }
+
+    package struct _ExecutionAttempt: Identifiable, @unchecked Sendable {
+        package typealias ID = UUID
+
+        package let id: ID
+        package let startedAt: Date
+        package let finishedAt: Date
+        package let shellScopeID: SystemShell._ShellScope.ID?
+        package let source: _CommandLineToolExecutionSource
+        package let result: Result<_CommandLineToolExecutionRecord<AnyCommandLineTool>, Error>
+
+        package init(
+            id: ID = ID(),
+            startedAt: Date,
+            finishedAt: Date,
+            shellScopeID: SystemShell._ShellScope.ID?,
+            source: _CommandLineToolExecutionSource,
+            result: Result<_CommandLineToolExecutionRecord<AnyCommandLineTool>, Error>
+        ) {
+            self.id = id
+            self.startedAt = startedAt
+            self.finishedAt = finishedAt
+            self.shellScopeID = shellScopeID
+            self.source = source
+            self.result = result
+        }
+    }
+
     package actor _InternalState: ObjectDidChangeObservableObject {
         nonisolated package let objectWillChange = ObservableObjectPublisher()
         nonisolated package let objectDidChange = _ObjectDidChangePublisher()
