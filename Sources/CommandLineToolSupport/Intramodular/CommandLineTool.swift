@@ -39,12 +39,16 @@ extension CommandLineTool {
             return nil
         }
 
-        var result: [AnyCommandLineTool] = [subcommand._opaqueCommand]
+        var result: [AnyCommandLineTool] = [self]
         var parent = subcommand._opaqueParent
 
         while true {
             if let parentSubcommand = parent as? any _GenericSubcommandProtocol {
-                result.insert(parentSubcommand._opaqueCommand, at: 0)
+                guard let parentSubcommandWrapper = parentSubcommand as? AnyCommandLineTool else {
+                    preconditionFailure("Unable to resolve parent subcommand wrapper for \(type(of: parentSubcommand))")
+                }
+
+                result.insert(parentSubcommandWrapper, at: 0)
                 parent = parentSubcommand._opaqueParent
             } else if let selectedTool = parent as? any _GenericSelectedCommandLineToolProtocol {
                 guard let selectedToolWrapper = selectedTool as? AnyCommandLineTool else {
@@ -165,60 +169,6 @@ extension CommandLineTool {
         )
     }
 
-    private func _makeCommandChainInvocationArguments(
-        chain: [AnyCommandLineTool],
-        leafArguments: CommandLineToolInvocation.Arguments,
-        context: CommandLineToolInvocationSummary.InvocationSummaryContext
-    ) throws -> CommandLineToolInvocation.Arguments {
-        guard let root = chain.first else {
-            return leafArguments
-        }
-
-        var arguments = CommandLineToolInvocation.Arguments()
-
-        arguments.elements.append(CommandLineToolInvocation.Argument(root.requireCommandName().rawValue))
-        try arguments.append(
-            contentsOf: root._defaultInvocationArguments(
-                context: context,
-                positions: [.local]
-            )
-        )
-
-        for (index, command) in chain.dropFirst().enumerated() {
-            let parent = chain[index]
-
-            arguments.elements.append(CommandLineToolInvocation.Argument(command.requireCommandName().rawValue))
-            try arguments.append(
-                contentsOf: parent._defaultInvocationArguments(
-                    context: context,
-                    positions: [.nextCommand]
-                )
-            )
-
-            if index < chain.count - 2 {
-                try arguments.append(
-                    contentsOf: command._defaultInvocationArguments(
-                        context: context,
-                        positions: [.local]
-                    )
-                )
-            }
-        }
-
-        arguments.elements.append(contentsOf: leafArguments.elements.filter { !$0.rawValue.isEmpty })
-
-        for command in chain.dropLast() {
-            try arguments.append(
-                contentsOf: command._defaultInvocationArguments(
-                    context: context,
-                    positions: [.lastCommand]
-                )
-            )
-        }
-
-        return arguments
-    }
-
     public var invocationSummary: some CommandLineToolInvocationSummary.InvocationSummary {
         CommandLineToolInvocationSummary.DefaultInvocationSummary<Self>()
     }
@@ -226,62 +176,29 @@ extension CommandLineTool {
     public func invocationArgumentValues(
         context: CommandLineToolInvocationSummary.InvocationSummaryContext
     ) throws -> CommandLineToolInvocation.Arguments {
+        let subject = _invocationSummarySubject()
+        let summaryArguments = try invocationSummary.makeInvocationArguments(
+            command: subject.summaryCommand,
+            parent: subject.parent,
+            context: context
+        )
         var arguments = CommandLineToolInvocation.Arguments()
 
-        switch self {
-            case let command as SummaryContent.Command:
-                try arguments.append(
-                    contentsOf: CommandLineToolInvocation.Arguments([requireCommandName().rawValue]) + invocationSummary.makeInvocationArguments(
-                        command: command,
-                        parent: nil,
-                        context: context
-                    )
-                )
-            case let selectedTool as any _GenericSelectedCommandLineToolProtocol:
-                guard let chain = _commandChain else {
-                    preconditionFailure("Unable to resolve selected tool chain for \(type(of: self))")
-                }
-                guard let command = selectedTool._opaqueSelectedTool as? SummaryContent.Command else {
-                    preconditionFailure("GenericSelectedCommandLineTool \(type(of: selectedTool._opaqueSelectedTool)) not equals to \(SummaryContent.Command.self)")
-                }
-                let selfArgs = try invocationSummary.makeInvocationArguments(
-                    command: command,
-                    parent: selectedTool._opaqueSelectingTool,
+        if let chain = subject.commandChain {
+            arguments.append(
+                contentsOf: try _CommandLineToolInvocationAssembly(
+                    chain: chain,
+                    leafArguments: summaryArguments,
                     context: context
                 )
-
-                arguments.append(
-                    contentsOf: try _makeCommandChainInvocationArguments(
-                        chain: chain,
-                        leafArguments: CommandLineToolInvocation.Arguments(selfArgs),
-                        context: context
-                    )
-                )
-            case let subcommand as any _GenericSubcommandProtocol:
-                guard let chain = _commandChain else {
-                    preconditionFailure("Unable to resolve subcommand chain for \(type(of: self))")
-                }
-                guard let command = subcommand.command as? SummaryContent.Command else {
-                    preconditionFailure("GenericSubcommand \(type(of: subcommand.command)) not equals to \(SummaryContent.Command.self)")
-                }
-                let selfArgs = try invocationSummary.makeInvocationArguments(
-                    command: command,
-                    parent: subcommand.parent,
-                    context: context
-                )
-
-                arguments.append(
-                    contentsOf: try _makeCommandChainInvocationArguments(
-                        chain: chain,
-                        leafArguments: CommandLineToolInvocation.Arguments(selfArgs),
-                        context: context
-                    )
-                )
-            default:
-                preconditionFailure("\(type(of: self)) not equals to \(SummaryContent.Command.self)")
+                .makeInvocationArguments()
+            )
+        } else {
+            arguments.append(CommandLineToolInvocation.Argument(requireCommandName().rawValue))
+            arguments.append(contentsOf: summaryArguments)
         }
 
-        if !(self is any _GenericSubcommandProtocol) && !(self is any _GenericSelectedCommandLineToolProtocol) && !(SummaryContent.self == CommandLineToolInvocationSummary.DefaultInvocationSummary<Self>.self) {
+        if _shouldAppendDefaultInvocationSummary {
             try arguments.append(
                 contentsOf: CommandLineToolInvocationSummary.DefaultInvocationSummary<Self>().makeInvocationArguments(
                     command: self,

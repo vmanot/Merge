@@ -88,27 +88,45 @@ public struct _CommandLineToolParameter<WrappedValue>: _CommandLineToolParameter
     public func resolve(
         in context: _CommandLineToolResolutionContext
     ) throws -> _AnyResolvedCommandLineToolInvocationArgument {
+        if let name {
+            return _resolveOption(
+                name: name,
+                in: context
+            )
+        } else {
+            return _resolvePositionalArgument(in: context)
+        }
+    }
+
+    private func _resolveOption(
+        name: String,
+        in context: _CommandLineToolResolutionContext
+    ) -> _AnyResolvedCommandLineToolInvocationArgument {
         let wrappedValue = self.wrappedValue
 
-        return if let name {
-            _ResolvedCommandLineToolDescription.Option(
-                id: context.resolvingID,
-                defaultPosition: defaultPosition,
-                conversion: optionKeyConversion ?? context.implicitKeyConversion(for: name),
-                name: name,
-                separator: keyValueSeparator,
-                multiValueEncoding: multiValueEncodingStrategy,
-                value: wrappedValue,
-                valueType: type(of: wrappedValue)
-            ).erasedToAnyResolvedCommandLineToolInvocationArgument()
-        } else {
-            _ResolvedCommandLineToolDescription.Argument(
-                id: context.resolvingID,
-                defaultPosition: defaultPosition,
-                value: wrappedValue,
-                valueType: type(of: wrappedValue)
-            ).erasedToAnyResolvedCommandLineToolInvocationArgument()
-        }
+        return _ResolvedCommandLineToolDescription.Option(
+            id: context.resolvingID,
+            defaultPosition: defaultPosition,
+            conversion: optionKeyConversion ?? context.implicitKeyConversion(for: name),
+            name: name,
+            separator: keyValueSeparator,
+            multiValueEncoding: multiValueEncodingStrategy,
+            value: wrappedValue,
+            valueType: type(of: wrappedValue)
+        ).erasedToAnyResolvedCommandLineToolInvocationArgument()
+    }
+
+    private func _resolvePositionalArgument(
+        in context: _CommandLineToolResolutionContext
+    ) -> _AnyResolvedCommandLineToolInvocationArgument {
+        let wrappedValue = self.wrappedValue
+
+        return _ResolvedCommandLineToolDescription.Argument(
+            id: context.resolvingID,
+            defaultPosition: defaultPosition,
+            value: wrappedValue,
+            valueType: type(of: wrappedValue)
+        ).erasedToAnyResolvedCommandLineToolInvocationArgument()
     }
 
     @_disfavoredOverload
@@ -120,4 +138,3 @@ public struct _CommandLineToolParameter<WrappedValue>: _CommandLineToolParameter
         self.defaultPosition = .local
     }
 }
-

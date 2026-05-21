@@ -15,14 +15,14 @@ import Merge
 @available(tvOS, unavailable)
 @available(watchOS, unavailable)
 public class EmptyCommandLineToolSubcommand: AnyCommandLineTool, CommandLineTool {
-    var name: String
+    var name: CommandLineTool.Name
 
-    init(name: String) {
+    init(name: CommandLineTool.Name) {
         self.name = name
     }
 
     public override var commandName: CommandLineTool.Name? {
-        CommandLineTool.Name(name)
+        name
     }
 }
 
@@ -37,6 +37,7 @@ public protocol _GenericSubcommandProtocol {
 
     associatedtype Command: AnyCommandLineTool
     var command: Command { get }
+    var subcommandName: CommandLineTool.Name? { get }
 }
 
 extension _GenericSubcommandProtocol {
@@ -58,9 +59,10 @@ extension _GenericSubcommandProtocol {
 public class GenericSubcommand<Parent, Command>: AnyCommandLineTool, CommandLineTool, _GenericSubcommandProtocol where Parent: AnyCommandLineTool, Command: AnyCommandLineTool & CommandLineTool {
     public let parent: Parent
     public var command: Command
+    public let subcommandName: CommandLineTool.Name?
 
     public override var commandName: CommandLineTool.Name? {
-        command.requireCommandName()
+        subcommandName ?? command.commandName
     }
 
     public subscript<SubSubcommand: AnyCommandLineTool>(
@@ -70,13 +72,19 @@ public class GenericSubcommand<Parent, Command>: AnyCommandLineTool, CommandLine
 
         return GenericSubcommand<GenericSubcommand<Parent, Command>, SubSubcommand>(
             parent: self,
-            command: subSubcommand.command
+            command: subSubcommand.command,
+            subcommandName: subSubcommand.subcommandName
         )
     }
 
-    public init(parent: Parent, command: Command) {
+    public init(
+        parent: Parent,
+        command: Command,
+        subcommandName: CommandLineTool.Name? = nil
+    ) {
         self.parent = parent
         self.command = command
+        self.subcommandName = subcommandName
     }
 
     public var invocationSummary: some CommandLineToolInvocationSummary.InvocationSummary {

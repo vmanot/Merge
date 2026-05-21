@@ -17,7 +17,7 @@ extension CommandLineTool {
 public protocol _CommandLineToolSubcommandProtocol /* PropertyWrapper */ {
     associatedtype Subcommand : AnyCommandLineTool
 
-    var name: String { get }
+    var name: CommandLineTool.Name { get }
     var command: Subcommand { get }
 }
 
@@ -28,7 +28,7 @@ public protocol _CommandLineToolSubcommandProtocol /* PropertyWrapper */ {
 @available(tvOS, unavailable)
 @available(watchOS, unavailable)
 public struct _CommandLineToolSubcommand<Parent, Command>: _CommandLineToolSubcommandProtocol where Parent: AnyCommandLineTool, Command: AnyCommandLineTool & CommandLineTool {
-    public var name: String
+    public var name: CommandLineTool.Name
     public var command: Command
 
     public typealias WrappedValue = GenericSubcommand<Parent, Command>
@@ -47,7 +47,8 @@ public struct _CommandLineToolSubcommand<Parent, Command>: _CommandLineToolSubco
 
         return GenericSubcommand(
             parent: parent,
-            command: subcommandPropertyWrapper.command
+            command: subcommandPropertyWrapper.command,
+            subcommandName: subcommandPropertyWrapper.name
         )
     }
 
@@ -64,16 +65,38 @@ public struct _CommandLineToolSubcommand<Parent, Command>: _CommandLineToolSubco
         name: String,
         command: Command
     ) {
+        self.init(
+            of: parent,
+            name: CommandLineTool.Name(name),
+            command: command
+        )
+    }
+
+    public init(
+        of parent: Parent.Type,
+        name: CommandLineTool.Name,
+        command: Command
+    ) {
         self.name = name
         self.command = command
+
+        if command.commandName == nil {
+            command._commandNameOverrideStorage = name
+        }
     }
 
     public init(
         of parent: Parent.Type,
         name: String
     ) where Command == EmptyCommandLineToolSubcommand {
+        self.init(of: parent, name: CommandLineTool.Name(name))
+    }
+
+    public init(
+        of parent: Parent.Type,
+        name: CommandLineTool.Name
+    ) where Command == EmptyCommandLineToolSubcommand {
         self.name = name
         self.command = .init(name: name)
     }
 }
-

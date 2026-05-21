@@ -29,7 +29,7 @@ public protocol InvocationSummary<Command> {
         command: Command,
         parent: AnyCommandLineTool?,
         context: Context
-    ) throws -> [String]
+    ) throws -> CommandLineToolInvocation.Arguments
 }
 
 @available(macOS 11.0, *)
@@ -49,7 +49,7 @@ public struct AnyInvocationSummary<Command: AnyCommandLineTool>: InvocationSumma
         command: Command,
         parent: AnyCommandLineTool?,
         context: Context
-    ) throws -> [String] {
+    ) throws -> CommandLineToolInvocation.Arguments {
         try base.makeInvocationArguments(command: command, parent: parent, context: context)
     }
 }
@@ -97,10 +97,16 @@ public struct TupleInvocationSummary<Command: AnyCommandLineTool, T>: Invocation
         command: Command,
         parent: AnyCommandLineTool?,
         context: InvocationSummaryContext
-    ) throws -> [String] {
-        try summaries.flatMap({
-            try $0.makeInvocationArguments(command: command, parent: parent, context: context)
-        })
+    ) throws -> CommandLineToolInvocation.Arguments {
+        try summaries.reduce(into: CommandLineToolInvocation.Arguments()) { result, summary in
+            try result.append(
+                contentsOf: summary.makeInvocationArguments(
+                    command: command,
+                    parent: parent,
+                    context: context
+                )
+            )
+        }
     }
 }
 

@@ -1566,6 +1566,25 @@ struct CommandLineToolSupportTests {
     }
 
     @Test
+    func defaultInvocationArgumentsUseStructuralArgumentCarrier() throws {
+        let tool = ResolvedDescriptionTool()
+            .with(\.target, "arm64-apple-macosx15.0")
+            .with(\.inputs, ["Sources/main.swift"])
+        let context = CommandLineToolInvocationSummary.InvocationSummaryContext()
+
+        let localArguments = try tool._defaultInvocationArguments(
+            context: context,
+            positions: [.local]
+        )
+
+        #expect(localArguments == CommandLineToolInvocation.Arguments([
+            "--target",
+            "arm64-apple-macosx15.0",
+            "Sources/main.swift"
+        ]))
+    }
+
+    @Test
     func booleanFlagsCanSeparateCurrentValueFromRenderDefault() throws {
         #expect(try ConstructorBackedFlagTool().invocation == "constructor-flag")
         #expect(

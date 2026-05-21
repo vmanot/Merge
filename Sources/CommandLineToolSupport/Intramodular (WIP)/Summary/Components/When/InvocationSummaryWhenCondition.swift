@@ -41,7 +41,7 @@ public struct InvocationSummaryWhenCondition<Command: AnyCommandLineTool>: Invoc
         command: Command,
         parent: AnyCommandLineTool?,
         context: InvocationSummaryContext
-    ) throws -> [String] {
+    ) throws -> CommandLineToolInvocation.Arguments {
         if condition.evaluate(command: command, parent: parent, context: context) {
             return try trueBranch.makeInvocationArguments(
                 command: command,
@@ -179,4 +179,3 @@ extension CommandLineToolInvocationSummary.InvocationSummaryWhenCondition {
         self.init(value, .equals(expected), content, else: elseContent)
     }
 }
-

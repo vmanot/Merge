@@ -31,17 +31,15 @@ public struct InvocationSummarySwitchCondition<Command: AnyCommandLineTool, Valu
         command: Command,
         parent: AnyCommandLineTool?,
         context: InvocationSummaryContext
-    ) throws -> [String] {
+    ) throws -> CommandLineToolInvocation.Arguments {
         let summary = try conditions.summary(sourceValue: command[keyPath: keyPath])
 
-        let value = try summary.makeInvocationArguments(
+        return try summary.makeInvocationArguments(
             command: command,
             parent: parent,
             context: context
         )
-        return value
     }
 }
 
 }
-

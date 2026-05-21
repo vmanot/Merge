@@ -117,7 +117,7 @@ public struct _CommandLineToolFlag<WrappedValue: Equatable>: _CommandLineToolFla
                     defaultPosition: defaultPosition,
                     conversion: conversion ?? context.implicitKeyConversion(for: name),
                     name: name,
-                    count: wrappedValue as! Int,
+                    count: _expectWrappedValue(Int.self, for: _representation),
                     isClustered: name.count == 1
                 ).erasedToAnyResolvedCommandLineToolInvocationArgument()
             case .boolean(let conversion, let name, let defaultValue):
@@ -128,7 +128,7 @@ public struct _CommandLineToolFlag<WrappedValue: Equatable>: _CommandLineToolFla
                     name: name,
                     inversion: nil, // only be able to switch to another state (true / false)
                     defaultBooleanValue: defaultValue,
-                    isOn: (wrappedValue as! Bool)
+                    isOn: _expectWrappedValue(Bool.self, for: _representation)
                 ).erasedToAnyResolvedCommandLineToolInvocationArgument()
             case .optionalBoolean(let conversion, let name, let inversion):
                 _ResolvedCommandLineToolDescription.BooleanFlag(
@@ -138,9 +138,20 @@ public struct _CommandLineToolFlag<WrappedValue: Equatable>: _CommandLineToolFla
                     name: name,
                     inversion: inversion,
                     defaultBooleanValue: nil,
-                    isOn: wrappedValue as! Optional<Bool>
+                    isOn: _expectWrappedValue(Optional<Bool>.self, for: _representation)
                 ).erasedToAnyResolvedCommandLineToolInvocationArgument()
         }
+    }
+
+    private func _expectWrappedValue<T>(
+        _ type: T.Type,
+        for representation: _CommandLineToolFlagRepresentation
+    ) -> T {
+        guard let value = wrappedValue as? T else {
+            preconditionFailure("Flag representation \(representation) expects \(T.self), but \(WrappedValue.self) was provided.")
+        }
+
+        return value
     }
 
 }
@@ -172,4 +183,3 @@ public enum _CommandLineToolFlagInversion: Hashable, Sendable {
         return conversion.prefix + insertionText + "-" + name
     }
 }
-

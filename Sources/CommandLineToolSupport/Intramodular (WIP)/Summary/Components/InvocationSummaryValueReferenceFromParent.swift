@@ -20,7 +20,7 @@ public struct InvocationSummaryValueReferenceFromParent<Parent: AnyCommandLineTo
         command: Command,
         parent: AnyCommandLineTool?,
         context: InvocationSummaryContext
-    ) throws -> [String] {
+    ) throws -> CommandLineToolInvocation.Arguments {
         guard let parent = parent as? Parent else {
             preconditionFailure("No such parent matched.")
         }
@@ -40,7 +40,7 @@ public struct InvocationSummaryValueReferenceFromParent<Parent: AnyCommandLineTo
             )
         )
 
-        return resolved.invocationArguments
+        return CommandLineToolInvocation.Arguments(resolved.invocationArgumentValues)
     }
 }
 

@@ -23,21 +23,22 @@ public struct DefaultInvocationSummary<Command: AnyCommandLineTool>: InvocationS
         command: Command,
         parent: AnyCommandLineTool?,
         context: InvocationSummaryContext
-    ) throws -> [String] {
-        try command
+    ) throws -> CommandLineToolInvocation.Arguments {
+        let arguments = try command
             .resolve().arguments
             .filter {
                 !context.argumentIsRendered(command: command, argumentName: $0.id.rawValue)
             }
-            .flatMap { argument in
+            .flatMap { argument -> [CommandLineToolInvocation.Argument] in
                 defer {
                     context.registerArgument(command: command, argumentName: argument.id.rawValue)
                 }
 
-                return argument.invocationArguments
+                return argument.invocationArgumentValues
             }
+
+        return CommandLineToolInvocation.Arguments(arguments)
     }
 }
 
 }
-

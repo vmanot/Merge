@@ -15,6 +15,10 @@ extension CommandLineToolInvocationSummary {
 public final class InvocationSummaryContext {
     private(set) var renderedArguments: Set<Argument> = []
 
+    public init() {
+
+    }
+
     struct Argument: Hashable, Sendable {
         var name: String
         var owningCommandName: String
@@ -78,4 +82,3 @@ public final class InvocationSummaryContext {
 }
 
 }
-

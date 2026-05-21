@@ -24,7 +24,7 @@ public struct InvocationSummaryValueReference<Command: AnyCommandLineTool, Value
         command: Command,
         parent: AnyCommandLineTool?,
         context: InvocationSummaryContext
-    ) throws -> [String] {
+    ) throws -> CommandLineToolInvocation.Arguments {
         guard !context.argumentIsRendered(command: command, keyPath) else {
             return []
         }
@@ -40,7 +40,7 @@ public struct InvocationSummaryValueReference<Command: AnyCommandLineTool, Value
             )
         )
 
-        return resolved.invocationArguments
+        return CommandLineToolInvocation.Arguments(resolved.invocationArgumentValues)
     }
 }
 
@@ -60,4 +60,3 @@ public protocol InvocationSummaryValue<WrappedValue>: PropertyWrapper {
 }
 
 }
-
