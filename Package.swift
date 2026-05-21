@@ -16,6 +16,7 @@ var package = Package(
             name: "Merge",
             targets: [
                 "CommandLineToolSupport",
+                "EnvironmentVariableSupport",
                 "ShellScripting",
                 "SwiftDI",
                 "Merge",
@@ -27,6 +28,13 @@ var package = Package(
         .package(url: "https://github.com/preternatural-fork/swift-subprocess.git", from: "0.4.1")
     ],
     targets: [
+        .target(
+            name: "EnvironmentVariableSupport",
+            path: "Sources/EnvironmentVariableSupport",
+            swiftSettings: [
+                .swiftLanguageMode(.v5),
+            ]
+        ),
         .target(
             name: "SwiftDI",
             dependencies: [

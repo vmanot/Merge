@@ -2,7 +2,6 @@
 // Copyright (c) Vatsal Manot
 //
 
-#if os(macOS)
 
 import Foundation
 
@@ -95,4 +94,3 @@ extension AnyCommandLineToolWithSelectedTool.ToolSelectionSemantics {
     }
 }
 
-#endif

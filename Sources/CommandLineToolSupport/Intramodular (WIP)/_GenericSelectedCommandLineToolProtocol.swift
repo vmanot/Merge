@@ -1,4 +1,3 @@
-#if os(macOS)
 //
 //  _GenericSelectedCommandLineToolProtocol.swift
 //  Merge
@@ -35,4 +34,3 @@ extension _GenericSelectedCommandLineToolProtocol {
     }
 }
 
-#endif

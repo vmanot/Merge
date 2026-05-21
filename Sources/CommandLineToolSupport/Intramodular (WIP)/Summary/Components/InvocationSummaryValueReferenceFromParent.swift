@@ -2,7 +2,6 @@
 // Copyright (c) Vatsal Manot
 //
 
-#if os(macOS)
 
 import Foundation
 import Swallow
@@ -14,7 +13,7 @@ extension CommandLineToolInvocationSummary {
 @available(tvOS, unavailable)
 @available(watchOS, unavailable)
 /// Summary node that lets a subcommand intentionally render a property-wrapper value owned by its parent command.
-public struct InvocationSummaryValueReferenceFromParent<Parent: AnyCommandLineTool, Command: AnyCommandLineTool, Value: InvocationSummaryValue>: InvocationSummary where Command : _Subcommand, Parent == Command.ParentCommand {
+public struct InvocationSummaryValueReferenceFromParent<Parent: AnyCommandLineTool, Command: AnyCommandLineTool, Value: InvocationSummaryValue>: InvocationSummary where Command: _InvocationSummarySubcommandWithParentCommand, Parent == Command.ParentCommand {
     let keyPath: KeyPath<Parent, Value>
 
     public func makeInvocationArguments(
@@ -46,5 +45,3 @@ public struct InvocationSummaryValueReferenceFromParent<Parent: AnyCommandLineTo
 }
 
 }
-
-#endif

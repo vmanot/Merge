@@ -1,11 +1,9 @@
 //
-//  MultiValueParameterEncodingStrategy.swift
-//  Merge
-//
-//  Created by Yanan Li on 2025/12/11.
+// Copyright (c) Vatsal Manot
 //
 
 import Foundation
+import Swift
 
 /// Describes how multi-value parameters are encoded on the command line.
 public enum MultiValueParameterEncodingStrategy: Hashable, Sendable {

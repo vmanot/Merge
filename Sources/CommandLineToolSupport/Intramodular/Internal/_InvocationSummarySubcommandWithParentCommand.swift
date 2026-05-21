@@ -2,8 +2,6 @@
 // Copyright (c) Vatsal Manot
 //
 
-#if os(macOS)
-
 import Foundation
 
 @dynamicMemberLookup
@@ -12,16 +10,14 @@ import Foundation
 @available(macCatalyst, unavailable)
 @available(tvOS, unavailable)
 @available(watchOS, unavailable)
-public protocol _Subcommand {
+public protocol _InvocationSummarySubcommandWithParentCommand {
     associatedtype ParentCommand: CommandLineTool
 }
 
-extension _Subcommand where Self: AnyCommandLineTool {
+extension _InvocationSummarySubcommandWithParentCommand where Self: AnyCommandLineTool {
     public subscript<Value>(
         dynamicMember keyPath: KeyPath<ParentCommand, Value>
     ) -> CommandLineToolInvocationSummary.InvocationSummaryValueReferenceFromParent<ParentCommand, Self, Value> {
         .init(keyPath: keyPath)
     }
 }
-
-#endif

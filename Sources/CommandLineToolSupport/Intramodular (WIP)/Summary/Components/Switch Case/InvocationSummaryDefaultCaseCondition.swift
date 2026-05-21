@@ -1,4 +1,3 @@
-#if os(macOS)
 //
 //  InvocationSummaryDefaultCaseCondition.swift
 //  Merge
@@ -31,4 +30,3 @@ public struct InvocationSummaryDefaultCaseCondition<Command: AnyCommandLineTool,
 
 }
 
-#endif

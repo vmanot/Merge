@@ -2,7 +2,6 @@
 // Copyright (c) Vatsal Manot
 //
 
-#if os(macOS)
 
 import Foundation
 
@@ -76,4 +75,3 @@ public struct _CommandLineToolSelectedTool<SelectingTool, SelectedTool>: CustomS
     }
 }
 
-#endif

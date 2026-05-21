@@ -1,11 +1,10 @@
-#if os(macOS)
 //
 // Copyright (c) Vatsal Manot
 //
 
 import Foundation
-import Swift
 import Merge
+import Swift
 
 /// A type that wraps a command line tool.
 @available(macOS 11.0, *)
@@ -326,19 +325,3 @@ extension CommandLineTool {
         return copy
     }
 }
-
-public enum CommandLineTools {
-
-}
-
-// MARK: - Supplementary
-
-public typealias CLT = CommandLineTools
-
-// MARK: - Auxiliary
-
-public struct _CommandLineTool_DefaultEnvironmentVariables {
-
-}
-
-#endif

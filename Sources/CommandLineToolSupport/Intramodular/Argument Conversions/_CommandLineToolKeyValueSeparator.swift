@@ -1,11 +1,9 @@
 //
-//  _CommandLineToolKeyValueSeparator.swift
-//  Merge
-//
-//  Created by Yanan Li on 2025/12/11.
+// Copyright (c) Vatsal Manot
 //
 
 import Foundation
+import Swift
 
 public enum _CommandLineToolParameterKeyValueSeparator: String, Hashable, Sendable {
     /// Uses a space character as separator between key and value.

@@ -2,7 +2,6 @@
 // Copyright (c) Vatsal Manot
 //
 
-#if os(macOS)
 
 import Foundation
 
@@ -19,4 +18,3 @@ extension CommandLineTool where Self: AnyCommandLineToolWithSelectedTool {
     }
 }
 
-#endif

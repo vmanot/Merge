@@ -1,11 +1,9 @@
 //
-//  _CommandLineToolOptionKeyConversion.swift
-//  Merge
-//
-//  Created by Yanan Li on 2025/12/11.
+// Copyright (c) Vatsal Manot
 //
 
 import Foundation
+import Swift
 
 public enum _CommandLineToolOptionKeyConversion: Hashable, Sendable {
     /// A parameter name prefixed with one hyphen, for example: `-o`, `-output`, etc.

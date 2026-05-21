@@ -1,4 +1,3 @@
-#if os(macOS)
 //
 //  GenericSubcommand.swift
 //  Merge
@@ -103,7 +102,6 @@ public class GenericSubcommand<Parent, Command>: AnyCommandLineTool, CommandLine
         try await command.withUnsafeSystemShell(perform: operation)
     }
 
-#if os(macOS)
     @available(macOS 11.0, *)
     @available(iOS, unavailable)
     @available(macCatalyst, unavailable)
@@ -114,7 +112,4 @@ public class GenericSubcommand<Parent, Command>: AnyCommandLineTool, CommandLine
             try await shell.run(command: self.invocation)
         }
     }
-#endif
 }
-
-#endif

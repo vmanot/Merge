@@ -1,4 +1,3 @@
-#if os(macOS)
 //
 // Copyright (c) Vatsal Manot
 //
@@ -138,9 +137,7 @@ open class AnyCommandLineTool: Logging, ObjectDidChangeObservableObject {
 
         let shell = SystemShell(
             configuration: SystemShell.Configuration(
-                environmentVariables: .inherited(
-                    overriding: environmentVariables.mapValues({ String(describing: $0) })
-                ),
+                environmentVariables: .inherited(overriding: environmentVariables.compactMapValues(\.environmentVariableStringValue)),
                 currentDirectoryURL: currentDirectoryURL ?? URL(fileURLWithPath: FileManager.default.currentDirectoryPath),
                 standardStreamMirroring: .terminal
             ),
@@ -360,4 +357,3 @@ extension AnyCommandLineTool {
     }
 }
 
-#endif

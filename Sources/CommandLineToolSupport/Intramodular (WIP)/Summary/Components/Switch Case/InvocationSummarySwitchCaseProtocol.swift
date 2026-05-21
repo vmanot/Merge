@@ -1,4 +1,3 @@
-#if os(macOS)
 //
 //  InvocationSummaryCaseCondition.swift
 //  Merge
@@ -40,4 +39,3 @@ enum InvocationSummarySwitchCaseError: Error {
 
 }
 
-#endif

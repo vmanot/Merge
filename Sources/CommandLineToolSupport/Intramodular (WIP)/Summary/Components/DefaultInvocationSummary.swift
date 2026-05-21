@@ -1,4 +1,3 @@
-#if os(macOS)
 //
 //  DefaultInvocationSummary.swift
 //  Merge
@@ -42,4 +41,3 @@ public struct DefaultInvocationSummary<Command: AnyCommandLineTool>: InvocationS
 
 }
 
-#endif

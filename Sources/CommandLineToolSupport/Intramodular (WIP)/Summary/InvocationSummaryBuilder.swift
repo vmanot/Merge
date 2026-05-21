@@ -1,4 +1,3 @@
-#if os(macOS)
 //
 //  InvocationSummaryBuilder.swift
 //  Merge
@@ -222,4 +221,3 @@ extension Never: CommandLineToolInvocationSummary.InvocationSummary {
     }
 }
 
-#endif

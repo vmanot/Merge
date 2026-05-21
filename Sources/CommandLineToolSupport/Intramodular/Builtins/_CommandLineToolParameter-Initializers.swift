@@ -2,8 +2,6 @@
 // Copyright (c) Vatsal Manot
 //
 
-#if os(macOS)
-
 import Foundation
 
 extension _CommandLineToolParameter {
@@ -32,7 +30,7 @@ extension _CommandLineToolParameter {
     }
 }
 
-extension _CommandLineToolParameter where WrappedValue : CLT.ArgumentValueConvertible {
+extension _CommandLineToolParameter where WrappedValue: CLT.ArgumentValueConvertible {
     /// Creates a positional argument from a wrapped value.
     public init(
         wrappedValue: WrappedValue
@@ -240,4 +238,3 @@ extension _CommandLineToolParameter {
     }
 }
 
-#endif

@@ -1,4 +1,3 @@
-#if os(macOS)
 //
 //  CommandLineToolWithSelectedTool.swift
 //  Merge
@@ -27,4 +26,3 @@ extension CommandLineToolWithSelectedTool {
     }
 }
 
-#endif

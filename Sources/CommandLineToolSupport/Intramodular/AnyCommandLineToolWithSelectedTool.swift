@@ -1,4 +1,3 @@
-#if os(macOS)
 //
 //  AnyCommandLineToolWithSelectedTool.swift
 //  Merge
@@ -21,4 +20,3 @@ open class AnyCommandLineToolWithSelectedTool: AnyCommandLineTool {
     }
 }
 
-#endif

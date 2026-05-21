@@ -1,19 +1,18 @@
 //
-//  CLT.ArgumentValueConvertible.swift
-//  Merge
-//
-//  Created by Yanan Li on 2025/12/6.
+// Copyright (c) Vatsal Manot
 //
 
 import Foundation
 import Swift
 import Swallow
 
+/// A type that can represent the raw value of an environment variable to be passed in a command invocation.
+public protocol _CommandLineToolArgumentValueConvertible {
+    var argumentValue: String { get }
+}
+
 extension CLT {
-    /// A type that can represent the raw value of an environment variable to be passed in a command invocation.
-    public protocol ArgumentValueConvertible {
-        var argumentValue: String { get }
-    }
+    public typealias ArgumentValueConvertible = _CommandLineToolArgumentValueConvertible
 }
 
 extension Never: CLT.ArgumentValueConvertible {
@@ -28,7 +27,7 @@ extension CLT.ArgumentValueConvertible {
     }
 }
 
-extension CLT.ArgumentValueConvertible where Self : RawRepresentable {
+extension CLT.ArgumentValueConvertible where Self: RawRepresentable {
     public var argumentValue: String {
         String(describing: rawValue)
     }

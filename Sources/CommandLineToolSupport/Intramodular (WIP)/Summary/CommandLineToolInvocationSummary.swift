@@ -1,4 +1,3 @@
-#if os(macOS)
 //
 //  CommandLineToolInvocationSummary.swift
 //  Merge
@@ -7,6 +6,7 @@
 //
 
 import Foundation
+import Runtime
 import Swallow
 
 /// Namespace for the provisional invocation-summary DSL used to intentionally render command arguments.
@@ -70,20 +70,19 @@ public struct TupleInvocationSummary<Command: AnyCommandLineTool, T>: Invocation
     }
 
     private var summaries: [any InvocationSummary<Command>] {
-        let metadata = TupleMetadata(T.self)
+        let metadata = TypeMetadata.Tuple(T.self)
         guard let metadata else { return [] }
 
         var summaries: [any InvocationSummary<Command>] = []
-        for i in 0 ..< metadata.elementCount {
-            let element = metadata.element(at: Int(i))
-            guard let elementType = element.type as? any InvocationSummary<Command>.Type else {
-                preconditionFailure("element type \(element.type) at index \(i) doesn't conform to InvocationSummary.")
+        for (index, field) in metadata.fields.enumerated() {
+            guard let elementType = field.type.base as? any InvocationSummary<Command>.Type else {
+                preconditionFailure("element type \(field.type.base) at index \(index) doesn't conform to InvocationSummary.")
                 continue
             }
             let summary = withUnsafeBytes(of: value) { buffer in
                 func load<Summary: InvocationSummary>(_: Summary.Type) -> Summary {
                     buffer.baseAddress!
-                        .advanced(by: Int(element.offset))
+                        .advanced(by: field.offset)
                         .load(as: Summary.self)
                 }
 
@@ -106,5 +105,3 @@ public struct TupleInvocationSummary<Command: AnyCommandLineTool, T>: Invocation
 }
 
 }
-
-#endif

@@ -1,4 +1,3 @@
-#if os(macOS)
 //
 //  AnyCommandLineTool+Resolve.swift
 //  Merge
@@ -32,69 +31,23 @@ extension AnyCommandLineTool {
             .filter { !$0.isEmpty }
     }
 
-//    public var _resolvedDescriptionChain: [_ResolvedCommandLineToolDescription] {
-//        get throws {
-//            var resolvedDescriptions = [_ResolvedCommandLineToolDescription]()
-//
-//            switch self {
-//                case _ as any _GenericSubcommandProtocol:
-//                    var argumentPositions: Set<_CommandLineToolArgumentPosition> = [.local, .nextCommand, .lastCommand]
-//                    var root: AnyCommandLineTool! = self
-//                    var depth = 0
-//
-//                    resolvedDescriptions.append(
-//                        try self.resolve(
-//                            in: _CommandLineToolResolutionContext(
-//                                argumentPositions: argumentPositions,
-//                                traverseDepth: depth
-//                            )
-//                        )
-//                    )
-//
-//                    while let parent = (root as? (any _GenericSubcommandProtocol))?.parent {
-//                        depth += 1
-//                        defer { root = parent }
-//
-//                        if (parent is any _GenericSubcommandProtocol) == false {
-//                            argumentPositions.remove(.nextCommand)
-//                        }
-//
-//                        if depth > 0 {
-//                            argumentPositions.remove(.lastCommand)
-//                        }
-//
-//                        try resolvedDescriptions.insert(
-//                            parent.resolve(
-//                                in: _CommandLineToolResolutionContext(
-//                                    argumentPositions: argumentPositions,
-//                                    traverseDepth: depth
-//                                )
-//                            ),
-//                            at: 0
-//                        )
-//                    }
-//                default:
-//                    resolvedDescriptions.append(
-//                        try self.resolve(
-//                            in: _CommandLineToolResolutionContext(
-//                                argumentPositions: [.local],
-//                                traverseDepth: 0
-//                            )
-//                        )
-//                    )
-//            }
-//
-//            return resolvedDescriptions
-//        }
-//    }
+    public var _resolvedDescriptionChain: [_ResolvedCommandLineToolDescription] {
+        get throws {
+            guard let command = self as? any CommandLineTool else {
+                return [try resolve()]
+            }
+
+            return try (command._commandChain ?? [self]).map {
+                try $0.resolve()
+            }
+        }
+    }
 
     public func resolve() throws -> _ResolvedCommandLineToolDescription {
         let mirror = try InstanceMirror(reflecting: self)
 
         var _resolvedArguments: _ResolvedCommandLineToolDescription.ResolvedArguments = []
         var _resolvedSubcommmands: _ResolvedCommandLineToolDescription.ResolvedSubcommands = []
-
-//        try _resolveArgumentsFromParentCommand(context: context, into: &_resolvedArguments)
 
         if let selectedTool = self as? (any _GenericSelectedCommandLineToolProtocol) {
             let _resolved = try selectedTool._opaqueSelectedTool.resolve()
@@ -141,46 +94,6 @@ extension AnyCommandLineTool {
         )
     }
 
-//    private func _resolveArgumentsFromParentCommand(
-//        context: _CommandLineToolResolutionContext,
-//        into resolved: inout _ResolvedCommandLineToolDescription.ResolvedArguments
-//    ) throws {
-//        var parent: AnyCommandLineTool? = (self as? any _GenericSubcommandProtocol)?.parent
-//        var depth = context.traverseDepth + 1
-//
-//        if let parent, context.argumentPositions.contains(.nextCommand) {
-//            // subcommmand inherits arguments with `defaultPosition` of `.nextCommand` (aka. the subcommand or this command) from parent command
-//            try resolved.append(
-//                contentsOf: parent.resolve(
-//                    in: _CommandLineToolResolutionContext(
-//                        argumentPositions: [.nextCommand],
-//                        traverseDepth: depth
-//                    )
-//                ).localArguments
-//            )
-//        }
-//
-//        guard depth == 1 else { return } // If depth > 1, it is an intermediate command, not last command
-//        guard context.argumentPositions.contains(.lastCommand) else { return }
-//
-//        while let _parent = parent {
-//            depth += 1
-//
-//            // Inherits arguments with `defaultPosition` of `.lastCommand` from the parent command chain
-//            // For example: `git remote update` chain is `remote` -> `git`
-//            try resolved.append(
-//                contentsOf: _parent.resolve(
-//                    in: _CommandLineToolResolutionContext(
-//                        argumentPositions: [.lastCommand],
-//                        traverseDepth: depth
-//                    )
-//                ).localArguments
-//            )
-//
-//            parent = (_parent as? any _GenericSubcommandProtocol)?.parent
-//        }
-//    }
-
     private func _resolveSubcommand(
         _ subcommand: any _CommandLineToolSubcommandProtocol,
         resolvingID: _ResolvedCommandLineToolDescription.ArgumentID,
@@ -211,5 +124,3 @@ extension AnyCommandLineTool {
         name.count > 1 ? .doubleHyphenPrefixed : .hyphenPrefixed
     }
 }
-
-#endif

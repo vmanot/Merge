@@ -2,7 +2,6 @@
 // Copyright (c) Vatsal Manot
 //
 
-#if os(macOS)
 
 import Foundation
 
@@ -80,4 +79,3 @@ public final class InvocationSummaryContext {
 
 }
 
-#endif

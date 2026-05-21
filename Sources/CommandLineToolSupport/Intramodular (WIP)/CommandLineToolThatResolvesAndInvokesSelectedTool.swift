@@ -1,4 +1,3 @@
-#if os(macOS)
 //
 //  CommandLineToolThatResolvesAndInvokesSelectedTool.swift
 //  Merge
@@ -22,4 +21,3 @@ extension CommandLineToolThatResolvesAndInvokesSelectedTool {
     }
 }
 
-#endif

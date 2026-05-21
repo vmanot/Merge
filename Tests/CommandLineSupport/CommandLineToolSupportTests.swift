@@ -190,7 +190,7 @@ final class ParentReferencedSummaryTool: AnyCommandLineTool, CommandLineTool {
     @Subcommand(of: ParentReferencedSummaryTool.self, name: "compile", command: Compile())
     var compile
 
-    final class Compile: AnyCommandLineTool, CommandLineTool, _Subcommand {
+    final class Compile: AnyCommandLineTool, CommandLineTool, _InvocationSummarySubcommandWithParentCommand {
         typealias ParentCommand = ParentReferencedSummaryTool
 
         override var commandName: CommandLineTool.Name? {
@@ -363,7 +363,7 @@ final class ParentChildConversionSummaryTool: AnyCommandLineTool, CommandLineToo
     @Subcommand(of: ParentChildConversionSummaryTool.self, name: "compile", command: Compile())
     var compile
 
-    final class Compile: AnyCommandLineTool, CommandLineTool, _Subcommand {
+    final class Compile: AnyCommandLineTool, CommandLineTool, _InvocationSummarySubcommandWithParentCommand {
         typealias ParentCommand = ParentChildConversionSummaryTool
 
         override var commandName: CommandLineTool.Name? {
@@ -526,6 +526,32 @@ struct CommandLineToolSupportTests {
             .invocation
 
         #expect(command == "root leaf --verbose --force Sources")
+    }
+
+    @Test
+    func resolvedDescriptionChainPreservesSubcommandChain() throws {
+        let command = CompatibilityRootTool()
+            .with(\.verbose, true)
+            .with(\.force, true)
+            .with(\.path, "Sources")
+            .leaf
+        let chain = try command._resolvedDescriptionChain
+
+        #expect(chain.map(\.commandName) == ["root", "leaf"])
+        #expect(chain[0].arguments.map(\.id.rawValue) == ["verbose", "force", "path"])
+        #expect(chain[1].arguments.isEmpty)
+        #expect(try command.invocation == "root leaf --verbose --force Sources")
+    }
+
+    @Test
+    func resolvedDescriptionChainPreservesSelectedToolChain() throws {
+        let command = ExampleXcrunTool()
+            .simctl()
+            .io()
+        let chain = try command._resolvedDescriptionChain
+
+        #expect(chain.map(\.commandName) == ["xcrun", "simctl", "io"])
+        #expect(try command.invocation == "xcrun simctl io")
     }
 
     @Test

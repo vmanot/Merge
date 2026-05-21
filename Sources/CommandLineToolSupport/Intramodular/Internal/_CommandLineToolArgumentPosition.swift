@@ -1,12 +1,9 @@
-#if os(macOS)
 //
-//  _CommandLineToolArgumentPosition.swift
-//  Merge
-//
-//  Created by Yanan Li on 2025/12/17.
+// Copyright (c) Vatsal Manot
 //
 
 import Foundation
+import Merge
 
 /// Describes where a flag or parameter should appear when constructing a command invocation.
 public struct _CommandLineToolArgumentPosition: Hashable, Sendable {
@@ -62,4 +59,3 @@ extension _CommandLineToolArgumentPosition {
     }
 }
 
-#endif

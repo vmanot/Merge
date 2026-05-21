@@ -2,7 +2,6 @@
 // Copyright (c) Vatsal Manot
 //
 
-#if os(macOS)
 
 import Foundation
 
@@ -358,4 +357,3 @@ extension CommandLineToolInvocation.Component.Storage {
     }
 }
 
-#endif

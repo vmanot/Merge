@@ -2,8 +2,6 @@
 // Copyright (c) Vatsal Manot
 //
 
-#if os(macOS)
-
 import Foundation
 import Merge
 
@@ -279,4 +277,3 @@ extension AnyCommandLineTool {
     }
 }
 
-#endif

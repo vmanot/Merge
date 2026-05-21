@@ -1,19 +1,18 @@
 //
-//  CLT.OptionKeyConvertible.swift
-//  Merge
-//
-//  Created by Yanan Li on 2025/12/10.
+// Copyright (c) Vatsal Manot
 //
 
 import Foundation
 import Swift
 import Swallow
 
+public protocol  _CommandLineToolOptionKeyConvertible {
+    var conversion: _CommandLineToolOptionKeyConversion { get }
+    var name: String { get }
+}
+
 extension CLT {
-    public protocol OptionKeyConvertible {
-        var conversion: _CommandLineToolOptionKeyConversion { get }
-        var name: String { get }
-    }
+    public typealias OptionKeyConvertible = _CommandLineToolOptionKeyConvertible
 }
 
 extension CLT.OptionKeyConvertible {

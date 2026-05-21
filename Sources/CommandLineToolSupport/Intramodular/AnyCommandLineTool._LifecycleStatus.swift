@@ -1,4 +1,3 @@
-#if os(macOS)
 //
 // Copyright (c) Vatsal Manot
 //
@@ -14,4 +13,3 @@ extension AnyCommandLineTool {
         case killed
     }
 }
-#endif

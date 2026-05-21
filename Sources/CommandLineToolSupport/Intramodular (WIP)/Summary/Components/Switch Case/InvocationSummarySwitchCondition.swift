@@ -1,4 +1,3 @@
-#if os(macOS)
 //
 //  InvocationSummarySwitchCondition.swift
 //  Merge
@@ -46,4 +45,3 @@ public struct InvocationSummarySwitchCondition<Command: AnyCommandLineTool, Valu
 
 }
 
-#endif

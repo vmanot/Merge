@@ -1,4 +1,3 @@
-#if os(macOS)
 //
 //  InvocationSummaryCaseConditionBuilder.swift
 //  Merge
@@ -54,4 +53,3 @@ public struct InvocationSummaryCaseConditionBuilder<Command: AnyCommandLineTool,
 
 }
 
-#endif

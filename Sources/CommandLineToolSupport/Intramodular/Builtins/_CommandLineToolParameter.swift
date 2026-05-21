@@ -1,4 +1,3 @@
-#if os(macOS)
 //
 // Copyright (c) Vatsal Manot
 //
@@ -122,4 +121,3 @@ public struct _CommandLineToolParameter<WrappedValue>: _CommandLineToolParameter
     }
 }
 
-#endif

@@ -1,4 +1,3 @@
-#if os(macOS)
 //
 //  InvocationSummaryTupleCaseCondition.swift
 //  Merge
@@ -7,6 +6,7 @@
 //
 
 import Foundation
+import Runtime
 import Swallow
 
 extension CommandLineToolInvocationSummary {
@@ -29,19 +29,18 @@ public struct InvocationSummaryTupleCaseCondition<Command: AnyCommandLineTool, V
     @available(tvOS, unavailable)
     @available(watchOS, unavailable)
     private var conditions: [any InvocationSummarySwitchCaseProtocol<Value>] {
-        guard let metadata = TupleMetadata(ValueType.self) else { return [] }
+        guard let metadata = TypeMetadata.Tuple(ValueType.self) else { return [] }
 
         var conditions: [any InvocationSummarySwitchCaseProtocol<Value>] = []
-        for i in 0 ..< metadata.elementCount {
-            let element = metadata.element(at: Int(i))
-            guard let elementType = element.type as? any InvocationSummarySwitchCaseProtocol<Value>.Type else {
-                preconditionFailure("element type \(element.type) at index \(i) doesn't conform to InvocationSummarySwitchCaseProtocol.")
+        for (index, field) in metadata.fields.enumerated() {
+            guard let elementType = field.type.base as? any InvocationSummarySwitchCaseProtocol<Value>.Type else {
+                preconditionFailure("element type \(field.type.base) at index \(index) doesn't conform to InvocationSummarySwitchCaseProtocol.")
                 continue
             }
             let condition = withUnsafeBytes(of: value) { buffer in
                 func load<Condition: InvocationSummarySwitchCaseProtocol>(_: Condition.Type) -> Condition {
                     buffer.baseAddress!
-                        .advanced(by: Int(element.offset))
+                        .advanced(by: field.offset)
                         .load(as: Condition.self)
                 }
 
@@ -70,5 +69,3 @@ public struct InvocationSummaryTupleCaseCondition<Command: AnyCommandLineTool, V
 }
 
 }
-
-#endif

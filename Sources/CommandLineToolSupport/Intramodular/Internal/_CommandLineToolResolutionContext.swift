@@ -1,30 +1,20 @@
-#if os(macOS)
 //
-//  _CommandLineToolResolutionContext.swift
-//  Merge
-//
-//  Created by Yanan Li on 2025/12/12.
+// Copyright (c) Vatsal Manot
 //
 
 import Foundation
+import Merge
 
 public struct _CommandLineToolResolutionContext {
     var resolvingID: _ResolvedCommandLineToolDescription.ArgumentID
     var commandKeyConversion: _CommandLineToolOptionKeyConversion?
-    
-//    var argumentPositions: Set<_CommandLineToolArgumentPosition> = [.local, .nextCommand, .lastCommand]
-//    var traverseDepth: Int = 0
-    
+
     init(
         resolvingID: _ResolvedCommandLineToolDescription.ArgumentID,
-        defaultKeyConversion: _CommandLineToolOptionKeyConversion? = nil,
-//        argumentPositions: Set<_CommandLineToolArgumentPosition> = [.local, .nextCommand, .lastCommand],
-//        traverseDepth: Int = 0
+        defaultKeyConversion: _CommandLineToolOptionKeyConversion? = nil
     ) {
         self.resolvingID = resolvingID
         self.commandKeyConversion = defaultKeyConversion
-//        self.argumentPositions = argumentPositions
-//        self.traverseDepth = traverseDepth
     }
     
     func implicitKeyConversion(for name: String) -> _CommandLineToolOptionKeyConversion {
@@ -35,5 +25,3 @@ public struct _CommandLineToolResolutionContext {
         return name.count > 1 ? .doubleHyphenPrefixed : .hyphenPrefixed
     }
 }
-
-#endif

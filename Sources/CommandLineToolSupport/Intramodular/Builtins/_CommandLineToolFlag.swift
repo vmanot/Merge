@@ -2,7 +2,6 @@
 // Copyright (c) Vatsal Manot
 //
 
-#if os(macOS)
 
 import Foundation
 import Swallow
@@ -174,4 +173,3 @@ public enum _CommandLineToolFlagInversion: Hashable, Sendable {
     }
 }
 
-#endif

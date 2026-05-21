@@ -1,4 +1,3 @@
-#if os(macOS)
 //
 // Copyright (c) Vatsal Manot
 //
@@ -48,4 +47,3 @@ public macro CommandLineTool(
 
 public typealias _CommandLineTool_Name = CommandLineToolName
 
-#endif

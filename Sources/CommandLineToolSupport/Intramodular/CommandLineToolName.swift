@@ -2,7 +2,6 @@
 // Copyright (c) Vatsal Manot
 //
 
-#if os(macOS)
 
 import Diagnostics
 import Foundation
@@ -76,4 +75,3 @@ extension CommandLineTool {
     public typealias Name = CommandLineToolName
 }
 
-#endif
