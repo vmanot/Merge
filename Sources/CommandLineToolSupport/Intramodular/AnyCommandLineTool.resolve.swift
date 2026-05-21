@@ -38,7 +38,7 @@ extension AnyCommandLineTool {
                 return [try resolve()]
             }
 
-            return try (command._commandChain ?? [self]).map {
+            return try _CommandLineToolCommandChain(resolvingOrSelf: command).map {
                 try $0.resolve()
             }
         }

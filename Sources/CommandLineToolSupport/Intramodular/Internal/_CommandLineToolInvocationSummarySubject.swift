@@ -12,7 +12,7 @@ import Foundation
 struct _CommandLineToolInvocationSummarySubject<SummaryCommand: AnyCommandLineTool> {
     var summaryCommand: SummaryCommand
     var parent: AnyCommandLineTool?
-    var commandChain: [AnyCommandLineTool]?
+    var commandChain: _CommandLineToolCommandChain?
 
     var isCommandChainSubject: Bool {
         commandChain != nil
@@ -34,7 +34,7 @@ extension CommandLineTool {
                     commandChain: nil
                 )
             case let selectedTool as any _GenericSelectedCommandLineToolProtocol:
-                guard let chain = _commandChain else {
+                guard let chain = _CommandLineToolCommandChain(resolving: self) else {
                     _preconditionFailureResolvingInvocationSummarySubject("selected tool chain")
                 }
 
@@ -50,7 +50,7 @@ extension CommandLineTool {
                     commandChain: chain
                 )
             case let subcommand as any _GenericSubcommandProtocol:
-                guard let chain = _commandChain else {
+                guard let chain = _CommandLineToolCommandChain(resolving: self) else {
                     _preconditionFailureResolvingInvocationSummarySubject("subcommand chain")
                 }
 

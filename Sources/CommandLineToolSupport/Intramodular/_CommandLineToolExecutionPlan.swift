@@ -357,7 +357,7 @@ extension CommandLineTool {
             tool: self,
             source: .modeledInvocation(invocation),
             configurationDifferences: differences,
-            selectedToolInvocation: _selectedToolInvocation(renderedInvocation: invocation),
+            selectedToolInvocation: _CommandLineToolCommandChain(resolvingOrSelf: self).selectedToolInvocation(renderedInvocation: invocation),
             standardStreamWiring: standardStreamWiring
         )
     }

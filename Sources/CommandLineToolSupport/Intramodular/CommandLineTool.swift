@@ -27,148 +27,6 @@ public protocol CommandLineTool: AnyCommandLineTool {
 }
 
 extension CommandLineTool {
-    var _commandChain: [AnyCommandLineTool]? {
-        if let selectedTool = self as? any _GenericSelectedCommandLineToolProtocol {
-            return [
-                selectedTool._opaqueSelectingTool,
-                self
-            ]
-        }
-
-        guard let subcommand = self as? any _GenericSubcommandProtocol else {
-            return nil
-        }
-
-        var result: [AnyCommandLineTool] = [self]
-        var parent = subcommand._opaqueParent
-
-        while true {
-            if let parentSubcommand = parent as? any _GenericSubcommandProtocol {
-                guard let parentSubcommandWrapper = parentSubcommand as? AnyCommandLineTool else {
-                    preconditionFailure("Unable to resolve parent subcommand wrapper for \(type(of: parentSubcommand))")
-                }
-
-                result.insert(parentSubcommandWrapper, at: 0)
-                parent = parentSubcommand._opaqueParent
-            } else if let selectedTool = parent as? any _GenericSelectedCommandLineToolProtocol {
-                guard let selectedToolWrapper = selectedTool as? AnyCommandLineTool else {
-                    preconditionFailure("Unable to resolve selected tool wrapper for \(type(of: selectedTool))")
-                }
-
-                result.insert(selectedToolWrapper, at: 0)
-                parent = selectedTool._opaqueSelectingTool
-            } else {
-                break
-            }
-        }
-
-        result.insert(parent, at: 0)
-
-        return result
-    }
-
-    private var _commandChainOrSelf: [AnyCommandLineTool] {
-        _commandChain ?? [self]
-    }
-
-    private var _attachedHostToolInCommandChain: (selectedTool: AnyCommandLineTool, hostTool: AnyCommandLineTool._AttachedToolHost)? {
-        _commandChainOrSelf.lazy.compactMap { tool in
-            tool._attachedHostTool.map { (tool, $0) }
-        }.first
-    }
-
-    func _selectedToolInvocation(
-        renderedInvocation: CommandLineToolInvocation
-    ) -> _CommandLineToolSelectedToolInvocation? {
-        if
-            let chain = _commandChain,
-            let selectingToolIndex = chain.firstIndex(where: { $0 is AnyCommandLineToolWithSelectedTool }),
-            chain.indices.contains(selectingToolIndex + 1),
-            let selectingTool = chain[selectingToolIndex] as? AnyCommandLineToolWithSelectedTool
-        {
-            let selectedToolCommandPath = chain[(selectingToolIndex + 1)...]
-                .map { $0.requireCommandName().rawValue }
-
-            guard let selectedToolCommandName = selectedToolCommandPath.first else {
-                return nil
-            }
-
-            return _CommandLineToolSelectedToolInvocation(
-                renderedInvocation: renderedInvocation,
-                selectingToolCommandName: selectingTool.requireCommandName().rawValue,
-                selectedToolCommandName: selectedToolCommandName,
-                selectedToolCommandPath: selectedToolCommandPath,
-                selectionSemantics: selectingTool.toolSelectionSemantics,
-                resolutionSemantics: selectingTool.selectedToolResolutionSemantics
-            )
-        }
-
-        if let selectedToolInvocation = _attachedHostToolSelectedToolInvocation(renderedInvocation: renderedInvocation) {
-            return selectedToolInvocation
-        }
-
-        return nil
-    }
-
-    private func _attachedHostToolSelectedToolInvocation(
-        renderedInvocation: CommandLineToolInvocation
-    ) -> _CommandLineToolSelectedToolInvocation? {
-        let chain = _commandChainOrSelf
-
-        guard
-            let selectedToolIndex = chain.firstIndex(where: { $0._attachedHostTool != nil }),
-            let hostTool = chain[selectedToolIndex]._attachedHostTool
-        else {
-            return nil
-        }
-
-        let selectedToolCommandPath = chain[selectedToolIndex...].enumerated().map { offset, command in
-            if offset == 0 {
-                return hostTool._selectedToolCommandNameOverride ?? command.requireCommandName().rawValue
-            } else {
-                return command.requireCommandName().rawValue
-            }
-        }
-
-        guard let selectedToolCommandName = selectedToolCommandPath.first else {
-            return nil
-        }
-
-        let selectingTool = hostTool._selectingTool
-
-        return _CommandLineToolSelectedToolInvocation(
-            renderedInvocation: renderedInvocation,
-            selectingToolCommandName: selectingTool.requireCommandName().rawValue,
-            selectedToolCommandName: selectedToolCommandName,
-            selectedToolCommandPath: selectedToolCommandPath,
-            selectionSemantics: selectingTool.toolSelectionSemantics,
-            resolutionSemantics: selectingTool.selectedToolResolutionSemantics
-        )
-    }
-
-    private func _applyingAttachedHostToolIfNeeded(
-        to arguments: CommandLineToolInvocation.Arguments,
-        context: CommandLineToolInvocationSummary.InvocationSummaryContext
-    ) throws -> CommandLineToolInvocation.Arguments {
-        guard let (selectedTool, hostTool) = _attachedHostToolInCommandChain else {
-            return arguments
-        }
-
-        return try hostTool._invocationArguments(
-            hosting: arguments,
-            selectedTool: selectedTool,
-            context: context
-        )
-    }
-
-    private func _sanitizeInvocationArguments(
-        _ arguments: CommandLineToolInvocation.Arguments
-    ) -> CommandLineToolInvocation.Arguments {
-        CommandLineToolInvocation.Arguments(
-            arguments.elements.filter { !$0.rawValue.isEmpty }
-        )
-    }
-
     public var invocationSummary: some CommandLineToolInvocationSummary.InvocationSummary {
         CommandLineToolInvocationSummary.DefaultInvocationSummary<Self>()
     }
@@ -208,8 +66,8 @@ extension CommandLineTool {
             )
         }
 
-        return try _applyingAttachedHostToolIfNeeded(
-            to: _sanitizeInvocationArguments(arguments),
+        return try _CommandLineToolCommandChain(resolvingOrSelf: self).applyingAttachedHostToolIfNeeded(
+            to: _CommandLineToolCommandChain.sanitizingInvocationArguments(arguments),
             context: context
         )
     }

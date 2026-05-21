@@ -10,7 +10,7 @@ import Foundation
 @available(tvOS, unavailable)
 @available(watchOS, unavailable)
 struct _CommandLineToolInvocationAssembly {
-    var chain: [AnyCommandLineTool]
+    var chain: _CommandLineToolCommandChain
     var leafArguments: CommandLineToolInvocation.Arguments
     var context: CommandLineToolInvocationSummary.InvocationSummaryContext
 
