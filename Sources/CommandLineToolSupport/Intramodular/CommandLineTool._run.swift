@@ -52,6 +52,17 @@ extension CommandLineTool {
     }
 
     @discardableResult
+    public func _runCollectingOutput(
+        appending arguments: CommandLineToolInvocation.Arguments = [],
+        applying differences: [SystemShell.Configuration.Difference] = []
+    ) async throws -> _CommandLineToolExecutionRecord<Self> {
+        try await _run(
+            appending: arguments,
+            applying: differences + [._collectingOutput]
+        )
+    }
+
+    @discardableResult
     public func _run(
         command commandLine: String,
         input: String? = nil,

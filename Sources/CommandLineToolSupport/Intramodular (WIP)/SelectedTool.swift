@@ -10,6 +10,21 @@ import Merge
 @available(macCatalyst, unavailable)
 @available(tvOS, unavailable)
 @available(watchOS, unavailable)
+open class AnyCommandLineToolWithSelectedTool: AnyCommandLineTool {
+    open var toolSelectionSemantics: ToolSelectionSemantics {
+        .staticExplicitArgument
+    }
+
+    open var selectedToolResolutionSemantics: SelectedToolResolutionSemantics {
+        .resolvesBeforeInvocationAndInvokesThroughSelectingTool
+    }
+}
+
+@available(macOS 11.0, *)
+@available(iOS, unavailable)
+@available(macCatalyst, unavailable)
+@available(tvOS, unavailable)
+@available(watchOS, unavailable)
 public protocol CommandLineToolWithSelectedTool: CommandLineTool {
     associatedtype SelectingTool: AnyCommandLineToolWithSelectedTool & CommandLineTool
     associatedtype SelectedCommandLineTool: AnyCommandLineTool & CommandLineTool

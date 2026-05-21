@@ -40,6 +40,18 @@ extension _ResolvedCommandLineToolInvocationArgument {
         )
     }
 
+    public var description: String {
+        _resolvedArgumentDescription
+    }
+
+    public var debugDescription: String {
+        _resolvedArgumentDebugDescription
+    }
+
+    public var customMirror: Mirror {
+        _resolvedArgumentCustomMirror
+    }
+
     public var invocationArgumentValues: [CommandLineToolInvocation.Argument] {
         invocationComponents.flatMap(\.invocationArgumentValues)
     }
@@ -59,79 +71,39 @@ extension _ResolvedCommandLineToolInvocationArgument {
     }
 }
 
-extension _ResolvedCommandLineToolDescription.Argument {
-    public var description: String {
-        _resolvedArgumentDescription
+extension _ResolvedCommandLineToolInvocationArgument {
+    package func erasedToAnyResolvedCommandLineToolInvocationArgument() -> _AnyResolvedCommandLineToolInvocationArgument {
+        .init(_erasing: self)
     }
+}
 
+extension _ResolvedCommandLineToolDescription.Argument {
     public var debugDescription: String {
         _resolvedArgumentDebugDescription
-    }
-
-    public var customMirror: Mirror {
-        _resolvedArgumentCustomMirror
     }
 }
 
 extension _ResolvedCommandLineToolDescription.Option {
-    public var description: String {
-        _resolvedArgumentDescription
-    }
-
     public var debugDescription: String {
         _resolvedArgumentDebugDescription
-    }
-
-    public var customMirror: Mirror {
-        _resolvedArgumentCustomMirror
     }
 }
 
 extension _ResolvedCommandLineToolDescription.BooleanFlag {
-    public var description: String {
-        _resolvedArgumentDescription
-    }
-
     public var debugDescription: String {
         _resolvedArgumentDebugDescription
-    }
-
-    public var customMirror: Mirror {
-        _resolvedArgumentCustomMirror
     }
 }
 
 extension _ResolvedCommandLineToolDescription.CounterFlag {
-    public var description: String {
-        _resolvedArgumentDescription
-    }
-
     public var debugDescription: String {
         _resolvedArgumentDebugDescription
-    }
-
-    public var customMirror: Mirror {
-        _resolvedArgumentCustomMirror
     }
 }
 
 extension _ResolvedCommandLineToolDescription.CustomFlag {
-    public var description: String {
-        _resolvedArgumentDescription
-    }
-
     public var debugDescription: String {
         _resolvedArgumentDebugDescription
-    }
-
-    public var customMirror: Mirror {
-        _resolvedArgumentCustomMirror
-    }
-}
-
-extension _ResolvedCommandLineToolInvocationArgument {
-    package func erasedToAnyResolvedCommandLineToolInvocationArgument() -> _AnyResolvedCommandLineToolInvocationArgument {
-        .init(_erasing: self)
     }
 }
 

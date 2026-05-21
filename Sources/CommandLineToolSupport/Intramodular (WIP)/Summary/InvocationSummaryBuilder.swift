@@ -1,20 +1,17 @@
 //
-//  InvocationSummaryBuilder.swift
-//  Merge
-//
-//  Created by Yanan Li on 2026/1/5.
+// Copyright (c) Vatsal Manot
 //
 
 import Foundation
 import Swallow
 
-extension CommandLineToolInvocationSummary {
-@resultBuilder
 @available(macOS 11.0, *)
 @available(iOS, unavailable)
 @available(macCatalyst, unavailable)
 @available(tvOS, unavailable)
 @available(watchOS, unavailable)
+extension CommandLineToolInvocationSummary {
+@resultBuilder
 /// Result builder that turns summary literals, value references, and conditional nodes into a summary tree.
 public struct InvocationSummaryBuilder<Command: AnyCommandLineTool> {
     @_alwaysEmitIntoClient
@@ -103,11 +100,6 @@ public struct InvocationSummaryBuilder<Command: AnyCommandLineTool> {
     }
 }
 
-@available(macOS 11.0, *)
-@available(iOS, unavailable)
-@available(macCatalyst, unavailable)
-@available(tvOS, unavailable)
-@available(watchOS, unavailable)
 public struct _EmptyInvocationSummary<Command: AnyCommandLineTool>: InvocationSummary {
     @inlinable public init() { }
 
@@ -120,11 +112,6 @@ public struct _EmptyInvocationSummary<Command: AnyCommandLineTool>: InvocationSu
     }
 }
 
-@available(macOS 11.0, *)
-@available(iOS, unavailable)
-@available(macCatalyst, unavailable)
-@available(tvOS, unavailable)
-@available(watchOS, unavailable)
 public struct _InvocationSummaryLiteral<Command: AnyCommandLineTool>: InvocationSummary {
     let text: String
 
@@ -141,11 +128,6 @@ public struct _InvocationSummaryLiteral<Command: AnyCommandLineTool>: Invocation
     }
 }
 
-@available(macOS 11.0, *)
-@available(iOS, unavailable)
-@available(macCatalyst, unavailable)
-@available(tvOS, unavailable)
-@available(watchOS, unavailable)
 public struct _OptionalInvocationSummary<Command: AnyCommandLineTool, Content: InvocationSummary>: InvocationSummary where Content.Command == Command {
     let content: Content?
 
@@ -170,11 +152,6 @@ public struct _OptionalInvocationSummary<Command: AnyCommandLineTool, Content: I
     }
 }
 
-@available(macOS 11.0, *)
-@available(iOS, unavailable)
-@available(macCatalyst, unavailable)
-@available(tvOS, unavailable)
-@available(watchOS, unavailable)
 public enum _ConditionalInvocationSummary<Command: AnyCommandLineTool, TrueContent: InvocationSummary, FalseContent: InvocationSummary>: InvocationSummary where TrueContent.Command == Command, FalseContent.Command == Command {
     case first(TrueContent)
     case second(FalseContent)
@@ -198,6 +175,33 @@ public enum _ConditionalInvocationSummary<Command: AnyCommandLineTool, TrueConte
                     context: context
                 )
         }
+    }
+}
+
+/// Fallback summary node that renders all unresolved/default arguments for a command.
+public struct DefaultInvocationSummary<Command: AnyCommandLineTool>: InvocationSummary {
+    @usableFromInline
+    init() { }
+
+    public func makeInvocationArguments(
+        command: Command,
+        parent: AnyCommandLineTool?,
+        context: InvocationSummaryContext
+    ) throws -> CommandLineToolInvocation.Arguments {
+        let arguments = try command
+            .resolve().arguments
+            .filter {
+                !context.argumentIsRendered(command: command, argumentName: $0.id.rawValue)
+            }
+            .flatMap { argument -> [CommandLineToolInvocation.Argument] in
+                defer {
+                    context.registerArgument(command: command, argumentName: argument.id.rawValue)
+                }
+
+                return argument.invocationArgumentValues
+            }
+
+        return CommandLineToolInvocation.Arguments(arguments)
     }
 }
 

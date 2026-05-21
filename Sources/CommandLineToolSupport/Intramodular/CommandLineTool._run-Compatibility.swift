@@ -80,4 +80,40 @@ extension CommandLineTool {
             applying: differences
         )
     }
+
+    @_disfavoredOverload
+    @discardableResult
+    public func _runCollectingOutput(
+        appending arguments: [String],
+        applying differences: [SystemShell.Configuration.Difference] = []
+    ) async throws -> _CommandLineToolExecutionRecord<Self> {
+        try await _runCollectingOutput(
+            appending: CommandLineToolInvocation.Arguments(arguments),
+            applying: differences
+        )
+    }
+
+    @_disfavoredOverload
+    @discardableResult
+    public func _runCollectingOutput(
+        appending arguments: CommandLineToolInvocation.Arguments = [],
+        applying differences: SystemShell.Configuration.Difference...
+    ) async throws -> _CommandLineToolExecutionRecord<Self> {
+        try await _runCollectingOutput(
+            appending: arguments,
+            applying: differences
+        )
+    }
+
+    @_disfavoredOverload
+    @discardableResult
+    public func _runCollectingOutput(
+        appending arguments: [String],
+        applying differences: SystemShell.Configuration.Difference...
+    ) async throws -> _CommandLineToolExecutionRecord<Self> {
+        try await _runCollectingOutput(
+            appending: CommandLineToolInvocation.Arguments(arguments),
+            applying: differences
+        )
+    }
 }
