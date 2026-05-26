@@ -2081,6 +2081,9 @@ struct CommandLineToolSupportTests {
         #expect(target.publicInvocationComponents.first?.key == CommandLineToolInvocation.Argument("--target"))
         #expect(target.publicInvocationComponents.first?.values == CommandLineToolInvocation.Arguments(["arm64-apple-macosx15.0"]))
         #expect(target.publicInvocationComponents.first?.rawValues == ["--target", "arm64-apple-macosx15.0"])
+        #expect(target.identifiedPublicInvocationComponents.first?.argumentID.propertyName == "target")
+        #expect(target.identifiedPublicInvocationComponents.first?.defaultPosition == .local)
+        #expect(target.identifiedPublicInvocationComponents.first?.component == target.publicInvocationComponents.first)
         #expect(inputs.invocationArguments == ["Sources/main.swift", "Sources/support.swift"])
         #expect(inputs.invocationComponents.map(\.kind) == [.positionalArgument, .positionalArgument])
         #expect(inputs.publicInvocationComponents.map(\.kind) == [.positionalArgument, .positionalArgument])
@@ -2093,6 +2096,51 @@ struct CommandLineToolSupportTests {
         #expect(verbosity.invocationArgumentValues == [CommandLineToolInvocation.Argument("-vvv")])
         #expect(trace.invocationArguments == ["--trace"])
         #expect(trace.invocationArgumentValues == [CommandLineToolInvocation.Argument("--trace")])
+    }
+
+    @Test
+    func invocationSummaryContextPublishesArgumentDispositionIR() throws {
+        let command = ResolvedDescriptionTool()
+            .with(\.target, "arm64-apple-macosx15.0")
+            .with(\.inputs, ["Sources/main.swift"])
+        let context = CommandLineToolInvocationSummary.InvocationSummaryContext()
+        let components = try command.invocationComponents(context: context)
+        let targetRecord = try #require(
+            context
+                .argumentDispositionRecords(forPropertyNames: ["target"])
+                .first
+        )
+
+        #expect(components.contains(.option(key: "--target", value: "arm64-apple-macosx15.0")))
+        #expect(targetRecord.argumentID.propertyName == "target")
+        #expect(targetRecord.disposition == .defaultRender)
+        #expect(targetRecord.defaultPosition == .local)
+        #expect(targetRecord.identifiedComponents.first?.argumentID == targetRecord.argumentID)
+        #expect(targetRecord.identifiedComponents.first?.component == targetRecord.components.first)
+    }
+
+    @Test
+    func invocationSummaryComponentsCanBeSelectedByModeledPropertyKeyPath() throws {
+        let command = ResolvedDescriptionTool()
+            .with(\.target, "arm64-apple-macosx15.0")
+            .with(\.inputs, ["Sources/main.swift"])
+            .with(\.trace, true)
+        let components = try command.invocationSummaryComponents(
+            for: [
+                \ResolvedDescriptionTool.$target,
+                \ResolvedDescriptionTool.$trace
+            ]
+        )
+        let identifiedComponents = try command.identifiedInvocationSummaryComponents(
+            for: [
+                \ResolvedDescriptionTool.$target,
+                \ResolvedDescriptionTool.$trace
+            ]
+        )
+
+        #expect(components.rawValues == ["--target", "arm64-apple-macosx15.0", "--trace"])
+        #expect(identifiedComponents.map(\.argumentID.propertyName) == ["target", "trace"])
+        #expect(identifiedComponents.map(\.component.rawValues) == [["--target", "arm64-apple-macosx15.0"], ["--trace"]])
     }
 
     @Test
@@ -2214,6 +2262,22 @@ struct CommandLineToolSupportTests {
         try tool._attachOutputFormatterTool(FormatterCompatibilityTool())
 
         #expect(tool._attachedOutputFormatterTool is FormatterCompatibilityTool)
+    }
+
+    @Test("withUnsafeSystemShell clears transient execution attachments")
+    func withUnsafeSystemShellClearsTransientExecutionAttachments() async throws {
+        let tool = CompatibilityLeafTool()
+
+        try tool._attachOutputFormatterTool(FormatterCompatibilityTool())
+        tool._attachedStandardStreamWiring = _CommandLineToolExecutionPlan<AnyCommandLineTool>.StandardStreamWiring()
+
+        try await tool.withUnsafeSystemShell { _ in
+            #expect(tool._attachedOutputFormatterTool is FormatterCompatibilityTool)
+            #expect(tool._attachedStandardStreamWiring != nil)
+        }
+
+        #expect(tool._attachedOutputFormatterTool == nil)
+        #expect(tool._attachedStandardStreamWiring == nil)
     }
 
 }

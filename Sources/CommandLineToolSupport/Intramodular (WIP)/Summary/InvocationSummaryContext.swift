@@ -80,6 +80,7 @@ public final class InvocationSummaryContext {
     public struct DispositionRecord: Hashable, Sendable {
         public var argumentID: _ResolvedCommandLineToolDescription.ArgumentID
         public var disposition: Disposition
+        public var defaultPosition: _CommandLineToolArgumentPosition?
         public var components: [CommandLineToolInvocation.Component]
         public var reason: String?
         public var location: SourceCodeLocation?
@@ -87,16 +88,89 @@ public final class InvocationSummaryContext {
         public init(
             argumentID: _ResolvedCommandLineToolDescription.ArgumentID,
             disposition: Disposition,
+            defaultPosition: _CommandLineToolArgumentPosition? = nil,
             components: [CommandLineToolInvocation.Component] = [],
             reason: String? = nil,
             location: SourceCodeLocation? = nil
         ) {
             self.argumentID = argumentID
             self.disposition = disposition
+            self.defaultPosition = defaultPosition
             self.components = components
             self.reason = reason
             self.location = location
         }
+
+        public var identifiedComponents: [_ResolvedCommandLineToolDescription.IdentifiedInvocationComponent] {
+            components.map {
+                _ResolvedCommandLineToolDescription.IdentifiedInvocationComponent(
+                    argumentID: argumentID,
+                    defaultPosition: defaultPosition,
+                    component: $0
+                )
+            }
+        }
+    }
+
+    public var argumentDispositionRecords: [DispositionRecord] {
+        Array(dispositionRecords.values)
+    }
+
+    public func argumentDispositionRecords(
+        forPropertyNames propertyNames: Set<String>
+    ) -> [DispositionRecord] {
+        argumentDispositionRecords.filter {
+            propertyNames.contains($0.argumentID.propertyName)
+        }
+    }
+
+    public func argumentDispositionRecords<Command: AnyCommandLineTool>(
+        for keyPaths: [PartialKeyPath<Command>],
+        command: Command
+    ) -> [DispositionRecord] {
+        let argumentIDs = Set(
+            keyPaths.map {
+                Self.argumentID(command: command, keyPath: $0)
+            }
+        )
+
+        return argumentDispositionRecords.filter {
+            argumentIDs.contains($0.argumentID)
+        }
+    }
+
+    public func identifiedInvocationComponents<Command: AnyCommandLineTool>(
+        for keyPaths: [PartialKeyPath<Command>],
+        command: Command
+    ) -> [_ResolvedCommandLineToolDescription.IdentifiedInvocationComponent] {
+        argumentDispositionRecords(for: keyPaths, command: command)
+            .flatMap(\.identifiedComponents)
+    }
+
+    public func invocationComponents<Command: AnyCommandLineTool>(
+        for keyPaths: [PartialKeyPath<Command>],
+        command: Command
+    ) -> CommandLineToolInvocation.Components {
+        CommandLineToolInvocation.Components(
+            identifiedInvocationComponents(for: keyPaths, command: command)
+                .map(\.component)
+        )
+    }
+
+    static func argumentName<Command: AnyCommandLineTool>(
+        for keyPath: PartialKeyPath<Command>
+    ) -> String {
+        String(describing: keyPath).dropPrefixIfPresent("\\\(String(describing: Command.self)).$")
+    }
+
+    static func argumentID<Command: AnyCommandLineTool>(
+        command: Command,
+        keyPath: PartialKeyPath<Command>
+    ) -> _ResolvedCommandLineToolDescription.ArgumentID {
+        _ResolvedCommandLineToolDescription.ArgumentID(
+            rawValue: argumentName(for: keyPath),
+            commandName: command.requireCommandName()
+        )
     }
 
     static func argumentName<Command: AnyCommandLineTool, Value: InvocationSummaryValue>(
@@ -120,6 +194,7 @@ public final class InvocationSummaryContext {
         command: Command,
         _ keyPath: KeyPath<Command, Value>,
         disposition: Disposition,
+        defaultPosition: _CommandLineToolArgumentPosition? = nil,
         components: [CommandLineToolInvocation.Component] = [],
         reason: String? = nil,
         location: SourceCodeLocation? = nil
@@ -128,6 +203,7 @@ public final class InvocationSummaryContext {
             .init(
                 argumentID: Self.argumentID(command: command, keyPath: keyPath),
                 disposition: disposition,
+                defaultPosition: defaultPosition,
                 components: components,
                 reason: reason,
                 location: location
@@ -160,6 +236,7 @@ public final class InvocationSummaryContext {
         command: Command,
         argumentName: String,
         disposition: Disposition,
+        defaultPosition: _CommandLineToolArgumentPosition? = nil,
         components: [CommandLineToolInvocation.Component] = [],
         reason: String? = nil,
         location: SourceCodeLocation? = nil
@@ -171,6 +248,7 @@ public final class InvocationSummaryContext {
                     commandName: command.requireCommandName()
                 ),
                 disposition: disposition,
+                defaultPosition: defaultPosition,
                 components: components,
                 reason: reason,
                 location: location

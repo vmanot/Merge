@@ -97,6 +97,32 @@ extension CommandLineTool {
         try invocationArgumentValues(context: context).rawValues
     }
 
+    public func invocationSummaryComponents(
+        for keyPaths: [PartialKeyPath<Self>]
+    ) throws -> CommandLineToolInvocation.Components {
+        let context = CommandLineToolInvocationSummary.InvocationSummaryContext()
+
+        _ = try invocationComponents(context: context)
+
+        return context.invocationComponents(
+            for: keyPaths,
+            command: self
+        )
+    }
+
+    public func identifiedInvocationSummaryComponents(
+        for keyPaths: [PartialKeyPath<Self>]
+    ) throws -> [_ResolvedCommandLineToolDescription.IdentifiedInvocationComponent] {
+        let context = CommandLineToolInvocationSummary.InvocationSummaryContext()
+
+        _ = try invocationComponents(context: context)
+
+        return context.identifiedInvocationComponents(
+            for: keyPaths,
+            command: self
+        )
+    }
+
     public var invocation: String {
         get throws {
             try invocationArgumentValues(context: CommandLineToolInvocationSummary.InvocationSummaryContext()).description

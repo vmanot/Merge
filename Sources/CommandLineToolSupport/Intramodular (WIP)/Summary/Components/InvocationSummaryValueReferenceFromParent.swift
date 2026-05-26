@@ -67,6 +67,7 @@ public struct InvocationSummaryValueReferenceFromParent<Parent: AnyCommandLineTo
             command: parent,
             keyPath,
             disposition: .explicitRender,
+            defaultPosition: resolved.defaultPosition,
             components: components
         )
 
@@ -113,6 +114,7 @@ extension CommandLineToolInvocationSummary.InvocationSummaryValueReferenceFromPa
                     command: parent,
                     keyPath,
                     disposition: .unavailable,
+                    defaultPosition: resolved.defaultPosition,
                     components: components,
                     reason: reason,
                     location: location
@@ -164,6 +166,7 @@ extension CommandLineToolInvocationSummary._Unavailable where Command: _Invocati
                 command: parent,
                 reference.keyPath,
                 disposition: .unavailable,
+                defaultPosition: resolved.defaultPosition,
                 components: components,
                 reason: reason,
                 location: location

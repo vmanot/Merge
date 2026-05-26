@@ -98,4 +98,9 @@ extension AnyCommandLineTool {
     public func _detachStandardStreamWiring() {
         _attachedStandardStreamWiringStorage = nil
     }
+
+    package func _detachTransientExecutionAttachments() {
+        _detachOutputFormatterTool()
+        _detachStandardStreamWiring()
+    }
 }

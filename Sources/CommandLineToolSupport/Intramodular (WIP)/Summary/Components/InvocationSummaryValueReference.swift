@@ -36,6 +36,7 @@ public struct InvocationSummaryValueReference<Command: AnyCommandLineTool, Value
             command: command,
             keyPath,
             disposition: .explicitRender,
+            defaultPosition: resolved.defaultPosition,
             components: components
         )
 
@@ -162,6 +163,7 @@ public struct _Unavailable<Command: AnyCommandLineTool, Value: InvocationSummary
                 command: command,
                 keyPath,
                 disposition: .unavailable,
+                defaultPosition: resolved.defaultPosition,
                 components: components,
                 reason: reason,
                 location: location
@@ -255,6 +257,7 @@ extension CommandLineToolInvocationSummary.InvocationSummaryValueReference: Comm
                     command: command,
                     keyPath,
                     disposition: .unavailable,
+                    defaultPosition: resolved.defaultPosition,
                     components: components,
                     reason: reason,
                     location: location

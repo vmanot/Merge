@@ -39,6 +39,7 @@ extension AnyCommandLineTool {
                     command: self,
                     argumentName: argument.id.rawValue,
                     disposition: .defaultRender,
+                    defaultPosition: argument.defaultPosition,
                     components: components
                 )
 

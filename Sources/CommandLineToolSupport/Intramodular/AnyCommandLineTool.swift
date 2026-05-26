@@ -71,6 +71,7 @@ open class AnyCommandLineTool: Logging, ObjectDidChangeObservableObject {
 
         defer {
             lease.invalidate()
+            _detachTransientExecutionAttachments()
         }
 
         let result: Result<R, Error>

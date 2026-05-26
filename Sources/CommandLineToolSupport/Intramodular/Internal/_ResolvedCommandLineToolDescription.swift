@@ -269,6 +269,42 @@ public struct _ResolvedCommandLineToolDescription: CustomStringConvertible, Cust
             )
         }
     }
+
+    public struct IdentifiedInvocationComponent: CustomStringConvertible, CustomDebugStringConvertible, CustomReflectable, Hashable, Sendable {
+        public var argumentID: ArgumentID
+        public var defaultPosition: _CommandLineToolArgumentPosition?
+        public var component: CommandLineToolInvocation.Component
+
+        public init(
+            argumentID: ArgumentID,
+            defaultPosition: _CommandLineToolArgumentPosition?,
+            component: CommandLineToolInvocation.Component
+        ) {
+            self.argumentID = argumentID
+            self.defaultPosition = defaultPosition
+            self.component = component
+        }
+
+        public var description: String {
+            "\(argumentID): \(component)"
+        }
+
+        public var debugDescription: String {
+            "IdentifiedInvocationComponent(argumentID: \(argumentID.debugDescription), defaultPosition: \(String(describing: defaultPosition)), component: \(component.debugDescription))"
+        }
+
+        public var customMirror: Mirror {
+            Mirror(
+                self,
+                children: [
+                    "argumentID": argumentID,
+                    "defaultPosition": defaultPosition as Any,
+                    "component": component
+                ],
+                displayStyle: .struct
+            )
+        }
+    }
     
     public typealias ResolvedArguments = IdentifierIndexingArrayOf<_AnyResolvedCommandLineToolInvocationArgument>
     public typealias ResolvedSubcommands = IdentifierIndexingArrayOf<Subcommand>

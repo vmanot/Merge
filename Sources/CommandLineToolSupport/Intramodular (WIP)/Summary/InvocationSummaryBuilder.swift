@@ -267,6 +267,7 @@ public struct DefaultInvocationSummary<Command: AnyCommandLineTool>: InvocationS
                     command: command,
                     argumentName: argument.id.rawValue,
                     disposition: .defaultRender,
+                    defaultPosition: argument.defaultPosition,
                     components: components
                 )
 
