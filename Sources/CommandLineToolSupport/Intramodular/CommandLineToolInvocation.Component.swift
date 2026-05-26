@@ -26,7 +26,11 @@ extension CommandLineToolInvocation {
             )
             case flag(Arguments)
             case positionalArgument(Arguments)
-            case environmentAssignment(Arguments)
+            case environmentAssignment(
+                key: Argument?,
+                value: Argument?,
+                arguments: Arguments
+            )
         }
 
         public enum Kind: CustomStringConvertible, CustomDebugStringConvertible, Hashable, Sendable {
@@ -63,6 +67,12 @@ extension CommandLineToolInvocation {
         }
 
         public var storage: Storage
+
+        public init(
+            storage: Storage
+        ) {
+            self.storage = storage
+        }
 
         public var kind: Kind {
             storage.kind
@@ -114,7 +124,11 @@ extension CommandLineToolInvocation {
                 case .positionalArgument:
                     storage = .positionalArgument(arguments)
                 case .environmentAssignment:
-                    storage = .environmentAssignment(arguments)
+                    storage = .environmentAssignment(
+                        key: nil,
+                        value: nil,
+                        arguments: arguments
+                    )
             }
 
             self.storage = storage
@@ -243,6 +257,25 @@ extension CommandLineToolInvocation {
             Self(kind: .positionalArgument, argument: argument)
         }
 
+        public static func environmentAssignment(
+            key: Argument,
+            value: Argument
+        ) -> Self {
+            Self(
+                storage: .environmentAssignment(
+                    key: key,
+                    value: value,
+                    arguments: Arguments([Argument("\(key.rawValue)=\(value.rawValue)")])
+                )
+            )
+        }
+
+        public static func environmentAssignment(
+            arguments: Arguments
+        ) -> Self {
+            Self(kind: .environmentAssignment, arguments: arguments)
+        }
+
         public var argumentValues: [Argument] {
             arguments.elements
         }
@@ -327,6 +360,110 @@ extension CommandLineToolInvocation.Component {
             }
         )
     }
+
+    package static func _component(
+        fromRawArgument argument: CommandLineToolInvocation.Argument,
+        isExecutablePosition: Bool,
+        allowsEnvironmentAssignment: Bool = false
+    ) -> Self {
+        if allowsEnvironmentAssignment, let assignment = _environmentAssignmentBoundary(in: argument) {
+            return .environmentAssignment(
+                key: assignment.key,
+                value: assignment.value
+            )
+        }
+
+        guard !isExecutablePosition else {
+            return .executable(argument)
+        }
+
+        if let option = _joinedOptionBoundary(in: argument) {
+            return .option(
+                key: option.key,
+                separator: option.separator,
+                values: [option.value]
+            )
+        }
+
+        return .positionalArgument(argument)
+    }
+
+    private static func _environmentAssignmentBoundary(
+        in argument: CommandLineToolInvocation.Argument
+    ) -> (key: CommandLineToolInvocation.Argument, value: CommandLineToolInvocation.Argument)? {
+        guard
+            case .string(let rawValue) = argument.storage,
+            let separatorIndex = rawValue.firstIndex(of: "=")
+        else {
+            return nil
+        }
+
+        let key = String(rawValue[..<separatorIndex])
+
+        guard _isEnvironmentAssignmentName(key) else {
+            return nil
+        }
+
+        let value = String(rawValue[rawValue.index(after: separatorIndex)...])
+
+        return (
+            CommandLineToolInvocation.Argument(key),
+            CommandLineToolInvocation.Argument(value)
+        )
+    }
+
+    private static func _joinedOptionBoundary(
+        in argument: CommandLineToolInvocation.Argument
+    ) -> (key: CommandLineToolInvocation.Argument, separator: _CommandLineToolParameterKeyValueSeparator, value: CommandLineToolInvocation.Argument)? {
+        guard case .string(let rawValue) = argument.storage, rawValue.hasPrefix("-") else {
+            return nil
+        }
+
+        let separators: [_CommandLineToolParameterKeyValueSeparator] = [.equal, .colon, .plus]
+
+        guard let match = separators
+            .compactMap({ separator -> (index: String.Index, separator: _CommandLineToolParameterKeyValueSeparator)? in
+                guard let index = rawValue.firstIndex(of: Character(separator.rawValue)) else {
+                    return nil
+                }
+
+                return (index, separator)
+            })
+            .sorted(by: { $0.index < $1.index })
+            .first
+        else {
+            return nil
+        }
+
+        let key = String(rawValue[..<match.index])
+        let value = String(rawValue[rawValue.index(after: match.index)...])
+
+        guard !key.isEmpty, !value.isEmpty else {
+            return nil
+        }
+
+        return (
+            CommandLineToolInvocation.Argument(key),
+            match.separator,
+            CommandLineToolInvocation.Argument(value)
+        )
+    }
+
+    private static func _isEnvironmentAssignmentName(
+        _ value: String
+    ) -> Bool {
+        guard let first = value.unicodeScalars.first else {
+            return false
+        }
+
+        guard first == "_" || CharacterSet.letters.contains(first) else {
+            return false
+        }
+
+        return value.unicodeScalars.dropFirst().allSatisfy {
+            $0 == "_" || CharacterSet.alphanumerics.contains($0)
+        }
+    }
 }
 
 extension CommandLineToolInvocation.Component.Storage {
@@ -355,31 +492,39 @@ extension CommandLineToolInvocation.Component.Storage {
                 return CommandLineToolInvocation.Arguments([argument])
             case .option(_, _, _, _, let arguments):
                 return arguments
-            case .flag(let arguments), .positionalArgument(let arguments), .environmentAssignment(let arguments):
+            case .flag(let arguments), .positionalArgument(let arguments), .environmentAssignment(_, _, let arguments):
                 return arguments
         }
     }
 
     public var key: CommandLineToolInvocation.Argument? {
-        if case .option(let key, _, _, _, _) = self {
-            return key
+        switch self {
+            case .option(let key, _, _, _, _):
+                return key
+            case .environmentAssignment(let key, _, _):
+                return key
+            default:
+                return nil
         }
-
-        return nil
     }
 
     public var separator: _CommandLineToolParameterKeyValueSeparator? {
-        if case .option(_, let separator, _, _, _) = self {
-            return separator
+        switch self {
+            case .option(_, let separator, _, _, _):
+                return separator
+            case .environmentAssignment:
+                return .equal
+            default:
+                return nil
         }
-
-        return nil
     }
 
     public var values: CommandLineToolInvocation.Arguments {
         switch self {
             case .option(_, _, let values, _, _):
                 return values
+            case .environmentAssignment(_, let value, _):
+                return CommandLineToolInvocation.Arguments(value.map { [$0] } ?? [])
             default:
                 return arguments
         }

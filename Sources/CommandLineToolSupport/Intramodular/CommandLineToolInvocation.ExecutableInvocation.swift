@@ -67,7 +67,11 @@ extension CommandLineToolInvocation {
     }
 
     public var executableInvocation: ExecutableInvocation? {
-        guard let executableArgument = argumentValues.first else {
+        guard environmentAssignmentComponents.isEmpty else {
+            return nil
+        }
+
+        guard let executableArgument = executableComponent?.argumentValues.first else {
             return nil
         }
 
@@ -97,4 +101,3 @@ extension CommandLineToolInvocation {
         )
     }
 }
-

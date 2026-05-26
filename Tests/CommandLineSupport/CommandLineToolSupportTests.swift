@@ -1026,6 +1026,53 @@ struct CommandLineToolSupportTests {
     }
 
     @Test
+    func rawInvocationPreservesEnvironmentAssignmentsAndJoinedOptions() {
+        let invocation = CommandLineToolInvocation(components: [
+            "DEVELOPER_DIR=/Applications/Xcode.app",
+            "TOOLCHAINS=",
+            "xcodebuild",
+            "-scheme=ExampleApp",
+            "--destination=platform=iOS Simulator,name=iPhone 15",
+            "CONFIGURATION=Debug"
+        ])
+
+        #expect(invocation.components.map(\.kind) == [
+            .environmentAssignment,
+            .environmentAssignment,
+            .executable,
+            .option,
+            .option,
+            .positionalArgument
+        ])
+        #expect(invocation.components[0].key == "DEVELOPER_DIR")
+        #expect(invocation.components[0].separator == .equal)
+        #expect(invocation.components[0].values == CommandLineToolInvocation.Arguments(["/Applications/Xcode.app"]))
+        #expect(invocation.components[1].key == "TOOLCHAINS")
+        #expect(invocation.components[1].values == CommandLineToolInvocation.Arguments([""]))
+        #expect(invocation.components[3].key == "-scheme")
+        #expect(invocation.components[3].separator == .equal)
+        #expect(invocation.components[3].values == CommandLineToolInvocation.Arguments(["ExampleApp"]))
+        #expect(invocation.components[4].key == "--destination")
+        #expect(invocation.components[4].values == CommandLineToolInvocation.Arguments(["platform=iOS Simulator,name=iPhone 15"]))
+        #expect(invocation.components[5].rawValues == ["CONFIGURATION=Debug"])
+        #expect(invocation.commandName == "xcodebuild")
+        #expect(invocation.arguments.map(\.rawValue) == [
+            "-scheme=ExampleApp",
+            "--destination=platform=iOS Simulator,name=iPhone 15",
+            "CONFIGURATION=Debug"
+        ])
+        #expect(invocation.executableInvocation == nil)
+        #expect(invocation.rawComponents == [
+            "DEVELOPER_DIR=/Applications/Xcode.app",
+            "TOOLCHAINS=",
+            "xcodebuild",
+            "-scheme=ExampleApp",
+            "--destination=platform=iOS Simulator,name=iPhone 15",
+            "CONFIGURATION=Debug"
+        ])
+    }
+
+    @Test
     func structuredInvocationArgumentReflectsRawBytes() throws {
         let argument = CommandLineToolInvocation.Argument(rawBytes: [0xff])
         let emptyArgument = CommandLineToolInvocation.Argument("")

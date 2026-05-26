@@ -159,12 +159,20 @@ public struct CommandLineToolInvocation: CustomStringConvertible, CustomDebugStr
     private static func _components(
         from argumentValues: [Argument]
     ) -> [Component] {
-        argumentValues.enumerated().map { offset, argument in
-            if offset == 0 {
-                return .executable(argument)
-            } else {
-                return .positionalArgument(argument)
+        var didReachExecutable = false
+
+        return argumentValues.map { argument in
+            let component = Component._component(
+                fromRawArgument: argument,
+                isExecutablePosition: !didReachExecutable,
+                allowsEnvironmentAssignment: !didReachExecutable
+            )
+
+            if component.kind == .executable {
+                didReachExecutable = true
             }
+
+            return component
         }
     }
 
@@ -176,14 +184,26 @@ public struct CommandLineToolInvocation: CustomStringConvertible, CustomDebugStr
         argumentValues.map(\.rawValue)
     }
 
+    public var executableComponent: Component? {
+        components.first { $0.kind == .executable }
+    }
+
+    public var environmentAssignmentComponents: [Component] {
+        components.filter { $0.kind == .environmentAssignment }
+    }
+
     /// The rendered command name component, when present.
     public var commandName: String? {
-        argumentValues.first?.rawValue
+        executableComponent?.argumentValues.first?.rawValue
     }
 
     /// The semantic argument components after the command name.
     public var arguments: [Argument] {
-        Array(argumentValues.dropFirst())
+        guard let executableIndex = components.firstIndex(where: { $0.kind == .executable }) else {
+            return []
+        }
+
+        return components[(executableIndex + 1)...].flatMap(\.argumentValues)
     }
 
     public var argumentList: Arguments {
@@ -214,6 +234,7 @@ public struct CommandLineToolInvocation: CustomStringConvertible, CustomDebugStr
                     "components": components,
                     "argumentValues": argumentValues,
                     "rawComponents": rawComponents,
+                    "environmentAssignmentComponents": environmentAssignmentComponents,
                     "commandName": commandName as Any,
                     "arguments": arguments,
                     "commandLine": commandLine
