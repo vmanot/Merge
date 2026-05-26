@@ -171,6 +171,73 @@ extension CommandLineToolInvocation {
             elements.append(contentsOf: components)
         }
 
+        public mutating func appendOption(
+            key: Argument,
+            value: Argument?
+        ) {
+            guard let value else {
+                return
+            }
+
+            append(.option(key: key, value: value))
+        }
+
+        @_disfavoredOverload
+        public mutating func appendOption(
+            key: Argument,
+            value: String?
+        ) {
+            appendOption(
+                key: key,
+                value: value.map { Argument($0) }
+            )
+        }
+
+        public mutating func appendBooleanOption(
+            key: Argument,
+            value: Bool?,
+            trueValue: Argument = "YES",
+            falseValue: Argument = "NO"
+        ) {
+            appendOption(
+                key: key,
+                value: value.map { $0 ? trueValue : falseValue }
+            )
+        }
+
+        public mutating func appendFlag(
+            _ argument: Argument,
+            if condition: Bool
+        ) {
+            guard condition else {
+                return
+            }
+
+            append(.flag(argument))
+        }
+
+        public mutating func appendBuildSettingAssignment(
+            key: Argument,
+            value: Argument?
+        ) {
+            guard let value else {
+                return
+            }
+
+            append(.buildSettingAssignment(key: key, value: value))
+        }
+
+        @_disfavoredOverload
+        public mutating func appendBuildSettingAssignment(
+            key: Argument,
+            value: String?
+        ) {
+            appendBuildSettingAssignment(
+                key: key,
+                value: value.map { Argument($0) }
+            )
+        }
+
         public static func + (
             lhs: Self,
             rhs: Self

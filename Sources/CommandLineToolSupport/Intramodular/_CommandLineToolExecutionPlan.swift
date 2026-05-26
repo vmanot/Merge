@@ -420,6 +420,41 @@ extension CommandLineTool {
 @available(watchOS, unavailable)
 extension AnyCommandLineTool {
     public func _executionPlan(
+        invocation: CommandLineToolInvocation,
+        standardStreamWiring: _CommandLineToolExecutionPlan<AnyCommandLineTool>.StandardStreamWiring? = nil,
+        applying differences: [SystemShell.Configuration.Difference] = []
+    ) -> _CommandLineToolExecutionPlan<AnyCommandLineTool> {
+        let selectedToolInvocation: _CommandLineToolSelectedToolInvocation?
+
+        if let command = self as? any CommandLineTool {
+            selectedToolInvocation = _CommandLineToolCommandChain(resolvingOrSelf: command).selectedToolInvocation(renderedInvocation: invocation)
+        } else {
+            selectedToolInvocation = nil
+        }
+
+        return _CommandLineToolExecutionPlan(
+            tool: self,
+            source: .modeledInvocation(invocation),
+            configurationDifferences: differences,
+            selectedToolInvocation: selectedToolInvocation,
+            standardStreamWiring: standardStreamWiring ?? _attachedStandardStreamWiring
+        )
+    }
+
+    @_disfavoredOverload
+    public func _executionPlan(
+        invocation: CommandLineToolInvocation,
+        standardStreamWiring: _CommandLineToolExecutionPlan<AnyCommandLineTool>.StandardStreamWiring? = nil,
+        applying differences: SystemShell.Configuration.Difference...
+    ) -> _CommandLineToolExecutionPlan<AnyCommandLineTool> {
+        _executionPlan(
+            invocation: invocation,
+            standardStreamWiring: standardStreamWiring,
+            applying: differences
+        )
+    }
+
+    public func _executionPlan(
         command commandString: _ShellCommandString,
         input: String? = nil,
         standardStreamWiring: _CommandLineToolExecutionPlan<AnyCommandLineTool>.StandardStreamWiring? = nil,

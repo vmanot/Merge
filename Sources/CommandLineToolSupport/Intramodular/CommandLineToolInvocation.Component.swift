@@ -19,6 +19,7 @@ extension CommandLineToolInvocation {
             case executable(Argument)
             case selectedTool(Argument)
             case subcommand(Argument)
+            case action(Argument)
             case option(
                 key: Argument?,
                 separator: _CommandLineToolParameterKeyValueSeparator?,
@@ -45,6 +46,7 @@ extension CommandLineToolInvocation {
             case executable
             case selectedTool
             case subcommand
+            case action
             case option
             case flag
             case positionalArgument
@@ -60,6 +62,8 @@ extension CommandLineToolInvocation {
                         "selectedTool"
                     case .subcommand:
                         "subcommand"
+                    case .action:
+                        "action"
                     case .option:
                         "option"
                     case .flag:
@@ -129,6 +133,8 @@ extension CommandLineToolInvocation {
                     storage = .selectedTool(arguments.elements.first ?? Argument(""))
                 case .subcommand:
                     storage = .subcommand(arguments.elements.first ?? Argument(""))
+                case .action:
+                    storage = .action(arguments.elements.first ?? Argument(""))
                 case .option:
                     storage = .option(
                         key: nil,
@@ -219,6 +225,12 @@ extension CommandLineToolInvocation {
             _ argument: Argument
         ) -> Self {
             Self(kind: .subcommand, argument: argument)
+        }
+
+        public static func action(
+            _ argument: Argument
+        ) -> Self {
+            Self(kind: .action, argument: argument)
         }
 
         public static func option(
@@ -621,6 +633,8 @@ extension CommandLineToolInvocation.Component.Storage {
                 return .selectedTool
             case .subcommand:
                 return .subcommand
+            case .action:
+                return .action
             case .option:
                 return .option
             case .flag:
@@ -638,7 +652,7 @@ extension CommandLineToolInvocation.Component.Storage {
 
     public var arguments: CommandLineToolInvocation.Arguments {
         switch self {
-            case .executable(let argument), .selectedTool(let argument), .subcommand(let argument):
+            case .executable(let argument), .selectedTool(let argument), .subcommand(let argument), .action(let argument):
                 return CommandLineToolInvocation.Arguments([argument])
             case .option(_, _, _, _, let arguments):
                 return arguments

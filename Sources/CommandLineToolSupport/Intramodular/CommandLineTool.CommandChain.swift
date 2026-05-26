@@ -212,4 +212,14 @@ struct _CommandLineToolCommandChain: RandomAccessCollection, CustomStringConvert
 @available(watchOS, unavailable)
 extension CommandLineTool {
     typealias CommandChain = _CommandLineToolCommandChain
+
+    public func _applyingAttachedHostToolIfNeeded(
+        to components: CommandLineToolInvocation.Components,
+        context: CommandLineToolInvocationSummary.InvocationSummaryContext = CommandLineToolInvocationSummary.InvocationSummaryContext()
+    ) throws -> CommandLineToolInvocation.Components {
+        try CommandChain(resolvingOrSelf: self).applyingAttachedHostToolIfNeeded(
+            to: components,
+            context: context
+        )
+    }
 }
