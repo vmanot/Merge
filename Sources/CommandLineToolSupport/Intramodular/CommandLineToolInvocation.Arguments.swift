@@ -193,6 +193,18 @@ extension CommandLineToolInvocation {
             )
         }
 
+        public mutating func appendOption(
+            key: Argument,
+            booleanValue value: Bool?,
+            trueValue: Argument = "YES",
+            falseValue: Argument = "NO"
+        ) {
+            appendOption(
+                key: key,
+                value: value.map { $0 ? trueValue : falseValue }
+            )
+        }
+
         public mutating func appendBooleanOption(
             key: Argument,
             value: Bool?,
@@ -201,7 +213,9 @@ extension CommandLineToolInvocation {
         ) {
             appendOption(
                 key: key,
-                value: value.map { $0 ? trueValue : falseValue }
+                booleanValue: value,
+                trueValue: trueValue,
+                falseValue: falseValue
             )
         }
 
