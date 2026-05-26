@@ -11,19 +11,25 @@ import Foundation
 @available(watchOS, unavailable)
 struct _CommandLineToolInvocationAssembly {
     var chain: _CommandLineToolCommandChain
-    var leafArguments: CommandLineToolInvocation.Arguments
+    var leafComponents: [CommandLineToolInvocation.Component]
     var context: CommandLineToolInvocationSummary.InvocationSummaryContext
 
     func makeInvocationArguments() throws -> CommandLineToolInvocation.Arguments {
+        CommandLineToolInvocation.Arguments(
+            try makeInvocationComponents().flatMap(\.argumentValues)
+        )
+    }
+
+    func makeInvocationComponents() throws -> [CommandLineToolInvocation.Component] {
         guard let root = chain.first else {
-            return leafArguments
+            return leafComponents
         }
 
-        var result = CommandLineToolInvocation.Arguments()
+        var result: [CommandLineToolInvocation.Component] = []
 
         try appendRootCommand(root, to: &result)
         try appendCommandBoundaries(to: &result)
-        appendLeafArguments(to: &result)
+        appendLeafComponents(to: &result)
         try appendFinalCommandArguments(to: &result)
 
         return result
@@ -31,11 +37,11 @@ struct _CommandLineToolInvocationAssembly {
 
     private func appendRootCommand(
         _ root: AnyCommandLineTool,
-        to result: inout CommandLineToolInvocation.Arguments
+        to result: inout [CommandLineToolInvocation.Component]
     ) throws {
-        result.append(CommandLineToolInvocation.Argument(root.requireCommandName().rawValue))
+        result.append(.executable(CommandLineToolInvocation.Argument(root.requireCommandName().rawValue)))
         try result.append(
-            contentsOf: root._defaultInvocationArguments(
+            contentsOf: root._defaultInvocationComponents(
                 context: context,
                 positions: [.local]
             )
@@ -43,14 +49,14 @@ struct _CommandLineToolInvocationAssembly {
     }
 
     private func appendCommandBoundaries(
-        to result: inout CommandLineToolInvocation.Arguments
+        to result: inout [CommandLineToolInvocation.Component]
     ) throws {
         for (offset, command) in chain.dropFirst().enumerated() {
             let parent = chain[offset]
 
-            result.append(CommandLineToolInvocation.Argument(command.requireCommandName().rawValue))
+            result.append(.subcommand(CommandLineToolInvocation.Argument(command.requireCommandName().rawValue)))
             try result.append(
-                contentsOf: parent._defaultInvocationArguments(
+                contentsOf: parent._defaultInvocationComponents(
                     context: context,
                     positions: [.nextCommand]
                 )
@@ -58,7 +64,7 @@ struct _CommandLineToolInvocationAssembly {
 
             if commandHasIntermediateLocalArguments(atOffsetFromRoot: offset + 1) {
                 try result.append(
-                    contentsOf: command._defaultInvocationArguments(
+                    contentsOf: command._defaultInvocationComponents(
                         context: context,
                         positions: [.local]
                     )
@@ -73,18 +79,18 @@ struct _CommandLineToolInvocationAssembly {
         offset < chain.count - 1
     }
 
-    private func appendLeafArguments(
-        to result: inout CommandLineToolInvocation.Arguments
+    private func appendLeafComponents(
+        to result: inout [CommandLineToolInvocation.Component]
     ) {
-        result.elements.append(contentsOf: leafArguments.elements.filter { !$0.rawValue.isEmpty })
+        result.append(contentsOf: leafComponents.filter { !$0.argumentValues.isEmpty })
     }
 
     private func appendFinalCommandArguments(
-        to result: inout CommandLineToolInvocation.Arguments
+        to result: inout [CommandLineToolInvocation.Component]
     ) throws {
         for command in chain.dropLast() {
             try result.append(
-                contentsOf: command._defaultInvocationArguments(
+                contentsOf: command._defaultInvocationComponents(
                     context: context,
                     positions: [.lastCommand]
                 )

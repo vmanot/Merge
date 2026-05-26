@@ -110,6 +110,14 @@ public struct _EmptyInvocationSummary<Command: AnyCommandLineTool>: InvocationSu
     ) throws -> CommandLineToolInvocation.Arguments {
         []
     }
+
+    public func makeInvocationComponents(
+        command: Command,
+        parent: AnyCommandLineTool?,
+        context: InvocationSummaryContext
+    ) throws -> [CommandLineToolInvocation.Component] {
+        []
+    }
 }
 
 public struct _InvocationSummaryLiteral<Command: AnyCommandLineTool>: InvocationSummary {
@@ -125,6 +133,14 @@ public struct _InvocationSummaryLiteral<Command: AnyCommandLineTool>: Invocation
         context: InvocationSummaryContext
     ) throws -> CommandLineToolInvocation.Arguments {
         CommandLineToolInvocation.Arguments([text])
+    }
+
+    public func makeInvocationComponents(
+        command: Command,
+        parent: AnyCommandLineTool?,
+        context: InvocationSummaryContext
+    ) throws -> [CommandLineToolInvocation.Component] {
+        text.isEmpty ? [] : [.positionalArgument(CommandLineToolInvocation.Argument(text))]
     }
 }
 
@@ -145,6 +161,22 @@ public struct _OptionalInvocationSummary<Command: AnyCommandLineTool, Content: I
         }
 
         return try content.makeInvocationArguments(
+            command: command,
+            parent: parent,
+            context: context
+        )
+    }
+
+    public func makeInvocationComponents(
+        command: Command,
+        parent: AnyCommandLineTool?,
+        context: InvocationSummaryContext
+    ) throws -> [CommandLineToolInvocation.Component] {
+        guard let content else {
+            return []
+        }
+
+        return try content.makeInvocationComponents(
             command: command,
             parent: parent,
             context: context
@@ -176,6 +208,27 @@ public enum _ConditionalInvocationSummary<Command: AnyCommandLineTool, TrueConte
                 )
         }
     }
+
+    public func makeInvocationComponents(
+        command: Command,
+        parent: AnyCommandLineTool?,
+        context: InvocationSummaryContext
+    ) throws -> [CommandLineToolInvocation.Component] {
+        switch self {
+            case .first(let content):
+                return try content.makeInvocationComponents(
+                    command: command,
+                    parent: parent,
+                    context: context
+                )
+            case .second(let content):
+                return try content.makeInvocationComponents(
+                    command: command,
+                    parent: parent,
+                    context: context
+                )
+        }
+    }
 }
 
 /// Fallback summary node that renders all unresolved/default arguments for a command.
@@ -188,20 +241,37 @@ public struct DefaultInvocationSummary<Command: AnyCommandLineTool>: InvocationS
         parent: AnyCommandLineTool?,
         context: InvocationSummaryContext
     ) throws -> CommandLineToolInvocation.Arguments {
-        let arguments = try command
+        CommandLineToolInvocation.Arguments(
+            try makeInvocationComponents(
+                command: command,
+                parent: parent,
+                context: context
+            )
+            .flatMap(\.argumentValues)
+        )
+    }
+
+    public func makeInvocationComponents(
+        command: Command,
+        parent: AnyCommandLineTool?,
+        context: InvocationSummaryContext
+    ) throws -> [CommandLineToolInvocation.Component] {
+        try command
             .resolve().arguments
             .filter {
-                !context.argumentIsRendered(command: command, argumentName: $0.id.rawValue)
+                !context.argumentIsHandled(command: command, argumentName: $0.id.rawValue)
             }
-            .flatMap { argument -> [CommandLineToolInvocation.Argument] in
-                defer {
-                    context.registerArgument(command: command, argumentName: argument.id.rawValue)
-                }
+            .flatMap { argument -> [CommandLineToolInvocation.Component] in
+                let components = argument.publicInvocationComponents
+                let shouldRender = try context.registerHandledArgument(
+                    command: command,
+                    argumentName: argument.id.rawValue,
+                    disposition: .defaultRender,
+                    components: components
+                )
 
-                return argument.invocationArgumentValues
+                return shouldRender ? components : []
             }
-
-        return CommandLineToolInvocation.Arguments(arguments)
     }
 }
 
@@ -210,11 +280,11 @@ public struct DefaultInvocationSummary<Command: AnyCommandLineTool>: InvocationS
 extension Never: CommandLineToolInvocationSummary.InvocationSummary {
     public typealias Command = AnyCommandLineTool
 
-    public func makeInvocationArguments(
+    public func makeInvocationComponents(
         command: Command,
         parent: AnyCommandLineTool?,
         context: CommandLineToolInvocationSummary.InvocationSummaryContext
-    ) throws -> CommandLineToolInvocation.Arguments {
+    ) throws -> [CommandLineToolInvocation.Component] {
         fatalError(.unavailable)
     }
 }

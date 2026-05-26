@@ -14,7 +14,7 @@ extension CommandLineToolInvocationSummary {
 @available(watchOS, unavailable)
 /// Boolean predicate tree used by `When` summary nodes.
 public indirect enum InvocationSummaryCondition<Command: AnyCommandLineTool> {
-    case predicate((Command, AnyCommandLineTool?, InvocationSummaryContext) -> Bool)
+    case predicate((Command, AnyCommandLineTool?, InvocationSummaryContext) throws -> Bool)
     case not(InvocationSummaryCondition<Command>)
     case all([InvocationSummaryCondition<Command>])
     case any([InvocationSummaryCondition<Command>])
@@ -100,16 +100,28 @@ public struct InvocationSummaryValuePredicate<Value> {
 @available(tvOS, unavailable)
 @available(watchOS, unavailable)
 extension CommandLineToolInvocationSummary.InvocationSummaryCondition {
-    public func evaluate(command: Command, parent: AnyCommandLineTool?, context: CommandLineToolInvocationSummary.InvocationSummaryContext) -> Bool {
+    public func evaluate(command: Command, parent: AnyCommandLineTool?, context: CommandLineToolInvocationSummary.InvocationSummaryContext) throws -> Bool {
         switch self {
             case .predicate(let predicate):
-                return predicate(command, parent, context)
+                return try predicate(command, parent, context)
             case .not(let condition):
-                return !condition.evaluate(command: command, parent: parent, context: context)
+                return try !condition.evaluate(command: command, parent: parent, context: context)
             case .all(let conditions):
-                return conditions.allSatisfy { $0.evaluate(command: command, parent: parent, context: context) }
+                for condition in conditions {
+                    guard try condition.evaluate(command: command, parent: parent, context: context) else {
+                        return false
+                    }
+                }
+
+                return true
             case .any(let conditions):
-                return conditions.contains { $0.evaluate(command: command, parent: parent, context: context) }
+                for condition in conditions {
+                    if try condition.evaluate(command: command, parent: parent, context: context) {
+                        return true
+                    }
+                }
+
+                return false
         }
     }
 
@@ -126,7 +138,7 @@ extension CommandLineToolInvocationSummary.InvocationSummaryCondition {
     }
 
     public static func custom(
-        _ condition: @escaping (_ command: Command, _ parent: AnyCommandLineTool?, _ context: CommandLineToolInvocationSummary.InvocationSummaryContext) -> Bool
+        _ condition: @escaping (_ command: Command, _ parent: AnyCommandLineTool?, _ context: CommandLineToolInvocationSummary.InvocationSummaryContext) throws -> Bool
     ) -> CommandLineToolInvocationSummary.InvocationSummaryCondition<Command> {
         .predicate(condition)
     }
@@ -145,9 +157,15 @@ extension CommandLineToolInvocationSummary.InvocationSummaryCondition {
         _ predicate: CommandLineToolInvocationSummary.InvocationSummaryValuePredicate<Value.WrappedValue>
     ) -> CommandLineToolInvocationSummary.InvocationSummaryCondition<Command> {
         .predicate { _, parent, context in
-            let parent = parent as? Parent
-            guard let parent else {
-                preconditionFailure("No such parent matched.")
+            let actualParent = parent
+
+            guard let parent = parent as? Parent else {
+                throw CommandLineToolInvocationSummary.Error.missingExpectedParent(
+                    command: Command.self,
+                    expectedParent: Parent.self,
+                    actualParent: actualParent.map { Swift.type(of: $0) },
+                    location: nil
+                )
             }
             return predicate.evaluate(parent[keyPath: value.keyPath].wrappedValue)
         }
@@ -159,4 +177,3 @@ extension CommandLineToolInvocationSummary.InvocationSummaryCondition {
         .not(condition)
     }
 }
-

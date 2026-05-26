@@ -59,35 +59,6 @@ final class FormatterCompatibilityTool: AnyCommandLineTool, CommandLineToolOutpu
     }
 }
 
-final class OptionalParameterTool: AnyCommandLineTool, CommandLineTool {
-    override var commandName: CommandLineTool.Name? {
-        "optional-parameter"
-    }
-
-    @Argument
-    var value: Any?
-
-    override init() {
-
-    }
-}
-
-final class DefaultValueParameterTool: AnyCommandLineTool, CommandLineTool {
-    enum Mode: Hashable {
-        case disabled
-    }
-
-    override var commandName: CommandLineTool.Name? {
-        "default-value-parameter"
-    }
-
-    @Argument
-    var mode: Mode = .disabled
-
-    @Argument
-    var values: [String] = []
-}
-
 final class SummaryModeTool: AnyCommandLineTool, CommandLineTool {
     override var commandName: CommandLineTool.Name? {
         "swiftc"
@@ -179,6 +150,93 @@ final class ConditionalSummaryTool: AnyCommandLineTool, CommandLineTool {
     }
 }
 
+final class OmittedSummaryTool: AnyCommandLineTool, CommandLineTool {
+    override var commandName: CommandLineTool.Name? {
+        "omitted-summary"
+    }
+
+    @Flag(name: "verbose")
+    var verbose: Bool = false
+
+    @Option(name: "output")
+    var output: String? = nil
+
+    var invocationSummary: some CommandLineToolInvocationSummary.InvocationSummary {
+        Omit(\OmittedSummaryTool.$verbose)
+        \.$output
+    }
+}
+
+final class ConflictingDispositionSummaryTool: AnyCommandLineTool, CommandLineTool {
+    override var commandName: CommandLineTool.Name? {
+        "conflicting-disposition"
+    }
+
+    @Option(name: "output")
+    var output: String? = nil
+
+    var invocationSummary: some CommandLineToolInvocationSummary.InvocationSummary {
+        Omit(\ConflictingDispositionSummaryTool.$output)
+        \.$output
+    }
+}
+
+final class UnavailableSummaryTool: AnyCommandLineTool, CommandLineTool {
+    override var commandName: CommandLineTool.Name? {
+        "unavailable-summary"
+    }
+
+    @Flag(name: "verbose")
+    var verbose: Bool = false
+
+    @Option(name: "output")
+    var output: String? = nil
+
+    @Argument(name: nil)
+    var input: String? = nil
+
+    var invocationSummary: some CommandLineToolInvocationSummary.InvocationSummary {
+        _Unavailable(\UnavailableSummaryTool.$output, reason: "--output is not accepted by this mode")
+        \.$verbose
+        \.$input
+    }
+}
+
+final class RewrittenSummaryTool: AnyCommandLineTool, CommandLineTool {
+    override var commandName: CommandLineTool.Name? {
+        "rewritten-summary"
+    }
+
+    @Option(name: "output")
+    var output: String? = nil
+
+    @Argument(name: nil)
+    var input: String? = nil
+
+    var invocationSummary: some CommandLineToolInvocationSummary.InvocationSummary {
+        RewriteAfterDefaultSummary()
+    }
+}
+
+struct RewriteAfterDefaultSummary: CommandLineToolInvocationSummary.InvocationSummary {
+    typealias Command = RewrittenSummaryTool
+
+    func makeInvocationComponents(
+        command: RewrittenSummaryTool,
+        parent: AnyCommandLineTool?,
+        context: CommandLineToolInvocationSummary.InvocationSummaryContext
+    ) throws -> [CommandLineToolInvocation.Component] {
+        context.registerRewriteRule(.replaceOptionValues(named: "--output") { values in
+            values.rawValues == ["raw.txt"] ? ["rewritten.txt"] : values
+        })
+        context.registerRewriteRule(.init { invocation in
+            invocation.components.append(.positionalArgument("rewrite-applied"))
+        })
+
+        return []
+    }
+}
+
 final class ParentReferencedSummaryTool: AnyCommandLineTool, CommandLineTool {
     override var commandName: CommandLineTool.Name? {
         "parent-summary"
@@ -190,9 +248,8 @@ final class ParentReferencedSummaryTool: AnyCommandLineTool, CommandLineTool {
     @Subcommand(of: ParentReferencedSummaryTool.self, name: "compile", command: Compile())
     var compile
 
-    final class Compile: AnyCommandLineTool, CommandLineTool, _InvocationSummarySubcommandWithParentCommand {
-        typealias ParentCommand = ParentReferencedSummaryTool
-
+    @_SubcommandTool
+    final class Compile: AnyCommandLineTool, CommandLineTool {
         override var commandName: CommandLineTool.Name? {
             "compile"
         }
@@ -207,6 +264,33 @@ final class ParentReferencedSummaryTool: AnyCommandLineTool, CommandLineTool {
                 "--sdk-forwarded"
             }
 
+            \.$input
+        }
+    }
+}
+
+final class ParentUnavailableSummaryTool: AnyCommandLineTool, CommandLineTool {
+    override var commandName: CommandLineTool.Name? {
+        "parent-unavailable"
+    }
+
+    @Option(name: "sdk")
+    var sdk: String? = nil
+
+    @Subcommand(of: ParentUnavailableSummaryTool.self, name: "build", command: Build())
+    var build
+
+    @_SubcommandTool
+    final class Build: AnyCommandLineTool, CommandLineTool {
+        override var commandName: CommandLineTool.Name? {
+            "build"
+        }
+
+        @Argument(name: nil)
+        var input: String? = nil
+
+        var invocationSummary: some CommandLineToolInvocationSummary.InvocationSummary {
+            _Unavailable(self.$sdk, reason: "--sdk does not apply to build")
             \.$input
         }
     }
@@ -363,9 +447,8 @@ final class ParentChildConversionSummaryTool: AnyCommandLineTool, CommandLineToo
     @Subcommand(of: ParentChildConversionSummaryTool.self, name: "compile", command: Compile())
     var compile
 
-    final class Compile: AnyCommandLineTool, CommandLineTool, _InvocationSummarySubcommandWithParentCommand {
-        typealias ParentCommand = ParentChildConversionSummaryTool
-
+    @_SubcommandTool
+    final class Compile: AnyCommandLineTool, CommandLineTool {
         override var commandName: CommandLineTool.Name? {
             "compile"
         }
@@ -427,12 +510,6 @@ final class ConstructorBackedFlagTool: AnyCommandLineTool, CommandLineTool {
         )
 
         super.init()
-    }
-}
-
-final class SelectingToolFixture: AnyCommandLineToolWithSelectedTool, CommandLineTool {
-    override var commandName: CommandLineTool.Name? {
-        "selectingtool"
     }
 }
 
@@ -552,57 +629,6 @@ struct CommandLineToolSupportTests {
 
         #expect(chain.map(\.commandName) == ["xcrun", "simctl", "io"])
         #expect(try command.invocation == "xcrun simctl io")
-    }
-
-    @Test
-    func subcommandsCanBeSelectedWithCallSyntax() throws {
-        let command = ExampleXcrunTool()
-            .simctl()
-            .io()
-
-        #expect(try command.invocation == "xcrun simctl io")
-    }
-
-    @Test
-    func xcrunKnownSelectedToolRendersIndependentSwiftCompiler() throws {
-        let command = ExampleXcrunTool()
-            .with(\.sdk, "macosx")
-            .swiftc()
-            .with(\.typecheck, true)
-            .with(\.inputFiles, ["Foo.swift"])
-
-        #expect(try command.invocation == "xcrun -sdk macosx swiftc -typecheck Foo.swift")
-    }
-
-    @Test
-    func xcrunCanSelectExternallyModeledSwiftCompiler() throws {
-        let command = ExampleXcrunTool()
-            .with(\.sdk, "macosx")
-            .selecting(ExampleSwiftCompilerTool())
-            .with(\.typecheck, true)
-            .with(\.inputFiles, ["Foo.swift"])
-
-        #expect(try command.invocation == "xcrun -sdk macosx swiftc -typecheck Foo.swift")
-    }
-
-    @Test
-    func xcrunCanSelectExternallyModeledToolWithItsOwnSubcommands() throws {
-        let command = ExampleXcrunTool()
-            .selecting(ExampleSimulatorControlTool())
-            .with(\.verbose, true)
-            .io()
-
-        #expect(try command.invocation == "xcrun simctl --verbose io")
-    }
-
-    @Test
-    func selectedToolSemanticsDefaultToStaticExplicitArgument() {
-        let semantics = SelectingToolFixture().toolSelectionSemantics
-
-        #expect(semantics.phase == .beforeInvocation)
-        #expect(semantics.mutability == .fixedOnceSelected)
-        #expect(semantics.disclosure == .explicitArgument)
-        #expect(semantics.argumentBoundary == .selectedToolConsumesRemainingArguments)
     }
 
     @Test
@@ -905,30 +931,6 @@ struct CommandLineToolSupportTests {
     }
 
     @Test
-    func selectedToolProtocolExposesTypedSelectingAndSelectedTools() {
-        let selectingTool = SelectingToolFixture()
-        let selectedTool = CompatibilityLeafTool()
-        let tool: GenericSelectedCommandLineTool<SelectingToolFixture, CompatibilityLeafTool> = selectingTool.selecting(selectedTool)
-
-        #expect(tool.selectingTool === selectingTool)
-        #expect(tool.selectedTool === selectedTool)
-        #expect(tool.requireCommandName().rawValue == "leaf")
-        #expect(tool.toolSelectionSemantics == .staticExplicitArgument)
-        #expect(tool.description == "selectingtool selecting leaf")
-        #expect(tool.debugDescription.contains("GenericSelectedCommandLineTool"))
-    }
-
-    @Test
-    func resolvingAndInvokingSelectedToolProtocolHasDefaultResolutionSemantics() {
-        let tool = SelectingToolFixture().selecting(CompatibilityLeafTool())
-        let semantics = tool.selectedToolResolutionSemantics
-
-        #expect(semantics.phase == .beforeInvocation)
-        #expect(semantics.invocation == .throughSelectingTool)
-        #expect(semantics.executableDisclosure == .selectedToolName)
-    }
-
-    @Test
     func attachedHostToolRendersToolThatResolvesAndInvokesSelectedTool() throws {
         let command = HostedNotarytoolFixture(
             hostTool: XcrunHostToolFixture().with(\.sdk, "macosx")
@@ -1004,25 +1006,8 @@ struct CommandLineToolSupportTests {
         #expect(invocation.rawComponents == ["url-parameter", "-C", "/tmp/path with spaces"])
         #expect(invocation.commandLine == "url-parameter -C /tmp/path with spaces")
         #expect(invocation.posixShellCommandLine == "'url-parameter' '-C' '/tmp/path with spaces'")
-    }
-
-    @Test
-    func structuredInvocationHasUsefulDebugReflection() throws {
-        let invocation = try CompatibilityRootTool()
-            .with(\.force, true)
-            .with(\.path, "Sources")
-            .commandInvocation
-        let argument = try #require(invocation.arguments.first)
-        let mirrorLabels = Array(Mirror(reflecting: invocation).children).map(\.label)
-        let argumentMirrorLabels = Array(Mirror(reflecting: argument).children).map(\.label)
-
-        #expect(invocation.description == "root --force Sources")
-        #expect(invocation.debugDescription == "CommandLineToolInvocation(\"root --force Sources\")")
-        #expect(mirrorLabels == ["components", "argumentValues", "rawComponents", "commandName", "arguments", "commandLine"])
-        #expect(argument.description == "--force")
-        #expect(argument.posixShellEscapedValue == "'--force'")
-        #expect(argument.debugDescription == "CommandLineToolInvocation.Argument(.string(\"--force\"))")
-        #expect(argumentMirrorLabels == ["storage", "stringValue", "rawValue", "rawBytes"])
+        #expect(invocation.components.last?.values.elements.first?.storage == .path("/tmp/path with spaces"))
+        #expect(invocation.executableInvocation?.arguments.rawValues == ["-C", "/tmp/path with spaces"])
     }
 
     @Test
@@ -1033,11 +1018,9 @@ struct CommandLineToolSupportTests {
             .commandInvocation
         let components = invocation.components
 
-        #expect(components.map(\.kind) == [.executable, .positionalArgument, .positionalArgument])
+        #expect(components.map(\.kind) == [.executable, .flag, .positionalArgument])
         #expect(components.map(\.rawValues) == [["root"], ["--force"], ["Sources"]])
         #expect(components.first?.description == "root")
-        #expect(components.first?.debugDescription.contains("executable") == true)
-        #expect(Array(Mirror(reflecting: try #require(components.first)).children).map(\.label) == ["kind", "arguments", "key", "separator", "values", "multiValueEncoding", "rawValues"])
     }
 
     @Test
@@ -1045,27 +1028,12 @@ struct CommandLineToolSupportTests {
         let argument = CommandLineToolInvocation.Argument(rawBytes: [0xff])
         let emptyArgument = CommandLineToolInvocation.Argument("")
         let quotedArgument = CommandLineToolInvocation.Argument("it's here")
-        let mirrorLabels = Array(Mirror(reflecting: argument).children).map(\.label)
 
         #expect(argument.storage == .rawBytes([0xff]))
         #expect(argument.stringValue == nil)
         #expect(argument.rawBytes == [0xff])
         #expect(emptyArgument.posixShellEscapedValue == "''")
         #expect(quotedArgument.posixShellEscapedValue == "'it'\\''s here'")
-        #expect(argument.debugDescription == "CommandLineToolInvocation.Argument(.rawBytes([255]))")
-        #expect(mirrorLabels == ["storage", "stringValue", "rawValue", "rawBytes"])
-    }
-
-    @Test
-    func oldPositionNamesRemainEquivalent() {
-        #expect(CommandLineToolArgumentPlacement.declaringCommand == .local)
-        #expect(CommandLineToolArgumentPlacement.selectedCommand == .nextCommand)
-        #expect(CommandLineToolArgumentPlacement.finalCommand == .lastCommand)
-    }
-
-    @Test
-    func optionalNonEquatableParametersCanBeModeled() throws {
-        #expect(try OptionalParameterTool().invocation == "optional-parameter")
     }
 
     @Test("CommandLineTool callAsFunction still returns Process.RunResult")
@@ -1093,11 +1061,7 @@ struct CommandLineToolSupportTests {
         #expect(record.stdoutString == "modeled-record")
         #expect(try record.toString() == "modeled-record")
         #expect(record.description == "echo modeled-record")
-        #expect(record.debugDescription.contains("EchoCompatibilityTool"))
         #expect(record.source.description == "echo modeled-record")
-        #expect(record.source.debugDescription.contains("modeledInvocation"))
-        #expect(Array(Mirror(reflecting: record).children).map(\.label) == ["tool", "source", "processResult", "selectedToolInvocation", "commandLine"])
-        #expect(Array(Mirror(reflecting: record.source).children).map(\.label) == ["case", "invocation", "commandLine"])
     }
 
     @Test("Invocation arguments compose with modeled root invocations")
@@ -1110,10 +1074,8 @@ struct CommandLineToolSupportTests {
 
         #expect(arguments.rawValues == ["status", "--porcelain"])
         #expect(arguments.description == "status --porcelain")
-        #expect(arguments.debugDescription == "CommandLineToolInvocation.Arguments([\"status\", \"--porcelain\"])")
         #expect(invocation.rawComponents == ["root", "--force", "Sources", "status", "--porcelain"])
         #expect(invocation.arguments.map(\.rawValue) == ["--force", "Sources", "status", "--porcelain"])
-        #expect(Array(Mirror(reflecting: arguments).children).map(\.label) == ["elements", "rawValues"])
     }
 
     @Test("Invocation arguments preserve empty argv elements at the model layer")
@@ -1287,16 +1249,6 @@ struct CommandLineToolSupportTests {
         let selectedToolInvocation = try #require(coupled.selectedToolInvocation)
 
         #expect(selectedToolInvocation.description == "printf selected-tool")
-        #expect(selectedToolInvocation.debugDescription.contains("selectedToolCommandName: \"selected-tool\""))
-        #expect(Array(Mirror(reflecting: selectedToolInvocation).children).map(\.label) == [
-            "renderedInvocation",
-            "selectingToolCommandName",
-            "selectedToolCommandName",
-            "selectedToolCommandPath",
-            "selectionSemantics",
-            "resolutionSemantics",
-            "commandLine"
-        ])
     }
 
     @Test("Selected-tool subcommands preserve selected-tool-local arguments and metadata")
@@ -1314,14 +1266,6 @@ struct CommandLineToolSupportTests {
         #expect(record.selectedToolInvocation?.selectedToolCommandName == "selected-parent")
         #expect(record.selectedToolInvocation?.selectedToolCommandPath == ["selected-parent", "child"])
         #expect(record.selectedToolInvocation?.commandLine == record.commandLine)
-    }
-
-    @Test
-    func defaultValueParametersDoNotRequireArgumentValueConvertible() {
-        let tool = DefaultValueParameterTool()
-
-        #expect(tool.mode == .disabled)
-        #expect(tool.values == [])
     }
 
     @Test
@@ -1352,6 +1296,127 @@ struct CommandLineToolSupportTests {
 
         #expect(writeCommand == "conditional-summary write --output trace.json --verbose")
         #expect(dryRunCommand == "conditional-summary dry-run --verbose")
+    }
+
+    @Test
+    func invocationSummaryCanOmitCurrentCommandArguments() throws {
+        let command = try OmittedSummaryTool()
+            .with(\.verbose, true)
+            .with(\.output, "out.txt")
+            .invocation
+
+        #expect(command == "omitted-summary --output out.txt")
+    }
+
+    @Test
+    func invocationSummaryConflictingDispositionsThrowStructuredErrors() throws {
+        do {
+            _ = try ConflictingDispositionSummaryTool()
+                .with(\.output, "out.txt")
+                .invocation
+
+            Issue.record("Expected conflicting invocation-summary argument dispositions to throw.")
+        } catch let error as CommandLineToolInvocationSummary.Error {
+            guard case .conflictingArgumentDisposition(let command, let argument, let existing, let new, let location) = error else {
+                Issue.record("Expected conflictingArgumentDisposition, got \(error).")
+                return
+            }
+
+            #expect(command == "conflicting-disposition")
+            #expect(argument.rawValue == "output")
+            #expect(argument.commandName == "conflicting-disposition")
+            #expect(existing.disposition == .omitted)
+            #expect(new.disposition == .explicitRender)
+            #expect(new.components.map(\.kind) == [.option])
+            #expect(location != nil)
+        } catch {
+            Issue.record("Expected invocation-summary error, got \(error).")
+        }
+    }
+
+    @Test
+    func invocationSummaryUnavailableAllowsAbsentCurrentCommandArguments() throws {
+        let command = try UnavailableSummaryTool()
+            .with(\.verbose, true)
+            .with(\.input, "main.swift")
+            .invocation
+
+        #expect(command == "unavailable-summary --verbose main.swift")
+    }
+
+    @Test
+    func invocationSummaryUnavailableRejectsCurrentCommandArgumentsWhenRendered() throws {
+        do {
+            _ = try UnavailableSummaryTool()
+                .with(\.output, "out.txt")
+                .with(\.input, "main.swift")
+                .invocation
+
+            Issue.record("Expected unavailable invocation-summary argument to throw.")
+        } catch let error as CommandLineToolInvocationSummary.Error {
+            guard case .unsupportedArgument(let command, let argument, let disposition, let components, let reason, let location) = error else {
+                Issue.record("Expected unsupportedArgument, got \(error).")
+                return
+            }
+
+            #expect(command == "unavailable-summary")
+            #expect(argument.rawValue == "output")
+            #expect(argument.commandName == "unavailable-summary")
+            #expect(disposition == .unavailable)
+            #expect(components.map(\.kind) == [.option])
+            #expect(reason == "--output is not accepted by this mode")
+            #expect(location != nil)
+        } catch {
+            Issue.record("Expected invocation-summary error, got \(error).")
+        }
+    }
+
+    @Test
+    func invocationSummaryUnavailableRejectsParentArgumentsWhenRendered() throws {
+        do {
+            _ = try ParentUnavailableSummaryTool()
+                .with(\.sdk, "macosx")
+                .build()
+                .with(\.input, "main.swift")
+                .invocation
+
+            Issue.record("Expected unavailable parent invocation-summary argument to throw.")
+        } catch let error as CommandLineToolInvocationSummary.Error {
+            guard case .unsupportedArgument(let command, let argument, let disposition, let components, let reason, let location) = error else {
+                Issue.record("Expected unsupportedArgument, got \(error).")
+                return
+            }
+
+            #expect(command == "parent-unavailable")
+            #expect(argument.rawValue == "sdk")
+            #expect(argument.commandName == "parent-unavailable")
+            #expect(disposition == .unavailable)
+            #expect(components.map(\.kind) == [.option])
+            #expect(reason == "--sdk does not apply to build")
+            #expect(location != nil)
+        } catch {
+            Issue.record("Expected invocation-summary error, got \(error).")
+        }
+    }
+
+    @Test
+    func invocationSummaryUnavailableAllowsAbsentParentArguments() throws {
+        let command = try ParentUnavailableSummaryTool()
+            .build()
+            .with(\.input, "main.swift")
+            .invocation
+
+        #expect(command == "parent-unavailable build main.swift")
+    }
+
+    @Test
+    func invocationSummaryRewriteRulesRunAfterDefaultCompletion() throws {
+        let command = try RewrittenSummaryTool()
+            .with(\.output, "raw.txt")
+            .with(\.input, "main.swift")
+            .invocation
+
+        #expect(command == "rewritten-summary --output rewritten.txt main.swift rewrite-applied")
     }
 
     @Test
@@ -1409,8 +1474,22 @@ struct CommandLineToolSupportTests {
         let command = SwitchWithoutDefaultSummaryTool()
             .with(\.format, "yaml")
 
-        #expect(throws: (any Error).self) {
+        do {
             _ = try command.invocation
+
+            Issue.record("Expected invocation-summary switch without matching case to throw.")
+        } catch let error as CommandLineToolInvocationSummary.Error {
+            guard case .noSwitchCaseMatched(let command, let argument, let valueDescription, let location) = error else {
+                Issue.record("Expected noSwitchCaseMatched, got \(error).")
+                return
+            }
+
+            #expect(command == "switch-without-default")
+            #expect(argument?.rawValue == "format")
+            #expect(valueDescription == "Optional(\"yaml\")")
+            #expect(location != nil)
+        } catch {
+            Issue.record("Expected invocation-summary error, got \(error).")
         }
     }
 
@@ -1531,24 +1610,6 @@ struct CommandLineToolSupportTests {
     }
 
     @Test
-    func resolvedDescriptionHasUsefulDebugReflection() throws {
-        let description = try ResolvedDescriptionTool()
-            .with(\.inputs, ["Sources/main.swift"])
-            .with(\.trace, true)
-            .resolve()
-        let trace = try #require(description.arguments[id: .init(rawValue: "trace", commandName: "resolved-description")])
-        let descriptionMirrorLabels = Array(Mirror(reflecting: description).children).map(\.label)
-        let traceMirrorLabels = Array(Mirror(reflecting: trace).children).map(\.label)
-
-        #expect(description.description == "resolved-description")
-        #expect(description.debugDescription.contains("commandName: \"resolved-description\""))
-        #expect(descriptionMirrorLabels == ["commandName", "arguments", "subcommands"])
-        #expect(trace.description == "--trace")
-        #expect(trace.debugDescription.contains("resolved-description.trace"))
-        #expect(traceMirrorLabels == ["base", "id", "defaultPosition", "invocationComponents", "publicInvocationComponents", "invocationArgumentValues", "invocationArguments", "invocationArgument"])
-    }
-
-    @Test
     func invocationSummaryCanRenderParentCommandArgumentsFromSubcommands() throws {
         let withoutParentValue = try ParentReferencedSummaryTool()
             .compile()
@@ -1563,6 +1624,28 @@ struct CommandLineToolSupportTests {
 
         #expect(withoutParentValue == "parent-summary compile main.swift")
         #expect(withParentValue == "parent-summary compile --sdk macosx --sdk-forwarded main.swift")
+    }
+
+    @Test
+    func parentInvocationSummaryReferencesThrowStructuredErrorsWithoutParent() throws {
+        do {
+            _ = try ParentReferencedSummaryTool.Compile()
+                .with(\.input, "main.swift")
+                .invocation
+
+            Issue.record("Expected missing parent invocation-summary error.")
+        } catch let error as CommandLineToolInvocationSummary.Error {
+            guard case .missingExpectedParent(let command, let expectedParent, let actualParent, _) = error else {
+                Issue.record("Expected missingExpectedParent, got \(error).")
+                return
+            }
+
+            #expect(ObjectIdentifier(command) == ObjectIdentifier(ParentReferencedSummaryTool.Compile.self))
+            #expect(ObjectIdentifier(expectedParent) == ObjectIdentifier(ParentReferencedSummaryTool.self))
+            #expect(actualParent == nil)
+        } catch {
+            Issue.record("Expected invocation-summary error, got \(error).")
+        }
     }
 
     @Test

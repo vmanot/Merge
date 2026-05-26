@@ -7,6 +7,30 @@ import Foundation
 import Swallow
 import Collections
 
+private extension CommandLineToolInvocation.Argument {
+    init?(
+        _resolvedInvocationValue value: Any
+    ) {
+        if let url = value as? URL {
+            self.init(fileURL: url)
+        } else if let value = value as? any CLT.ArgumentValueConvertible {
+            self.init(_argumentValueConvertible: value)
+        } else {
+            return nil
+        }
+    }
+    
+    init(
+        _argumentValueConvertible value: any CLT.ArgumentValueConvertible
+    ) {
+        if let url = value as? URL {
+            self.init(fileURL: url)
+        } else {
+            self.init(value.argumentValue)
+        }
+    }
+}
+
 /// The most granular and "resolved" representation of a command-line tool within some context.
 public struct _ResolvedCommandLineToolDescription: CustomStringConvertible, CustomDebugStringConvertible, CustomReflectable, MergeOperatable {
     public struct ArgumentID: CustomStringConvertible, CustomDebugStringConvertible, CustomReflectable, Hashable, Sendable {
@@ -195,17 +219,17 @@ public struct _ResolvedCommandLineToolDescription: CustomStringConvertible, Cust
             
             if let array = value as? [any CLT.ArgumentValueConvertible] {
                 return array
-                    .map(\.argumentValue)
-                    .filter { !$0.isEmpty }
-                    .map { InvocationComponent.positionalArgument(CommandLineToolInvocation.Argument($0)) }
+                    .map(CommandLineToolInvocation.Argument.init(_argumentValueConvertible:))
+                    .filter { !$0.rawValue.isEmpty }
+                    .map { InvocationComponent.positionalArgument($0) }
             }
             
-            guard let argument = (value as? CLT.ArgumentValueConvertible)?.argumentValue else {
+            guard let argument = CommandLineToolInvocation.Argument(_resolvedInvocationValue: value) else {
                 return []
             }
             
-            return argument.isEmpty ? [] : [
-                InvocationComponent.positionalArgument(CommandLineToolInvocation.Argument(argument))
+            return argument.rawValue.isEmpty ? [] : [
+                InvocationComponent.positionalArgument(argument)
             ]
         }
     }
@@ -231,9 +255,8 @@ public struct _ResolvedCommandLineToolDescription: CustomStringConvertible, Cust
             if let multiValueEncoding {
                 if let array = value as? [any CLT.ArgumentValueConvertible] {
                     let values = array
-                        .map(\.argumentValue)
-                        .filter { !$0.isEmpty }
-                        .map { CommandLineToolInvocation.Argument($0) }
+                        .map(CommandLineToolInvocation.Argument.init(_argumentValueConvertible:))
+                        .filter { !$0.rawValue.isEmpty }
                     
                     switch multiValueEncoding {
                         case .spaceSeparated:
@@ -264,12 +287,12 @@ public struct _ResolvedCommandLineToolDescription: CustomStringConvertible, Cust
                 }
             }
             
-            if let convertible = value as? CLT.ArgumentValueConvertible, !convertible.argumentValue.isEmpty {
+            if let argument = CommandLineToolInvocation.Argument(_resolvedInvocationValue: value), !argument.rawValue.isEmpty {
                 return [
                     .option(
                         key: key,
                         separator: separator,
-                        values: [CommandLineToolInvocation.Argument(convertible.argumentValue)]
+                        values: [argument]
                     )
                 ]
             } else {

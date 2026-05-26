@@ -21,10 +21,14 @@ extension CommandLineToolInvocationSummary {
         func summary(sourceValue: Value) throws -> Summary
     }
 
-    enum InvocationSummarySwitchCaseError: Error {
+    enum InvocationSummarySwitchCaseError: Swift.Error {
         case caseNotMatch
         case noCaseMatched
         case notEquatable
+    }
+
+    protocol _InvocationSummaryDefaultCaseConditionProtocol {
+
     }
 
     public struct InvocationSummaryCaseCondition<Command: AnyCommandLineTool, Value: InvocationSummaryValue, Summary: InvocationSummary>: InvocationSummarySwitchCaseProtocol where Value.WrappedValue: Equatable, Summary.Command == Command {
@@ -69,6 +73,41 @@ extension CommandLineToolInvocationSummary {
         }
     }
 
+    public struct InvocationSummaryCaseConditionList<Command: AnyCommandLineTool, Value: InvocationSummaryValue>: InvocationSummarySwitchCaseProtocol {
+        public typealias Summary = AnyInvocationSummary<Command>
+
+        @usableFromInline
+        var conditions: [any InvocationSummarySwitchCaseProtocol<Value>]
+
+        @usableFromInline
+        init(_ conditions: [any InvocationSummarySwitchCaseProtocol<Value>]) {
+            self.conditions = conditions
+        }
+
+        public func summary(sourceValue: Value) throws -> AnyInvocationSummary<Command> {
+            let nonDefaultConditions = conditions.filter {
+                !($0 is _InvocationSummaryDefaultCaseConditionProtocol)
+            }
+            let defaultConditions = conditions.filter {
+                $0 is _InvocationSummaryDefaultCaseConditionProtocol
+            }
+
+            for condition in nonDefaultConditions + defaultConditions {
+                do {
+                    guard let summary = try condition.summary(sourceValue: sourceValue) as? (any InvocationSummary<Command>) else {
+                        continue
+                    }
+
+                    return AnyInvocationSummary(erasing: summary)
+                } catch InvocationSummarySwitchCaseError.caseNotMatch {
+                    continue
+                }
+            }
+
+            throw InvocationSummarySwitchCaseError.noCaseMatched
+        }
+    }
+
     @resultBuilder
     public struct InvocationSummaryCaseConditionBuilder<Command: AnyCommandLineTool, Value: InvocationSummaryValue> {
         @_alwaysEmitIntoClient
@@ -95,6 +134,21 @@ extension CommandLineToolInvocationSummary {
         }
 
         @_alwaysEmitIntoClient
+        public static func buildPartialBlock<Content>(
+            first content: Content
+        ) -> InvocationSummaryCaseConditionList<Command, Value> where Content: InvocationSummarySwitchCaseProtocol, Content.Value == Value, Content.Command == Command {
+            InvocationSummaryCaseConditionList([content])
+        }
+
+        @_alwaysEmitIntoClient
+        public static func buildPartialBlock<Content>(
+            accumulated: InvocationSummaryCaseConditionList<Command, Value>,
+            next content: Content
+        ) -> InvocationSummaryCaseConditionList<Command, Value> where Content: InvocationSummarySwitchCaseProtocol, Content.Value == Value, Content.Command == Command {
+            InvocationSummaryCaseConditionList(accumulated.conditions + [content])
+        }
+
+        @_alwaysEmitIntoClient
         public static func buildExpression<Content>(
             _ content: Content
         ) -> Content where Content: InvocationSummarySwitchCaseProtocol, Content.Value == Value, Content.Command == Command {
@@ -105,13 +159,19 @@ extension CommandLineToolInvocationSummary {
     public struct InvocationSummarySwitchCondition<Command: AnyCommandLineTool, Value: InvocationSummaryValue, CaseCondition: InvocationSummarySwitchCaseProtocol>: InvocationSummary where CaseCondition.Command == Command, CaseCondition.Value == Value {
         private let keyPath: KeyPath<Command, Value>
         private let conditions: CaseCondition
+        private let location: SourceCodeLocation
 
         public init(
             _ value: KeyPath<Command, Value>,
+            fileID: StaticString = #fileID,
+            function: StaticString = #function,
+            line: UInt = #line,
+            column: UInt? = nil,
             @InvocationSummaryCaseConditionBuilder<Command, Value> _ conditions: () -> CaseCondition
         ) {
             self.keyPath = value
             self.conditions = conditions()
+            self.location = SourceCodeLocation(fileID: fileID, function: function, line: line, column: column)
         }
 
         public func makeInvocationArguments(
@@ -119,9 +179,36 @@ extension CommandLineToolInvocationSummary {
             parent: AnyCommandLineTool?,
             context: InvocationSummaryContext
         ) throws -> CommandLineToolInvocation.Arguments {
-            let summary = try conditions.summary(sourceValue: command[keyPath: keyPath])
+            CommandLineToolInvocation.Arguments(
+                try makeInvocationComponents(
+                    command: command,
+                    parent: parent,
+                    context: context
+                )
+                .flatMap(\.argumentValues)
+            )
+        }
 
-            return try summary.makeInvocationArguments(
+        public func makeInvocationComponents(
+            command: Command,
+            parent: AnyCommandLineTool?,
+            context: InvocationSummaryContext
+        ) throws -> [CommandLineToolInvocation.Component] {
+            let sourceValue = command[keyPath: keyPath]
+            let summary: any InvocationSummary<Command>
+
+            do {
+                summary = try conditions.summary(sourceValue: sourceValue) as any InvocationSummary<Command>
+            } catch InvocationSummarySwitchCaseError.noCaseMatched {
+                throw CommandLineToolInvocationSummary.Error.noSwitchCaseMatched(
+                    command: command.commandName,
+                    argument: InvocationSummaryContext.argumentID(command: command, keyPath: keyPath),
+                    valueDescription: String(describing: sourceValue.wrappedValue),
+                    location: location
+                )
+            }
+
+            return try summary.makeInvocationComponents(
                 command: command,
                 parent: parent,
                 context: context
@@ -159,13 +246,28 @@ extension CommandLineToolInvocationSummary {
         }
 
         public func summary(sourceValue: Value) throws -> some InvocationSummary<Command> {
-            guard let summary: any InvocationSummary<Command> = conditions.first(byUnwrapping: {
-                (try? $0.summary(sourceValue: sourceValue)) as? (any InvocationSummary<Command>)
-            }) else {
-                throw InvocationSummarySwitchCaseError.noCaseMatched
+            for condition in conditions {
+                do {
+                    guard let summary = try condition.summary(sourceValue: sourceValue) as? (any InvocationSummary<Command>) else {
+                        continue
+                    }
+
+                    return AnyInvocationSummary(erasing: summary)
+                } catch InvocationSummarySwitchCaseError.caseNotMatch {
+                    continue
+                }
             }
 
-            return AnyInvocationSummary(erasing: summary)
+            throw InvocationSummarySwitchCaseError.noCaseMatched
         }
     }
+}
+
+@available(macOS 11.0, *)
+@available(iOS, unavailable)
+@available(macCatalyst, unavailable)
+@available(tvOS, unavailable)
+@available(watchOS, unavailable)
+extension CommandLineToolInvocationSummary.InvocationSummaryDefaultCaseCondition: CommandLineToolInvocationSummary._InvocationSummaryDefaultCaseConditionProtocol {
+
 }

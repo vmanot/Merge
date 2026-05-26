@@ -18,6 +18,8 @@ public protocol CommandLineTool: AnyCommandLineTool {
 
     associatedtype SummaryContent: CommandLineToolInvocationSummary.InvocationSummary
     typealias When = CommandLineToolInvocationSummary.InvocationSummaryWhenCondition<Self>
+    typealias Omit<Value> = CommandLineToolInvocationSummary.Omit<Self, Value> where Value: CommandLineToolInvocationSummary.InvocationSummaryValue
+    typealias _Unavailable<Value> = CommandLineToolInvocationSummary._Unavailable<Self, Value> where Value: CommandLineToolInvocationSummary.InvocationSummaryValue
     typealias Switch<Value, CaseCondition> = CommandLineToolInvocationSummary.InvocationSummarySwitchCondition<Self, Value, CaseCondition> where CaseCondition : CommandLineToolInvocationSummary.InvocationSummarySwitchCaseProtocol, CaseCondition.Command == Self, CaseCondition.Value == Value, Value: CommandLineToolInvocationSummary.InvocationSummaryValue
     typealias Case<Value, Summary> = CommandLineToolInvocationSummary.InvocationSummaryCaseCondition<Self, Value, Summary> where Value : CommandLineToolInvocationSummary.InvocationSummaryValue, Value.WrappedValue: Equatable, Summary : CommandLineToolInvocationSummary.InvocationSummary, Summary.Command == Self
     typealias DefaultCase<Value, Summary> = CommandLineToolInvocationSummary.InvocationSummaryDefaultCaseCondition<Self, Value, Summary> where Value : CommandLineToolInvocationSummary.InvocationSummaryValue, Summary : CommandLineToolInvocationSummary.InvocationSummary, Summary.Command == Self
@@ -34,31 +36,39 @@ extension CommandLineTool {
     public func invocationArgumentValues(
         context: CommandLineToolInvocationSummary.InvocationSummaryContext
     ) throws -> CommandLineToolInvocation.Arguments {
+        CommandLineToolInvocation.Arguments(
+            try invocationComponents(context: context).flatMap(\.argumentValues)
+        )
+    }
+
+    public func invocationComponents(
+        context: CommandLineToolInvocationSummary.InvocationSummaryContext
+    ) throws -> [CommandLineToolInvocation.Component] {
         let subject = _invocationSummarySubject()
-        let summaryArguments = try invocationSummary.makeInvocationArguments(
+        let summaryComponents = try invocationSummary.makeInvocationComponents(
             command: subject.summaryCommand,
             parent: subject.parent,
             context: context
         )
-        var arguments = CommandLineToolInvocation.Arguments()
+        var components: [CommandLineToolInvocation.Component] = []
 
         if let chain = subject.commandChain {
-            arguments.append(
+            components.append(
                 contentsOf: try _CommandLineToolInvocationAssembly(
                     chain: chain,
-                    leafArguments: summaryArguments,
+                    leafComponents: summaryComponents,
                     context: context
                 )
-                .makeInvocationArguments()
+                .makeInvocationComponents()
             )
         } else {
-            arguments.append(CommandLineToolInvocation.Argument(requireCommandName().rawValue))
-            arguments.append(contentsOf: summaryArguments)
+            components.append(.executable(CommandLineToolInvocation.Argument(requireCommandName().rawValue)))
+            components.append(contentsOf: summaryComponents)
         }
 
         if _shouldAppendDefaultInvocationSummary {
-            try arguments.append(
-                contentsOf: CommandLineToolInvocationSummary.DefaultInvocationSummary<Self>().makeInvocationArguments(
+            try components.append(
+                contentsOf: CommandLineToolInvocationSummary.DefaultInvocationSummary<Self>().makeInvocationComponents(
                     command: self,
                     parent: nil,
                     context: context
@@ -66,10 +76,21 @@ extension CommandLineTool {
             )
         }
 
-        return try _CommandLineToolCommandChain(resolvingOrSelf: self).applyingAttachedHostToolIfNeeded(
-            to: _CommandLineToolCommandChain.sanitizingInvocationArguments(arguments),
+        var invocation = CommandLineToolInvocation(
+            components: components.filter { !$0.argumentValues.isEmpty }
+        )
+        let hostedArguments = try _CommandLineToolCommandChain(resolvingOrSelf: self).applyingAttachedHostToolIfNeeded(
+            to: CommandLineToolInvocation.Arguments(invocation.argumentValues),
             context: context
         )
+
+        if hostedArguments.elements != invocation.argumentValues {
+            invocation = CommandLineToolInvocation(components: hostedArguments)
+        }
+
+        try context.applyRewriteRules(to: &invocation)
+
+        return invocation.components
     }
 
     public func invocationArguments(context: CommandLineToolInvocationSummary.InvocationSummaryContext) throws -> [String] {

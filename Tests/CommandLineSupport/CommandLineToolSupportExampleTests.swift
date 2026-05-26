@@ -4,6 +4,18 @@ import CommandLineToolSupport
 import Foundation
 import Testing
 
+private func hasInvocationSummaryParentConformance(
+    _ type: Any.Type
+) -> Bool {
+    type is any _InvocationSummarySubcommandWithParentCommand.Type
+}
+
+private func hasCommandLineToolConformance(
+    _ type: Any.Type
+) -> Bool {
+    type is any CommandLineTool.Type
+}
+
 @Suite
 struct CommandLineToolSupportExampleTests {
     @Test
@@ -73,6 +85,25 @@ struct CommandLineToolSupportExampleTests {
     }
 
     @Test
+    func subcommandMacroCanMarkPlainNestedSubcommandsWithoutInvocationSummaryCoupling() throws {
+        let command = try ExamplePlainSubcommandTool()
+            .leaf()
+            .with(\.verbose, true)
+            .invocation
+        let extensionCommand = try ExamplePlainSubcommandTool()
+            .extensionLeaf()
+            .with(\.dryRun, true)
+            .invocation
+
+        #expect(command == "plain leaf --verbose")
+        #expect(extensionCommand == "plain extension-leaf --dry-run")
+        #expect(hasCommandLineToolConformance(ExamplePlainSubcommandTool.Leaf.self))
+        #expect(hasCommandLineToolConformance(ExamplePlainSubcommandTool.ExtensionLeaf.self))
+        #expect(!hasInvocationSummaryParentConformance(ExamplePlainSubcommandTool.Leaf.self))
+        #expect(!hasInvocationSummaryParentConformance(ExamplePlainSubcommandTool.ExtensionLeaf.self))
+    }
+
+    @Test
     func modelsSandboxExecWrappingModeledSwiftInvocation() throws {
         let swiftBuild = ExampleSwiftTool()
             .build()
@@ -98,6 +129,187 @@ struct CommandLineToolSupportExampleTests {
         #expect(profileFilePath.publicInvocationComponents.first?.key?.rawValue == "-f")
         #expect(profileFilePath.publicInvocationComponents.first?.values.rawValues == ["Profiles/no-network.sb"])
         #expect(commandAndArguments.publicInvocationComponents.map(\.kind) == Array(repeating: .positionalArgument, count: 6))
+    }
+
+    @Test
+    func invocationSummaryCanModelDoccStaticHostingWorkflow() throws {
+        let command = try ExampleDocumentationCompilerTool()
+            .with(\.catalogPath, "Documentation.docc")
+            .with(\.outputPath, ".build/site")
+            .with(\.transformForStaticHosting, true)
+            .with(\.hostingBasePath, "/project")
+            .with(\.emitDigest, true)
+            .invocation
+
+        #expect(
+            command == "docc convert Documentation.docc --output-path .build/site --transform-for-static-hosting --hosting-base-path /project --emit-digest"
+        )
+    }
+
+    @Test
+    func invocationSummaryCanModelDoccPreviewWorkflow() throws {
+        let command = try ExampleDocumentationCompilerTool()
+            .with(\.operation, .preview)
+            .with(\.catalogPath, "Documentation.docc")
+            .with(\.port, 8080)
+            .invocation
+
+        #expect(command == "docc preview Documentation.docc --port 8080")
+    }
+
+    @Test
+    func invocationSummaryCanForwardParentConfigurationIntoSubcommand() throws {
+        #expect(hasInvocationSummaryParentConformance(ExampleXcodebuildLikeTool.Test.self))
+
+        let command = try ExampleXcodebuildLikeTool()
+            .with(\.scheme, "ExampleApp")
+            .with(\.destination, "platform=iOS Simulator,name=iPhone 15")
+            .with(\.enableCodeCoverage, .enabled)
+            .test()
+            .with(\.testPlan, "Smoke")
+            .with(\.onlyTesting, ["ExampleAppTests/LoginTests"])
+            .with(\.skipTesting, ["ExampleAppTests/SlowTests"])
+            .invocation
+
+        #expect(
+            command == "xcodebuild test -scheme ExampleApp -destination platform=iOS Simulator,name=iPhone 15 -enableCodeCoverage YES -testPlan Smoke -only-testing ExampleAppTests/LoginTests -skip-testing ExampleAppTests/SlowTests"
+        )
+    }
+
+    @Test
+    func invocationSummaryCanRewriteXcodebuildResultBundlePathAsStructuredOptionComponent() throws {
+        let command = ExampleXcodebuildLikeTool()
+            .with(\.workspace, "ExampleApp.xcworkspace")
+            .with(\.scheme, "ExampleApp")
+            .with(\.destination, "platform=iOS Simulator,name=iPhone 15")
+            .test()
+            .with(\.resultBundlePath, ".build/TestResults")
+            .with(\.parallelTestingEnabled, false)
+        let invocation = try command.commandInvocation
+        let resultBundleComponent = try #require(
+            invocation.components.first {
+                $0.key?.rawValue == "-resultBundlePath"
+            }
+        )
+
+        #expect(
+            invocation.commandLine == "xcodebuild test -workspace ExampleApp.xcworkspace -scheme ExampleApp -destination platform=iOS Simulator,name=iPhone 15 -resultBundlePath .build/TestResults.xcresult -no-parallel-testing-enabled"
+        )
+        #expect(resultBundleComponent.kind == .option)
+        #expect(resultBundleComponent.key?.rawValue == "-resultBundlePath")
+        #expect(resultBundleComponent.values.rawValues == [".build/TestResults.xcresult"])
+    }
+
+    @Test
+    func invocationSummaryRejectsUnsupportedParentArgumentsWithStructuredDiagnostics() throws {
+        do {
+            _ = try ExampleXcodebuildLikeTool()
+                .with(\.scheme, "ExampleApp")
+                .with(\.enableCodeCoverage, .enabled)
+                .analyze()
+                .invocation
+
+            Issue.record("Expected analyze to reject test-only code coverage configuration.")
+        } catch let error as CommandLineToolInvocationSummary.Error {
+            guard case .unsupportedArgument(let command, let argument, let disposition, let components, let reason, let location) = error else {
+                Issue.record("Expected unsupportedArgument, got \(error).")
+                return
+            }
+
+            #expect(command == "xcodebuild")
+            #expect(argument.rawValue == "enableCodeCoverage")
+            #expect(disposition == .unavailable)
+            #expect(components.flatMap(\.rawValues) == ["-enableCodeCoverage", "YES"])
+            #expect(reason == "-enableCodeCoverage is only meaningful for test actions")
+            #expect(location != nil)
+        } catch {
+            Issue.record("Expected invocation-summary error, got \(error).")
+        }
+    }
+
+    @Test
+    func invocationSummaryCanOmitParentCoverageFromXcodebuildBuild() throws {
+        #expect(hasInvocationSummaryParentConformance(ExampleXcodebuildLikeTool.Build.self))
+
+        let xcodebuild = ExampleXcodebuildLikeTool()
+            .with(\.scheme, "ExampleApp")
+            .with(\.destination, "platform=iOS Simulator,name=iPhone 15")
+            .with(\.enableCodeCoverage, .enabled)
+
+        try xcodebuild._attachOutputFormatterTool(
+            ExampleXcbeautifyTool().with(\.disableColoredOutput, true)
+        )
+
+        let command = try xcodebuild
+            .build()
+            .invocation
+        let formatter = try #require(xcodebuild._attachedOutputFormatterTool)
+            .invocation
+
+        #expect(formatter == "xcbeautify --disable-colored-output")
+        #expect(
+            command == "xcodebuild build -scheme ExampleApp -destination platform=iOS Simulator,name=iPhone 15"
+        )
+    }
+
+    @Test
+    func invocationSummaryCanModelXcodebuildArchiveWithParentConfiguration() throws {
+        #expect(hasInvocationSummaryParentConformance(ExampleXcodebuildLikeTool.Archive.self))
+
+        let command = try ExampleXcodebuildLikeTool()
+            .with(\.workspace, "ExampleApp.xcworkspace")
+            .with(\.scheme, "ExampleApp")
+            .with(\.destination, "generic/platform=iOS")
+            .with(\.derivedDataPath, ".build/DerivedData")
+            .archive()
+            .with(\.archivePath, ".build/ExampleApp.xcarchive")
+            .with(\.allowProvisioningUpdates, true)
+            .invocation
+
+        #expect(
+            command == "xcodebuild archive -workspace ExampleApp.xcworkspace -scheme ExampleApp -destination generic/platform=iOS -derivedDataPath .build/DerivedData -archivePath .build/ExampleApp.xcarchive -allowProvisioningUpdates"
+        )
+    }
+
+    @Test
+    func subcommandMacroInfersParentCommandForSubcommandsNestedInExtensions() throws {
+        #expect(hasInvocationSummaryParentConformance(ExampleXcodebuildLikeTool.Clean.self))
+
+        let command = try ExampleXcodebuildLikeTool()
+            .with(\.workspace, "ExampleApp.xcworkspace")
+            .with(\.derivedDataPath, ".build/DerivedData")
+            .clean()
+            .invocation
+
+        #expect(command == "xcodebuild clean -workspace ExampleApp.xcworkspace -derivedDataPath .build/DerivedData")
+    }
+
+    @Test
+    func invocationSummaryCanModelReleaseNotesPrecedence() throws {
+        let fileBackedNotes = try ExampleGitHubTool()
+            .with(\.repository, "PreternaturalAI/ExampleApp")
+            .release()
+            .create()
+            .with(\.tagName, "1.2.0")
+            .with(\.title, "ExampleApp 1.2.0")
+            .with(\.notes, "Ignored because notes-file wins")
+            .with(\.notesFile, "CHANGELOG.md")
+            .with(\.draft, true)
+            .with(\.assets, [".build/ExampleApp.zip", ".build/ExampleApp.dSYM.zip"])
+            .invocation
+
+        let generatedNotes = try ExampleGitHubTool()
+            .release()
+            .create()
+            .with(\.tagName, "1.2.1")
+            .with(\.generateNotes, true)
+            .with(\.prerelease, true)
+            .invocation
+
+        #expect(
+            fileBackedNotes == "gh --repo PreternaturalAI/ExampleApp release create 1.2.0 --title ExampleApp 1.2.0 --notes-file CHANGELOG.md --draft .build/ExampleApp.zip .build/ExampleApp.dSYM.zip"
+        )
+        #expect(generatedNotes == "gh release create 1.2.1 --generate-notes --prerelease")
     }
 }
 

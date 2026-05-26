@@ -13,11 +13,14 @@ public struct CommandLineToolInvocation: CustomStringConvertible, CustomDebugStr
     public struct Argument: CustomStringConvertible, CustomDebugStringConvertible, CustomReflectable, Hashable, Sendable, ExpressibleByStringLiteral {
         public enum Storage: CustomStringConvertible, CustomDebugStringConvertible, Hashable, Sendable {
             case string(String)
+            case path(String)
             case rawBytes([UInt8])
 
             public var description: String {
                 switch self {
                     case .string(let value):
+                        value
+                    case .path(let value):
                         value
                     case .rawBytes(let value):
                         String(decoding: value, as: UTF8.self)
@@ -28,6 +31,8 @@ public struct CommandLineToolInvocation: CustomStringConvertible, CustomDebugStr
                 switch self {
                     case .string(let value):
                         ".string(\(String(reflecting: value)))"
+                    case .path(let value):
+                        ".path(\(String(reflecting: value)))"
                     case .rawBytes(let value):
                         ".rawBytes(\(value))"
                 }
@@ -44,6 +49,14 @@ public struct CommandLineToolInvocation: CustomStringConvertible, CustomDebugStr
             self.init(storage: .string(value))
         }
 
+        public init(path value: String) {
+            self.init(storage: .path(value))
+        }
+
+        public init(fileURL: URL) {
+            self.init(path: fileURL.path)
+        }
+
         public init(rawBytes: [UInt8]) {
             self.init(storage: .rawBytes(rawBytes))
         }
@@ -56,6 +69,8 @@ public struct CommandLineToolInvocation: CustomStringConvertible, CustomDebugStr
             switch storage {
                 case .string(let value):
                     value
+                case .path(let value):
+                    value
                 case .rawBytes(let value):
                     String(bytes: value, encoding: .utf8)
             }
@@ -65,6 +80,8 @@ public struct CommandLineToolInvocation: CustomStringConvertible, CustomDebugStr
             switch storage {
                 case .string(let value):
                     value
+                case .path(let value):
+                    value
                 case .rawBytes(let value):
                     String(decoding: value, as: UTF8.self)
             }
@@ -73,6 +90,8 @@ public struct CommandLineToolInvocation: CustomStringConvertible, CustomDebugStr
         public var rawBytes: [UInt8] {
             switch storage {
                 case .string(let value):
+                    Array(value.utf8)
+                case .path(let value):
                     Array(value.utf8)
                 case .rawBytes(let value):
                     value
@@ -212,7 +231,7 @@ extension CommandLineTool {
     /// A structured representation of this tool's rendered invocation.
     public var commandInvocation: CommandLineToolInvocation {
         get throws {
-            try CommandLineToolInvocation(components: invocationArgumentValues(context: CommandLineToolInvocationSummary.InvocationSummaryContext()))
+            try CommandLineToolInvocation(components: invocationComponents(context: CommandLineToolInvocationSummary.InvocationSummaryContext()))
         }
     }
 
@@ -238,4 +257,3 @@ extension CommandLineTool {
         }
     }
 }
-

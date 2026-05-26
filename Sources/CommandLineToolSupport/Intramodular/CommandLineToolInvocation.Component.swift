@@ -282,6 +282,27 @@ extension CommandLineToolInvocation {
 }
 
 extension CommandLineToolInvocation.Component {
+    public func isOption(
+        named name: String
+    ) -> Bool {
+        kind == .option && key?.rawValue == name
+    }
+
+    public func replacingOptionValues(
+        _ values: CommandLineToolInvocation.Arguments
+    ) throws -> Self {
+        guard kind == .option, let key, let separator else {
+            return self
+        }
+
+        return .option(
+            key: key,
+            separator: separator,
+            values: values,
+            multiValueEncoding: multiValueEncoding
+        )
+    }
+
     package static func _encodeOptionArguments(
         key: CommandLineToolInvocation.Argument,
         separator: _CommandLineToolParameterKeyValueSeparator,

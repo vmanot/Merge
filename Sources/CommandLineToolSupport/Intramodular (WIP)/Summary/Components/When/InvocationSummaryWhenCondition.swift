@@ -42,15 +42,30 @@ public struct InvocationSummaryWhenCondition<Command: AnyCommandLineTool>: Invoc
         parent: AnyCommandLineTool?,
         context: InvocationSummaryContext
     ) throws -> CommandLineToolInvocation.Arguments {
-        if condition.evaluate(command: command, parent: parent, context: context) {
-            return try trueBranch.makeInvocationArguments(
+        CommandLineToolInvocation.Arguments(
+            try makeInvocationComponents(
+                command: command,
+                parent: parent,
+                context: context
+            )
+            .flatMap(\.argumentValues)
+        )
+    }
+
+    public func makeInvocationComponents(
+        command: Command,
+        parent: AnyCommandLineTool?,
+        context: InvocationSummaryContext
+    ) throws -> [CommandLineToolInvocation.Component] {
+        if try condition.evaluate(command: command, parent: parent, context: context) {
+            return try trueBranch.makeInvocationComponents(
                 command: command,
                 parent: parent,
                 context: context
             )
         }
 
-        return try falseBranch?.makeInvocationArguments(
+        return try falseBranch?.makeInvocationComponents(
             command: command,
             parent: parent,
             context: context

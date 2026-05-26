@@ -13,23 +13,37 @@ extension AnyCommandLineTool {
         context: CommandLineToolInvocationSummary.InvocationSummaryContext,
         positions: Set<_CommandLineToolArgumentPosition.Anchor>
     ) throws -> CommandLineToolInvocation.Arguments {
-        let arguments = try resolve().arguments
+        CommandLineToolInvocation.Arguments(
+            try _defaultInvocationComponents(
+                context: context,
+                positions: positions
+            )
+            .flatMap(\.argumentValues)
+        )
+    }
+
+    package func _defaultInvocationComponents(
+        context: CommandLineToolInvocationSummary.InvocationSummaryContext,
+        positions: Set<_CommandLineToolArgumentPosition.Anchor>
+    ) throws -> [CommandLineToolInvocation.Component] {
+        try resolve().arguments
             .filter {
                 positions.contains($0.defaultPosition.anchor)
             }
             .filter {
-                !context.argumentIsRendered(command: self, argumentName: $0.id.rawValue)
+                !context.argumentIsHandled(command: self, argumentName: $0.id.rawValue)
             }
-            .flatMap { argument -> [CommandLineToolInvocation.Argument] in
-                defer {
-                    context.registerArgument(command: self, argumentName: argument.id.rawValue)
-                }
+            .flatMap { argument -> [CommandLineToolInvocation.Component] in
+                let components = argument.publicInvocationComponents
+                let shouldRender = try context.registerHandledArgument(
+                    command: self,
+                    argumentName: argument.id.rawValue,
+                    disposition: .defaultRender,
+                    components: components
+                )
 
-                return argument.invocationArgumentValues
+                return shouldRender ? components : []
             }
-            .filter { !$0.rawValue.isEmpty }
-
-        return CommandLineToolInvocation.Arguments(arguments)
     }
 
     public var _resolvedDescriptionChain: [_ResolvedCommandLineToolDescription] {

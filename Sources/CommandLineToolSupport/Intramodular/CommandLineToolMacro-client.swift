@@ -45,5 +45,12 @@ public macro CommandLineTool(
     type: "CommandLineToolMacro"
 )
 
-public typealias _CommandLineTool_Name = CommandLineToolName
+@attached(peer)
+@attached(member, names: named(ParentCommand))
+@attached(extension, conformances: CommandLineTool, _InvocationSummarySubcommandWithParentCommand, names: arbitrary)
+public macro _SubcommandTool() = #externalMacro(
+    module: "CommandLineToolSupportMacros",
+    type: "_SubcommandToolMacro"
+)
 
+public typealias _CommandLineTool_Name = CommandLineToolName

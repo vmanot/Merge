@@ -8,6 +8,7 @@ import MacroBuilder
 public struct module: CompilerPlugin {
     public let providingMacros: [Macro.Type] = [
         CommandLineToolMacro.self,
+        _SubcommandToolMacro.self,
     ]
 
     public init() {
