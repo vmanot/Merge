@@ -32,7 +32,7 @@ struct _CommandLineToolReflectionResolver {
         let resolved = try tool.resolve()
 
         return _ResolvedCommandLineToolDescription(
-            commandName: self.tool.requireCommandName().rawValue,
+            commandName: self.tool.requireCommandName(),
             arguments: resolved.arguments,
             subcommands: resolved.subcommands
         )
@@ -46,7 +46,7 @@ struct _CommandLineToolReflectionResolver {
         for (key, value) in mirror.children {
             let resolvingID = _ResolvedCommandLineToolDescription.ArgumentID(
                 rawValue: key.stringValue.dropPrefixIfPresent("_"),
-                commandName: tool.requireCommandName().rawValue
+                commandName: tool.requireCommandName()
             )
             let context = _CommandLineToolResolutionContext(
                 resolvingID: resolvingID,
@@ -63,7 +63,7 @@ struct _CommandLineToolReflectionResolver {
         }
 
         return _ResolvedCommandLineToolDescription(
-            commandName: tool.requireCommandName().rawValue,
+            commandName: tool.requireCommandName(),
             arguments: resolvedArguments,
             subcommands: resolvedSubcommands
         )
@@ -84,7 +84,7 @@ struct _CommandLineToolReflectionResolver {
             try resolvedSubcommands.append(
                 _ResolvedCommandLineToolDescription.Subcommand(
                     id: resolvingID,
-                    name: subcommand.command.requireCommandName().rawValue,
+                    name: subcommand.command.requireCommandName(),
                     _resolvedDescription: subcommand.command.resolve()
                 )
             )

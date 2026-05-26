@@ -4,6 +4,8 @@
 
 
 import Foundation
+import Collections
+import OrderedCollections
 
 @available(macOS 11.0, *)
 @available(iOS, unavailable)
@@ -330,7 +332,7 @@ extension CommandLineToolInvocation {
         public static func unmodeled(
             arguments: Arguments,
             source: Unmodeled.Source = .unknown,
-            semantics: Set<Unmodeled.Semantics> = []
+            semantics: OrderedSet<Unmodeled.Semantics> = []
         ) -> Self {
             .unmodeled(
                 Unmodeled(
@@ -419,12 +421,12 @@ extension CommandLineToolInvocation {
 
             public var arguments: Arguments
             public var source: Source
-            public var semantics: Set<Semantics>
+            public var semantics: OrderedSet<Semantics>
 
             public init(
                 arguments: Arguments,
                 source: Source = .unknown,
-                semantics: Set<Semantics> = []
+                semantics: OrderedSet<Semantics> = []
             ) {
                 self.arguments = arguments
                 self.source = source

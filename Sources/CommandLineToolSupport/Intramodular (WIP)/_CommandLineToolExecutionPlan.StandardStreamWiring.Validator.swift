@@ -3,6 +3,8 @@
 //
 
 import Foundation
+import Collections
+import OrderedCollections
 
 @available(macOS 11.0, *)
 @available(iOS, unavailable)
@@ -52,22 +54,26 @@ extension _CommandLineToolExecutionPlan.StandardStreamWiring {
         }
 
         private func validateExclusiveEndpoints() throws {
-            var inputs: Set<StreamEndpoint> = []
-            var outputs: Set<StreamEndpoint> = []
+            var inputs: OrderedSet<StreamEndpoint> = []
+            var outputs: OrderedSet<StreamEndpoint> = []
 
             for connection in wiring.streamConnections {
-                guard inputs.insert(connection.input).inserted else {
+                guard inputs.append(connection.input).inserted else {
                     throw ValidationError.multipleConnectionsToInput(connection.input)
                 }
 
-                guard outputs.insert(connection.output).inserted else {
+                guard outputs.append(connection.output).inserted else {
                     throw ValidationError.multipleConnectionsFromOutput(connection.output)
                 }
             }
         }
 
         private func validateAcyclicStageWalk() throws {
-            let outgoingConnections = Dictionary(grouping: wiring.streamConnections, by: \.output.stageID)
+            var outgoingConnections: OrderedDictionary<Stage.ID, [StreamConnection]> = [:]
+
+            for connection in wiring.streamConnections {
+                outgoingConnections[connection.output.stageID, default: []].append(connection)
+            }
 
             for stage in wiring.stages {
                 try validateAcyclicStageWalk(
@@ -80,7 +86,7 @@ extension _CommandLineToolExecutionPlan.StandardStreamWiring {
 
         private func validateAcyclicStageWalk(
             from stageID: Stage.ID,
-            outgoingConnections: [Stage.ID: [StreamConnection]],
+            outgoingConnections: OrderedDictionary<Stage.ID, [StreamConnection]>,
             activePath: [Stage.ID]
         ) throws {
             guard !activePath.contains(stageID) else {
@@ -97,7 +103,7 @@ extension _CommandLineToolExecutionPlan.StandardStreamWiring {
         }
 
         private func validateRepeatedExclusiveStreamEffects() throws {
-            let incomingStageIDs = Set(wiring.streamConnections.map(\.input.stageID))
+            let incomingStageIDs = OrderedSet(wiring.streamConnections.map(\.input.stageID))
             let rootStages = wiring.stages.filter { !incomingStageIDs.contains($0.id) }
 
             for stage in rootStages.isEmpty ? wiring.stages.map({ $0 }) : rootStages {
@@ -110,7 +116,7 @@ extension _CommandLineToolExecutionPlan.StandardStreamWiring {
 
         private func validateRepeatedExclusiveStreamEffects(
             from stageID: Stage.ID,
-            seenExclusiveEffects: [_CommandLineToolOutputFormatterTool_Semantics.StreamEffect.Key: Stage.ID]
+            seenExclusiveEffects: OrderedDictionary<_CommandLineToolOutputFormatterTool_Semantics.StreamEffect.Key, Stage.ID>
         ) throws {
             guard let stage = wiring.stages[id: stageID] else {
                 throw ValidationError.missingStage(stageID)

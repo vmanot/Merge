@@ -79,13 +79,13 @@ extension CommandLineTool {
         var invocation = CommandLineToolInvocation(
             components: components.filter { !$0.argumentValues.isEmpty }
         )
-        let hostedArguments = try _CommandLineToolCommandChain(resolvingOrSelf: self).applyingAttachedHostToolIfNeeded(
-            to: CommandLineToolInvocation.Arguments(invocation.argumentValues),
+        let hostedComponents = try _CommandLineToolCommandChain(resolvingOrSelf: self).applyingAttachedHostToolIfNeeded(
+            to: invocation.componentList,
             context: context
         )
 
-        if hostedArguments.elements != invocation.argumentValues {
-            invocation = CommandLineToolInvocation(components: hostedArguments)
+        if hostedComponents.elements != invocation.components {
+            invocation = CommandLineToolInvocation(components: hostedComponents)
         }
 
         try context.applyRewriteRules(to: &invocation)

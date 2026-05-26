@@ -160,6 +160,15 @@ extension CommandLineToolInvocationSummary.InvocationSummaryCondition {
         }
     }
 
+    public static func contextValue<Value>(
+        _ type: Value.Type = Value.self,
+        _ predicate: CommandLineToolInvocationSummary.InvocationSummaryValuePredicate<Value>
+    ) -> CommandLineToolInvocationSummary.InvocationSummaryCondition<Command> {
+        .predicate { _, _, context in
+            predicate.evaluate(context.value(for: type))
+        }
+    }
+
     public static func parentValue<Parent: AnyCommandLineTool, Value: CommandLineToolInvocationSummary.InvocationSummaryValue>(
         _ value: CommandLineToolInvocationSummary.InvocationSummaryValueReferenceFromParent<Parent, Command, Value>,
         _ predicate: CommandLineToolInvocationSummary.InvocationSummaryValuePredicate<Value.WrappedValue>

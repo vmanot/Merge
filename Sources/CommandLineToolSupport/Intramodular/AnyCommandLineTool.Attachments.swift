@@ -75,6 +75,18 @@ extension AnyCommandLineTool {
         _attachedHostToolStorage = tool
     }
 
+    public func _attachHostToolThatResolvesAndInvokesSelectedTool(
+        _ selectingTool: any AnyCommandLineToolWithSelectedTool & CommandLineTool,
+        selectedToolCommandName: CommandLineTool.Name? = nil
+    ) throws {
+        try _attachHostTool(
+            .toolThatResolvesAndInvokesSelectedTool(
+                selectingTool,
+                selectedToolCommandName: selectedToolCommandName?.rawValue
+            )
+        )
+    }
+
     public func _detachOutputFormatterTool() {
         _attachedOutputFormatterToolStorage = nil
     }

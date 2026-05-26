@@ -305,7 +305,7 @@ struct CommandLineToolSupportExampleTests {
 
             #expect(command == commandName, sourceLocation: sourceLocation)
             #expect(argument.rawValue == "enableCoverage", sourceLocation: sourceLocation)
-            #expect(argument.commandName == commandName.rawValue, sourceLocation: sourceLocation)
+            #expect(argument.commandName == commandName, sourceLocation: sourceLocation)
             #expect(disposition == .unavailable, sourceLocation: sourceLocation)
             #expect(components.flatMap(\.rawValues) == ["-enableCoverage", "YES"], sourceLocation: sourceLocation)
             #expect(reason == expectedReason, sourceLocation: sourceLocation)

@@ -107,10 +107,107 @@ extension CommandLineToolInvocation {
         }
     }
 
+    /// Structural command-line invocation components that can be composed before flattening to argv.
+    public struct Components: CustomStringConvertible, CustomDebugStringConvertible, CustomReflectable, ExpressibleByArrayLiteral, Hashable, Sendable {
+        public typealias ArrayLiteralElement = Component
+
+        public var elements: [Component]
+
+        public init(elements: [Component]) {
+            self.elements = elements
+        }
+
+        public init() {
+            self.init(elements: [])
+        }
+
+        public init(_ elements: [Component]) {
+            self.init(elements: elements)
+        }
+
+        public init(argumentValues: [Argument]) {
+            self.init(elements: CommandLineToolInvocation._components(from: argumentValues))
+        }
+
+        public init(arguments: Arguments) {
+            self.init(argumentValues: arguments.elements)
+        }
+
+        public init(arrayLiteral elements: Component...) {
+            self.init(elements)
+        }
+
+        public var argumentValues: [Argument] {
+            elements.flatMap(\.argumentValues)
+        }
+
+        public var arguments: Arguments {
+            Arguments(argumentValues)
+        }
+
+        public var rawValues: [String] {
+            argumentValues.map(\.rawValue)
+        }
+
+        public var isEmpty: Bool {
+            elements.isEmpty
+        }
+
+        public mutating func append(
+            _ component: Component
+        ) {
+            elements.append(component)
+        }
+
+        public mutating func append(
+            contentsOf components: Components
+        ) {
+            elements.append(contentsOf: components.elements)
+        }
+
+        public mutating func append(
+            contentsOf components: [Component]
+        ) {
+            elements.append(contentsOf: components)
+        }
+
+        public static func + (
+            lhs: Self,
+            rhs: Self
+        ) -> Self {
+            Self(elements: lhs.elements + rhs.elements)
+        }
+
+        public var description: String {
+            arguments.description
+        }
+
+        public var debugDescription: String {
+            "CommandLineToolInvocation.Components(\(String(reflecting: elements)))"
+        }
+
+        public var customMirror: Mirror {
+            Mirror(
+                self,
+                children: [
+                    "elements": elements,
+                    "argumentValues": argumentValues,
+                    "rawValues": rawValues
+                ],
+                displayStyle: .struct
+            )
+        }
+    }
+
     public func appending(
         _ arguments: Arguments
     ) -> Self {
         Self(argumentValues: argumentValues + arguments.elements)
     }
-}
 
+    public func appending(
+        _ components: Components
+    ) -> Self {
+        Self(components: self.components + components.elements)
+    }
+}

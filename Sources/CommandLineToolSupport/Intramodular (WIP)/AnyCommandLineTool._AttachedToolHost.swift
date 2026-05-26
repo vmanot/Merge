@@ -80,32 +80,45 @@ extension AnyCommandLineTool._AttachedToolHost {
         selectedTool: AnyCommandLineTool,
         context: CommandLineToolInvocationSummary.InvocationSummaryContext
     ) throws -> CommandLineToolInvocation.Arguments {
+        try _invocationComponents(
+            hosting: CommandLineToolInvocation.Components(arguments: invocationArguments),
+            selectedTool: selectedTool,
+            context: context
+        )
+        .arguments
+    }
+
+    func _invocationComponents(
+        hosting invocationComponents: CommandLineToolInvocation.Components,
+        selectedTool: AnyCommandLineTool,
+        context: CommandLineToolInvocationSummary.InvocationSummaryContext
+    ) throws -> CommandLineToolInvocation.Components {
         switch self {
             case .toolThatResolvesAndInvokesSelectedTool(let selectingTool, let selectedToolCommandName):
-                var result = CommandLineToolInvocation.Arguments([
-                    CommandLineToolInvocation.Argument(selectingTool.requireCommandName().rawValue)
+                var result = CommandLineToolInvocation.Components([
+                    .executable(selectingTool.requireCommandName().argument)
                 ])
 
                 try result.append(
-                    contentsOf: selectingTool._defaultInvocationArguments(
+                    contentsOf: selectingTool._defaultInvocationComponents(
                         context: context,
                         positions: [.local]
                     )
                 )
 
-                var selectedInvocationArguments = invocationArguments
+                var selectedInvocationComponents = invocationComponents
 
-                if !selectedInvocationArguments.elements.isEmpty {
-                    selectedInvocationArguments.elements.removeFirst()
+                if !selectedInvocationComponents.elements.isEmpty {
+                    selectedInvocationComponents.elements.removeFirst()
                 }
 
-                result.elements.append(
-                    CommandLineToolInvocation.Argument(selectedToolCommandName ?? selectedTool.requireCommandName().rawValue)
+                result.append(
+                    .selectedTool(CommandLineToolInvocation.Argument(selectedToolCommandName ?? selectedTool.requireCommandName().rawValue))
                 )
-                result.elements.append(contentsOf: selectedInvocationArguments.elements)
+                result.append(contentsOf: selectedInvocationComponents)
 
                 try result.append(
-                    contentsOf: selectingTool._defaultInvocationArguments(
+                    contentsOf: selectingTool._defaultInvocationComponents(
                         context: context,
                         positions: [.lastCommand]
                     )
@@ -115,4 +128,3 @@ extension AnyCommandLineTool._AttachedToolHost {
         }
     }
 }
-

@@ -4,6 +4,8 @@
 
 
 import Foundation
+import Collections
+import OrderedCollections
 import Swallow
 
 extension CommandLineToolInvocationSummary {
@@ -14,11 +16,45 @@ extension CommandLineToolInvocationSummary {
 @available(watchOS, unavailable)
 /// Tracks arguments already handled by explicit summary nodes so default rendering can avoid duplicates.
 public final class InvocationSummaryContext {
-    private(set) var dispositionRecords: [_ResolvedCommandLineToolDescription.ArgumentID: DispositionRecord] = [:]
+    private var typedValues: [ObjectIdentifier: Any] = [:]
+    private(set) var dispositionRecords: OrderedDictionary<_ResolvedCommandLineToolDescription.ArgumentID, DispositionRecord> = [:]
     package private(set) var rewriteRules: [InvocationRewriteRule] = []
 
     public init() {
 
+    }
+
+    public convenience init<Value>(
+        value: Value,
+        for type: Value.Type = Value.self
+    ) {
+        self.init()
+        setValue(value, for: type)
+    }
+
+    public func setValue<Value>(
+        _ value: Value,
+        for type: Value.Type = Value.self
+    ) {
+        typedValues[ObjectIdentifier(type)] = value
+    }
+
+    public func removeValue<Value>(
+        for type: Value.Type = Value.self
+    ) {
+        typedValues.removeValue(forKey: ObjectIdentifier(type))
+    }
+
+    public func value<Value>(
+        for type: Value.Type = Value.self
+    ) -> Value? {
+        typedValues[ObjectIdentifier(type)] as? Value
+    }
+
+    public func containsValue<Value>(
+        for type: Value.Type = Value.self
+    ) -> Bool {
+        typedValues[ObjectIdentifier(type)] != nil
     }
 
     public enum Disposition: CustomStringConvertible, Hashable, Sendable {
@@ -75,7 +111,7 @@ public final class InvocationSummaryContext {
     ) -> _ResolvedCommandLineToolDescription.ArgumentID {
         _ResolvedCommandLineToolDescription.ArgumentID(
             rawValue: argumentName(for: keyPath),
-            commandName: command.requireCommandName().rawValue
+            commandName: command.requireCommandName()
         )
     }
 
@@ -114,7 +150,7 @@ public final class InvocationSummaryContext {
         dispositionRecords[
             .init(
                 rawValue: argumentName,
-                commandName: command.requireCommandName().rawValue
+                commandName: command.requireCommandName()
             )
         ] != nil
     }
@@ -132,7 +168,7 @@ public final class InvocationSummaryContext {
             .init(
                 argumentID: _ResolvedCommandLineToolDescription.ArgumentID(
                     rawValue: argumentName,
-                    commandName: command.requireCommandName().rawValue
+                    commandName: command.requireCommandName()
                 ),
                 disposition: disposition,
                 components: components,

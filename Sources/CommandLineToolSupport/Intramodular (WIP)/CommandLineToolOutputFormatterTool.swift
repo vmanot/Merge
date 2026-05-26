@@ -4,6 +4,8 @@
 
 
 import Foundation
+import Collections
+import OrderedCollections
 
 @available(macOS 11.0, *)
 @available(iOS, unavailable)
@@ -32,12 +34,12 @@ extension CommandLineToolOutputFormatterTool {
 public struct _CommandLineToolOutputFormatterTool_Semantics: Hashable, Sendable {
     public var inputStream: InputStream
     public var outputIntent: OutputIntent
-    public var streamEffects: Set<StreamEffect>
+    public var streamEffects: OrderedSet<StreamEffect>
 
     public init(
         inputStream: InputStream,
         outputIntent: OutputIntent,
-        streamEffects: Set<StreamEffect> = [.humanReadableFormatting]
+        streamEffects: OrderedSet<StreamEffect> = [.humanReadableFormatting]
     ) {
         self.inputStream = inputStream
         self.outputIntent = outputIntent
@@ -118,4 +120,3 @@ extension _CommandLineToolOutputFormatterTool_Semantics {
 @available(watchOS, unavailable)
 @available(*, deprecated, renamed: "_CommandLineToolOutputFormatterTool_Semantics")
 public typealias CommandLineToolOutputFormattingSemantics = _CommandLineToolOutputFormatterTool_Semantics
-

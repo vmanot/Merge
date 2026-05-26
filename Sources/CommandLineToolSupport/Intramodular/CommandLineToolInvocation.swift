@@ -135,6 +135,10 @@ public struct CommandLineToolInvocation: CustomStringConvertible, CustomDebugStr
         self.components = components
     }
 
+    public init(components: Components) {
+        self.init(components: components.elements)
+    }
+
     public init(argumentValues: [Argument]) {
         self.init(components: Self._components(from: argumentValues))
     }
@@ -156,7 +160,7 @@ public struct CommandLineToolInvocation: CustomStringConvertible, CustomDebugStr
         )
     }
 
-    private static func _components(
+    package static func _components(
         from argumentValues: [Argument]
     ) -> [Component] {
         var didReachExecutable = false
@@ -178,6 +182,10 @@ public struct CommandLineToolInvocation: CustomStringConvertible, CustomDebugStr
 
     public var argumentValues: [Argument] {
         components.flatMap(\.argumentValues)
+    }
+
+    public var componentList: Components {
+        Components(components)
     }
 
     public var rawComponents: [String] {

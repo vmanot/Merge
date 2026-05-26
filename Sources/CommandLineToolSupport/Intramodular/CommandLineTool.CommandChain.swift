@@ -174,12 +174,23 @@ struct _CommandLineToolCommandChain: RandomAccessCollection, CustomStringConvert
         to arguments: CommandLineToolInvocation.Arguments,
         context: CommandLineToolInvocationSummary.InvocationSummaryContext
     ) throws -> CommandLineToolInvocation.Arguments {
+        try applyingAttachedHostToolIfNeeded(
+            to: CommandLineToolInvocation.Components(arguments: arguments),
+            context: context
+        )
+        .arguments
+    }
+
+    func applyingAttachedHostToolIfNeeded(
+        to components: CommandLineToolInvocation.Components,
+        context: CommandLineToolInvocationSummary.InvocationSummaryContext
+    ) throws -> CommandLineToolInvocation.Components {
         guard let (selectedTool, hostTool) = attachedHostTool else {
-            return arguments
+            return components
         }
 
-        return try hostTool._invocationArguments(
-            hosting: arguments,
+        return try hostTool._invocationComponents(
+            hosting: components,
             selectedTool: selectedTool,
             context: context
         )

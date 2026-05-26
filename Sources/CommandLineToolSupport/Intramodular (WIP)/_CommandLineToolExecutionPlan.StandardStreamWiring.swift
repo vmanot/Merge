@@ -4,6 +4,8 @@
 
 
 import Foundation
+import Collections
+import OrderedCollections
 import Swallow
 
 @available(macOS 11.0, *)
@@ -57,21 +59,40 @@ extension _CommandLineToolExecutionPlan.StandardStreamWiring {
         public var id: ID
         public var role: Role
         public var commandName: String
+        public var executionSource: _CommandLineToolExecutionSource?
         public var invocation: CommandLineToolInvocation?
-        public var streamEffects: Set<_CommandLineToolOutputFormatterTool_Semantics.StreamEffect>
+        public var streamEffects: OrderedSet<_CommandLineToolOutputFormatterTool_Semantics.StreamEffect>
 
         public init(
             id: ID = ID(),
             role: Role,
             commandName: String,
+            executionSource: _CommandLineToolExecutionSource? = nil,
             invocation: CommandLineToolInvocation? = nil,
-            streamEffects: Set<_CommandLineToolOutputFormatterTool_Semantics.StreamEffect> = []
+            streamEffects: OrderedSet<_CommandLineToolOutputFormatterTool_Semantics.StreamEffect> = []
         ) {
             self.id = id
             self.role = role
             self.commandName = commandName
+            self.executionSource = executionSource
             self.invocation = invocation
             self.streamEffects = streamEffects
+        }
+
+        public init(
+            id: ID = ID(),
+            role: Role,
+            executionSource: _CommandLineToolExecutionSource,
+            streamEffects: OrderedSet<_CommandLineToolOutputFormatterTool_Semantics.StreamEffect> = []
+        ) {
+            self.init(
+                id: id,
+                role: role,
+                commandName: executionSource.invocation?.commandName ?? executionSource.commandLine,
+                executionSource: executionSource,
+                invocation: executionSource.invocation,
+                streamEffects: streamEffects
+            )
         }
 
         public var description: String {
@@ -79,7 +100,7 @@ extension _CommandLineToolExecutionPlan.StandardStreamWiring {
         }
 
         public var debugDescription: String {
-            "Stage(id: \(id), role: \(role), commandName: \(String(reflecting: commandName)), streamEffects: \(streamEffects))"
+            "Stage(id: \(id), role: \(role), commandName: \(String(reflecting: commandName)), executionSource: \(String(reflecting: executionSource)), streamEffects: \(streamEffects))"
         }
 
         public var customMirror: Mirror {
@@ -89,6 +110,7 @@ extension _CommandLineToolExecutionPlan.StandardStreamWiring {
                     "id": id,
                     "role": role,
                     "commandName": commandName,
+                    "executionSource": executionSource as Any,
                     "invocation": invocation as Any,
                     "streamEffects": streamEffects
                 ],

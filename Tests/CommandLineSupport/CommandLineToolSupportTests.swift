@@ -3,6 +3,7 @@
 import CommandLineToolSupport
 import Foundation
 import Merge
+import OrderedCollections
 import ShellScripting
 import Testing
 
@@ -313,6 +314,31 @@ final class ApplicabilityExplicitModifierSummaryTool: AnyCommandLineTool, Comman
                     )
                 )
             )
+
+        \.$input
+    }
+}
+
+enum InvocationSummaryTestMode: Hashable, Sendable {
+    case build
+    case test
+}
+
+final class ContextualApplicabilitySummaryTool: AnyCommandLineTool, CommandLineTool {
+    override var commandName: CommandLineTool.Name? {
+        "contextual-applicability"
+    }
+
+    @Flag(name: "enable-coverage")
+    var enableCoverage: Bool = false
+
+    @Argument(name: nil)
+    var input: String? = nil
+
+    var invocationSummary: some CommandLineToolInvocationSummary.InvocationSummary {
+        Omit(unless: .contextValue(InvocationSummaryTestMode.self, .equals(.test)), reason: "--enable-coverage only applies while testing") {
+            \.$enableCoverage
+        }
 
         \.$input
     }
@@ -642,6 +668,21 @@ final class URLParameterCompatibilityTool: AnyCommandLineTool, CommandLineTool {
     var checkoutURL: URL? = nil
 }
 
+final class ResolvedValueLoweringTool: AnyCommandLineTool, CommandLineTool {
+    override var commandName: CommandLineTool.Name? {
+        "resolved-value-lowering"
+    }
+
+    @Option(name: "sdk")
+    var sdk: URL? = nil
+
+    @Option(name: "include", encoding: .singleValue)
+    var optionalIncludes: [String]? = nil
+
+    @Argument(name: nil)
+    var paths: [URL] = []
+}
+
 final class ConstructorBackedFlagTool: AnyCommandLineTool, CommandLineTool {
     override var commandName: CommandLineTool.Name? {
         "constructor-flag"
@@ -794,6 +835,9 @@ struct CommandLineToolSupportTests {
             commandName: "xcbeautify",
             streamEffects: [.humanReadableFormatting]
         )
+
+        #expect(Array(firstFormatter.streamEffects) == [.humanReadableFormatting])
+
         let wiring = Wiring(
             stages: [
                 xcodebuild,
@@ -887,6 +931,27 @@ struct CommandLineToolSupportTests {
         )
 
         try wiring.validate()
+    }
+
+    @Test
+    func standardStreamWiringStageCanCarryExecutionSource() throws {
+        typealias Wiring = _CommandLineToolExecutionPlan<AnyCommandLineTool>.StandardStreamWiring
+
+        let invocation = CommandLineToolInvocation(components: [
+            "xcrun",
+            "xcodebuild",
+            "build"
+        ])
+        let source = _CommandLineToolExecutionSource.modeledInvocation(invocation)
+        let stage = Wiring.Stage(
+            role: .primaryInvocation,
+            executionSource: source
+        )
+
+        #expect(stage.commandName == "xcrun")
+        #expect(stage.executionSource == source)
+        #expect(stage.invocation == invocation)
+        #expect(stage.streamEffects.isEmpty)
     }
 
     @Test
@@ -1088,11 +1153,28 @@ struct CommandLineToolSupportTests {
         let plan = command._executionPlan(invocation: invocation)
 
         #expect(invocation.commandLine == "xcrun -sdk macosx notarytool submit")
+        #expect(invocation.components.map(\.kind) == [.executable, .option, .selectedTool, .subcommand])
         #expect(plan.selectedToolInvocation?.selectingToolCommandName == "xcrun")
         #expect(plan.selectedToolInvocation?.selectedToolCommandName == "notarytool")
         #expect(plan.selectedToolInvocation?.selectedToolCommandPath == ["notarytool", "submit"])
         #expect(plan.selectedToolInvocation?.selectionSemantics == .staticExplicitArgument)
         #expect(plan.selectedToolInvocation?.resolutionSemantics == .resolvesBeforeInvocationAndInvokesThroughSelectingTool)
+    }
+
+    @Test
+    func attachedHostToolConvenienceDefaultsSelectedToolNameFromHostedTool() throws {
+        let tool = HostedNotarytoolFixture()
+
+        tool._detachHostTool()
+        try tool._attachHostToolThatResolvesAndInvokesSelectedTool(
+            XcrunHostToolFixture().with(\.sdk, "iphoneos")
+        )
+
+        let invocation = try tool.submit().commandInvocation
+
+        #expect(invocation.commandLine == "xcrun -sdk iphoneos notarytool submit")
+        #expect(invocation.components.map(\.kind) == [.executable, .option, .selectedTool, .subcommand])
+        #expect(invocation.components[2].rawValues == ["notarytool"])
     }
 
     @Test
@@ -1251,6 +1333,30 @@ struct CommandLineToolSupportTests {
     }
 
     @Test
+    func invocationComponentsCarrierComposesStructuralComponentsBeforeFlattening() {
+        var components = CommandLineToolInvocation.Components([
+            .executable("xcodebuild"),
+            .option(
+                key: "-scheme",
+                value: "ExampleApp"
+            )
+        ])
+
+        components.append(
+            .buildSettingAssignment(
+                key: "ENABLE_CODE_COVERAGE",
+                value: "NO"
+            )
+        )
+
+        let invocation = CommandLineToolInvocation(components: components)
+
+        #expect(components.rawValues == ["xcodebuild", "-scheme", "ExampleApp", "ENABLE_CODE_COVERAGE=NO"])
+        #expect(invocation.componentList == components)
+        #expect(invocation.components.map(\.kind) == [.executable, .option, .buildSettingAssignment])
+    }
+
+    @Test
     func invocationComponentsPreserveTypedUnmodeledEscapeHatches() {
         let component = CommandLineToolInvocation.Component.unmodeled(
             arguments: ["OTHER_SWIFT_FLAGS=$(inherited)", "-Xfrontend", "-warn-long-function-bodies=200"],
@@ -1264,6 +1370,10 @@ struct CommandLineToolSupportTests {
 
         #expect(component.kind == .unmodeled)
         #expect(component.unmodeled?.source == .legacyAPI("CLT.xcodebuild.BuildFlag.custom"))
+        #expect(component.unmodeled.map { Array($0.semantics) } == [
+            .mayContainMultipleArguments,
+            .toolSpecific("xcodebuild-build-setting")
+        ])
         #expect(component.unmodeled?.semantics.contains(.mayContainMultipleArguments) == true)
         #expect(component.unmodeled?.semantics.contains(.toolSpecific("xcodebuild-build-setting")) == true)
         #expect(component.rawValues == [
@@ -1562,6 +1672,29 @@ struct CommandLineToolSupportTests {
             .invocation
 
         #expect(command == "omitted-summary --output out.txt")
+    }
+
+    @Test
+    func invocationSummaryApplicabilityCanUseTypedContextValues() throws {
+        let command = ContextualApplicabilitySummaryTool()
+            .with(\.enableCoverage, true)
+            .with(\.input, "Tests")
+        let buildContext = CommandLineToolInvocationSummary.InvocationSummaryContext(
+            value: InvocationSummaryTestMode.build
+        )
+        let testContext = CommandLineToolInvocationSummary.InvocationSummaryContext(
+            value: InvocationSummaryTestMode.test
+        )
+
+        #expect(try command.invocationArgumentValues(context: buildContext).rawValues == [
+            "contextual-applicability",
+            "Tests"
+        ])
+        #expect(try command.invocationArgumentValues(context: testContext).rawValues == [
+            "contextual-applicability",
+            "--enable-coverage",
+            "Tests"
+        ])
     }
 
     @Test
@@ -1960,6 +2093,34 @@ struct CommandLineToolSupportTests {
         #expect(verbosity.invocationArgumentValues == [CommandLineToolInvocation.Argument("-vvv")])
         #expect(trace.invocationArguments == ["--trace"])
         #expect(trace.invocationArgumentValues == [CommandLineToolInvocation.Argument("--trace")])
+    }
+
+    @Test
+    func resolvedDescriptionUsesSemanticCommandNamesAndConsistentValueLowering() throws {
+        let description = try ResolvedValueLoweringTool()
+            .with(\.sdk, URL(fileURLWithPath: "/Applications/Xcode.app"))
+            .with(\.optionalIncludes, ["Sources", "Tests"])
+            .with(\.paths, [
+                URL(fileURLWithPath: "/tmp/Input.swift"),
+                URL(fileURLWithPath: "/tmp/Support.swift")
+            ])
+            .resolve()
+
+        let sdk = try #require(description.arguments[id: .init(rawValue: "sdk", commandName: "resolved-value-lowering")])
+        let optionalIncludes = try #require(description.arguments[id: .init(rawValue: "optionalIncludes", commandName: "resolved-value-lowering")])
+        let paths = try #require(description.arguments[id: .init(rawValue: "paths", commandName: "resolved-value-lowering")])
+
+        #expect(description.commandName == CommandLineTool.Name("resolved-value-lowering"))
+        #expect(sdk.id.propertyName == "sdk")
+        #expect(sdk.id.commandName == CommandLineTool.Name("resolved-value-lowering"))
+        #expect(sdk.publicInvocationComponents.first?.values.elements == [
+            CommandLineToolInvocation.Argument(fileURL: URL(fileURLWithPath: "/Applications/Xcode.app"))
+        ])
+        #expect(optionalIncludes.invocationArguments == ["--include", "Sources", "--include", "Tests"])
+        #expect(paths.invocationArgumentValues == [
+            CommandLineToolInvocation.Argument(fileURL: URL(fileURLWithPath: "/tmp/Input.swift")),
+            CommandLineToolInvocation.Argument(fileURL: URL(fileURLWithPath: "/tmp/Support.swift"))
+        ])
     }
 
     @Test

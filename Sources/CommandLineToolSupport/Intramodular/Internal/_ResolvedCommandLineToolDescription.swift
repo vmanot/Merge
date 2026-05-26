@@ -9,7 +9,7 @@ import Collections
 
 private extension CommandLineToolInvocation.Argument {
     init?(
-        _resolvedInvocationValue value: Any
+        _resolvedInvocationScalar value: Any
     ) {
         if let url = value as? URL {
             self.init(fileURL: url)
@@ -31,22 +31,89 @@ private extension CommandLineToolInvocation.Argument {
     }
 }
 
+private enum _ResolvedInvocationValueLowering {
+    static func scalarArgument(
+        from value: Any
+    ) -> CommandLineToolInvocation.Argument? {
+        let value = _unwrapOptional(value)
+
+        guard let value else {
+            return nil
+        }
+
+        return CommandLineToolInvocation.Argument(_resolvedInvocationScalar: value)
+    }
+
+    static func arguments(
+        from value: Any
+    ) -> CommandLineToolInvocation.Arguments {
+        let value = _unwrapOptional(value)
+
+        guard let value else {
+            return []
+        }
+
+        if let scalar = CommandLineToolInvocation.Argument(_resolvedInvocationScalar: value) {
+            return scalar.rawValue.isEmpty ? [] : [scalar]
+        }
+
+        let mirror = Mirror(reflecting: value)
+
+        guard mirror.displayStyle == .collection else {
+            return []
+        }
+
+        return CommandLineToolInvocation.Arguments(
+            mirror.children.flatMap { child in
+                arguments(from: child.value).elements
+            }
+        )
+    }
+
+    private static func _unwrapOptional(
+        _ value: Any
+    ) -> Any? {
+        let mirror = Mirror(reflecting: value)
+
+        guard mirror.displayStyle == .optional else {
+            return value
+        }
+
+        return mirror.children.first?.value
+    }
+}
+
 /// The most granular and "resolved" representation of a command-line tool within some context.
 public struct _ResolvedCommandLineToolDescription: CustomStringConvertible, CustomDebugStringConvertible, CustomReflectable, MergeOperatable {
     public struct ArgumentID: CustomStringConvertible, CustomDebugStringConvertible, CustomReflectable, Hashable, Sendable {
-        public let rawValue: String // the property name.
-        public let commandName: String
+        /// The reflected Swift property name for the argument wrapper.
+        public let rawValue: String
+        public let commandName: CommandLineTool.Name
         
         public init(
             rawValue: String,
-            commandName: String
+            commandName: CommandLineTool.Name
         ) {
             self.rawValue = rawValue
             self.commandName = commandName
         }
+
+        public init(
+            rawValue: String,
+            commandName: String
+        ) {
+            self.init(
+                rawValue: rawValue,
+                commandName: CommandLineTool.Name(commandName)
+            )
+        }
+
+        public var propertyName: String {
+            rawValue
+        }
         
         public var description: String {
-            "\(commandName).\(rawValue)"
+            "\(commandName.rawValue).\(rawValue)"
         }
         
         public var debugDescription: String {
@@ -58,6 +125,7 @@ public struct _ResolvedCommandLineToolDescription: CustomStringConvertible, Cust
                 self,
                 children: [
                     "rawValue": rawValue,
+                    "propertyName": propertyName,
                     "commandName": commandName
                 ],
                 displayStyle: .struct
@@ -213,24 +281,10 @@ public struct _ResolvedCommandLineToolDescription: CustomStringConvertible, Cust
         public let valueType: any Any.Type
         
         public var invocationComponents: [InvocationComponent] {
-            if let optionValue = value as? any OptionalProtocol, optionValue.isNil {
-                return []
-            }
-            
-            if let array = value as? [any CLT.ArgumentValueConvertible] {
-                return array
-                    .map(CommandLineToolInvocation.Argument.init(_argumentValueConvertible:))
-                    .filter { !$0.rawValue.isEmpty }
-                    .map { InvocationComponent.positionalArgument($0) }
-            }
-            
-            guard let argument = CommandLineToolInvocation.Argument(_resolvedInvocationValue: value) else {
-                return []
-            }
-            
-            return argument.rawValue.isEmpty ? [] : [
-                InvocationComponent.positionalArgument(argument)
-            ]
+            _ResolvedInvocationValueLowering
+                .arguments(from: value)
+                .elements
+                .map { InvocationComponent.positionalArgument($0) }
         }
     }
     
@@ -253,41 +307,39 @@ public struct _ResolvedCommandLineToolDescription: CustomStringConvertible, Cust
             let key = CommandLineToolInvocation.Argument(conversion.argumentKey(for: name))
             
             if let multiValueEncoding {
-                if let array = value as? [any CLT.ArgumentValueConvertible] {
-                    let values = array
-                        .map(CommandLineToolInvocation.Argument.init(_argumentValueConvertible:))
-                        .filter { !$0.rawValue.isEmpty }
-                    
-                    switch multiValueEncoding {
-                        case .spaceSeparated:
-                            assert(
-                                separator == .space,
-                                "key value separator conflicts with the multi value encoding strategy. You must specify set both to `.space`."
-                            )
-                            return values.isEmpty ? [] : [
-                                .option(
-                                    key: key,
-                                    separator: separator,
-                                    values: values,
-                                    multiValueEncoding: multiValueEncoding
-                                )
-                            ]
-                        case .singleValue:
-                            return values.isEmpty ? [] : [
-                                .option(
-                                    key: key,
-                                    separator: separator,
-                                    values: values,
-                                    multiValueEncoding: multiValueEncoding
-                                )
-                            ]
-                    }
-                } else {
+                let values = _ResolvedInvocationValueLowering.arguments(from: value)
+
+                guard !values.isEmpty else {
                     return []
+                }
+
+                switch multiValueEncoding {
+                    case .spaceSeparated:
+                        assert(
+                            separator == .space,
+                            "key value separator conflicts with the multi value encoding strategy. You must specify set both to `.space`."
+                        )
+                        return [
+                            .option(
+                                key: key,
+                                separator: separator,
+                                values: values,
+                                multiValueEncoding: multiValueEncoding
+                            )
+                        ]
+                    case .singleValue:
+                        return [
+                            .option(
+                                key: key,
+                                separator: separator,
+                                values: values,
+                                multiValueEncoding: multiValueEncoding
+                            )
+                        ]
                 }
             }
             
-            if let argument = CommandLineToolInvocation.Argument(_resolvedInvocationValue: value), !argument.rawValue.isEmpty {
+            if let argument = _ResolvedInvocationValueLowering.scalarArgument(from: value), !argument.rawValue.isEmpty {
                 return [
                     .option(
                         key: key,
@@ -393,7 +445,7 @@ public struct _ResolvedCommandLineToolDescription: CustomStringConvertible, Cust
                 return optionKeyConvertibleValues(from: child.value)
             }
             
-            guard mirror.displayStyle == .collection || mirror.displayStyle == .set else {
+            guard mirror.displayStyle == .collection else {
                 return nil
             }
             
@@ -408,11 +460,11 @@ public struct _ResolvedCommandLineToolDescription: CustomStringConvertible, Cust
     /// A resolved subcommand.
     public struct Subcommand: CustomStringConvertible, CustomDebugStringConvertible, CustomReflectable, Identifiable {
         public let id: _ResolvedCommandLineToolDescription.ArgumentID
-        public let name: String
+        public let name: CommandLineTool.Name
         public let _resolvedDescription: _ResolvedCommandLineToolDescription
         
         public var description: String {
-            name
+            name.rawValue
         }
         
         public var debugDescription: String {
@@ -432,9 +484,31 @@ public struct _ResolvedCommandLineToolDescription: CustomStringConvertible, Cust
         }
     }
     
-    public var commandName: String
+    public var commandName: CommandLineTool.Name
     public var arguments: ResolvedArguments
     public var subcommands: ResolvedSubcommands
+
+    public init(
+        commandName: CommandLineTool.Name,
+        arguments: ResolvedArguments,
+        subcommands: ResolvedSubcommands
+    ) {
+        self.commandName = commandName
+        self.arguments = arguments
+        self.subcommands = subcommands
+    }
+
+    public init(
+        commandName: String,
+        arguments: ResolvedArguments,
+        subcommands: ResolvedSubcommands
+    ) {
+        self.init(
+            commandName: CommandLineTool.Name(commandName),
+            arguments: arguments,
+            subcommands: subcommands
+        )
+    }
     
     public var inheritedArguments: ResolvedArguments {
         arguments.filter({ $0.id.commandName != commandName })
@@ -449,7 +523,7 @@ public struct _ResolvedCommandLineToolDescription: CustomStringConvertible, Cust
     }
     
     public var description: String {
-        commandName
+        commandName.rawValue
     }
     
     public var debugDescription: String {
