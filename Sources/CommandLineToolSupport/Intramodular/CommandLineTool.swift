@@ -18,7 +18,7 @@ public protocol CommandLineTool: AnyCommandLineTool {
 
     associatedtype SummaryContent: CommandLineToolInvocationSummary.InvocationSummary
     typealias When = CommandLineToolInvocationSummary.InvocationSummaryWhenCondition<Self>
-    typealias Omit<Value> = CommandLineToolInvocationSummary.Omit<Self, Value> where Value: CommandLineToolInvocationSummary.InvocationSummaryValue
+    typealias Omit<Content> = CommandLineToolInvocationSummary.Omit<Self, Content>
     typealias _Unavailable<Value> = CommandLineToolInvocationSummary._Unavailable<Self, Value> where Value: CommandLineToolInvocationSummary.InvocationSummaryValue
     typealias Switch<Value, CaseCondition> = CommandLineToolInvocationSummary.InvocationSummarySwitchCondition<Self, Value, CaseCondition> where CaseCondition : CommandLineToolInvocationSummary.InvocationSummarySwitchCaseProtocol, CaseCondition.Command == Self, CaseCondition.Value == Value, Value: CommandLineToolInvocationSummary.InvocationSummaryValue
     typealias Case<Value, Summary> = CommandLineToolInvocationSummary.InvocationSummaryCaseCondition<Self, Value, Summary> where Value : CommandLineToolInvocationSummary.InvocationSummaryValue, Value.WrappedValue: Equatable, Summary : CommandLineToolInvocationSummary.InvocationSummary, Summary.Command == Self

@@ -228,6 +228,94 @@ struct CommandLineToolSupportExampleTests {
     }
 
     @Test
+    func invocationSummaryApplicabilityExamplesContrastNodeAndModifierOmission() throws {
+        let nodeStyle = try ExampleNodeApplicabilityTool()
+            .with(\.workspace, "Example.xcworkspace")
+            .with(\.enableCoverage, .enabled)
+            .build()
+            .invocation
+        let modifierStyle = try ExampleModifierApplicabilityTool()
+            .with(\.workspace, "Example.xcworkspace")
+            .with(\.enableCoverage, .enabled)
+            .build()
+            .invocation
+
+        #expect(nodeStyle == "applicability-example build -workspace Example.xcworkspace")
+        #expect(modifierStyle == nodeStyle)
+    }
+
+    @Test
+    func invocationSummaryApplicabilityExamplesContrastNodeAndModifierDiagnostics() throws {
+        try expectApplicabilityExampleUnsupportedCoverageError(
+            from: {
+                _ = try ExampleNodeApplicabilityTool()
+                    .with(\.workspace, "Example.xcworkspace")
+                    .with(\.enableCoverage, .enabled)
+                    .analyze()
+                    .invocation
+            },
+            commandName: "applicability-example",
+            reason: "-enableCoverage is only valid for test"
+        )
+        try expectApplicabilityExampleUnsupportedCoverageError(
+            from: {
+                _ = try ExampleModifierApplicabilityTool()
+                    .with(\.workspace, "Example.xcworkspace")
+                    .with(\.enableCoverage, .enabled)
+                    .analyze()
+                    .invocation
+            },
+            commandName: "applicability-example",
+            reason: "-enableCoverage is only valid for test"
+        )
+    }
+
+    @Test
+    func invocationSummaryApplicabilityExamplesPreserveValidRendering() throws {
+        let nodeStyle = try ExampleNodeApplicabilityTool()
+            .with(\.workspace, "Example.xcworkspace")
+            .with(\.enableCoverage, .enabled)
+            .test()
+            .invocation
+        let modifierStyle = try ExampleModifierApplicabilityTool()
+            .with(\.workspace, "Example.xcworkspace")
+            .with(\.enableCoverage, .enabled)
+            .test()
+            .invocation
+
+        #expect(nodeStyle == "applicability-example test -workspace Example.xcworkspace -enableCoverage YES")
+        #expect(modifierStyle == nodeStyle)
+    }
+
+    private func expectApplicabilityExampleUnsupportedCoverageError(
+        from operation: () throws -> Void,
+        commandName: CommandLineTool.Name,
+        reason expectedReason: String,
+        sourceLocation: SourceLocation = #_sourceLocation
+    ) throws {
+        do {
+            try operation()
+
+            Issue.record("Expected applicability example to reject coverage.", sourceLocation: sourceLocation)
+        } catch let error as CommandLineToolInvocationSummary.Error {
+            guard case .unsupportedArgument(let command, let argument, let disposition, let components, let reason, let location) = error else {
+                Issue.record("Expected unsupportedArgument, got \(error).", sourceLocation: sourceLocation)
+                return
+            }
+
+            #expect(command == commandName, sourceLocation: sourceLocation)
+            #expect(argument.rawValue == "enableCoverage", sourceLocation: sourceLocation)
+            #expect(argument.commandName == commandName.rawValue, sourceLocation: sourceLocation)
+            #expect(disposition == .unavailable, sourceLocation: sourceLocation)
+            #expect(components.flatMap(\.rawValues) == ["-enableCoverage", "YES"], sourceLocation: sourceLocation)
+            #expect(reason == expectedReason, sourceLocation: sourceLocation)
+            #expect(location != nil, sourceLocation: sourceLocation)
+        } catch {
+            Issue.record("Expected invocation-summary error, got \(error).", sourceLocation: sourceLocation)
+        }
+    }
+
+    @Test
     func invocationSummaryCanOmitParentCoverageFromXcodebuildBuild() throws {
         #expect(hasInvocationSummaryParentConformance(ExampleXcodebuildLikeTool.Build.self))
 

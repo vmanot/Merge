@@ -43,37 +43,86 @@ public struct InvocationSummaryValueReference<Command: AnyCommandLineTool, Value
     }
 }
 
-/// Summary node that intentionally handles a property-wrapper value without rendering it.
-public struct Omit<Command: AnyCommandLineTool, Value: InvocationSummaryValue>: InvocationSummary {
-    let register: (Command, AnyCommandLineTool?, InvocationSummaryContext) throws -> Void
+/// Summary node that intentionally handles summary content without rendering it.
+public struct Omit<Command: AnyCommandLineTool, Content>: InvocationSummary {
+    let makeComponents: (Command, AnyCommandLineTool?, InvocationSummaryContext) throws -> [CommandLineToolInvocation.Component]
+
+    init(
+        _makeComponents makeComponents: @escaping (Command, AnyCommandLineTool?, InvocationSummaryContext) throws -> [CommandLineToolInvocation.Component]
+    ) {
+        self.makeComponents = makeComponents
+    }
 
     public init(
-        _ keyPath: KeyPath<Command, Value>,
+        _ keyPath: KeyPath<Command, Content>,
         fileID: StaticString = #fileID,
         function: StaticString = #function,
         line: UInt = #line,
         column: UInt? = nil
-    ) {
+    ) where Content: InvocationSummaryValue {
         let location = SourceCodeLocation(fileID: fileID, function: function, line: line, column: column)
 
-        self.register = { command, _, context in
+        self.makeComponents = { command, _, context in
             try context.registerHandledValueReference(
                 command: command,
                 keyPath,
                 disposition: .omitted,
                 location: location
             )
+
+            return []
         }
     }
 
     public init(
-        keyPath: KeyPath<Command, Value>,
+        keyPath: KeyPath<Command, Content>,
         fileID: StaticString = #fileID,
         function: StaticString = #function,
         line: UInt = #line,
         column: UInt? = nil
-    ) {
+    ) where Content: InvocationSummaryValue {
         self.init(keyPath, fileID: fileID, function: function, line: line, column: column)
+    }
+
+    public init(
+        unless condition: InvocationSummaryCondition<Command> = .never,
+        reason: String? = nil,
+        fileID: StaticString = #fileID,
+        function: StaticString = #function,
+        line: UInt = #line,
+        column: UInt? = nil,
+        @InvocationSummaryBuilder<Command> content: () -> Content
+    ) where Content: InvocationSummary, Content.Command == Command {
+        let content = content()
+        let location = SourceCodeLocation(fileID: fileID, function: function, line: line, column: column)
+
+        self.makeComponents = { command, parent, context in
+            if try condition.evaluate(command: command, parent: parent, context: context) {
+                return try content.makeInvocationComponents(
+                    command: command,
+                    parent: parent,
+                    context: context
+                )
+            }
+
+            guard let target = content as? any _InvocationSummaryApplicabilityTarget<Command> else {
+                throw CommandLineToolInvocationSummary.Error.unsupportedInvocationSummaryModifierContent(
+                    modifier: String(reflecting: Self.self),
+                    content: Content.self,
+                    location: location
+                )
+            }
+
+            try target._registerArgumentApplicability(
+                command: command,
+                parent: parent,
+                context: context,
+                otherwise: .omit(reason: reason),
+                location: location
+            )
+
+            return []
+        }
     }
 
     public func makeInvocationComponents(
@@ -81,9 +130,7 @@ public struct Omit<Command: AnyCommandLineTool, Value: InvocationSummaryValue>: 
         parent: AnyCommandLineTool?,
         context: InvocationSummaryContext
     ) throws -> [CommandLineToolInvocation.Component] {
-        try register(command, parent, context)
-
-        return []
+        try makeComponents(command, parent, context)
     }
 }
 
@@ -170,4 +217,59 @@ public protocol InvocationSummaryValue<WrappedValue>: PropertyWrapper {
 
 }
 
+}
+
+@available(macOS 11.0, *)
+@available(iOS, unavailable)
+@available(macCatalyst, unavailable)
+@available(tvOS, unavailable)
+@available(watchOS, unavailable)
+extension CommandLineToolInvocationSummary.InvocationSummaryValueReference: CommandLineToolInvocationSummary._InvocationSummaryApplicabilityTarget {
+    public func _registerArgumentApplicability(
+        command: Command,
+        parent: AnyCommandLineTool?,
+        context: CommandLineToolInvocationSummary.InvocationSummaryContext,
+        otherwise: _CommandLineToolArgumentApplicability<Command>.Otherwise,
+        location: SourceCodeLocation?
+    ) throws {
+        let argumentID = CommandLineToolInvocationSummary.InvocationSummaryContext.argumentID(command: command, keyPath: keyPath)
+        let resolved = try command[keyPath: keyPath].resolve(
+            in: .init(
+                resolvingID: argumentID,
+                defaultKeyConversion: command.keyConversion
+            )
+        )
+        let components = resolved.publicInvocationComponents
+
+        switch otherwise {
+            case .omit(let reason):
+                try context.registerHandledValueReference(
+                    command: command,
+                    keyPath,
+                    disposition: .omitted,
+                    reason: reason,
+                    location: location
+                )
+            case .unavailable(let reason):
+                try context.registerHandledValueReference(
+                    command: command,
+                    keyPath,
+                    disposition: .unavailable,
+                    components: components,
+                    reason: reason,
+                    location: location
+                )
+
+                guard components.allSatisfy({ $0.argumentValues.isEmpty }) else {
+                    throw CommandLineToolInvocationSummary.Error.unsupportedArgument(
+                        command: command.commandName,
+                        argument: argumentID,
+                        disposition: .unavailable,
+                        components: components,
+                        reason: reason,
+                        location: location
+                    )
+                }
+        }
+    }
 }

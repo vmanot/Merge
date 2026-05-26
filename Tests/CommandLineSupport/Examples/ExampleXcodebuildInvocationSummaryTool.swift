@@ -126,7 +126,12 @@ final class ExampleXcodebuildLikeTool: AnyCommandLineTool, CommandLineTool {
         }
 
         var invocationSummary: some CommandLineToolInvocationSummary.InvocationSummary {
-            Omit(self.$enableCodeCoverage)
+            self.$enableCodeCoverage
+                ._omitted(
+                    unless: .never,
+                    reason: "-enableCodeCoverage is intentionally suppressed for build"
+                )
+
             self.$workspace
             self.$scheme
             self.$destination
@@ -170,7 +175,12 @@ final class ExampleXcodebuildLikeTool: AnyCommandLineTool, CommandLineTool {
         }
 
         var invocationSummary: some CommandLineToolInvocationSummary.InvocationSummary {
-            _Unavailable(self.$enableCodeCoverage, reason: "-enableCodeCoverage is only meaningful for test actions")
+            self.$enableCodeCoverage
+                ._unavailable(
+                    unless: .never,
+                    reason: "-enableCodeCoverage is only meaningful for test actions"
+                )
+
             self.$workspace
             self.$scheme
             self.$destination

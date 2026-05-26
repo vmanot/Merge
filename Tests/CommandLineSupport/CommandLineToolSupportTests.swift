@@ -203,6 +203,121 @@ final class UnavailableSummaryTool: AnyCommandLineTool, CommandLineTool {
     }
 }
 
+final class ApplicabilityUnavailableModifierSummaryTool: AnyCommandLineTool, CommandLineTool {
+    override var commandName: CommandLineTool.Name? {
+        "applicability-unavailable"
+    }
+
+    @Option(name: "output")
+    var output: String? = nil
+
+    @Argument(name: nil)
+    var input: String? = nil
+
+    var invocationSummary: some CommandLineToolInvocationSummary.InvocationSummary {
+        CommandLineToolInvocationSummary.InvocationSummaryValueReference(keyPath: \ApplicabilityUnavailableModifierSummaryTool.$output)
+            ._unavailable(
+                unless: .never,
+                reason: "--output is not valid in this mode"
+            )
+
+        \.$input
+    }
+}
+
+final class ApplicabilityOmitModifierSummaryTool: AnyCommandLineTool, CommandLineTool {
+    override var commandName: CommandLineTool.Name? {
+        "applicability-omit"
+    }
+
+    @Option(name: "output")
+    var output: String? = nil
+
+    @Argument(name: nil)
+    var input: String? = nil
+
+    var invocationSummary: some CommandLineToolInvocationSummary.InvocationSummary {
+        CommandLineToolInvocationSummary.InvocationSummaryValueReference(keyPath: \ApplicabilityOmitModifierSummaryTool.$output)
+            ._omitted(unless: .never, reason: "--output is intentionally suppressed in this mode")
+
+        \.$input
+    }
+}
+
+final class GroupOmitSummaryTool: AnyCommandLineTool, CommandLineTool {
+    override var commandName: CommandLineTool.Name? {
+        "group-omit"
+    }
+
+    @Option(name: "output")
+    var output: String? = nil
+
+    @Flag(name: "verbose")
+    var verbose: Bool = false
+
+    @Argument(name: nil)
+    var input: String? = nil
+
+    var invocationSummary: some CommandLineToolInvocationSummary.InvocationSummary {
+        Omit(unless: .never, reason: "--output and --verbose do not apply in this mode") {
+            \.$output
+            \.$verbose
+        }
+
+        \.$input
+    }
+}
+
+final class ConditionalGroupOmitSummaryTool: AnyCommandLineTool, CommandLineTool {
+    override var commandName: CommandLineTool.Name? {
+        "conditional-group-omit"
+    }
+
+    @Option(name: "output")
+    var output: String? = nil
+
+    @Flag(name: "verbose")
+    var verbose: Bool = false
+
+    @Argument(name: nil)
+    var input: String? = nil
+
+    var invocationSummary: some CommandLineToolInvocationSummary.InvocationSummary {
+        Omit(unless: .always) {
+            \.$output
+            \.$verbose
+        }
+
+        \.$input
+    }
+}
+
+final class ApplicabilityExplicitModifierSummaryTool: AnyCommandLineTool, CommandLineTool {
+    override var commandName: CommandLineTool.Name? {
+        "applicability-explicit-modifier"
+    }
+
+    @Option(name: "output")
+    var output: String? = nil
+
+    @Argument(name: nil)
+    var input: String? = nil
+
+    var invocationSummary: some CommandLineToolInvocationSummary.InvocationSummary {
+        CommandLineToolInvocationSummary.InvocationSummaryValueReference(keyPath: \ApplicabilityExplicitModifierSummaryTool.$output)
+            ._modifier(
+                CommandLineToolInvocationSummary._ArgumentApplicabilityModifier(
+                    applicability: .init(
+                        when: .never,
+                        otherwise: .omit(reason: "--output is intentionally suppressed in this mode")
+                    )
+                )
+            )
+
+        \.$input
+    }
+}
+
 final class RewrittenSummaryTool: AnyCommandLineTool, CommandLineTool {
     override var commandName: CommandLineTool.Name? {
         "rewritten-summary"
@@ -292,6 +407,38 @@ final class ParentUnavailableSummaryTool: AnyCommandLineTool, CommandLineTool {
 
         var invocationSummary: some CommandLineToolInvocationSummary.InvocationSummary {
             _Unavailable(self.$sdk, reason: "--sdk does not apply to build")
+            \.$input
+        }
+    }
+}
+
+final class ParentApplicabilityModifierSummaryTool: AnyCommandLineTool, CommandLineTool {
+    override var commandName: CommandLineTool.Name? {
+        "parent-applicability-modifier"
+    }
+
+    @Option(name: "sdk")
+    var sdk: String? = nil
+
+    @Subcommand(of: ParentApplicabilityModifierSummaryTool.self, name: "build", command: Build())
+    var build
+
+    @_SubcommandTool
+    final class Build: AnyCommandLineTool, CommandLineTool {
+        override var commandName: CommandLineTool.Name? {
+            "build"
+        }
+
+        @Argument(name: nil)
+        var input: String? = nil
+
+        var invocationSummary: some CommandLineToolInvocationSummary.InvocationSummary {
+            self.$sdk
+                ._unavailable(
+                    unless: .never,
+                    reason: "--sdk does not apply to build"
+                )
+
             \.$input
         }
     }
@@ -1073,6 +1220,66 @@ struct CommandLineToolSupportTests {
     }
 
     @Test
+    func invocationComponentsModelBuildSettingAssignments() {
+        let component = CommandLineToolInvocation.Component.buildSettingAssignment(
+            key: "ENABLE_CODE_COVERAGE",
+            value: "NO"
+        )
+        let invocation = CommandLineToolInvocation(components: [
+            .executable("xcodebuild"),
+            component,
+            .buildSettingAssignment(
+                key: "EXCLUDED_ARCHS",
+                value: "x86_64"
+            )
+        ])
+
+        #expect(component.kind == .buildSettingAssignment)
+        #expect(component.key == "ENABLE_CODE_COVERAGE")
+        #expect(component.separator == .equal)
+        #expect(component.values == CommandLineToolInvocation.Arguments(["NO"]))
+        #expect(component.rawValues == ["ENABLE_CODE_COVERAGE=NO"])
+        #expect(invocation.rawComponents == [
+            "xcodebuild",
+            "ENABLE_CODE_COVERAGE=NO",
+            "EXCLUDED_ARCHS=x86_64"
+        ])
+        #expect(invocation.executableInvocation?.arguments.rawValues == [
+            "ENABLE_CODE_COVERAGE=NO",
+            "EXCLUDED_ARCHS=x86_64"
+        ])
+    }
+
+    @Test
+    func invocationComponentsPreserveTypedUnmodeledEscapeHatches() {
+        let component = CommandLineToolInvocation.Component.unmodeled(
+            arguments: ["OTHER_SWIFT_FLAGS=$(inherited)", "-Xfrontend", "-warn-long-function-bodies=200"],
+            source: .legacyAPI("CLT.xcodebuild.BuildFlag.custom"),
+            semantics: [.mayContainMultipleArguments, .toolSpecific("xcodebuild-build-setting")]
+        )
+        let invocation = CommandLineToolInvocation(components: [
+            .executable("xcodebuild"),
+            component
+        ])
+
+        #expect(component.kind == .unmodeled)
+        #expect(component.unmodeled?.source == .legacyAPI("CLT.xcodebuild.BuildFlag.custom"))
+        #expect(component.unmodeled?.semantics.contains(.mayContainMultipleArguments) == true)
+        #expect(component.unmodeled?.semantics.contains(.toolSpecific("xcodebuild-build-setting")) == true)
+        #expect(component.rawValues == [
+            "OTHER_SWIFT_FLAGS=$(inherited)",
+            "-Xfrontend",
+            "-warn-long-function-bodies=200"
+        ])
+        #expect(invocation.rawComponents == [
+            "xcodebuild",
+            "OTHER_SWIFT_FLAGS=$(inherited)",
+            "-Xfrontend",
+            "-warn-long-function-bodies=200"
+        ])
+    }
+
+    @Test
     func structuredInvocationArgumentReflectsRawBytes() throws {
         let argument = CommandLineToolInvocation.Argument(rawBytes: [0xff])
         let emptyArgument = CommandLineToolInvocation.Argument("")
@@ -1394,6 +1601,75 @@ struct CommandLineToolSupportTests {
     }
 
     @Test
+    func invocationSummaryApplicabilityModifierCanRejectCurrentCommandArguments() throws {
+        do {
+            _ = try ApplicabilityUnavailableModifierSummaryTool()
+                .with(\.output, "out.txt")
+                .with(\.input, "main.swift")
+                .invocation
+
+            Issue.record("Expected applicability modifier to reject unavailable argument.")
+        } catch let error as CommandLineToolInvocationSummary.Error {
+            guard case .unsupportedArgument(let command, let argument, let disposition, let components, let reason, let location) = error else {
+                Issue.record("Expected unsupportedArgument, got \(error).")
+                return
+            }
+
+            #expect(command == "applicability-unavailable")
+            #expect(argument.rawValue == "output")
+            #expect(argument.commandName == "applicability-unavailable")
+            #expect(disposition == .unavailable)
+            #expect(components.map(\.kind) == [.option])
+            #expect(reason == "--output is not valid in this mode")
+            #expect(location != nil)
+        } catch {
+            Issue.record("Expected invocation-summary error, got \(error).")
+        }
+    }
+
+    @Test
+    func invocationSummaryApplicabilityModifierCanOmitCurrentCommandArguments() throws {
+        let command = try ApplicabilityOmitModifierSummaryTool()
+            .with(\.output, "out.txt")
+            .with(\.input, "main.swift")
+            .invocation
+
+        #expect(command == "applicability-omit main.swift")
+    }
+
+    @Test
+    func invocationSummaryCanOmitGroupedArguments() throws {
+        let command = try GroupOmitSummaryTool()
+            .with(\.output, "out.txt")
+            .with(\.verbose, true)
+            .with(\.input, "main.swift")
+            .invocation
+
+        #expect(command == "group-omit main.swift")
+    }
+
+    @Test
+    func invocationSummaryCanRenderGroupedArgumentsWhenOmitConditionAllowsThem() throws {
+        let command = try ConditionalGroupOmitSummaryTool()
+            .with(\.output, "out.txt")
+            .with(\.verbose, true)
+            .with(\.input, "main.swift")
+            .invocation
+
+        #expect(command == "conditional-group-omit --output out.txt --verbose main.swift")
+    }
+
+    @Test
+    func invocationSummaryCanApplyExplicitSummaryModifiers() throws {
+        let command = try ApplicabilityExplicitModifierSummaryTool()
+            .with(\.output, "out.txt")
+            .with(\.input, "main.swift")
+            .invocation
+
+        #expect(command == "applicability-explicit-modifier main.swift")
+    }
+
+    @Test
     func invocationSummaryUnavailableRejectsCurrentCommandArgumentsWhenRendered() throws {
         do {
             _ = try UnavailableSummaryTool()
@@ -1456,6 +1732,34 @@ struct CommandLineToolSupportTests {
             .invocation
 
         #expect(command == "parent-unavailable build main.swift")
+    }
+
+    @Test
+    func invocationSummaryApplicabilityModifierCanRejectParentArguments() throws {
+        do {
+            _ = try ParentApplicabilityModifierSummaryTool()
+                .with(\.sdk, "macosx")
+                .build()
+                .with(\.input, "main.swift")
+                .invocation
+
+            Issue.record("Expected parent applicability modifier to reject unavailable argument.")
+        } catch let error as CommandLineToolInvocationSummary.Error {
+            guard case .unsupportedArgument(let command, let argument, let disposition, let components, let reason, let location) = error else {
+                Issue.record("Expected unsupportedArgument, got \(error).")
+                return
+            }
+
+            #expect(command == "parent-applicability-modifier")
+            #expect(argument.rawValue == "sdk")
+            #expect(argument.commandName == "parent-applicability-modifier")
+            #expect(disposition == .unavailable)
+            #expect(components.map(\.kind) == [.option])
+            #expect(reason == "--sdk does not apply to build")
+            #expect(location != nil)
+        } catch {
+            Issue.record("Expected invocation-summary error, got \(error).")
+        }
     }
 
     @Test

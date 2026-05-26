@@ -44,6 +44,11 @@ public enum Error: Swift.Error, CustomStringConvertible {
         valueDescription: String,
         location: SourceCodeLocation?
     )
+    case unsupportedInvocationSummaryModifierContent(
+        modifier: String,
+        content: Any.Type,
+        location: SourceCodeLocation?
+    )
 
     public var description: String {
         switch self {
@@ -59,6 +64,8 @@ public enum Error: Swift.Error, CustomStringConvertible {
                 return "Conflicting invocation-summary disposition for command-line argument \(argument) on \(command?.rawValue ?? "<unknown>"): existing \(existing.disposition), new \(new.disposition)\(location.map { " at \($0)" } ?? "")."
             case .noSwitchCaseMatched(let command, let argument, let valueDescription, let location):
                 return "No invocation-summary switch case matched \(argument.map { "\($0) " } ?? "")for \(command?.rawValue ?? "<unknown>") with value \(valueDescription)\(location.map { " at \($0)" } ?? "")."
+            case .unsupportedInvocationSummaryModifierContent(let modifier, let content, let location):
+                return "Invocation-summary modifier \(modifier) cannot be applied to content \(String(reflecting: content))\(location.map { " at \($0)" } ?? "")."
         }
     }
 }
@@ -166,6 +173,39 @@ public struct TupleInvocationSummary<Command: AnyCommandLineTool, T>: Invocation
     }
 }
 
+}
+
+@available(macOS 11.0, *)
+@available(iOS, unavailable)
+@available(macCatalyst, unavailable)
+@available(tvOS, unavailable)
+@available(watchOS, unavailable)
+extension CommandLineToolInvocationSummary.TupleInvocationSummary: CommandLineToolInvocationSummary._InvocationSummaryApplicabilityTarget {
+    public func _registerArgumentApplicability(
+        command: Command,
+        parent: AnyCommandLineTool?,
+        context: CommandLineToolInvocationSummary.InvocationSummaryContext,
+        otherwise: _CommandLineToolArgumentApplicability<Command>.Otherwise,
+        location: SourceCodeLocation?
+    ) throws {
+        for summary in summaries {
+            guard let target = summary as? any CommandLineToolInvocationSummary._InvocationSummaryApplicabilityTarget<Command> else {
+                throw CommandLineToolInvocationSummary.Error.unsupportedInvocationSummaryModifierContent(
+                    modifier: String(reflecting: _CommandLineToolArgumentApplicability<Command>.self),
+                    content: Swift.type(of: summary),
+                    location: location
+                )
+            }
+
+            try target._registerArgumentApplicability(
+                command: command,
+                parent: parent,
+                context: context,
+                otherwise: otherwise,
+                location: location
+            )
+        }
+    }
 }
 
 @available(macOS 11.0, *)

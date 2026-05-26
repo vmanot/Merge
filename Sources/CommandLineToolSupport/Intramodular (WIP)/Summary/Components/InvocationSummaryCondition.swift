@@ -143,6 +143,14 @@ extension CommandLineToolInvocationSummary.InvocationSummaryCondition {
         .predicate(condition)
     }
 
+    public static var always: CommandLineToolInvocationSummary.InvocationSummaryCondition<Command> {
+        .predicate { _, _, _ in true }
+    }
+
+    public static var never: CommandLineToolInvocationSummary.InvocationSummaryCondition<Command> {
+        .predicate { _, _, _ in false }
+    }
+
     public static func keyPath<Value: CommandLineToolInvocationSummary.InvocationSummaryValue>(
         _ keyPath: KeyPath<Command, Value>,
         _ predicate: CommandLineToolInvocationSummary.InvocationSummaryValuePredicate<Value.WrappedValue>

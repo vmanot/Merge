@@ -81,6 +81,62 @@ public struct InvocationSummaryValueReferenceFromParent<Parent: AnyCommandLineTo
 @available(macCatalyst, unavailable)
 @available(tvOS, unavailable)
 @available(watchOS, unavailable)
+extension CommandLineToolInvocationSummary.InvocationSummaryValueReferenceFromParent: CommandLineToolInvocationSummary._InvocationSummaryApplicabilityTarget {
+    public func _registerArgumentApplicability(
+        command: Command,
+        parent: AnyCommandLineTool?,
+        context: CommandLineToolInvocationSummary.InvocationSummaryContext,
+        otherwise: _CommandLineToolArgumentApplicability<Command>.Otherwise,
+        location: SourceCodeLocation?
+    ) throws {
+        let parent: Parent = try _requireInvocationSummaryParent(parent, for: Command.self, location: location)
+        let argumentID = CommandLineToolInvocationSummary.InvocationSummaryContext.argumentID(command: parent, keyPath: keyPath)
+        let resolved = try parent[keyPath: keyPath].resolve(
+            in: .init(
+                resolvingID: argumentID,
+                defaultKeyConversion: parent.keyConversion
+            )
+        )
+        let components = resolved.publicInvocationComponents
+
+        switch otherwise {
+            case .omit(let reason):
+                try context.registerHandledValueReference(
+                    command: parent,
+                    keyPath,
+                    disposition: .omitted,
+                    reason: reason,
+                    location: location
+                )
+            case .unavailable(let reason):
+                try context.registerHandledValueReference(
+                    command: parent,
+                    keyPath,
+                    disposition: .unavailable,
+                    components: components,
+                    reason: reason,
+                    location: location
+                )
+
+                guard components.allSatisfy({ $0.argumentValues.isEmpty }) else {
+                    throw CommandLineToolInvocationSummary.Error.unsupportedArgument(
+                        command: parent.commandName,
+                        argument: argumentID,
+                        disposition: .unavailable,
+                        components: components,
+                        reason: reason,
+                        location: location
+                    )
+                }
+        }
+    }
+}
+
+@available(macOS 11.0, *)
+@available(iOS, unavailable)
+@available(macCatalyst, unavailable)
+@available(tvOS, unavailable)
+@available(watchOS, unavailable)
 extension CommandLineToolInvocationSummary._Unavailable where Command: _InvocationSummarySubcommandWithParentCommand {
     public init<Parent: AnyCommandLineTool>(
         _ reference: CommandLineToolInvocationSummary.InvocationSummaryValueReferenceFromParent<Parent, Command, Value>,
@@ -132,9 +188,9 @@ extension CommandLineToolInvocationSummary._Unavailable where Command: _Invocati
 @available(macCatalyst, unavailable)
 @available(tvOS, unavailable)
 @available(watchOS, unavailable)
-extension CommandLineToolInvocationSummary.Omit where Command: _InvocationSummarySubcommandWithParentCommand {
+extension CommandLineToolInvocationSummary.Omit where Command: _InvocationSummarySubcommandWithParentCommand, Content: CommandLineToolInvocationSummary.InvocationSummaryValue {
     public init<Parent: AnyCommandLineTool>(
-        _ reference: CommandLineToolInvocationSummary.InvocationSummaryValueReferenceFromParent<Parent, Command, Value>,
+        _ reference: CommandLineToolInvocationSummary.InvocationSummaryValueReferenceFromParent<Parent, Command, Content>,
         fileID: StaticString = #fileID,
         function: StaticString = #function,
         line: UInt = #line,
@@ -142,7 +198,7 @@ extension CommandLineToolInvocationSummary.Omit where Command: _InvocationSummar
     ) where Parent == Command.ParentCommand {
         let location = SourceCodeLocation(fileID: fileID, function: function, line: line, column: column)
 
-        self.register = { _, parent, context in
+        self.init(_makeComponents: { _, parent, context in
             let parent: Parent = try _requireInvocationSummaryParent(parent, for: Command.self, location: location)
 
             try context.registerHandledValueReference(
@@ -151,7 +207,9 @@ extension CommandLineToolInvocationSummary.Omit where Command: _InvocationSummar
                 disposition: .omitted,
                 location: location
             )
-        }
+
+            return []
+        })
     }
 }
 

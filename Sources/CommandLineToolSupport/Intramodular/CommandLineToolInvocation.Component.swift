@@ -31,6 +31,12 @@ extension CommandLineToolInvocation {
                 value: Argument?,
                 arguments: Arguments
             )
+            case buildSettingAssignment(
+                key: Argument?,
+                value: Argument?,
+                arguments: Arguments
+            )
+            case unmodeled(Unmodeled)
         }
 
         public enum Kind: CustomStringConvertible, CustomDebugStringConvertible, Hashable, Sendable {
@@ -41,6 +47,8 @@ extension CommandLineToolInvocation {
             case flag
             case positionalArgument
             case environmentAssignment
+            case buildSettingAssignment
+            case unmodeled
 
             public var description: String {
                 switch self {
@@ -58,6 +66,10 @@ extension CommandLineToolInvocation {
                         "positionalArgument"
                     case .environmentAssignment:
                         "environmentAssignment"
+                    case .buildSettingAssignment:
+                        "buildSettingAssignment"
+                    case .unmodeled:
+                        "unmodeled"
                 }
             }
 
@@ -98,6 +110,10 @@ extension CommandLineToolInvocation {
             storage.multiValueEncoding
         }
 
+        public var unmodeled: Unmodeled? {
+            storage.unmodeled
+        }
+
         public init(
             kind: Kind,
             arguments: Arguments
@@ -128,6 +144,16 @@ extension CommandLineToolInvocation {
                         key: nil,
                         value: nil,
                         arguments: arguments
+                    )
+                case .buildSettingAssignment:
+                    storage = .buildSettingAssignment(
+                        key: nil,
+                        value: nil,
+                        arguments: arguments
+                    )
+                case .unmodeled:
+                    storage = .unmodeled(
+                        Unmodeled(arguments: arguments)
                     )
             }
 
@@ -276,6 +302,45 @@ extension CommandLineToolInvocation {
             Self(kind: .environmentAssignment, arguments: arguments)
         }
 
+        public static func buildSettingAssignment(
+            key: Argument,
+            value: Argument
+        ) -> Self {
+            Self(
+                storage: .buildSettingAssignment(
+                    key: key,
+                    value: value,
+                    arguments: Arguments([Argument("\(key.rawValue)=\(value.rawValue)")])
+                )
+            )
+        }
+
+        public static func buildSettingAssignment(
+            arguments: Arguments
+        ) -> Self {
+            Self(kind: .buildSettingAssignment, arguments: arguments)
+        }
+
+        public static func unmodeled(
+            _ unmodeled: Unmodeled
+        ) -> Self {
+            Self(storage: .unmodeled(unmodeled))
+        }
+
+        public static func unmodeled(
+            arguments: Arguments,
+            source: Unmodeled.Source = .unknown,
+            semantics: Set<Unmodeled.Semantics> = []
+        ) -> Self {
+            .unmodeled(
+                Unmodeled(
+                    arguments: arguments,
+                    source: source,
+                    semantics: semantics
+                )
+            )
+        }
+
         public var argumentValues: [Argument] {
             arguments.elements
         }
@@ -302,10 +367,89 @@ extension CommandLineToolInvocation {
                     "separator": separator as Any,
                     "values": values,
                     "multiValueEncoding": multiValueEncoding as Any,
+                    "unmodeled": unmodeled as Any,
                     "rawValues": rawValues
                 ],
                 displayStyle: .struct
             )
+        }
+
+        public struct Unmodeled: CustomStringConvertible, CustomDebugStringConvertible, CustomReflectable, Hashable, Sendable {
+            public enum Source: CustomStringConvertible, CustomDebugStringConvertible, Hashable, Sendable {
+                case unknown
+                case userProvided(String)
+                case legacyAPI(String)
+
+                public var description: String {
+                    switch self {
+                        case .unknown:
+                            "unknown"
+                        case .userProvided(let value):
+                            "userProvided(\(value))"
+                        case .legacyAPI(let value):
+                            "legacyAPI(\(value))"
+                    }
+                }
+
+                public var debugDescription: String {
+                    "CommandLineToolInvocation.Component.Unmodeled.Source.\(description)"
+                }
+            }
+
+            public enum Semantics: CustomStringConvertible, CustomDebugStringConvertible, Hashable, Sendable {
+                case mayContainMultipleArguments
+                case shellFragment
+                case toolSpecific(String)
+
+                public var description: String {
+                    switch self {
+                        case .mayContainMultipleArguments:
+                            "mayContainMultipleArguments"
+                        case .shellFragment:
+                            "shellFragment"
+                        case .toolSpecific(let value):
+                            "toolSpecific(\(value))"
+                    }
+                }
+
+                public var debugDescription: String {
+                    "CommandLineToolInvocation.Component.Unmodeled.Semantics.\(description)"
+                }
+            }
+
+            public var arguments: Arguments
+            public var source: Source
+            public var semantics: Set<Semantics>
+
+            public init(
+                arguments: Arguments,
+                source: Source = .unknown,
+                semantics: Set<Semantics> = []
+            ) {
+                self.arguments = arguments
+                self.source = source
+                self.semantics = semantics
+            }
+
+            public var description: String {
+                arguments.description
+            }
+
+            public var debugDescription: String {
+                "CommandLineToolInvocation.Component.Unmodeled(arguments: \(arguments.debugDescription), source: \(source.debugDescription), semantics: \(semantics))"
+            }
+
+            public var customMirror: Mirror {
+                Mirror(
+                    self,
+                    children: [
+                        "arguments": arguments,
+                        "source": source,
+                        "semantics": semantics
+                    ],
+                    displayStyle: .struct
+                )
+            }
         }
     }
 
@@ -483,6 +627,10 @@ extension CommandLineToolInvocation.Component.Storage {
                 return .positionalArgument
             case .environmentAssignment:
                 return .environmentAssignment
+            case .buildSettingAssignment:
+                return .buildSettingAssignment
+            case .unmodeled:
+                return .unmodeled
         }
     }
 
@@ -492,8 +640,10 @@ extension CommandLineToolInvocation.Component.Storage {
                 return CommandLineToolInvocation.Arguments([argument])
             case .option(_, _, _, _, let arguments):
                 return arguments
-            case .flag(let arguments), .positionalArgument(let arguments), .environmentAssignment(_, _, let arguments):
+            case .flag(let arguments), .positionalArgument(let arguments), .environmentAssignment(_, _, let arguments), .buildSettingAssignment(_, _, let arguments):
                 return arguments
+            case .unmodeled(let unmodeled):
+                return unmodeled.arguments
         }
     }
 
@@ -502,6 +652,8 @@ extension CommandLineToolInvocation.Component.Storage {
             case .option(let key, _, _, _, _):
                 return key
             case .environmentAssignment(let key, _, _):
+                return key
+            case .buildSettingAssignment(let key, _, _):
                 return key
             default:
                 return nil
@@ -514,6 +666,8 @@ extension CommandLineToolInvocation.Component.Storage {
                 return separator
             case .environmentAssignment:
                 return .equal
+            case .buildSettingAssignment:
+                return .equal
             default:
                 return nil
         }
@@ -525,6 +679,8 @@ extension CommandLineToolInvocation.Component.Storage {
                 return values
             case .environmentAssignment(_, let value, _):
                 return CommandLineToolInvocation.Arguments(value.map { [$0] } ?? [])
+            case .buildSettingAssignment(_, let value, _):
+                return CommandLineToolInvocation.Arguments(value.map { [$0] } ?? [])
             default:
                 return arguments
         }
@@ -533,6 +689,14 @@ extension CommandLineToolInvocation.Component.Storage {
     public var multiValueEncoding: MultiValueParameterEncodingStrategy? {
         if case .option(_, _, _, let multiValueEncoding, _) = self {
             return multiValueEncoding
+        }
+
+        return nil
+    }
+
+    public var unmodeled: CommandLineToolInvocation.Component.Unmodeled? {
+        if case .unmodeled(let unmodeled) = self {
+            return unmodeled
         }
 
         return nil
