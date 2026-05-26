@@ -5,6 +5,7 @@
 
 import Foundation
 import Merge
+import ShellScripting
 
 @available(macOS 11.0, *)
 @available(iOS, unavailable)
@@ -64,12 +65,12 @@ extension CommandLineTool {
 
     @discardableResult
     public func _run(
-        command commandLine: String,
+        command commandString: _ShellCommandString,
         input: String? = nil,
         applying differences: [SystemShell.Configuration.Difference] = []
     ) async throws -> _CommandLineToolExecutionRecord<Self> {
         let record: _CommandLineToolExecutionRecord<AnyCommandLineTool> = try await (self as AnyCommandLineTool)._run(
-            command: commandLine,
+            command: commandString,
             input: input,
             applying: differences
         )
@@ -79,6 +80,19 @@ extension CommandLineTool {
             source: record.source,
             processResult: record.processResult,
             selectedToolInvocation: record.selectedToolInvocation
+        )
+    }
+
+    @discardableResult
+    public func _run(
+        command commandLine: String,
+        input: String? = nil,
+        applying differences: [SystemShell.Configuration.Difference] = []
+    ) async throws -> _CommandLineToolExecutionRecord<Self> {
+        try await _run(
+            command: _ShellCommandString(rawValue: commandLine),
+            input: input,
+            applying: differences
         )
     }
 

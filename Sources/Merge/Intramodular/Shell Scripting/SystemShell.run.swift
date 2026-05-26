@@ -52,6 +52,7 @@ extension SystemShell {
         let process = try await _AsyncProcess(
             command: command,
             input: input,
+            shell: interpreter,
             environmentVariables: configuration.environmentVariables.resolvingForAsyncProcessLaunch(),
             currentDirectoryURL: configuration.currentDirectoryURL,
             options: try _optionsForProcessLaunch()

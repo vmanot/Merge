@@ -3,6 +3,7 @@
 import CommandLineToolSupport
 import Foundation
 import Merge
+import ShellScripting
 import Testing
 
 final class CompatibilityRootTool: AnyCommandLineTool, CommandLineTool {
@@ -992,6 +993,7 @@ struct CommandLineToolSupportTests {
         #expect(invocation.arguments.map(\.rawValue) == ["--force", "Sources"])
         #expect(invocation.commandLine == (try command.invocation))
         #expect(invocation.posixShellCommandLine == "'root' '--force' 'Sources'")
+        #expect(invocation.renderedShellCommandString(using: .posixShellCommandLine) == _ShellCommandString(rawValue: "'root' '--force' 'Sources'", dialect: .posix))
         #expect(String(describing: invocation) == (try command.invocation))
     }
 

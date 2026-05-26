@@ -4,6 +4,7 @@
 
 import Foundation
 import Merge
+import ShellScripting
 
 @available(macOS 11.0, *)
 @available(iOS, unavailable)
@@ -12,7 +13,7 @@ import Merge
 @available(watchOS, unavailable)
 public enum _CommandLineToolExecutionSource: CustomStringConvertible, CustomDebugStringConvertible, CustomReflectable, Hashable, Sendable {
     case modeledInvocation(CommandLineToolInvocation)
-    case shellCommandLine(String)
+    case shellCommandString(_ShellCommandString)
 
     public var description: String {
         commandLine
@@ -22,8 +23,8 @@ public enum _CommandLineToolExecutionSource: CustomStringConvertible, CustomDebu
         switch self {
             case .modeledInvocation(let invocation):
                 "_CommandLineToolExecutionSource.modeledInvocation(\(invocation.debugDescription))"
-            case .shellCommandLine(let commandLine):
-                "_CommandLineToolExecutionSource.shellCommandLine(\(String(reflecting: commandLine)))"
+            case .shellCommandString(let commandString):
+                "_CommandLineToolExecutionSource.shellCommandString(\(commandString.debugDescription))"
         }
     }
 
@@ -39,12 +40,13 @@ public enum _CommandLineToolExecutionSource: CustomStringConvertible, CustomDebu
                     ],
                     displayStyle: .enum
                 )
-            case .shellCommandLine(let commandLine):
+            case .shellCommandString(let commandString):
                 Mirror(
                     self,
                     children: [
-                        "case": "shellCommandLine",
-                        "commandLine": commandLine
+                        "case": "shellCommandString",
+                        "commandString": commandString,
+                        "commandLine": commandString.rawValue
                     ],
                     displayStyle: .enum
                 )
@@ -55,8 +57,17 @@ public enum _CommandLineToolExecutionSource: CustomStringConvertible, CustomDebu
         switch self {
             case .modeledInvocation(let invocation):
                 invocation.commandLine
-            case .shellCommandLine(let commandLine):
-                commandLine
+            case .shellCommandString(let commandString):
+                commandString.rawValue
+        }
+    }
+
+    public var shellCommandString: _ShellCommandString? {
+        switch self {
+            case .modeledInvocation:
+                nil
+            case .shellCommandString(let commandString):
+                commandString
         }
     }
 
@@ -64,7 +75,7 @@ public enum _CommandLineToolExecutionSource: CustomStringConvertible, CustomDebu
         switch self {
             case .modeledInvocation(let invocation):
                 invocation
-            case .shellCommandLine:
+            case .shellCommandString:
                 nil
         }
     }
@@ -121,6 +132,10 @@ public struct _CommandLineToolExecutionRecord<Tool: AnyCommandLineTool>: CustomS
 
     public var invocation: CommandLineToolInvocation? {
         source.invocation
+    }
+
+    public var shellCommandString: _ShellCommandString? {
+        source.shellCommandString
     }
 
     public var stdout: Data? {
@@ -252,8 +267,8 @@ extension _CommandLineToolExecutionPlan {
                             invocation: invocation,
                             prefersDirectExecution: selectedToolInvocation == nil
                         )
-                    case .shellCommandLine(let commandLine):
-                        processResult = try await shell.run(command: commandLine, input: standardInput)
+                    case .shellCommandString(let commandString):
+                        processResult = try await shell.run(command: commandString, input: standardInput)
                 }
 
                 return (
@@ -338,7 +353,7 @@ extension SystemShell {
             }
         }
 
-        return try await run(command: invocation.renderedCommandLine(using: .posixShellCommandLine))
+        return try await run(command: invocation.renderedShellCommandString(using: .posixShellCommandLine))
     }
 }
 
@@ -405,17 +420,46 @@ extension CommandLineTool {
 @available(watchOS, unavailable)
 extension AnyCommandLineTool {
     public func _executionPlan(
-        command commandLine: String,
+        command commandString: _ShellCommandString,
         input: String? = nil,
         standardStreamWiring: _CommandLineToolExecutionPlan<AnyCommandLineTool>.StandardStreamWiring? = nil,
         applying differences: [SystemShell.Configuration.Difference] = []
     ) -> _CommandLineToolExecutionPlan<AnyCommandLineTool> {
         _CommandLineToolExecutionPlan(
             tool: self,
-            source: .shellCommandLine(commandLine),
+            source: .shellCommandString(commandString),
             standardInput: input,
             configurationDifferences: differences,
             standardStreamWiring: standardStreamWiring ?? _attachedStandardStreamWiring
+        )
+    }
+
+    public func _executionPlan(
+        command commandLine: String,
+        input: String? = nil,
+        standardStreamWiring: _CommandLineToolExecutionPlan<AnyCommandLineTool>.StandardStreamWiring? = nil,
+        applying differences: [SystemShell.Configuration.Difference] = []
+    ) -> _CommandLineToolExecutionPlan<AnyCommandLineTool> {
+        _executionPlan(
+            command: _ShellCommandString(rawValue: commandLine),
+            input: input,
+            standardStreamWiring: standardStreamWiring,
+            applying: differences
+        )
+    }
+
+    @_disfavoredOverload
+    public func _executionPlan(
+        command commandString: _ShellCommandString,
+        input: String? = nil,
+        standardStreamWiring: _CommandLineToolExecutionPlan<AnyCommandLineTool>.StandardStreamWiring? = nil,
+        applying differences: SystemShell.Configuration.Difference...
+    ) -> _CommandLineToolExecutionPlan<AnyCommandLineTool> {
+        _executionPlan(
+            command: commandString,
+            input: input,
+            standardStreamWiring: standardStreamWiring,
+            applying: differences
         )
     }
 

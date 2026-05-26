@@ -4,6 +4,7 @@ import CommandLineToolSupport
 import Combine
 import Foundation
 import Merge
+import ShellScripting
 import Testing
 
 final class LegacyAnyCommandLineToolCompatibilityTool: AnyCommandLineTool {
@@ -22,16 +23,31 @@ struct CommandLineToolSupportCompatibilityTests {
             applying: .standardStreamMirroring(.disabled)
         )
 
-        guard case .shellCommandLine(let commandLine) = record.source else {
-            Issue.record("Expected AnyCommandLineTool._run(command:) to record a shell command line.")
+        guard case .shellCommandString(let commandString) = record.source else {
+            Issue.record("Expected AnyCommandLineTool._run(command:) to record a shell command string.")
             return
         }
 
-        #expect(commandLine == "printf raw-shell")
+        #expect(commandString.rawValue == "printf raw-shell")
+        #expect(commandString.dialect == .posix)
         #expect(record.tool === tool)
         #expect(record.invocation == nil)
-        #expect(record.commandLine == commandLine)
+        #expect(record.shellCommandString == commandString)
+        #expect(record.commandLine == commandString.rawValue)
         #expect(record.stdoutString == "raw-shell")
+    }
+
+    @Test("AnyCommandLineTool _run(command:) accepts typed shell command strings")
+    func anyCommandLineToolRunCommandAcceptsTypedShellCommandStrings() async throws {
+        let record = try await LegacyAnyCommandLineToolCompatibilityTool()._run(
+            command: _ShellCommandString(rawValue: "printf typed-shell", dialect: .posix),
+            applying: .standardStreamMirroring(.disabled)
+        )
+
+        #expect(record.source.shellCommandString?.rawValue == "printf typed-shell")
+        #expect(record.source.shellCommandString?.dialect == .posix)
+        #expect(record.commandLine == "printf typed-shell")
+        #expect(record.stdoutString == "typed-shell")
     }
 
     @Test("AnyCommandLineTool _run(command:) does not require CommandLineTool conformance")

@@ -117,6 +117,31 @@ struct ShellProcessTests {
     }
 
     @Test
+    func testShellCommandStringStoresDialect() {
+        let command: _ShellCommandString = "printf typed"
+
+        #expect(command.rawValue == "printf typed")
+        #expect(command.dialect == .posix)
+        #expect(command.description == "printf typed")
+    }
+
+    @Test
+    func testSystemShellRunCommandForwardsInterpreter() async throws {
+        let shell = SystemShell()
+        let interpreter = SystemShell.Environment(
+            launchPath: "/bin/sh",
+            deriveArguments: { _ in ["-c", "printf forwarded-interpreter"] }
+        )
+
+        let result = try await shell.run(
+            command: "printf wrong-interpreter",
+            interpreter: interpreter
+        )
+
+        #expect(result.stdoutString == "forwarded-interpreter")
+    }
+
+    @Test
     func testArgumentLiteralURLRepresentation() {
         let url = URL(fileURLWithPath: "/tmp/Some File")
 
