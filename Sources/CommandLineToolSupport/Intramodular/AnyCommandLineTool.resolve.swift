@@ -1,8 +1,5 @@
 //
-//  AnyCommandLineTool+Resolve.swift
-//  Merge
-//
-//  Created by Yanan Li on 2025/12/12.
+// Copyright (c) Vatsal Manot
 //
 
 import Foundation

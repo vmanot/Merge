@@ -1,8 +1,5 @@
 //
-//  GenericSubcommand.swift
-//  Merge
-//
-//  Created by Yanan Li on 2025/12/11.
+// Copyright (c) Vatsal Manot
 //
 
 import Foundation
@@ -87,7 +84,7 @@ public class GenericSubcommand<Parent, Command>: AnyCommandLineTool, CommandLine
         self.subcommandName = subcommandName
     }
 
-    public var invocationSummary: some CommandLineToolInvocationSummary.InvocationSummary {
+    public var invocationSummary: some InvocationSummary {
         command.invocationSummary
     }
 

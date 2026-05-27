@@ -85,7 +85,7 @@ final class SummaryModeTool: AnyCommandLineTool, CommandLineTool {
     @Option(name: "emit-loaded-module-trace-path")
     var emitLoadedModuleTracePath: EmitLoadedModuleTracePath? = nil
 
-    var invocationSummary: some CommandLineToolInvocationSummary.InvocationSummary {
+    var invocationSummary: some InvocationSummary {
         \.$target
         \.$mode
 
@@ -140,7 +140,7 @@ final class ConditionalSummaryTool: AnyCommandLineTool, CommandLineTool {
     @Flag(name: "verbose")
     var verbose: Bool = false
 
-    var invocationSummary: some CommandLineToolInvocationSummary.InvocationSummary {
+    var invocationSummary: some InvocationSummary {
         When(\.$output, .isPresent) {
             "write"
             \.$output
@@ -163,7 +163,7 @@ final class OmittedSummaryTool: AnyCommandLineTool, CommandLineTool {
     @Option(name: "output")
     var output: String? = nil
 
-    var invocationSummary: some CommandLineToolInvocationSummary.InvocationSummary {
+    var invocationSummary: some InvocationSummary {
         Omit(\OmittedSummaryTool.$verbose)
         \.$output
     }
@@ -177,7 +177,7 @@ final class ConflictingDispositionSummaryTool: AnyCommandLineTool, CommandLineTo
     @Option(name: "output")
     var output: String? = nil
 
-    var invocationSummary: some CommandLineToolInvocationSummary.InvocationSummary {
+    var invocationSummary: some InvocationSummary {
         Omit(\ConflictingDispositionSummaryTool.$output)
         \.$output
     }
@@ -197,7 +197,7 @@ final class UnavailableSummaryTool: AnyCommandLineTool, CommandLineTool {
     @Argument(name: nil)
     var input: String? = nil
 
-    var invocationSummary: some CommandLineToolInvocationSummary.InvocationSummary {
+    var invocationSummary: some InvocationSummary {
         _Unavailable(\UnavailableSummaryTool.$output, reason: "--output is not accepted by this mode")
         \.$verbose
         \.$input
@@ -215,8 +215,8 @@ final class ApplicabilityUnavailableModifierSummaryTool: AnyCommandLineTool, Com
     @Argument(name: nil)
     var input: String? = nil
 
-    var invocationSummary: some CommandLineToolInvocationSummary.InvocationSummary {
-        CommandLineToolInvocationSummary.InvocationSummaryValueReference(keyPath: \ApplicabilityUnavailableModifierSummaryTool.$output)
+    var invocationSummary: some InvocationSummary {
+        InvocationSummaryValueReference(keyPath: \ApplicabilityUnavailableModifierSummaryTool.$output)
             ._unavailable(
                 unless: .never,
                 reason: "--output is not valid in this mode"
@@ -237,8 +237,8 @@ final class ApplicabilityOmitModifierSummaryTool: AnyCommandLineTool, CommandLin
     @Argument(name: nil)
     var input: String? = nil
 
-    var invocationSummary: some CommandLineToolInvocationSummary.InvocationSummary {
-        CommandLineToolInvocationSummary.InvocationSummaryValueReference(keyPath: \ApplicabilityOmitModifierSummaryTool.$output)
+    var invocationSummary: some InvocationSummary {
+        InvocationSummaryValueReference(keyPath: \ApplicabilityOmitModifierSummaryTool.$output)
             ._omitted(unless: .never, reason: "--output is intentionally suppressed in this mode")
 
         \.$input
@@ -259,7 +259,7 @@ final class GroupOmitSummaryTool: AnyCommandLineTool, CommandLineTool {
     @Argument(name: nil)
     var input: String? = nil
 
-    var invocationSummary: some CommandLineToolInvocationSummary.InvocationSummary {
+    var invocationSummary: some InvocationSummary {
         Omit(unless: .never, reason: "--output and --verbose do not apply in this mode") {
             \.$output
             \.$verbose
@@ -283,7 +283,7 @@ final class ConditionalGroupOmitSummaryTool: AnyCommandLineTool, CommandLineTool
     @Argument(name: nil)
     var input: String? = nil
 
-    var invocationSummary: some CommandLineToolInvocationSummary.InvocationSummary {
+    var invocationSummary: some InvocationSummary {
         Omit(unless: .always) {
             \.$output
             \.$verbose
@@ -304,8 +304,8 @@ final class ApplicabilityExplicitModifierSummaryTool: AnyCommandLineTool, Comman
     @Argument(name: nil)
     var input: String? = nil
 
-    var invocationSummary: some CommandLineToolInvocationSummary.InvocationSummary {
-        CommandLineToolInvocationSummary.InvocationSummaryValueReference(keyPath: \ApplicabilityExplicitModifierSummaryTool.$output)
+    var invocationSummary: some InvocationSummary {
+        InvocationSummaryValueReference(keyPath: \ApplicabilityExplicitModifierSummaryTool.$output)
             ._modifier(
                 CommandLineToolInvocationSummary._ArgumentApplicabilityModifier(
                     applicability: .init(
@@ -335,12 +335,32 @@ final class ContextualApplicabilitySummaryTool: AnyCommandLineTool, CommandLineT
     @Argument(name: nil)
     var input: String? = nil
 
-    var invocationSummary: some CommandLineToolInvocationSummary.InvocationSummary {
+    var invocationSummary: some InvocationSummary {
         Omit(unless: .contextValue(InvocationSummaryTestMode.self, .equals(.test)), reason: "--enable-coverage only applies while testing") {
             \.$enableCoverage
         }
 
         \.$input
+    }
+}
+
+final class CustomValueLoweringSummaryTool: AnyCommandLineTool, CommandLineTool {
+    override var commandName: CommandLineTool.Name? {
+        "custom-value-lowering"
+    }
+
+    @Option(name: "enable")
+    var enable: Bool? = nil
+
+    var invocationSummary: some InvocationSummary {
+        InvocationSummaryValueReference(keyPath: \CustomValueLoweringSummaryTool.$enable) { _, value in
+            [
+                .option(
+                    key: "--enable",
+                    value: CommandLineToolInvocation.Argument(value == true ? "YES" : "NO")
+                )
+            ]
+        }
     }
 }
 
@@ -355,7 +375,7 @@ final class RewrittenSummaryTool: AnyCommandLineTool, CommandLineTool {
     @Argument(name: nil)
     var input: String? = nil
 
-    var invocationSummary: some CommandLineToolInvocationSummary.InvocationSummary {
+    var invocationSummary: some InvocationSummary {
         RewriteAfterDefaultSummary()
     }
 }
@@ -399,7 +419,7 @@ final class ParentReferencedSummaryTool: AnyCommandLineTool, CommandLineTool {
         @Argument(name: nil)
         var input: String? = nil
 
-        var invocationSummary: some CommandLineToolInvocationSummary.InvocationSummary {
+        var invocationSummary: some InvocationSummary {
             self.$sdk
 
             When(self.$sdk, equals: "macosx") {
@@ -431,7 +451,7 @@ final class ParentUnavailableSummaryTool: AnyCommandLineTool, CommandLineTool {
         @Argument(name: nil)
         var input: String? = nil
 
-        var invocationSummary: some CommandLineToolInvocationSummary.InvocationSummary {
+        var invocationSummary: some InvocationSummary {
             _Unavailable(self.$sdk, reason: "--sdk does not apply to build")
             \.$input
         }
@@ -458,7 +478,7 @@ final class ParentApplicabilityModifierSummaryTool: AnyCommandLineTool, CommandL
         @Argument(name: nil)
         var input: String? = nil
 
-        var invocationSummary: some CommandLineToolInvocationSummary.InvocationSummary {
+        var invocationSummary: some InvocationSummary {
             self.$sdk
                 ._unavailable(
                     unless: .never,
@@ -478,7 +498,7 @@ final class ExactConditionalSummaryTool: AnyCommandLineTool, CommandLineTool {
     @Option(name: "format")
     var format: String? = nil
 
-    var invocationSummary: some CommandLineToolInvocationSummary.InvocationSummary {
+    var invocationSummary: some InvocationSummary {
         When(\.$format, equals: "json") {
             "--json"
         } else: {
@@ -498,7 +518,7 @@ final class DuplicateSummaryReferenceTool: AnyCommandLineTool, CommandLineTool {
     @Argument(name: nil)
     var input: String? = nil
 
-    var invocationSummary: some CommandLineToolInvocationSummary.InvocationSummary {
+    var invocationSummary: some InvocationSummary {
         \.$target
         \.$target
     }
@@ -512,7 +532,7 @@ final class CollectionPresenceSummaryTool: AnyCommandLineTool, CommandLineTool {
     @Argument(name: nil)
     var inputs: [String] = []
 
-    var invocationSummary: some CommandLineToolInvocationSummary.InvocationSummary {
+    var invocationSummary: some InvocationSummary {
         When(\.$inputs, .isPresent) {
             "inputs"
         } else: {
@@ -532,7 +552,7 @@ final class ResultBuilderBranchSummaryTool: AnyCommandLineTool, CommandLineTool 
     @Option(name: "name")
     var name: String? = nil
 
-    var invocationSummary: some CommandLineToolInvocationSummary.InvocationSummary {
+    var invocationSummary: some InvocationSummary {
         if emitExtra {
             "extra"
         }
@@ -549,7 +569,7 @@ final class SwitchWithoutDefaultSummaryTool: AnyCommandLineTool, CommandLineTool
     @Option(name: "format")
     var format: String? = nil
 
-    var invocationSummary: some CommandLineToolInvocationSummary.InvocationSummary {
+    var invocationSummary: some InvocationSummary {
         Switch(\.$format) {
             Case(value: "json") {
                 "--json"
@@ -634,7 +654,7 @@ final class ParentChildConversionSummaryTool: AnyCommandLineTool, CommandLineToo
         @Option(name: "target")
         var target: String? = nil
 
-        var invocationSummary: some CommandLineToolInvocationSummary.InvocationSummary {
+        var invocationSummary: some InvocationSummary {
             self.$sdk
             \.$target
         }
@@ -821,6 +841,133 @@ struct CommandLineToolSupportTests {
     }
 
     @Test
+    func statefulToolExamplesRenderTrustAndAuthorizationCommands() throws {
+        let miseTrust = try ExampleMiseTool()
+            .trust()
+            .with(\.path, ".")
+            .commandInvocation
+        let miseTrustShow = try ExampleMiseTool()
+            .trust()
+            .with(\.show, true)
+            .commandInvocation
+        let direnvAllow = try ExampleDirenvTool()
+            .allow()
+            .with(\.path, ".")
+            .commandInvocation
+
+        #expect(miseTrust.rawComponents == ["mise", "trust", "."])
+        #expect(miseTrustShow.rawComponents == ["mise", "trust", "--show"])
+        #expect(direnvAllow.rawComponents == ["direnv", "allow", "."])
+    }
+
+    @Test
+    func statefulToolExamplesRenderAgentCredentialCommands() throws {
+        let addIdentity = try ExampleSSHAddTool()
+            .with(\.lifetime, "1h")
+            .with(\.confirmUse, true)
+            .with(\.identityPaths, ["~/.ssh/id_ed25519"])
+            .commandInvocation
+        let listIdentities = try ExampleSSHAddTool()
+            .with(\.listIdentities, true)
+            .commandInvocation
+        let deleteIdentity = try ExampleSSHAddTool()
+            .with(\.deleteIdentity, true)
+            .with(\.identityPaths, ["~/.ssh/id_ed25519"])
+            .commandInvocation
+
+        #expect(addIdentity.rawComponents == ["ssh-add", "-t", "1h", "-c", "~/.ssh/id_ed25519"])
+        #expect(listIdentities.rawComponents == ["ssh-add", "-l"])
+        #expect(deleteIdentity.rawComponents == ["ssh-add", "-d", "~/.ssh/id_ed25519"])
+    }
+
+    @Test
+    func statefulToolExamplesRenderAuthenticationAndSelectionCommands() throws {
+        let dockerLogin = try ExampleDockerTool()
+            .login()
+            .with(\.registry, "ghcr.io")
+            .commandInvocation
+        let kubectlUseContext = try ExampleKubectlTool()
+            .with(\.kubeconfig, "~/.kube/config")
+            .config()
+            .useContext()
+            .with(\.contextName, "production")
+            .commandInvocation
+        let xcodeSelectSwitch = try ExampleXcodeSelectTool()
+            .with(\.developerDirectoryPath, "/Applications/Xcode.app")
+            .commandInvocation
+
+        #expect(dockerLogin.rawComponents == ["docker", "login", "ghcr.io"])
+        #expect(kubectlUseContext.rawComponents == ["kubectl", "--kubeconfig", "~/.kube/config", "config", "use-context", "production"])
+        #expect(xcodeSelectSwitch.rawComponents == ["xcode-select", "--switch", "/Applications/Xcode.app"])
+    }
+
+    @Test
+    func statefulToolExamplesRenderInspectionAndRevocationCommands() throws {
+        let dockerLogout = try ExampleDockerTool()
+            .logout()
+            .with(\.registry, "ghcr.io")
+            .commandInvocation
+        let kubectlCurrentContext = try ExampleKubectlTool()
+            .config()
+            .currentContext()
+            .commandInvocation
+        let xcodeSelectPrintPath = try ExampleXcodeSelectTool()
+            .with(\.printPath, true)
+            .commandInvocation
+        let direnvDeny = try ExampleDirenvTool()
+            .deny()
+            .with(\.path, ".")
+            .commandInvocation
+
+        #expect(dockerLogout.rawComponents == ["docker", "logout", "ghcr.io"])
+        #expect(kubectlCurrentContext.rawComponents == ["kubectl", "config", "current-context"])
+        #expect(xcodeSelectPrintPath.rawComponents == ["xcode-select", "--print-path"])
+        #expect(direnvDeny.rawComponents == ["direnv", "deny", "."])
+    }
+
+    @Test
+    func invocationModeRejectsOverlappingFlagShapedModes() throws {
+        do {
+            _ = try ExampleSSHAddTool()
+                .with(\.listIdentities, true)
+                .with(\.deleteIdentity, true)
+                .with(\.identityPaths, ["~/.ssh/id_ed25519"])
+                .invocation
+
+            Issue.record("Expected overlapping ssh-add invocation modes to fail.")
+        } catch let error as CommandLineToolInvocationSummary.Error {
+            guard case .conflictingInvocationModes(let command, _, _, let location) = error else {
+                Issue.record("Expected conflictingInvocationModes, got \(error).")
+                return
+            }
+
+            #expect(command == "ssh-add")
+            #expect(location != nil)
+        } catch {
+            Issue.record("Expected invocation-summary error, got \(error).")
+        }
+
+        do {
+            _ = try ExampleXcodeSelectTool()
+                .with(\.printPath, true)
+                .with(\.developerDirectoryPath, "/Applications/Xcode.app")
+                .invocation
+
+            Issue.record("Expected overlapping xcode-select invocation modes to fail.")
+        } catch let error as CommandLineToolInvocationSummary.Error {
+            guard case .conflictingInvocationModes(let command, _, _, let location) = error else {
+                Issue.record("Expected conflictingInvocationModes, got \(error).")
+                return
+            }
+
+            #expect(command == "xcode-select")
+            #expect(location != nil)
+        } catch {
+            Issue.record("Expected invocation-summary error, got \(error).")
+        }
+    }
+
+    @Test
     func standardStreamWiringRejectsRepeatedExclusiveFormatterEffects() throws {
         typealias Wiring = _CommandLineToolExecutionPlan<AnyCommandLineTool>.StandardStreamWiring
 
@@ -952,6 +1099,98 @@ struct CommandLineToolSupportTests {
         #expect(stage.executionSource == source)
         #expect(stage.invocation == invocation)
         #expect(stage.streamEffects.isEmpty)
+    }
+
+    @Test
+    func standardStreamWiringRendersLinearShellPipelineFromExecutionSources() throws {
+        typealias Wiring = _CommandLineToolExecutionPlan<AnyCommandLineTool>.StandardStreamWiring
+
+        let primaryInvocation = CommandLineToolInvocation(components: [
+            .executable("xcrun"),
+            .selectedTool("xcodebuild"),
+            .action("build")
+        ])
+        let primary = Wiring.Stage(
+            role: .primaryInvocation,
+            commandName: "xcodebuild",
+            executionSource: .modeledInvocation(primaryInvocation),
+            invocation: primaryInvocation
+        )
+        let observer = Wiring.Stage(
+            role: .external,
+            commandName: "build-progress-observation",
+            executionSource: .shellCommandString("perl -ne 'print'")
+        )
+        let formatterInvocation = CommandLineToolInvocation(components: [
+            .executable("xcbeautify")
+        ])
+        let formatter = Wiring.Stage(
+            role: .outputFormatterTool,
+            executionSource: .modeledInvocation(formatterInvocation),
+            streamEffects: [.humanReadableFormatting]
+        )
+        let wiring = Wiring(
+            stages: [
+                primary,
+                observer,
+                formatter
+            ],
+            streamConnections: [
+                Wiring.StreamConnection(
+                    output: .init(stageID: primary.id, stream: .standardOutput),
+                    input: .init(stageID: observer.id, stream: .standardInput)
+                ),
+                Wiring.StreamConnection(
+                    output: .init(stageID: observer.id, stream: .standardOutput),
+                    input: .init(stageID: formatter.id, stream: .standardInput)
+                )
+            ]
+        )
+
+        let command = try wiring.renderedShellPipelineCommandString(
+            mergingStandardErrorIntoStandardOutputAt: primary.id
+        )
+
+        #expect(command.rawValue == "'xcrun' 'xcodebuild' 'build' 2>&1 | perl -ne 'print' | 'xcbeautify'")
+        #expect(command.dialect == .posix)
+    }
+
+    @Test
+    func standardStreamWiringRejectsMissingStandardErrorMergeStage() throws {
+        typealias Wiring = _CommandLineToolExecutionPlan<AnyCommandLineTool>.StandardStreamWiring
+
+        let producer = Wiring.Stage(
+            role: .primaryInvocation,
+            executionSource: .shellCommandString("producer")
+        )
+        let consumer = Wiring.Stage(
+            role: .external,
+            executionSource: .shellCommandString("consumer")
+        )
+        let missingStageID = UUID()
+        let wiring = Wiring(
+            stages: [
+                producer,
+                consumer
+            ],
+            streamConnections: [
+                Wiring.StreamConnection(
+                    output: .init(stageID: producer.id, stream: .standardOutput),
+                    input: .init(stageID: consumer.id, stream: .standardInput)
+                )
+            ]
+        )
+
+        do {
+            _ = try wiring.renderedShellPipelineCommandString(
+                mergingStandardErrorIntoStandardOutputAt: missingStageID
+            )
+            Issue.record("Expected missing merge stage to throw.")
+        } catch let error as Wiring.RenderingError {
+            #expect(error == .missingStage(missingStageID))
+        } catch {
+            Issue.record("Expected \(Wiring.RenderingError.self), got \(error).")
+        }
     }
 
     @Test
@@ -1357,6 +1596,70 @@ struct CommandLineToolSupportTests {
     }
 
     @Test
+    func invocationComponentsAppendCommonStructuralFragments() {
+        var components = CommandLineToolInvocation.Components([
+            .executable("xcodebuild")
+        ])
+
+        components.appendOption(key: "-scheme", value: "ExampleApp")
+        components.appendOption(key: "-enableCodeCoverage", booleanValue: false)
+        components.appendFlag("-allowProvisioningUpdates", if: true)
+        components.appendFlag("-allowProvisioningDeviceRegistration", if: false)
+        components.appendBuildSettingAssignment(key: "ENABLE_CODE_COVERAGE", value: "NO")
+        components.appendOption(key: "-testPlan", value: nil as String?)
+        components.appendBuildSettingAssignment(key: "IGNORED", value: nil as String?)
+
+        #expect(components.elements.map(\.kind) == [
+            .executable,
+            .option,
+            .option,
+            .flag,
+            .buildSettingAssignment
+        ])
+        #expect(components.rawValues == [
+            "xcodebuild",
+            "-scheme",
+            "ExampleApp",
+            "-enableCodeCoverage",
+            "NO",
+            "-allowProvisioningUpdates",
+            "ENABLE_CODE_COVERAGE=NO"
+        ])
+    }
+
+    @Test
+    func invocationComponentsCanRepresentDomainActionsSeparatelyFromOperands() {
+        let invocation = CommandLineToolInvocation(components: [
+            .executable("xcodebuild"),
+            .action("build"),
+            .positionalArgument("OTHER_LDFLAGS=$(inherited)")
+        ])
+
+        #expect(invocation.components.map(\.kind) == [.executable, .action, .positionalArgument])
+        #expect(invocation.rawComponents == ["xcodebuild", "build", "OTHER_LDFLAGS=$(inherited)"])
+        #expect(invocation.executableInvocation?.arguments.rawValues == ["build", "OTHER_LDFLAGS=$(inherited)"])
+    }
+
+    @Test
+    func invocationComponentsCanQueryTypedDomainActions() {
+        enum BuildAction: String {
+            case build
+            case test
+        }
+
+        let components = CommandLineToolInvocation.Components([
+            .executable("xcodebuild"),
+            .option(key: "-scheme", value: "ExampleApp"),
+            .action("build"),
+            .buildSettingAssignment(key: "OTHER_ACTION", value: "test"),
+            .action("test")
+        ])
+
+        #expect(components.values(ofKind: .action, as: BuildAction.self) == [.build, .test])
+        #expect(components.lastValue(ofKind: .action, as: BuildAction.self) == .test)
+    }
+
+    @Test
     func invocationComponentsPreserveTypedUnmodeledEscapeHatches() {
         let component = CommandLineToolInvocation.Component.unmodeled(
             arguments: ["OTHER_SWIFT_FLAGS=$(inherited)", "-Xfrontend", "-warn-long-function-bodies=200"],
@@ -1679,10 +1982,10 @@ struct CommandLineToolSupportTests {
         let command = ContextualApplicabilitySummaryTool()
             .with(\.enableCoverage, true)
             .with(\.input, "Tests")
-        let buildContext = CommandLineToolInvocationSummary.InvocationSummaryContext(
+        let buildContext = ContextualApplicabilitySummaryTool.InvocationSummaryContext(
             value: InvocationSummaryTestMode.build
         )
-        let testContext = CommandLineToolInvocationSummary.InvocationSummaryContext(
+        let testContext = ContextualApplicabilitySummaryTool.InvocationSummaryContext(
             value: InvocationSummaryTestMode.test
         )
 
@@ -2103,7 +2406,7 @@ struct CommandLineToolSupportTests {
         let command = ResolvedDescriptionTool()
             .with(\.target, "arm64-apple-macosx15.0")
             .with(\.inputs, ["Sources/main.swift"])
-        let context = CommandLineToolInvocationSummary.InvocationSummaryContext()
+        let context = ResolvedDescriptionTool.InvocationSummaryContext()
         let components = try command.invocationComponents(context: context)
         let targetRecord = try #require(
             context
@@ -2141,6 +2444,50 @@ struct CommandLineToolSupportTests {
         #expect(components.rawValues == ["--target", "arm64-apple-macosx15.0", "--trace"])
         #expect(identifiedComponents.map(\.argumentID.propertyName) == ["target", "trace"])
         #expect(identifiedComponents.map(\.component.rawValues) == [["--target", "arm64-apple-macosx15.0"], ["--trace"]])
+    }
+
+    @Test
+    func invocationSummaryComponentsCanBeSelectedFromExistingContext() throws {
+        let command = CustomValueLoweringSummaryTool()
+        let context = CustomValueLoweringSummaryTool.InvocationSummaryContext()
+
+        _ = try command.invocationComponents(context: context)
+
+        let components = try command.invocationSummaryComponents(
+            for: [\CustomValueLoweringSummaryTool.$enable],
+            context: context
+        )
+        let identifiedComponents = try command.identifiedInvocationSummaryComponents(
+            for: [\CustomValueLoweringSummaryTool.$enable],
+            context: context
+        )
+
+        #expect(components.rawValues == ["--enable", "NO"])
+        #expect(identifiedComponents.map(\.argumentID.propertyName) == ["enable"])
+        #expect(identifiedComponents.map(\.component.rawValues) == [["--enable", "NO"]])
+    }
+
+    @Test
+    func invocationSummaryCanBeLoweredAndSelectedByKeyPathGroups() throws {
+        let command = ResolvedDescriptionTool()
+            .with(\.target, "arm64-apple-macosx15.0")
+            .with(\.inputs, ["Sources/main.swift"])
+            .with(\.trace, true)
+        let context = ResolvedDescriptionTool.InvocationSummaryContext()
+        let componentGroups = try command.loweredInvocationSummaryComponentGroups(
+            for: [
+                [\ResolvedDescriptionTool.$target],
+                [\ResolvedDescriptionTool.$trace]
+            ],
+            context: context
+        )
+
+        #expect(componentGroups.map(\.rawValues) == [
+            ["--target", "arm64-apple-macosx15.0"],
+            ["--trace"]
+        ])
+        #expect(context.argumentDispositionRecords.map(\.argumentID.propertyName).contains("target"))
+        #expect(context.argumentDispositionRecords.map(\.argumentID.propertyName).contains("trace"))
     }
 
     @Test
@@ -2215,7 +2562,7 @@ struct CommandLineToolSupportTests {
         let tool = ResolvedDescriptionTool()
             .with(\.target, "arm64-apple-macosx15.0")
             .with(\.inputs, ["Sources/main.swift"])
-        let context = CommandLineToolInvocationSummary.InvocationSummaryContext()
+        let context = ResolvedDescriptionTool.InvocationSummaryContext()
 
         let localArguments = try tool._defaultInvocationArguments(
             context: context,

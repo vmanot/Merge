@@ -1,8 +1,5 @@
 //
-//  CommandLineToolInvocationSummary.swift
-//  Merge
-//
-//  Created by Yanan Li on 2026/1/5.
+// Copyright (c) Vatsal Manot
 //
 
 import Foundation
@@ -44,6 +41,12 @@ public enum Error: Swift.Error, CustomStringConvertible {
         valueDescription: String,
         location: SourceCodeLocation?
     )
+    case conflictingInvocationModes(
+        command: CommandLineTool.Name?,
+        first: String,
+        second: String,
+        location: SourceCodeLocation?
+    )
     case unsupportedInvocationSummaryModifierContent(
         modifier: String,
         content: Any.Type,
@@ -64,6 +67,8 @@ public enum Error: Swift.Error, CustomStringConvertible {
                 return "Conflicting invocation-summary disposition for command-line argument \(argument) on \(command?.rawValue ?? "<unknown>"): existing \(existing.disposition), new \(new.disposition)\(location.map { " at \($0)" } ?? "")."
             case .noSwitchCaseMatched(let command, let argument, let valueDescription, let location):
                 return "No invocation-summary switch case matched \(argument.map { "\($0) " } ?? "")for \(command?.rawValue ?? "<unknown>") with value \(valueDescription)\(location.map { " at \($0)" } ?? "")."
+            case .conflictingInvocationModes(let command, let first, let second, let location):
+                return "Conflicting invocation modes for \(command?.rawValue ?? "<unknown>"): \(first) and \(second) both matched\(location.map { " at \($0)" } ?? "")."
             case .unsupportedInvocationSummaryModifierContent(let modifier, let content, let location):
                 return "Invocation-summary modifier \(modifier) cannot be applied to content \(String(reflecting: content))\(location.map { " at \($0)" } ?? "")."
         }
@@ -98,14 +103,6 @@ public struct AnyInvocationSummary<Command: AnyCommandLineTool>: InvocationSumma
 
     public init(erasing summary: some InvocationSummary<Command>) {
         self.base = summary
-    }
-
-    public func makeInvocationArguments(
-        command: Command,
-        parent: AnyCommandLineTool?,
-        context: Context
-    ) throws -> CommandLineToolInvocation.Arguments {
-        try base.makeInvocationArguments(command: command, parent: parent, context: context)
     }
 
     public func makeInvocationComponents(
@@ -184,7 +181,7 @@ extension CommandLineToolInvocationSummary.TupleInvocationSummary: CommandLineTo
     public func _registerArgumentApplicability(
         command: Command,
         parent: AnyCommandLineTool?,
-        context: CommandLineToolInvocationSummary.InvocationSummaryContext,
+        context: Context,
         otherwise: _CommandLineToolArgumentApplicability<Command>.Otherwise,
         location: SourceCodeLocation?
     ) throws {

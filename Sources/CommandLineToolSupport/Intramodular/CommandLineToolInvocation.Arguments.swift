@@ -149,6 +149,28 @@ extension CommandLineToolInvocation {
             argumentValues.map(\.rawValue)
         }
 
+        public func components(
+            ofKind kind: Component.Kind
+        ) -> [Component] {
+            elements.filter { $0.kind == kind }
+        }
+
+        public func values<Value: RawRepresentable>(
+            ofKind kind: Component.Kind,
+            as type: Value.Type = Value.self
+        ) -> [Value] where Value.RawValue == String {
+            components(ofKind: kind)
+                .flatMap(\.rawValues)
+                .compactMap(Value.init(rawValue:))
+        }
+
+        public func lastValue<Value: RawRepresentable>(
+            ofKind kind: Component.Kind,
+            as type: Value.Type = Value.self
+        ) -> Value? where Value.RawValue == String {
+            values(ofKind: kind, as: type).last
+        }
+
         public var isEmpty: Bool {
             elements.isEmpty
         }
@@ -202,20 +224,6 @@ extension CommandLineToolInvocation {
             appendOption(
                 key: key,
                 value: value.map { $0 ? trueValue : falseValue }
-            )
-        }
-
-        public mutating func appendBooleanOption(
-            key: Argument,
-            value: Bool?,
-            trueValue: Argument = "YES",
-            falseValue: Argument = "NO"
-        ) {
-            appendOption(
-                key: key,
-                booleanValue: value,
-                trueValue: trueValue,
-                falseValue: falseValue
             )
         }
 

@@ -42,7 +42,7 @@ final class ExampleGitHubTool: AnyCommandLineTool, CommandLineTool {
             @Argument(name: nil)
             var assets: [String] = []
 
-            var invocationSummary: some CommandLineToolInvocationSummary.InvocationSummary {
+            var invocationSummary: some InvocationSummary {
                 \.$tagName
                 \.$title
 

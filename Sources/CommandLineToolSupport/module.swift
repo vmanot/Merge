@@ -4,7 +4,6 @@
 
 import Foundation
 import Merge
-import Swift
 
 public enum CommandLineTools {
     

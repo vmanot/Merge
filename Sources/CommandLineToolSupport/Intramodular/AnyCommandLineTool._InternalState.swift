@@ -13,6 +13,29 @@ import Merge
 @available(tvOS, unavailable)
 @available(watchOS, unavailable)
 extension AnyCommandLineTool {
+    public enum _DeveloperError: Swift.Error, Hashable, CustomStringConvertible {
+        case killedInstanceUsage
+        case failedToKillShellSessions(failedSessionCount: Int, totalSessionCount: Int)
+        case outputFormatterToolAlreadyAttached
+        case hostToolAlreadyAttached
+        case missingRequiredCommandName(toolType: String)
+
+        public var description: String {
+            switch self {
+                case .killedInstanceUsage:
+                    return "Cannot use an AnyCommandLineTool instance after kill() has been called on it."
+                case .failedToKillShellSessions(let failedSessionCount, let totalSessionCount):
+                    return "Failed to kill running command-line tool work: \(failedSessionCount) of \(totalSessionCount) tracked shell session(s) remained incomplete after teardown."
+                case .outputFormatterToolAlreadyAttached:
+                    return "Cannot attach more than one output formatter tool to the same command-line tool serializer state."
+                case .hostToolAlreadyAttached:
+                    return "Cannot attach more than one host tool to the same command-line tool serializer state."
+                case .missingRequiredCommandName(let toolType):
+                    return "Cannot render or resolve \(toolType) as a named command-line tool because commandName is nil."
+            }
+        }
+    }
+
     package enum _LifecycleStatus: Hashable, Sendable {
         case active
         case killed
@@ -181,6 +204,30 @@ extension AnyCommandLineTool {
                 runtimeIssue(error)
                 throw error
             }
+        }
+    }
+
+    public func kill() async throws {
+        let sessions = await _internalState._beginKill()
+
+        var failedSessionCount = 0
+
+        for session in sessions {
+            let report = await session.shellState._teardownRunningProcessesReportingForOwningCommandLineTool()
+
+            if !report.fullySucceeded {
+                failedSessionCount += 1
+            }
+
+            await session.shellState._completeShellScope(id: session.id)
+            await _internalState._completeShellSession(id: session.id)
+        }
+
+        guard failedSessionCount == 0 else {
+            throw _DeveloperError.failedToKillShellSessions(
+                failedSessionCount: failedSessionCount,
+                totalSessionCount: sessions.count
+            )
         }
     }
 }

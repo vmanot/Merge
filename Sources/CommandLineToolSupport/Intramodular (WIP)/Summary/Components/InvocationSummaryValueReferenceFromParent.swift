@@ -34,21 +34,6 @@ extension CommandLineToolInvocationSummary {
 public struct InvocationSummaryValueReferenceFromParent<Parent: AnyCommandLineTool, Command: AnyCommandLineTool, Value: InvocationSummaryValue>: InvocationSummary where Command: _InvocationSummarySubcommandWithParentCommand, Parent == Command.ParentCommand {
     let keyPath: KeyPath<Parent, Value>
 
-    public func makeInvocationArguments(
-        command: Command,
-        parent: AnyCommandLineTool?,
-        context: InvocationSummaryContext
-    ) throws -> CommandLineToolInvocation.Arguments {
-        CommandLineToolInvocation.Arguments(
-            try makeInvocationComponents(
-                command: command,
-                parent: parent,
-                context: context
-            )
-            .flatMap(\.argumentValues)
-        )
-    }
-
     public func makeInvocationComponents(
         command: Command,
         parent: AnyCommandLineTool?,

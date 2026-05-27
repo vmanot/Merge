@@ -3,7 +3,6 @@
 //
 
 import Foundation
-import Collections
 import OrderedCollections
 
 @available(macOS 11.0, *)

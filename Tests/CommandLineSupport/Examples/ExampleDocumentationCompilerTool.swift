@@ -28,7 +28,7 @@ final class ExampleDocumentationCompilerTool: AnyCommandLineTool, CommandLineToo
     @Flag(name: "emit-digest")
     var emitDigest: Bool = false
 
-    var invocationSummary: some CommandLineToolInvocationSummary.InvocationSummary {
+    var invocationSummary: some InvocationSummary {
         Switch(\.$operation) {
             Case(.convert) {
                 \.$operation

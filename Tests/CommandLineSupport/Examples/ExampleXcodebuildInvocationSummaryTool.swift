@@ -66,7 +66,7 @@ final class ExampleXcodebuildLikeTool: AnyCommandLineTool, CommandLineTool {
         @Flag(name: "parallel-testing-enabled", inversion: .prefixedNo)
         var parallelTestingEnabled: Bool? = nil
 
-        var invocationSummary: some CommandLineToolInvocationSummary.InvocationSummary {
+        var invocationSummary: some InvocationSummary {
             NormalizeResultBundlePath()
 
             self.$workspace
@@ -94,13 +94,13 @@ final class ExampleXcodebuildLikeTool: AnyCommandLineTool, CommandLineTool {
             \.$parallelTestingEnabled
         }
 
-        struct NormalizeResultBundlePath: CommandLineToolInvocationSummary.InvocationSummary {
+        struct NormalizeResultBundlePath: InvocationSummary {
             typealias Command = Test
 
             func makeInvocationComponents(
                 command: Test,
                 parent: AnyCommandLineTool?,
-                context: CommandLineToolInvocationSummary.InvocationSummaryContext
+                context: InvocationSummaryContext
             ) throws -> [CommandLineToolInvocation.Component] {
                 context.registerRewriteRule(.replaceOptionValues(named: "-resultBundlePath") { values in
                     guard
@@ -125,7 +125,7 @@ final class ExampleXcodebuildLikeTool: AnyCommandLineTool, CommandLineTool {
             "build"
         }
 
-        var invocationSummary: some CommandLineToolInvocationSummary.InvocationSummary {
+        var invocationSummary: some InvocationSummary {
             self.$enableCodeCoverage
                 ._omitted(
                     unless: .never,
@@ -155,7 +155,7 @@ final class ExampleXcodebuildLikeTool: AnyCommandLineTool, CommandLineTool {
         @Flag(name: "allowProvisioningUpdates")
         var allowProvisioningUpdates: Bool = false
 
-        var invocationSummary: some CommandLineToolInvocationSummary.InvocationSummary {
+        var invocationSummary: some InvocationSummary {
             self.$workspace
             self.$scheme
             self.$destination
@@ -174,7 +174,7 @@ final class ExampleXcodebuildLikeTool: AnyCommandLineTool, CommandLineTool {
             "analyze"
         }
 
-        var invocationSummary: some CommandLineToolInvocationSummary.InvocationSummary {
+        var invocationSummary: some InvocationSummary {
             self.$enableCodeCoverage
                 ._unavailable(
                     unless: .never,
@@ -196,7 +196,7 @@ extension ExampleXcodebuildLikeTool {
             "clean"
         }
 
-        var invocationSummary: some CommandLineToolInvocationSummary.InvocationSummary {
+        var invocationSummary: some InvocationSummary {
             self.$workspace
             self.$derivedDataPath
         }

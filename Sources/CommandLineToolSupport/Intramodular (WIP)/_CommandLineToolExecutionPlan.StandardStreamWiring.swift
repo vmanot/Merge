@@ -4,8 +4,8 @@
 
 
 import Foundation
-import Collections
 import OrderedCollections
+import ShellScripting
 import Swallow
 
 @available(macOS 11.0, *)
@@ -206,5 +206,106 @@ extension _CommandLineToolExecutionPlan.StandardStreamWiring {
                     return "Standard stream wiring applies exclusive stream effect \(key.rawValue) more than once along one stream walk: \(firstStage), \(secondStage)."
             }
         }
+    }
+
+    public enum RenderingError: CustomStringConvertible, Hashable, Sendable, Swift.Error {
+        case noRootStage
+        case multipleRootStages([Stage.ID])
+        case missingStage(Stage.ID)
+        case missingStageExecutionSource(Stage.ID)
+        case unsupportedConnection(StreamConnection)
+
+        public var description: String {
+            switch self {
+                case .noRootStage:
+                    return "Standard stream wiring cannot render a shell pipeline without a root stage."
+                case .multipleRootStages(let stageIDs):
+                    return "Standard stream wiring cannot render a single shell pipeline with multiple root stages: \(stageIDs)."
+                case .missingStage(let stageID):
+                    return "Standard stream wiring cannot render a shell pipeline because stage \(stageID) is missing."
+                case .missingStageExecutionSource(let stageID):
+                    return "Standard stream wiring cannot render a shell pipeline because stage \(stageID) has no execution source."
+                case .unsupportedConnection(let connection):
+                    return "Standard stream wiring cannot render connection \(connection) as a POSIX shell pipeline."
+            }
+        }
+    }
+}
+
+extension _CommandLineToolExecutionPlan.StandardStreamWiring.Stage {
+    public func renderedShellCommandString(
+        using renderer: CommandLineToolInvocation.CommandLineRenderer = .posixShellCommandLine
+    ) -> _ShellCommandString? {
+        if let executionSource {
+            switch executionSource {
+                case .modeledInvocation(let invocation):
+                    return invocation.renderedShellCommandString(using: renderer)
+                case .shellCommandString(let commandString):
+                    return commandString
+            }
+        }
+
+        return invocation?.renderedShellCommandString(using: renderer)
+    }
+}
+
+extension _CommandLineToolExecutionPlan.StandardStreamWiring {
+    public func renderedShellPipelineCommandString(
+        mergingStandardErrorIntoStandardOutputAt stageID: Stage.ID? = nil,
+        using renderer: CommandLineToolInvocation.CommandLineRenderer = .posixShellCommandLine
+    ) throws -> _ShellCommandString {
+        try validate()
+
+        if let stageID, stages[id: stageID] == nil {
+            throw RenderingError.missingStage(stageID)
+        }
+
+        let incomingStageIDs = Set(streamConnections.map(\.input.stageID))
+        let rootStages = stages.filter { !incomingStageIDs.contains($0.id) }
+        let outgoingConnections = Dictionary(grouping: streamConnections, by: \.output.stageID)
+
+        guard let rootStage = rootStages.first else {
+            throw RenderingError.noRootStage
+        }
+
+        guard rootStages.count == 1 else {
+            throw RenderingError.multipleRootStages(rootStages.map(\.id))
+        }
+
+        var currentStageID = rootStage.id
+        var renderedCommands: [String] = []
+
+        while true {
+            guard let stage = stages[id: currentStageID] else {
+                throw RenderingError.missingStage(currentStageID)
+            }
+
+            guard let commandString = stage.renderedShellCommandString(using: renderer) else {
+                throw RenderingError.missingStageExecutionSource(currentStageID)
+            }
+
+            renderedCommands.append(
+                currentStageID == stageID
+                ? "\(commandString.rawValue) 2>&1"
+                : commandString.rawValue
+            )
+
+            let outgoingConnections = outgoingConnections[currentStageID] ?? []
+
+            guard let connection = outgoingConnections.first else {
+                break
+            }
+
+            guard outgoingConnections.count == 1, connection.output.stream == .standardOutput else {
+                throw RenderingError.unsupportedConnection(connection)
+            }
+
+            currentStageID = connection.input.stageID
+        }
+
+        return _ShellCommandString(
+            rawValue: renderedCommands.joined(separator: " | "),
+            dialect: .posix
+        )
     }
 }

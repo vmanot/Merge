@@ -92,4 +92,18 @@ open class AnyCommandLineTool: Logging, ObjectDidChangeObservableObject {
                 throw error
         }
     }
+
+    public func withUnsafeSystemShell<R>(
+        sink: _ProcessStandardOutputSink,
+        perform operation: (SystemShell) async throws -> R
+    ) async throws -> R {
+        try await withUnsafeSystemShell { shell in
+            try await shell.withConfiguration(
+                applying: .standardStreamMirroring(
+                    SystemShell.StandardStreamMirroring(processStandardOutputSink: sink)
+                ),
+                perform: operation
+            )
+        }
+    }
 }

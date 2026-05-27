@@ -45,7 +45,7 @@ final class ExampleNodeApplicabilityTool: AnyCommandLineTool, CommandLineTool {
             "build"
         }
 
-        var invocationSummary: some CommandLineToolInvocationSummary.InvocationSummary {
+        var invocationSummary: some InvocationSummary {
             Omit(self.$enableCoverage)
             self.$workspace
         }
@@ -57,7 +57,7 @@ final class ExampleNodeApplicabilityTool: AnyCommandLineTool, CommandLineTool {
             "analyze"
         }
 
-        var invocationSummary: some CommandLineToolInvocationSummary.InvocationSummary {
+        var invocationSummary: some InvocationSummary {
             _Unavailable(self.$enableCoverage, reason: "-enableCoverage is only valid for test")
             self.$workspace
         }
@@ -69,7 +69,7 @@ final class ExampleNodeApplicabilityTool: AnyCommandLineTool, CommandLineTool {
             "test"
         }
 
-        var invocationSummary: some CommandLineToolInvocationSummary.InvocationSummary {
+        var invocationSummary: some InvocationSummary {
             self.$workspace
             self.$enableCoverage
         }
@@ -106,7 +106,7 @@ final class ExampleModifierApplicabilityTool: AnyCommandLineTool, CommandLineToo
             "build"
         }
 
-        var invocationSummary: some CommandLineToolInvocationSummary.InvocationSummary {
+        var invocationSummary: some InvocationSummary {
             self.$enableCoverage
                 ._omitted(unless: .never, reason: "-enableCoverage is intentionally suppressed for build")
 
@@ -120,7 +120,7 @@ final class ExampleModifierApplicabilityTool: AnyCommandLineTool, CommandLineToo
             "analyze"
         }
 
-        var invocationSummary: some CommandLineToolInvocationSummary.InvocationSummary {
+        var invocationSummary: some InvocationSummary {
             self.$enableCoverage
                 ._unavailable(unless: .never, reason: "-enableCoverage is only valid for test")
 
@@ -134,7 +134,7 @@ final class ExampleModifierApplicabilityTool: AnyCommandLineTool, CommandLineToo
             "test"
         }
 
-        var invocationSummary: some CommandLineToolInvocationSummary.InvocationSummary {
+        var invocationSummary: some InvocationSummary {
             self.$workspace
             self.$enableCoverage
         }

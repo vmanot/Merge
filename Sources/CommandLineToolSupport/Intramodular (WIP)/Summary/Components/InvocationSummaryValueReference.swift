@@ -15,9 +15,19 @@ extension CommandLineToolInvocationSummary {
 /// Summary node that renders one property-wrapper value from the current command.
 public struct InvocationSummaryValueReference<Command: AnyCommandLineTool, Value: InvocationSummaryValue>: InvocationSummary {
     let keyPath: KeyPath<Command, Value>
+    let makeComponents: ((Command, Value.WrappedValue) throws -> [CommandLineToolInvocation.Component])?
 
     public init(keyPath: KeyPath<Command, Value>) {
         self.keyPath = keyPath
+        self.makeComponents = nil
+    }
+
+    public init(
+        keyPath: KeyPath<Command, Value>,
+        makeComponents: @escaping (Command, Value.WrappedValue) throws -> [CommandLineToolInvocation.Component]
+    ) {
+        self.keyPath = keyPath
+        self.makeComponents = makeComponents
     }
 
     public func makeInvocationComponents(
@@ -25,13 +35,8 @@ public struct InvocationSummaryValueReference<Command: AnyCommandLineTool, Value
         parent: AnyCommandLineTool?,
         context: InvocationSummaryContext
     ) throws -> [CommandLineToolInvocation.Component] {
-        let resolved = try command[keyPath: keyPath].resolve(
-            in: .init(
-                resolvingID: InvocationSummaryContext.argumentID(command: command, keyPath: keyPath),
-                defaultKeyConversion: command.keyConversion
-            )
-        )
-        let components = resolved.publicInvocationComponents
+        let resolved = try resolve(command: command)
+        let components = try invocationComponents(command: command, resolved: resolved)
         let shouldRender = try context.registerHandledValueReference(
             command: command,
             keyPath,
@@ -41,6 +46,28 @@ public struct InvocationSummaryValueReference<Command: AnyCommandLineTool, Value
         )
 
         return shouldRender ? components : []
+    }
+
+    private func resolve(
+        command: Command
+    ) throws -> any _ResolvedCommandLineToolInvocationArgument {
+        try command[keyPath: keyPath].resolve(
+            in: .init(
+                resolvingID: InvocationSummaryContext.argumentID(command: command, keyPath: keyPath),
+                defaultKeyConversion: command.keyConversion
+            )
+        )
+    }
+
+    private func invocationComponents(
+        command: Command,
+        resolved: any _ResolvedCommandLineToolInvocationArgument
+    ) throws -> [CommandLineToolInvocation.Component] {
+        if let makeComponents {
+            return try makeComponents(command, command[keyPath: keyPath].wrappedValue)
+        }
+
+        return resolved.publicInvocationComponents
     }
 }
 
@@ -235,13 +262,8 @@ extension CommandLineToolInvocationSummary.InvocationSummaryValueReference: Comm
         location: SourceCodeLocation?
     ) throws {
         let argumentID = CommandLineToolInvocationSummary.InvocationSummaryContext.argumentID(command: command, keyPath: keyPath)
-        let resolved = try command[keyPath: keyPath].resolve(
-            in: .init(
-                resolvingID: argumentID,
-                defaultKeyConversion: command.keyConversion
-            )
-        )
-        let components = resolved.publicInvocationComponents
+        let resolved = try resolve(command: command)
+        let components = try invocationComponents(command: command, resolved: resolved)
 
         switch otherwise {
             case .omit(let reason):

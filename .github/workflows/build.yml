@@ -63,12 +63,30 @@ jobs:
             local PLATFORM=$1
             local DESTINATION=$2
             local LOG_FILE="${RUNNER_TEMP:-/tmp}/xcodebuild-${PLATFORM}.log"
+            local OBJECTS_PATH_PATTERN="*/Objects-normal/x86_64/*"
+            local XCODEBUILD_ARGS=(
+              -scheme "$TARGET"
+              -derivedDataPath "$DERIVED_DATA_PATH"
+              -destination "$DESTINATION"
+              -arch arm64
+              -skipPackagePluginValidation
+              -skipMacroValidation
+              ARCHS=arm64
+              EXCLUDED_ARCHS=x86_64
+            )
+
             echo "Building $TARGET for $PLATFORM..."
-            if ! NSUnbufferedIO=YES xcodebuild -scheme "$TARGET" -derivedDataPath "$DERIVED_DATA_PATH" -destination "$DESTINATION" -skipPackagePluginValidation -skipMacroValidation ARCHS=arm64 ONLY_ACTIVE_ARCH=NO 2>&1 | tee "$LOG_FILE" | xcbeautify --renderer github-actions; then
+            echo "Architecture policy: arm64 only; x86_64 is excluded."
+            find "$DERIVED_DATA_PATH" -path "$OBJECTS_PATH_PATTERN" -prune -exec rm -rf {} +
+            if ! NSUnbufferedIO=YES xcodebuild "${XCODEBUILD_ARGS[@]}" 2>&1 | tee "$LOG_FILE" | xcbeautify --renderer github-actions; then
               echo "Failed to build $TARGET for $PLATFORM"
               echo
               echo "Last 200 lines from raw xcodebuild log:"
               tail -n 200 "$LOG_FILE"
+              return 1
+            fi
+            if find "$DERIVED_DATA_PATH" -path "$OBJECTS_PATH_PATTERN" -print -quit | grep -q .; then
+              echo "Unexpected x86_64 build outputs were produced under $DERIVED_DATA_PATH"
               return 1
             fi
             echo "Successfully built $TARGET for $PLATFORM"

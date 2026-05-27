@@ -83,53 +83,58 @@ public struct InvocationSummaryWhenCondition<Command: AnyCommandLineTool>: Invoc
 @available(tvOS, unavailable)
 @available(watchOS, unavailable)
 extension CommandLineToolInvocationSummary.InvocationSummaryWhenCondition {
-    public init<TrueContent: CommandLineToolInvocationSummary.InvocationSummary, Value: CommandLineToolInvocationSummary.InvocationSummaryValue>(
+    public typealias Summary = CommandLineToolInvocationSummary.InvocationSummary
+    public typealias SummaryValue = CommandLineToolInvocationSummary.InvocationSummaryValue
+    public typealias ValuePredicate = CommandLineToolInvocationSummary.InvocationSummaryValuePredicate
+    public typealias SummaryBuilder<BuilderCommand: AnyCommandLineTool> = CommandLineToolInvocationSummary.InvocationSummaryBuilder<BuilderCommand>
+
+    public init<TrueContent: Summary, Value: SummaryValue>(
         _ value: KeyPath<Command, Value>,
-        _ predicate: CommandLineToolInvocationSummary.InvocationSummaryValuePredicate<Value.WrappedValue>,
-        @CommandLineToolInvocationSummary.InvocationSummaryBuilder<Command> _ content: () -> TrueContent
+        _ predicate: ValuePredicate<Value.WrappedValue>,
+        @SummaryBuilder<Command> _ content: () -> TrueContent
     ) where TrueContent.Command == Command {
         self.init(.keyPath(value, predicate), content)
     }
 
-    public init<TrueContent: CommandLineToolInvocationSummary.InvocationSummary, FalseContent: CommandLineToolInvocationSummary.InvocationSummary, Value: CommandLineToolInvocationSummary.InvocationSummaryValue>(
+    public init<TrueContent: Summary, FalseContent: Summary, Value: SummaryValue>(
         _ value: KeyPath<Command, Value>,
-        _ predicate: CommandLineToolInvocationSummary.InvocationSummaryValuePredicate<Value.WrappedValue>,
-        @CommandLineToolInvocationSummary.InvocationSummaryBuilder<Command> _ content: () -> TrueContent,
-        @CommandLineToolInvocationSummary.InvocationSummaryBuilder<Command> `else` elseContent: () -> FalseContent
+        _ predicate: ValuePredicate<Value.WrappedValue>,
+        @SummaryBuilder<Command> _ content: () -> TrueContent,
+        @SummaryBuilder<Command> `else` elseContent: () -> FalseContent
     ) where TrueContent.Command == Command, FalseContent.Command == Command {
         self.init(.keyPath(value, predicate), content, else: elseContent)
     }
 
-    public init<TrueContent: CommandLineToolInvocationSummary.InvocationSummary, Value: CommandLineToolInvocationSummary.InvocationSummaryValue>(
+    public init<TrueContent: Summary, Value: SummaryValue>(
         _ value: KeyPath<Command, Value>,
         is expected: Value.WrappedValue,
-        @CommandLineToolInvocationSummary.InvocationSummaryBuilder<Command> _ content: () -> TrueContent
+        @SummaryBuilder<Command> _ content: () -> TrueContent
     ) where Value.WrappedValue: Equatable, TrueContent.Command == Command {
         self.init(value, .equalsTo(expected), content)
     }
 
-    public init<TrueContent: CommandLineToolInvocationSummary.InvocationSummary, FalseContent: CommandLineToolInvocationSummary.InvocationSummary, Value: CommandLineToolInvocationSummary.InvocationSummaryValue>(
+    public init<TrueContent: Summary, FalseContent: Summary, Value: SummaryValue>(
         _ value: KeyPath<Command, Value>,
         is expected: Value.WrappedValue,
-        @CommandLineToolInvocationSummary.InvocationSummaryBuilder<Command> _ content: () -> TrueContent,
-        @CommandLineToolInvocationSummary.InvocationSummaryBuilder<Command> `else` elseContent: () -> FalseContent
+        @SummaryBuilder<Command> _ content: () -> TrueContent,
+        @SummaryBuilder<Command> `else` elseContent: () -> FalseContent
     ) where Value.WrappedValue: Equatable, TrueContent.Command == Command, FalseContent.Command == Command {
         self.init(value, .equalsTo(expected), content, else: elseContent)
     }
 
-    public init<TrueContent: CommandLineToolInvocationSummary.InvocationSummary, Value: CommandLineToolInvocationSummary.InvocationSummaryValue>(
+    public init<TrueContent: Summary, Value: SummaryValue>(
         _ value: KeyPath<Command, Value>,
         equals expected: Value.WrappedValue,
-        @CommandLineToolInvocationSummary.InvocationSummaryBuilder<Command> _ content: () -> TrueContent
+        @SummaryBuilder<Command> _ content: () -> TrueContent
     ) where Value.WrappedValue: Equatable, TrueContent.Command == Command {
         self.init(value, .equals(expected), content)
     }
 
-    public init<TrueContent: CommandLineToolInvocationSummary.InvocationSummary, FalseContent: CommandLineToolInvocationSummary.InvocationSummary, Value: CommandLineToolInvocationSummary.InvocationSummaryValue>(
+    public init<TrueContent: Summary, FalseContent: Summary, Value: SummaryValue>(
         _ value: KeyPath<Command, Value>,
         equals expected: Value.WrappedValue,
-        @CommandLineToolInvocationSummary.InvocationSummaryBuilder<Command> _ content: () -> TrueContent,
-        @CommandLineToolInvocationSummary.InvocationSummaryBuilder<Command> `else` elseContent: () -> FalseContent
+        @SummaryBuilder<Command> _ content: () -> TrueContent,
+        @SummaryBuilder<Command> `else` elseContent: () -> FalseContent
     ) where Value.WrappedValue: Equatable, TrueContent.Command == Command, FalseContent.Command == Command {
         self.init(value, .equals(expected), content, else: elseContent)
     }
@@ -142,54 +147,56 @@ extension CommandLineToolInvocationSummary.InvocationSummaryWhenCondition {
 @available(macCatalyst, unavailable)
 @available(tvOS, unavailable)
 @available(watchOS, unavailable)
-extension CommandLineToolInvocationSummary.InvocationSummaryWhenCondition {
-    public init<Parent: AnyCommandLineTool, TrueContent: CommandLineToolInvocationSummary.InvocationSummary, Value: CommandLineToolInvocationSummary.InvocationSummaryValue>(
-        _ value: CommandLineToolInvocationSummary.InvocationSummaryValueReferenceFromParent<Parent, Command, Value>,
-        _ predicate: CommandLineToolInvocationSummary.InvocationSummaryValuePredicate<Value.WrappedValue>,
-        @CommandLineToolInvocationSummary.InvocationSummaryBuilder<Command> _ content: () -> TrueContent
+extension CommandLineToolInvocationSummary.InvocationSummaryWhenCondition where Command: _InvocationSummarySubcommandWithParentCommand {
+    public typealias ParentValueReference<Value> = CommandLineToolInvocationSummary.InvocationSummaryValueReferenceFromParent<Command.ParentCommand, Command, Value> where Value: SummaryValue
+
+    public init<TrueContent: Summary, Value: SummaryValue>(
+        _ value: ParentValueReference<Value>,
+        _ predicate: ValuePredicate<Value.WrappedValue>,
+        @SummaryBuilder<Command> _ content: () -> TrueContent
     ) where TrueContent.Command == Command {
         self.init(.parentValue(value, predicate), content)
     }
 
-    public init<Parent: AnyCommandLineTool, TrueContent: CommandLineToolInvocationSummary.InvocationSummary, FalseContent: CommandLineToolInvocationSummary.InvocationSummary, Value: CommandLineToolInvocationSummary.InvocationSummaryValue>(
-        _ value: CommandLineToolInvocationSummary.InvocationSummaryValueReferenceFromParent<Parent, Command, Value>,
-        _ predicate: CommandLineToolInvocationSummary.InvocationSummaryValuePredicate<Value.WrappedValue>,
-        @CommandLineToolInvocationSummary.InvocationSummaryBuilder<Command> _ content: () -> TrueContent,
-        @CommandLineToolInvocationSummary.InvocationSummaryBuilder<Command> `else` elseContent: () -> FalseContent
+    public init<TrueContent: Summary, FalseContent: Summary, Value: SummaryValue>(
+        _ value: ParentValueReference<Value>,
+        _ predicate: ValuePredicate<Value.WrappedValue>,
+        @SummaryBuilder<Command> _ content: () -> TrueContent,
+        @SummaryBuilder<Command> `else` elseContent: () -> FalseContent
     ) where TrueContent.Command == Command, FalseContent.Command == Command {
         self.init(.parentValue(value, predicate), content, else: elseContent)
     }
 
-    public init<Parent: AnyCommandLineTool, TrueContent: CommandLineToolInvocationSummary.InvocationSummary, Value: CommandLineToolInvocationSummary.InvocationSummaryValue>(
-        _ value: CommandLineToolInvocationSummary.InvocationSummaryValueReferenceFromParent<Parent, Command, Value>,
+    public init<TrueContent: Summary, Value: SummaryValue>(
+        _ value: ParentValueReference<Value>,
         is expected: Value.WrappedValue,
-        @CommandLineToolInvocationSummary.InvocationSummaryBuilder<Command> _ content: () -> TrueContent
+        @SummaryBuilder<Command> _ content: () -> TrueContent
     ) where Value.WrappedValue: Equatable, TrueContent.Command == Command {
         self.init(value, .equalsTo(expected), content)
     }
 
-    public init<Parent: AnyCommandLineTool, TrueContent: CommandLineToolInvocationSummary.InvocationSummary, FalseContent: CommandLineToolInvocationSummary.InvocationSummary, Value: CommandLineToolInvocationSummary.InvocationSummaryValue>(
-        _ value: CommandLineToolInvocationSummary.InvocationSummaryValueReferenceFromParent<Parent, Command, Value>,
+    public init<TrueContent: Summary, FalseContent: Summary, Value: SummaryValue>(
+        _ value: ParentValueReference<Value>,
         is expected: Value.WrappedValue,
-        @CommandLineToolInvocationSummary.InvocationSummaryBuilder<Command> _ content: () -> TrueContent,
-        @CommandLineToolInvocationSummary.InvocationSummaryBuilder<Command> `else` elseContent: () -> FalseContent
+        @SummaryBuilder<Command> _ content: () -> TrueContent,
+        @SummaryBuilder<Command> `else` elseContent: () -> FalseContent
     ) where Value.WrappedValue: Equatable, TrueContent.Command == Command, FalseContent.Command == Command {
         self.init(value, .equalsTo(expected), content, else: elseContent)
     }
 
-    public init<Parent: AnyCommandLineTool, TrueContent: CommandLineToolInvocationSummary.InvocationSummary, Value: CommandLineToolInvocationSummary.InvocationSummaryValue>(
-        _ value: CommandLineToolInvocationSummary.InvocationSummaryValueReferenceFromParent<Parent, Command, Value>,
+    public init<TrueContent: Summary, Value: SummaryValue>(
+        _ value: ParentValueReference<Value>,
         equals expected: Value.WrappedValue,
-        @CommandLineToolInvocationSummary.InvocationSummaryBuilder<Command> _ content: () -> TrueContent
+        @SummaryBuilder<Command> _ content: () -> TrueContent
     ) where Value.WrappedValue: Equatable, TrueContent.Command == Command {
         self.init(value, .equals(expected), content)
     }
 
-    public init<Parent: AnyCommandLineTool, TrueContent: CommandLineToolInvocationSummary.InvocationSummary, FalseContent: CommandLineToolInvocationSummary.InvocationSummary, Value: CommandLineToolInvocationSummary.InvocationSummaryValue>(
-        _ value: CommandLineToolInvocationSummary.InvocationSummaryValueReferenceFromParent<Parent, Command, Value>,
+    public init<TrueContent: Summary, FalseContent: Summary, Value: SummaryValue>(
+        _ value: ParentValueReference<Value>,
         equals expected: Value.WrappedValue,
-        @CommandLineToolInvocationSummary.InvocationSummaryBuilder<Command> _ content: () -> TrueContent,
-        @CommandLineToolInvocationSummary.InvocationSummaryBuilder<Command> `else` elseContent: () -> FalseContent
+        @SummaryBuilder<Command> _ content: () -> TrueContent,
+        @SummaryBuilder<Command> `else` elseContent: () -> FalseContent
     ) where Value.WrappedValue: Equatable, TrueContent.Command == Command, FalseContent.Command == Command {
         self.init(value, .equals(expected), content, else: elseContent)
     }

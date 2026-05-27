@@ -125,36 +125,36 @@ extension CommandLineToolInvocationSummary.InvocationSummaryCondition {
         }
     }
 
-    public func and(_ other: CommandLineToolInvocationSummary.InvocationSummaryCondition<Command>) -> CommandLineToolInvocationSummary.InvocationSummaryCondition<Command> {
+    public func and(_ other: Self) -> Self {
         .all([self, other])
     }
 
-    public func or(_ other: CommandLineToolInvocationSummary.InvocationSummaryCondition<Command>) -> CommandLineToolInvocationSummary.InvocationSummaryCondition<Command> {
+    public func or(_ other: Self) -> Self {
         .any([self, other])
     }
 
-    public func negated() -> CommandLineToolInvocationSummary.InvocationSummaryCondition<Command> {
+    public func negated() -> Self {
         .not(self)
     }
 
     public static func custom(
         _ condition: @escaping (_ command: Command, _ parent: AnyCommandLineTool?, _ context: CommandLineToolInvocationSummary.InvocationSummaryContext) throws -> Bool
-    ) -> CommandLineToolInvocationSummary.InvocationSummaryCondition<Command> {
+    ) -> Self {
         .predicate(condition)
     }
 
-    public static var always: CommandLineToolInvocationSummary.InvocationSummaryCondition<Command> {
+    public static var always: Self {
         .predicate { _, _, _ in true }
     }
 
-    public static var never: CommandLineToolInvocationSummary.InvocationSummaryCondition<Command> {
+    public static var never: Self {
         .predicate { _, _, _ in false }
     }
 
     public static func keyPath<Value: CommandLineToolInvocationSummary.InvocationSummaryValue>(
         _ keyPath: KeyPath<Command, Value>,
         _ predicate: CommandLineToolInvocationSummary.InvocationSummaryValuePredicate<Value.WrappedValue>
-    ) -> CommandLineToolInvocationSummary.InvocationSummaryCondition<Command> {
+    ) -> Self {
         .predicate { command, _, context in
             predicate.evaluate(command[keyPath: keyPath].wrappedValue)
         }
@@ -163,7 +163,7 @@ extension CommandLineToolInvocationSummary.InvocationSummaryCondition {
     public static func contextValue<Value>(
         _ type: Value.Type = Value.self,
         _ predicate: CommandLineToolInvocationSummary.InvocationSummaryValuePredicate<Value>
-    ) -> CommandLineToolInvocationSummary.InvocationSummaryCondition<Command> {
+    ) -> Self {
         .predicate { _, _, context in
             predicate.evaluate(context.value(for: type))
         }
@@ -172,7 +172,7 @@ extension CommandLineToolInvocationSummary.InvocationSummaryCondition {
     public static func parentValue<Parent: AnyCommandLineTool, Value: CommandLineToolInvocationSummary.InvocationSummaryValue>(
         _ value: CommandLineToolInvocationSummary.InvocationSummaryValueReferenceFromParent<Parent, Command, Value>,
         _ predicate: CommandLineToolInvocationSummary.InvocationSummaryValuePredicate<Value.WrappedValue>
-    ) -> CommandLineToolInvocationSummary.InvocationSummaryCondition<Command> {
+    ) -> Self {
         .predicate { _, parent, context in
             let actualParent = parent
 
@@ -189,8 +189,8 @@ extension CommandLineToolInvocationSummary.InvocationSummaryCondition {
     }
 
     public static prefix func !(
-        condition: CommandLineToolInvocationSummary.InvocationSummaryCondition<Command>
-    ) -> CommandLineToolInvocationSummary.InvocationSummaryCondition<Command> {
+        condition: Self
+    ) -> Self {
         .not(condition)
     }
 }

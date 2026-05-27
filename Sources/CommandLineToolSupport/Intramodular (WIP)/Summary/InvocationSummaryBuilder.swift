@@ -103,14 +103,6 @@ public struct InvocationSummaryBuilder<Command: AnyCommandLineTool> {
 public struct _EmptyInvocationSummary<Command: AnyCommandLineTool>: InvocationSummary {
     @inlinable public init() { }
 
-    public func makeInvocationArguments(
-        command: Command,
-        parent: AnyCommandLineTool?,
-        context: InvocationSummaryContext
-    ) throws -> CommandLineToolInvocation.Arguments {
-        []
-    }
-
     public func makeInvocationComponents(
         command: Command,
         parent: AnyCommandLineTool?,
@@ -235,21 +227,6 @@ public enum _ConditionalInvocationSummary<Command: AnyCommandLineTool, TrueConte
 public struct DefaultInvocationSummary<Command: AnyCommandLineTool>: InvocationSummary {
     @usableFromInline
     init() { }
-
-    public func makeInvocationArguments(
-        command: Command,
-        parent: AnyCommandLineTool?,
-        context: InvocationSummaryContext
-    ) throws -> CommandLineToolInvocation.Arguments {
-        CommandLineToolInvocation.Arguments(
-            try makeInvocationComponents(
-                command: command,
-                parent: parent,
-                context: context
-            )
-            .flatMap(\.argumentValues)
-        )
-    }
 
     public func makeInvocationComponents(
         command: Command,

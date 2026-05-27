@@ -4,7 +4,6 @@
 
 import Foundation
 import Merge
-import Swift
 
 /// A type that wraps a command line tool.
 @available(macOS 11.0, *)
@@ -16,25 +15,39 @@ public protocol CommandLineTool: AnyCommandLineTool {
     associatedtype EnvironmentVariables = _CommandLineTool_DefaultEnvironmentVariables
     associatedtype Command : AnyCommandLineTool = Self
 
-    associatedtype SummaryContent: CommandLineToolInvocationSummary.InvocationSummary
+    typealias InvocationSummary = CommandLineToolInvocationSummary.InvocationSummary
+    typealias InvocationSummaryBuilder<Command: AnyCommandLineTool> = CommandLineToolInvocationSummary.InvocationSummaryBuilder<Command>
+    typealias InvocationSummaryContext = CommandLineToolInvocationSummary.InvocationSummaryContext
+    typealias InvocationSummaryCondition = CommandLineToolInvocationSummary.InvocationSummaryCondition<Self>
+    typealias InvocationSummaryValue = CommandLineToolInvocationSummary.InvocationSummaryValue
+    typealias InvocationSummaryValueReference<Value> = CommandLineToolInvocationSummary.InvocationSummaryValueReference<Self, Value> where Value: InvocationSummaryValue
     typealias When = CommandLineToolInvocationSummary.InvocationSummaryWhenCondition<Self>
     typealias Omit<Content> = CommandLineToolInvocationSummary.Omit<Self, Content>
-    typealias _Unavailable<Value> = CommandLineToolInvocationSummary._Unavailable<Self, Value> where Value: CommandLineToolInvocationSummary.InvocationSummaryValue
-    typealias Switch<Value, CaseCondition> = CommandLineToolInvocationSummary.InvocationSummarySwitchCondition<Self, Value, CaseCondition> where CaseCondition : CommandLineToolInvocationSummary.InvocationSummarySwitchCaseProtocol, CaseCondition.Command == Self, CaseCondition.Value == Value, Value: CommandLineToolInvocationSummary.InvocationSummaryValue
-    typealias Case<Value, Summary> = CommandLineToolInvocationSummary.InvocationSummaryCaseCondition<Self, Value, Summary> where Value : CommandLineToolInvocationSummary.InvocationSummaryValue, Value.WrappedValue: Equatable, Summary : CommandLineToolInvocationSummary.InvocationSummary, Summary.Command == Self
-    typealias DefaultCase<Value, Summary> = CommandLineToolInvocationSummary.InvocationSummaryDefaultCaseCondition<Self, Value, Summary> where Value : CommandLineToolInvocationSummary.InvocationSummaryValue, Summary : CommandLineToolInvocationSummary.InvocationSummary, Summary.Command == Self
+    typealias _Unavailable<Value> = CommandLineToolInvocationSummary._Unavailable<Self, Value> where Value: InvocationSummaryValue
+    typealias Mode = CommandLineToolInvocationSummary.InvocationMode<Self>
+    typealias ModeCase = CommandLineToolInvocationSummary.InvocationModeCase<Self>
+    typealias ModeDefaultCase = CommandLineToolInvocationSummary.InvocationModeDefaultCase<Self>
+    typealias Switch<Value, CaseCondition> = CommandLineToolInvocationSummary.InvocationSummarySwitchCondition<Self, Value, CaseCondition> where CaseCondition : CommandLineToolInvocationSummary.InvocationSummarySwitchCaseProtocol, CaseCondition.Command == Self, CaseCondition.Value == Value, Value: InvocationSummaryValue
+    typealias Case<Value, Summary> = CommandLineToolInvocationSummary.InvocationSummaryCaseCondition<Self, Value, Summary> where Value : InvocationSummaryValue, Value.WrappedValue: Equatable, Summary : InvocationSummary, Summary.Command == Self
+    typealias DefaultCase<Value, Summary> = CommandLineToolInvocationSummary.InvocationSummaryDefaultCaseCondition<Self, Value, Summary> where Value : InvocationSummaryValue, Summary : InvocationSummary, Summary.Command == Self
 
-    @CommandLineToolInvocationSummary.InvocationSummaryBuilder<Command>
+    associatedtype SummaryContent: InvocationSummary
+
+    @InvocationSummaryBuilder<Command>
     var invocationSummary: SummaryContent { get }
 }
 
+extension CommandLineTool where Self: _InvocationSummarySubcommandWithParentCommand {
+    public typealias InvocationSummaryValueReferenceFromParent<Value> = CommandLineToolInvocationSummary.InvocationSummaryValueReferenceFromParent<ParentCommand, Self, Value> where Value: InvocationSummaryValue
+}
+
 extension CommandLineTool {
-    public var invocationSummary: some CommandLineToolInvocationSummary.InvocationSummary {
+    public var invocationSummary: some InvocationSummary {
         CommandLineToolInvocationSummary.DefaultInvocationSummary<Self>()
     }
 
     public func invocationArgumentValues(
-        context: CommandLineToolInvocationSummary.InvocationSummaryContext
+        context: InvocationSummaryContext
     ) throws -> CommandLineToolInvocation.Arguments {
         CommandLineToolInvocation.Arguments(
             try invocationComponents(context: context).flatMap(\.argumentValues)
@@ -42,7 +55,7 @@ extension CommandLineTool {
     }
 
     public func invocationComponents(
-        context: CommandLineToolInvocationSummary.InvocationSummaryContext
+        context: InvocationSummaryContext
     ) throws -> [CommandLineToolInvocation.Component] {
         let subject = _invocationSummarySubject()
         let summaryComponents = try invocationSummary.makeInvocationComponents(
@@ -93,39 +106,94 @@ extension CommandLineTool {
         return invocation.components
     }
 
-    public func invocationArguments(context: CommandLineToolInvocationSummary.InvocationSummaryContext) throws -> [String] {
+    public func invocationArguments(context: InvocationSummaryContext) throws -> [String] {
         try invocationArgumentValues(context: context).rawValues
     }
 
     public func invocationSummaryComponents(
-        for keyPaths: [PartialKeyPath<Self>]
+        for keyPaths: [PartialKeyPath<Self>],
+        context: InvocationSummaryContext
     ) throws -> CommandLineToolInvocation.Components {
-        let context = CommandLineToolInvocationSummary.InvocationSummaryContext()
-
-        _ = try invocationComponents(context: context)
-
         return context.invocationComponents(
             for: keyPaths,
             command: self
         )
     }
 
-    public func identifiedInvocationSummaryComponents(
-        for keyPaths: [PartialKeyPath<Self>]
-    ) throws -> [_ResolvedCommandLineToolDescription.IdentifiedInvocationComponent] {
-        let context = CommandLineToolInvocationSummary.InvocationSummaryContext()
-
+    @discardableResult
+    public func lowerInvocationSummary(
+        context: InvocationSummaryContext
+    ) throws -> InvocationSummaryContext {
         _ = try invocationComponents(context: context)
 
+        return context
+    }
+
+    public func loweredInvocationSummaryComponents(
+        for keyPaths: [PartialKeyPath<Self>],
+        context: InvocationSummaryContext
+    ) throws -> CommandLineToolInvocation.Components {
+        try lowerInvocationSummary(context: context)
+
+        return try invocationSummaryComponents(
+            for: keyPaths,
+            context: context
+        )
+    }
+
+    public func loweredInvocationSummaryComponentGroups(
+        for keyPathGroups: [[PartialKeyPath<Self>]],
+        context: InvocationSummaryContext
+    ) throws -> [CommandLineToolInvocation.Components] {
+        try lowerInvocationSummary(context: context)
+
+        return try keyPathGroups.map {
+            try invocationSummaryComponents(
+                for: $0,
+                context: context
+            )
+        }
+    }
+
+    public func identifiedInvocationSummaryComponents(
+        for keyPaths: [PartialKeyPath<Self>],
+        context: InvocationSummaryContext
+    ) throws -> [_ResolvedCommandLineToolDescription.IdentifiedInvocationComponent] {
         return context.identifiedInvocationComponents(
             for: keyPaths,
             command: self
         )
     }
 
+    public func invocationSummaryComponents(
+        for keyPaths: [PartialKeyPath<Self>]
+    ) throws -> CommandLineToolInvocation.Components {
+        let context = InvocationSummaryContext()
+
+        _ = try invocationComponents(context: context)
+
+        return try invocationSummaryComponents(
+            for: keyPaths,
+            context: context
+        )
+    }
+
+    public func identifiedInvocationSummaryComponents(
+        for keyPaths: [PartialKeyPath<Self>]
+    ) throws -> [_ResolvedCommandLineToolDescription.IdentifiedInvocationComponent] {
+        let context = InvocationSummaryContext()
+
+        _ = try invocationComponents(context: context)
+
+        return try identifiedInvocationSummaryComponents(
+            for: keyPaths,
+            context: context
+        )
+    }
+
     public var invocation: String {
         get throws {
-            try invocationArgumentValues(context: CommandLineToolInvocationSummary.InvocationSummaryContext()).description
+            try invocationArgumentValues(context: InvocationSummaryContext()).description
         }
     }
 

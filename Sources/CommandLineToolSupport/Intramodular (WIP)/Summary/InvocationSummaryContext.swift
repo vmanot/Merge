@@ -4,7 +4,6 @@
 
 
 import Foundation
-import Collections
 import OrderedCollections
 import Swallow
 
@@ -18,7 +17,7 @@ extension CommandLineToolInvocationSummary {
 public final class InvocationSummaryContext {
     private var typedValues: [ObjectIdentifier: Any] = [:]
     private(set) var dispositionRecords: OrderedDictionary<_ResolvedCommandLineToolDescription.ArgumentID, DispositionRecord> = [:]
-    package private(set) var rewriteRules: [InvocationRewriteRule] = []
+    package private(set) var rewriteRules: [RewriteRule] = []
 
     public init() {
 
@@ -173,22 +172,6 @@ public final class InvocationSummaryContext {
         )
     }
 
-    static func argumentName<Command: AnyCommandLineTool, Value: InvocationSummaryValue>(
-        for keyPath: KeyPath<Command, Value>
-    ) -> String {
-        String(describing: keyPath).dropPrefixIfPresent("\\\(String(describing: Command.self)).$")
-    }
-
-    static func argumentID<Command: AnyCommandLineTool, Value: InvocationSummaryValue>(
-        command: Command,
-        keyPath: KeyPath<Command, Value>
-    ) -> _ResolvedCommandLineToolDescription.ArgumentID {
-        _ResolvedCommandLineToolDescription.ArgumentID(
-            rawValue: argumentName(for: keyPath),
-            commandName: command.requireCommandName()
-        )
-    }
-
     @discardableResult
     func registerHandledValueReference<Command: AnyCommandLineTool, Value: InvocationSummaryValue>(
         command: Command,
@@ -303,7 +286,7 @@ public final class InvocationSummaryContext {
     }
 
     package func registerRewriteRule(
-        _ rule: InvocationRewriteRule
+        _ rule: RewriteRule
     ) {
         rewriteRules.append(rule)
     }
@@ -315,34 +298,34 @@ public final class InvocationSummaryContext {
             try rule.apply(to: &invocation)
         }
     }
-}
 
-package struct InvocationRewriteRule {
-    private let body: (inout CommandLineToolInvocation) throws -> Void
+    package struct RewriteRule {
+        private let body: (inout CommandLineToolInvocation) throws -> Void
 
-    package init(
-        _ body: @escaping (inout CommandLineToolInvocation) throws -> Void
-    ) {
-        self.body = body
-    }
+        package init(
+            _ body: @escaping (inout CommandLineToolInvocation) throws -> Void
+        ) {
+            self.body = body
+        }
 
-    package func apply(
-        to invocation: inout CommandLineToolInvocation
-    ) throws {
-        try body(&invocation)
-    }
+        package func apply(
+            to invocation: inout CommandLineToolInvocation
+        ) throws {
+            try body(&invocation)
+        }
 
-    package static func replaceOptionValues(
-        named name: String,
-        _ transform: @escaping (CommandLineToolInvocation.Arguments) throws -> CommandLineToolInvocation.Arguments
-    ) -> Self {
-        Self { invocation in
-            invocation.components = try invocation.components.map { component in
-                guard component.isOption(named: name) else {
-                    return component
+        package static func replaceOptionValues(
+            named name: String,
+            _ transform: @escaping (CommandLineToolInvocation.Arguments) throws -> CommandLineToolInvocation.Arguments
+        ) -> Self {
+            Self { invocation in
+                invocation.components = try invocation.components.map { component in
+                    guard component.isOption(named: name) else {
+                        return component
+                    }
+
+                    return try component.replacingOptionValues(transform(component.values))
                 }
-
-                return try component.replacingOptionValues(transform(component.values))
             }
         }
     }
