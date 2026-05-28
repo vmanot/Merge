@@ -30,7 +30,7 @@ final class ExampleDocumentationCompilerTool: AnyCommandLineTool, CommandLineToo
 
     var invocationSummary: some InvocationSummary {
         Switch(\.$operation) {
-            Case(.convert) {
+            Case(Operation.convert) {
                 \.$operation
                 \.$catalogPath
                 \.$outputPath
@@ -41,7 +41,7 @@ final class ExampleDocumentationCompilerTool: AnyCommandLineTool, CommandLineToo
                 }
             }
 
-            Case(.preview) {
+            Case(Operation.preview) {
                 \.$operation
                 \.$catalogPath
                 \.$port

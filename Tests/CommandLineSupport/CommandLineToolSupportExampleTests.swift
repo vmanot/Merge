@@ -399,6 +399,120 @@ struct CommandLineToolSupportExampleTests {
         )
         #expect(generatedNotes == "gh release create 1.2.1 --generate-notes --prerelease")
     }
+
+    @Test
+    func invocationSummaryCanModelStateChangingToolModes() throws {
+        let trustPath = try ExampleMiseTool()
+            .trust()
+            .with(\.path, ".")
+            .invocation
+        let trustShow = try ExampleMiseTool()
+            .trust()
+            .with(\.show, true)
+            .invocation
+        let addIdentity = try ExampleSSHAddTool()
+            .with(\.lifetime, "1h")
+            .with(\.confirmUse, true)
+            .with(\.identityPaths, ["~/.ssh/id_ed25519"])
+            .invocation
+        let deleteIdentity = try ExampleSSHAddTool()
+            .with(\.deleteIdentity, true)
+            .with(\.identityPaths, ["~/.ssh/old_id"])
+            .invocation
+
+        #expect(trustPath == "mise trust .")
+        #expect(trustShow == "mise trust --show")
+        #expect(addIdentity == "ssh-add -t 1h -c ~/.ssh/id_ed25519")
+        #expect(deleteIdentity == "ssh-add -d ~/.ssh/old_id")
+    }
+
+    @Test
+    func invocationSummaryRejectsOverlappingModesForStatefulTools() throws {
+        try expectConflictingInvocationModes(
+            from: {
+                _ = try ExampleMiseTool()
+                    .trust()
+                    .with(\.show, true)
+                    .with(\.path, ".")
+                    .invocation
+            },
+            commandName: "trust"
+        )
+        try expectConflictingInvocationModes(
+            from: {
+                _ = try ExampleXcodeSelectTool()
+                    .with(\.printPath, true)
+                    .with(\.developerDirectoryPath, "/Applications/Xcode.app")
+                    .invocation
+            },
+            commandName: "xcode-select"
+        )
+    }
+
+    @Test
+    func modelsStatefulSubcommandsWithoutInvocationSummaryModes() throws {
+        let direnvAllow = try ExampleDirenvTool()
+            .allow()
+            .with(\.path, ".")
+            .invocation
+        let direnvDeny = try ExampleDirenvTool()
+            .deny()
+            .with(\.path, "../untrusted")
+            .invocation
+        let dockerLogin = try ExampleDockerTool()
+            .login()
+            .with(\.registry, "ghcr.io")
+            .invocation
+        let dockerLogout = try ExampleDockerTool()
+            .logout()
+            .with(\.registry, "ghcr.io")
+            .invocation
+
+        #expect(direnvAllow == "direnv allow .")
+        #expect(direnvDeny == "direnv deny ../untrusted")
+        #expect(dockerLogin == "docker login ghcr.io")
+        #expect(dockerLogout == "docker logout ghcr.io")
+    }
+
+    @Test
+    func modelsRootOptionsThroughNestedStatefulSubcommands() throws {
+        let useContext = try ExampleKubectlTool()
+            .with(\.kubeconfig, ".kube/config")
+            .config()
+            .useContext()
+            .with(\.contextName, "staging")
+            .invocation
+        let currentContext = try ExampleKubectlTool()
+            .with(\.kubeconfig, ".kube/config")
+            .config()
+            .currentContext()
+            .invocation
+
+        #expect(useContext == "kubectl --kubeconfig .kube/config config use-context staging")
+        #expect(currentContext == "kubectl --kubeconfig .kube/config config current-context")
+    }
+
+    private func expectConflictingInvocationModes(
+        from operation: () throws -> Void,
+        commandName expectedCommandName: CommandLineTool.Name,
+        sourceLocation: SourceLocation = #_sourceLocation
+    ) throws {
+        do {
+            try operation()
+
+            Issue.record("Expected invocation mode conflict.", sourceLocation: sourceLocation)
+        } catch let error as CommandLineToolInvocationSummary.Error {
+            guard case .conflictingInvocationModes(let commandName, _, _, let location) = error else {
+                Issue.record("Expected conflictingInvocationModes, got \(error).", sourceLocation: sourceLocation)
+                return
+            }
+
+            #expect(commandName == expectedCommandName, sourceLocation: sourceLocation)
+            #expect(location != nil, sourceLocation: sourceLocation)
+        } catch {
+            Issue.record("Expected invocation-summary error, got \(error).", sourceLocation: sourceLocation)
+        }
+    }
 }
 
 #endif

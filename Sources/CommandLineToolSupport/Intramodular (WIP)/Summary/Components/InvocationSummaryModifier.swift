@@ -172,7 +172,7 @@ extension CommandLineToolInvocationSummary.InvocationSummary {
         function: StaticString = #function,
         line: UInt = #line,
         column: UInt? = nil
-    ) -> some CommandLineToolInvocationSummary.InvocationSummary {
+    ) -> some CommandLineToolInvocationSummary.InvocationSummary<Command> {
         _modifier(
             CommandLineToolInvocationSummary._ArgumentApplicabilityModifier(
                 applicability: .init(when: condition, otherwise: otherwise),
@@ -188,7 +188,7 @@ extension CommandLineToolInvocationSummary.InvocationSummary {
         function: StaticString = #function,
         line: UInt = #line,
         column: UInt? = nil
-    ) -> some CommandLineToolInvocationSummary.InvocationSummary {
+    ) -> some CommandLineToolInvocationSummary.InvocationSummary<Command> {
         _applicable(
             when: condition,
             otherwise: .unavailable(reason: reason),
@@ -206,7 +206,7 @@ extension CommandLineToolInvocationSummary.InvocationSummary {
         function: StaticString = #function,
         line: UInt = #line,
         column: UInt? = nil
-    ) -> some CommandLineToolInvocationSummary.InvocationSummary {
+    ) -> some CommandLineToolInvocationSummary.InvocationSummary<Command> {
         _applicable(
             when: condition,
             otherwise: .omit(reason: reason),

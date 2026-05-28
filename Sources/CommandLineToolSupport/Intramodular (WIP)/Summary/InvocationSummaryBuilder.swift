@@ -22,7 +22,7 @@ public struct InvocationSummaryBuilder<Command: AnyCommandLineTool> {
     @_alwaysEmitIntoClient
     public static func buildBlock<Content>(
         _ content: Content
-    ) -> Content where Content: InvocationSummary {
+    ) -> Content where Content: InvocationSummary, Content.Command == Command {
         content
     }
 
@@ -37,7 +37,7 @@ public struct InvocationSummaryBuilder<Command: AnyCommandLineTool> {
     @_alwaysEmitIntoClient
     public static func buildExpression<Content>(
         _ content: Content
-    ) -> Content where Content: InvocationSummary{
+    ) -> Content where Content: InvocationSummary, Content.Command == Command {
         content
     }
 

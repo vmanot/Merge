@@ -93,7 +93,7 @@ final class SummaryModeTool: AnyCommandLineTool, CommandLineTool {
             DefaultCase {
                 ""
             }
-            Case(value: .stdout) {
+            Case(value: SummaryModeTool.EmitLoadedModuleTracePath.stdout) {
                 "-emit-loaded-module-trace"
                 \.$emitLoadedModuleTracePath
             }

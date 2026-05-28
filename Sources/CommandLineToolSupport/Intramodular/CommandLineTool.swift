@@ -25,11 +25,9 @@ public protocol CommandLineTool: AnyCommandLineTool {
     typealias Omit<Content> = CommandLineToolInvocationSummary.Omit<Self, Content>
     typealias _Unavailable<Value> = CommandLineToolInvocationSummary._Unavailable<Self, Value> where Value: InvocationSummaryValue
     typealias Mode = CommandLineToolInvocationSummary.InvocationMode<Self>
-    typealias ModeCase = CommandLineToolInvocationSummary.InvocationModeCase<Self>
-    typealias ModeDefaultCase = CommandLineToolInvocationSummary.InvocationModeDefaultCase<Self>
-    typealias Switch<Value, CaseCondition> = CommandLineToolInvocationSummary.InvocationSummarySwitchCondition<Self, Value, CaseCondition> where CaseCondition : CommandLineToolInvocationSummary.InvocationSummarySwitchCaseProtocol, CaseCondition.Command == Self, CaseCondition.Value == Value, Value: InvocationSummaryValue
-    typealias Case<Value, Summary> = CommandLineToolInvocationSummary.InvocationSummaryCaseCondition<Self, Value, Summary> where Value : InvocationSummaryValue, Value.WrappedValue: Equatable, Summary : InvocationSummary, Summary.Command == Self
-    typealias DefaultCase<Value, Summary> = CommandLineToolInvocationSummary.InvocationSummaryDefaultCaseCondition<Self, Value, Summary> where Value : InvocationSummaryValue, Summary : InvocationSummary, Summary.Command == Self
+    typealias Switch<Value> = CommandLineToolInvocationSummary.InvocationSummarySwitchCondition<Self, Value> where Value: InvocationSummaryValue
+    typealias Case = CommandLineToolInvocationSummary.Case<Self>
+    typealias DefaultCase = CommandLineToolInvocationSummary.DefaultCase<Self>
 
     associatedtype SummaryContent: InvocationSummary
 

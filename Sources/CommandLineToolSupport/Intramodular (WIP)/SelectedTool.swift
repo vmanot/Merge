@@ -301,7 +301,7 @@ public final class GenericSelectedCommandLineTool<SelectingTool, SelectedTool>: 
     }
 
     public var invocationSummary: SelectedTool.SummaryContent {
-        selectedTool.invocationSummary
+        return selectedTool.invocationSummary
     }
 
     public var description: String {

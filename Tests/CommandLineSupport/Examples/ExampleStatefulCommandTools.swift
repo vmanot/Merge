@@ -28,11 +28,11 @@ final class ExampleMiseTool: AnyCommandLineTool, CommandLineTool {
 
         var invocationSummary: some InvocationSummary {
             Mode {
-                ModeCase(\.$show, equals: true) {
+                Case(\.$show, equals: true) {
                     \.$show
                 }
 
-                ModeCase(\.$path, .isPresent) {
+                Case(\.$path, .isPresent) {
                     \.$path
                 }
             }
@@ -104,16 +104,17 @@ final class ExampleSSHAddTool: AnyCommandLineTool, CommandLineTool {
 
     var invocationSummary: some InvocationSummary {
         Mode {
-            ModeCase(\.$listIdentities, equals: true) {
+            Case(\.$listIdentities, equals: true) {
                 \.$listIdentities
             }
 
-            ModeCase(\.$deleteIdentity, equals: true) {
+            Case(\.$deleteIdentity, equals: true) {
                 \.$deleteIdentity
                 \.$identityPaths
             }
 
-            ModeCase(
+            Case(
+                condition:
                 InvocationSummaryCondition
                     .keyPath(\ExampleSSHAddTool.$identityPaths, .isPresent)
                     .and(!.keyPath(\ExampleSSHAddTool.$listIdentities, .equals(true)))
@@ -214,11 +215,11 @@ final class ExampleXcodeSelectTool: AnyCommandLineTool, CommandLineTool {
 
     var invocationSummary: some InvocationSummary {
         Mode {
-            ModeCase(\.$printPath, equals: true) {
+            Case(\.$printPath, equals: true) {
                 \.$printPath
             }
 
-            ModeCase(\.$developerDirectoryPath, .isPresent) {
+            Case(\.$developerDirectoryPath, .isPresent) {
                 \.$developerDirectoryPath
             }
         }

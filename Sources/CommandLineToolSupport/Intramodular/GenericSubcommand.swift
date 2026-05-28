@@ -85,7 +85,7 @@ public class GenericSubcommand<Parent, Command>: AnyCommandLineTool, CommandLine
     }
 
     public var invocationSummary: some InvocationSummary {
-        command.invocationSummary
+        return command.invocationSummary
     }
 
     public func with<T>(
