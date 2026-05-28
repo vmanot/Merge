@@ -20,12 +20,12 @@ public protocol CommandLineTool: AnyCommandLineTool {
     typealias InvocationSummaryContext = CommandLineToolInvocationSummary.InvocationSummaryContext
     typealias InvocationSummaryCondition = CommandLineToolInvocationSummary.InvocationSummaryCondition<Self>
     typealias InvocationSummaryValue = CommandLineToolInvocationSummary.InvocationSummaryValue
-    typealias InvocationSummaryValueReference<Value> = CommandLineToolInvocationSummary.InvocationSummaryValueReference<Self, Value> where Value: InvocationSummaryValue
+    typealias InvocationSummaryValueReference<Value> = CommandLineToolInvocationSummary.InvocationSummaryValueReference<Self, Value> where Value: CommandLineToolInvocationSummary.InvocationSummaryValue
     typealias When = CommandLineToolInvocationSummary.InvocationSummaryWhenCondition<Self>
     typealias Omit<Content> = CommandLineToolInvocationSummary.Omit<Self, Content>
-    typealias _Unavailable<Value> = CommandLineToolInvocationSummary._Unavailable<Self, Value> where Value: InvocationSummaryValue
+    typealias _Unavailable<Value> = CommandLineToolInvocationSummary._Unavailable<Self, Value> where Value: CommandLineToolInvocationSummary.InvocationSummaryValue
     typealias Mode = CommandLineToolInvocationSummary.InvocationMode<Self>
-    typealias Switch<Value> = CommandLineToolInvocationSummary.InvocationSummarySwitchCondition<Self, Value> where Value: InvocationSummaryValue
+    typealias Switch<Value> = CommandLineToolInvocationSummary.InvocationSummarySwitchCondition<Self, Value> where Value: CommandLineToolInvocationSummary.InvocationSummaryValue
     typealias Case = CommandLineToolInvocationSummary.Case<Self>
     typealias DefaultCase = CommandLineToolInvocationSummary.DefaultCase<Self>
 
@@ -36,7 +36,7 @@ public protocol CommandLineTool: AnyCommandLineTool {
 }
 
 extension CommandLineTool where Self: _InvocationSummarySubcommandWithParentCommand {
-    public typealias InvocationSummaryValueReferenceFromParent<Value> = CommandLineToolInvocationSummary.InvocationSummaryValueReferenceFromParent<ParentCommand, Self, Value> where Value: InvocationSummaryValue
+    public typealias InvocationSummaryValueReferenceFromParent<Value> = CommandLineToolInvocationSummary.InvocationSummaryValueReferenceFromParent<ParentCommand, Self, Value> where Value: CommandLineToolInvocationSummary.InvocationSummaryValue
 }
 
 extension CommandLineTool {
