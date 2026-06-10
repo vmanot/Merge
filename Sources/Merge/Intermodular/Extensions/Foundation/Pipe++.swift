@@ -107,7 +107,7 @@ extension Pipe {
 @available(macCatalyst, unavailable)
 extension FileDescriptor {
     public var _isOpen: Bool {
-        var statBuffer = stat()
+        var statBuffer: Darwin.stat = Darwin.stat()
         
         return fstat(self.rawValue, &statBuffer) == 0
     }
