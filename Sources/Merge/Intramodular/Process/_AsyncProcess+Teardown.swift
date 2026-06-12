@@ -2,7 +2,6 @@
 // Copyright (c) Vatsal Manot
 //
 
-#if os(macOS)
 import Foundation
 
 @available(macOS 11.0, *)
@@ -11,9 +10,11 @@ import Foundation
 @available(tvOS, unavailable)
 @available(watchOS, unavailable)
 extension _AsyncProcess {
+    @available(iOS 16.0, macOS 13.0, tvOS 16.0, watchOS 9.0, *)
     package func _sendTeardownStepForSystemShellReporting(
-        _ step: TeardownStep
+        _ step: _AsyncProcessTeardownStep
     ) -> SystemShell.ControlResult {
+        #if os(macOS)
         switch step.action {
             case .interrupt:
                 process.interrupt()
@@ -32,6 +33,8 @@ extension _AsyncProcess {
                     return .failed(String(describing: error))
                 }
         }
+        #else
+        fatalError(.unavailable)
+        #endif
     }
 }
-#endif

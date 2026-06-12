@@ -6,6 +6,11 @@ import Combine
 import Foundation
 import Swallow
 
+@available(macOS 11.0, *)
+@available(iOS, unavailable)
+@available(macCatalyst, unavailable)
+@available(tvOS, unavailable)
+@available(watchOS, unavailable)
 extension SystemShell {
     public struct Environment {
         public let launchPath: String?
@@ -90,6 +95,11 @@ extension SystemShell.Environment {
 
 // MARK: - Initializers
 
+@available(macOS 11.0, *)
+@available(iOS, unavailable)
+@available(macCatalyst, unavailable)
+@available(tvOS, unavailable)
+@available(watchOS, unavailable)
 extension SystemShell.Environment {
     public static var bash: Self {
         Self(

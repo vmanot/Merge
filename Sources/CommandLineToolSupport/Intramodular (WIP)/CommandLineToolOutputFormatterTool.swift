@@ -6,30 +6,35 @@
 import Foundation
 import OrderedCollections
 
+/// A command-line tool whose primary role is formatting another command's output stream.
 @available(macOS 11.0, *)
 @available(iOS, unavailable)
 @available(macCatalyst, unavailable)
 @available(tvOS, unavailable)
 @available(watchOS, unavailable)
-/// A command-line tool whose primary role is formatting another command's output stream.
 public protocol CommandLineToolOutputFormatterTool: CommandLineTool {
     typealias Semantics = _CommandLineToolOutputFormatterTool_Semantics
 
     var outputFormattingSemantics: Semantics { get }
 }
 
+@available(macOS 11.0, *)
+@available(iOS, unavailable)
+@available(macCatalyst, unavailable)
+@available(tvOS, unavailable)
+@available(watchOS, unavailable)
 extension CommandLineToolOutputFormatterTool {
     public var outputFormattingSemantics: Semantics {
         .standardOutputFormatter
     }
 }
 
+/// Describes which stream a formatter consumes and what kind of output it intends to produce.
 @available(macOS 11.0, *)
 @available(iOS, unavailable)
 @available(macCatalyst, unavailable)
 @available(tvOS, unavailable)
 @available(watchOS, unavailable)
-/// Describes which stream a formatter consumes and what kind of output it intends to produce.
 public struct _CommandLineToolOutputFormatterTool_Semantics: Hashable, Sendable {
     public var inputStream: InputStream
     public var outputIntent: OutputIntent
@@ -46,6 +51,11 @@ public struct _CommandLineToolOutputFormatterTool_Semantics: Hashable, Sendable 
     }
 }
 
+@available(macOS 11.0, *)
+@available(iOS, unavailable)
+@available(macCatalyst, unavailable)
+@available(tvOS, unavailable)
+@available(watchOS, unavailable)
 extension _CommandLineToolOutputFormatterTool_Semantics {
     public enum InputStream: Hashable, Sendable {
         case standardOutput
@@ -94,6 +104,11 @@ extension _CommandLineToolOutputFormatterTool_Semantics {
     }
 }
 
+@available(macOS 11.0, *)
+@available(iOS, unavailable)
+@available(macCatalyst, unavailable)
+@available(tvOS, unavailable)
+@available(watchOS, unavailable)
 extension _CommandLineToolOutputFormatterTool_Semantics.StreamEffect {
     public static var humanReadableFormatting: Self {
         Self(
@@ -103,6 +118,11 @@ extension _CommandLineToolOutputFormatterTool_Semantics.StreamEffect {
     }
 }
 
+@available(macOS 11.0, *)
+@available(iOS, unavailable)
+@available(macCatalyst, unavailable)
+@available(tvOS, unavailable)
+@available(watchOS, unavailable)
 extension _CommandLineToolOutputFormatterTool_Semantics {
     public static var standardOutputFormatter: Self {
         Self(

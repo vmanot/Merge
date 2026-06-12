@@ -4,6 +4,11 @@
 
 import Foundation
 
+@available(macOS 11.0, *)
+@available(iOS, unavailable)
+@available(macCatalyst, unavailable)
+@available(tvOS, unavailable)
+@available(watchOS, unavailable)
 extension _CommandLineToolParameter {
     fileprivate init(
         _initializing wrappedValue: WrappedValue,
@@ -47,6 +52,11 @@ extension _CommandLineToolParameter {
     }
 }
 
+@available(macOS 11.0, *)
+@available(iOS, unavailable)
+@available(macCatalyst, unavailable)
+@available(tvOS, unavailable)
+@available(watchOS, unavailable)
 extension _CommandLineToolParameter where WrappedValue: CLT.ArgumentValueConvertible {
     public init(
         wrappedValue: WrappedValue
@@ -104,6 +114,11 @@ extension _CommandLineToolParameter where WrappedValue: CLT.ArgumentValueConvert
     }
 }
 
+@available(macOS 11.0, *)
+@available(iOS, unavailable)
+@available(macCatalyst, unavailable)
+@available(tvOS, unavailable)
+@available(watchOS, unavailable)
 extension _CommandLineToolParameter {
     public init<T>(
         wrappedValue: WrappedValue,

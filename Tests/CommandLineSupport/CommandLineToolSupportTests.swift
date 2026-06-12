@@ -1608,13 +1608,19 @@ struct CommandLineToolSupportTests {
         components.appendBuildSettingAssignment(key: "ENABLE_CODE_COVERAGE", value: "NO")
         components.appendOption(key: "-testPlan", value: nil as String?)
         components.appendBuildSettingAssignment(key: "IGNORED", value: nil as String?)
+        components.append(contentsOf: CommandLineToolInvocation.Arguments(["test"]))
+        components.append(arguments: ["-destination=platform=iOS Simulator"])
+        components.append(arguments: ["OTHER_SWIFT_FLAGS=$(inherited)"])
 
         #expect(components.elements.map(\.kind) == [
             .executable,
             .option,
             .option,
             .flag,
-            .buildSettingAssignment
+            .buildSettingAssignment,
+            .positionalArgument,
+            .option,
+            .positionalArgument
         ])
         #expect(components.rawValues == [
             "xcodebuild",
@@ -1623,7 +1629,10 @@ struct CommandLineToolSupportTests {
             "-enableCodeCoverage",
             "NO",
             "-allowProvisioningUpdates",
-            "ENABLE_CODE_COVERAGE=NO"
+            "ENABLE_CODE_COVERAGE=NO",
+            "test",
+            "-destination=platform=iOS Simulator",
+            "OTHER_SWIFT_FLAGS=$(inherited)"
         ])
     }
 

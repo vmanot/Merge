@@ -52,6 +52,11 @@ extension _CommandLineToolExecutionPlan {
     }
 }
 
+@available(macOS 11.0, *)
+@available(iOS, unavailable)
+@available(macCatalyst, unavailable)
+@available(tvOS, unavailable)
+@available(watchOS, unavailable)
 extension _CommandLineToolExecutionPlan.StandardStreamWiring {
     public struct Stage: Identifiable, CustomStringConvertible, CustomDebugStringConvertible, CustomReflectable, Hashable, Sendable {
         public typealias ID = UUID
@@ -232,6 +237,11 @@ extension _CommandLineToolExecutionPlan.StandardStreamWiring {
     }
 }
 
+@available(macOS 11.0, *)
+@available(iOS, unavailable)
+@available(macCatalyst, unavailable)
+@available(tvOS, unavailable)
+@available(watchOS, unavailable)
 extension _CommandLineToolExecutionPlan.StandardStreamWiring.Stage {
     public func renderedShellCommandString(
         using renderer: CommandLineToolInvocation.CommandLineRenderer = .posixShellCommandLine
@@ -249,6 +259,11 @@ extension _CommandLineToolExecutionPlan.StandardStreamWiring.Stage {
     }
 }
 
+@available(macOS 11.0, *)
+@available(iOS, unavailable)
+@available(macCatalyst, unavailable)
+@available(tvOS, unavailable)
+@available(watchOS, unavailable)
 extension _CommandLineToolExecutionPlan.StandardStreamWiring {
     public func renderedShellPipelineCommandString(
         mergingStandardErrorIntoStandardOutputAt stageID: Stage.ID? = nil,

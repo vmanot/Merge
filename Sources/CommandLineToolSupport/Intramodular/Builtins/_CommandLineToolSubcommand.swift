@@ -14,6 +14,11 @@ extension CommandLineTool {
     public typealias Subcommand = _CommandLineToolSubcommand
 }
 
+@available(macOS 11.0, *)
+@available(iOS, unavailable)
+@available(macCatalyst, unavailable)
+@available(tvOS, unavailable)
+@available(watchOS, unavailable)
 public protocol _CommandLineToolSubcommandProtocol /* PropertyWrapper */ {
     associatedtype Subcommand : AnyCommandLineTool
 

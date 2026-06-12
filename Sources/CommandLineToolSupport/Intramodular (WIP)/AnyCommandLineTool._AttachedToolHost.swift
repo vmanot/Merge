@@ -2,9 +2,14 @@
 // Copyright (c) Vatsal Manot
 //
 
-
 import Foundation
+import Swallow
 
+@available(macOS 11.0, *)
+@available(iOS, unavailable)
+@available(macCatalyst, unavailable)
+@available(tvOS, unavailable)
+@available(watchOS, unavailable)
 extension AnyCommandLineTool {
     @available(macOS 11.0, *)
     @available(iOS, unavailable)
@@ -60,6 +65,11 @@ extension AnyCommandLineTool {
     }
 }
 
+@available(macOS 11.0, *)
+@available(iOS, unavailable)
+@available(macCatalyst, unavailable)
+@available(tvOS, unavailable)
+@available(watchOS, unavailable)
 extension AnyCommandLineTool._AttachedToolHost {
     var _selectingTool: AnyCommandLineToolWithSelectedTool {
         switch self {

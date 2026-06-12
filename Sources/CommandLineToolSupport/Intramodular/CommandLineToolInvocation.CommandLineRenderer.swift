@@ -6,6 +6,11 @@
 import Foundation
 import ShellScripting
 
+@available(macOS 11.0, *)
+@available(iOS, unavailable)
+@available(macCatalyst, unavailable)
+@available(tvOS, unavailable)
+@available(watchOS, unavailable)
 extension CommandLineToolInvocation {
     /// Renders a structured invocation into a concrete command line string.
     public struct CommandLineRenderer: CustomStringConvertible, Hashable, Sendable {

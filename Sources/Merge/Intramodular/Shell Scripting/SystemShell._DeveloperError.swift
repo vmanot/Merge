@@ -2,7 +2,17 @@
 // Copyright (c) Vatsal Manot
 //
 
+@available(macOS 11.0, *)
+@available(iOS, unavailable)
+@available(macCatalyst, unavailable)
+@available(tvOS, unavailable)
+@available(watchOS, unavailable)
 extension SystemShell {
+    @available(macOS 11.0, *)
+    @available(iOS, unavailable)
+    @available(macCatalyst, unavailable)
+    @available(tvOS, unavailable)
+    @available(watchOS, unavailable)
     public enum _DeveloperError: Swift.Error, Hashable, CustomStringConvertible {
         case borrowedShellOwnedOperation(_OwnedOperation)
         case borrowedShellMutation(_MutableProperty)

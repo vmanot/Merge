@@ -130,7 +130,7 @@ extension _ProcessRunResult {
 
 // MARK: - Supplementary
 
-#if os(macOS)
+#if os(macOS) || targetEnvironment(macCatalyst)
 extension Process {
     public typealias RunResult = _ProcessRunResult
 }

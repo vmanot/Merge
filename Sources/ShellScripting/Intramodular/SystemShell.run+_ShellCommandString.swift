@@ -2,18 +2,21 @@
 // Copyright (c) Vatsal Manot
 //
 
-#if os(macOS)
-
 import Foundation
 import Merge
 
+@available(macOS 11.0, *)
+@available(iOS, unavailable)
+@available(macCatalyst, unavailable)
+@available(tvOS, unavailable)
+@available(watchOS, unavailable)
 extension SystemShell {
     @discardableResult
     public func run(
         command: _ShellCommandString,
         input: String? = nil,
         interpreter: Environment
-    ) async throws -> Process.RunResult {
+    ) async throws -> _ProcessRunResult {
         try await run(
             command: command.rawValue,
             input: input,
@@ -26,7 +29,7 @@ extension SystemShell {
         command: _ShellCommandString,
         input: String? = nil,
         environment: Environment = .zsh
-    ) async throws -> Process.RunResult {
+    ) async throws -> _ProcessRunResult {
         try await run(
             command: command,
             input: input,
@@ -34,5 +37,3 @@ extension SystemShell {
         )
     }
 }
-
-#endif

@@ -207,6 +207,7 @@ extension AnyCommandLineTool {
         }
     }
 
+    @available(iOS 16.0, macOS 13.0, tvOS 16.0, watchOS 9.0, *)
     public func kill() async throws {
         let sessions = await _internalState._beginKill()
 

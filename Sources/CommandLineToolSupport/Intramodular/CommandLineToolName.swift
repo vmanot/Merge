@@ -50,12 +50,22 @@ public struct CommandLineToolName: CustomStringConvertible, CustomDebugStringCon
     }
 }
 
+@available(macOS 11.0, *)
+@available(iOS, unavailable)
+@available(macCatalyst, unavailable)
+@available(tvOS, unavailable)
+@available(watchOS, unavailable)
 extension CommandLineToolName {
     package init(derivingFrom type: Any.Type) {
         self.init("\(type)".lowercased())
     }
 }
 
+@available(macOS 11.0, *)
+@available(iOS, unavailable)
+@available(macCatalyst, unavailable)
+@available(tvOS, unavailable)
+@available(watchOS, unavailable)
 extension AnyCommandLineTool {
     public func requireCommandName() -> CommandLineToolName {
         guard let result = commandName else {
@@ -71,6 +81,11 @@ extension AnyCommandLineTool {
     }
 }
 
+@available(macOS 11.0, *)
+@available(iOS, unavailable)
+@available(macCatalyst, unavailable)
+@available(tvOS, unavailable)
+@available(watchOS, unavailable)
 extension CommandLineTool {
     public typealias Name = CommandLineToolName
 }

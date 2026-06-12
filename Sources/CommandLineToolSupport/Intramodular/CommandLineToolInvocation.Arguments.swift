@@ -125,12 +125,21 @@ extension CommandLineToolInvocation {
             self.init(elements: elements)
         }
 
+        public init(_ arguments: Arguments) {
+            self.init(arguments: arguments)
+        }
+
         public init(argumentValues: [Argument]) {
             self.init(elements: CommandLineToolInvocation._components(from: argumentValues))
         }
 
         public init(arguments: Arguments) {
             self.init(argumentValues: arguments.elements)
+        }
+
+        @_disfavoredOverload
+        public init(arguments: [String]) {
+            self.init(arguments: Arguments(arguments))
         }
 
         public init(arrayLiteral elements: Component...) {
@@ -191,6 +200,32 @@ extension CommandLineToolInvocation {
             contentsOf components: [Component]
         ) {
             elements.append(contentsOf: components)
+        }
+
+        public mutating func append(
+            contentsOf arguments: Arguments
+        ) {
+            append(
+                contentsOf: arguments.elements.map {
+                    Component._component(
+                        fromRawArgument: $0,
+                        isExecutablePosition: false
+                    )
+                }
+            )
+        }
+
+        public mutating func append(
+            argumentValues arguments: [Argument]
+        ) {
+            append(contentsOf: Arguments(arguments))
+        }
+
+        @_disfavoredOverload
+        public mutating func append(
+            arguments: [String]
+        ) {
+            append(contentsOf: Arguments(arguments))
         }
 
         public mutating func appendOption(

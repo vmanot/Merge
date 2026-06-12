@@ -35,15 +35,26 @@ public protocol CommandLineTool: AnyCommandLineTool {
     var invocationSummary: SummaryContent { get }
 }
 
+@available(macOS 11.0, *)
+@available(iOS, unavailable)
+@available(macCatalyst, unavailable)
+@available(tvOS, unavailable)
+@available(watchOS, unavailable)
 extension CommandLineTool where Self: _InvocationSummarySubcommandWithParentCommand {
     public typealias InvocationSummaryValueReferenceFromParent<Value> = CommandLineToolInvocationSummary.InvocationSummaryValueReferenceFromParent<ParentCommand, Self, Value> where Value: CommandLineToolInvocationSummary.InvocationSummaryValue
 }
 
+@available(macOS 11.0, *)
+@available(iOS, unavailable)
+@available(macCatalyst, unavailable)
+@available(tvOS, unavailable)
+@available(watchOS, unavailable)
 extension CommandLineTool {
     public var invocationSummary: some InvocationSummary {
         CommandLineToolInvocationSummary.DefaultInvocationSummary<Self>()
     }
 
+    @available(iOS 16.0, macOS 13.0, tvOS 16.0, watchOS 9.0, *)
     public func invocationArgumentValues(
         context: InvocationSummaryContext
     ) throws -> CommandLineToolInvocation.Arguments {
@@ -52,6 +63,7 @@ extension CommandLineTool {
         )
     }
 
+    @available(iOS 16.0, macOS 13.0, tvOS 16.0, watchOS 9.0, *)
     public func invocationComponents(
         context: InvocationSummaryContext
     ) throws -> [CommandLineToolInvocation.Component] {
@@ -104,6 +116,7 @@ extension CommandLineTool {
         return invocation.components
     }
 
+    @available(iOS 16.0, macOS 13.0, tvOS 16.0, watchOS 9.0, *)
     public func invocationArguments(context: InvocationSummaryContext) throws -> [String] {
         try invocationArgumentValues(context: context).rawValues
     }
@@ -118,6 +131,7 @@ extension CommandLineTool {
         )
     }
 
+    @available(iOS 16.0, macOS 13.0, tvOS 16.0, watchOS 9.0, *)
     @discardableResult
     public func lowerInvocationSummary(
         context: InvocationSummaryContext
@@ -127,6 +141,7 @@ extension CommandLineTool {
         return context
     }
 
+    @available(iOS 16.0, macOS 13.0, tvOS 16.0, watchOS 9.0, *)
     public func loweredInvocationSummaryComponents(
         for keyPaths: [PartialKeyPath<Self>],
         context: InvocationSummaryContext
@@ -139,6 +154,7 @@ extension CommandLineTool {
         )
     }
 
+    @available(iOS 16.0, macOS 13.0, tvOS 16.0, watchOS 9.0, *)
     public func loweredInvocationSummaryComponentGroups(
         for keyPathGroups: [[PartialKeyPath<Self>]],
         context: InvocationSummaryContext
@@ -163,6 +179,7 @@ extension CommandLineTool {
         )
     }
 
+    @available(iOS 16.0, macOS 13.0, tvOS 16.0, watchOS 9.0, *)
     public func invocationSummaryComponents(
         for keyPaths: [PartialKeyPath<Self>]
     ) throws -> CommandLineToolInvocation.Components {
@@ -176,6 +193,7 @@ extension CommandLineTool {
         )
     }
 
+    @available(iOS 16.0, macOS 13.0, tvOS 16.0, watchOS 9.0, *)
     public func identifiedInvocationSummaryComponents(
         for keyPaths: [PartialKeyPath<Self>]
     ) throws -> [_ResolvedCommandLineToolDescription.IdentifiedInvocationComponent] {
@@ -189,13 +207,15 @@ extension CommandLineTool {
         )
     }
 
+    @available(iOS 16.0, macOS 13.0, tvOS 16.0, watchOS 9.0, *)
     public var invocation: String {
         get throws {
             try invocationArgumentValues(context: InvocationSummaryContext()).description
         }
     }
 
-    public func callAsFunction() async throws -> Process.RunResult {
+    @available(iOS 16.0, macOS 13.0, tvOS 16.0, watchOS 9.0, *)
+    public func callAsFunction() async throws -> _ProcessRunResult {
         try await withUnsafeSystemShell { shell in
             try await shell.run(command: self.invocation)
         }
@@ -203,6 +223,11 @@ extension CommandLineTool {
 
 }
 
+@available(macOS 11.0, *)
+@available(iOS, unavailable)
+@available(macCatalyst, unavailable)
+@available(tvOS, unavailable)
+@available(watchOS, unavailable)
 extension CommandLineTool {
     public func with<T>(
         _ keyPath: WritableKeyPath<Self, T>,

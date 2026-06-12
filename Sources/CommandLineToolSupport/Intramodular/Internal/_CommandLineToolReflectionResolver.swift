@@ -6,6 +6,11 @@ import Foundation
 import Runtime
 import Swallow
 
+@available(macOS 11.0, *)
+@available(iOS, unavailable)
+@available(macCatalyst, unavailable)
+@available(tvOS, unavailable)
+@available(watchOS, unavailable)
 public struct _CommandLineToolResolutionContext {
     var resolvingID: _ResolvedCommandLineToolDescription.ArgumentID
     var commandKeyConversion: _CommandLineToolOptionKeyConversion?

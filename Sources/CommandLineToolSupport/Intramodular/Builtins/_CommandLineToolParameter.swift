@@ -5,6 +5,11 @@
 import Foundation
 import Swallow
 
+@available(macOS 11.0, *)
+@available(iOS, unavailable)
+@available(macCatalyst, unavailable)
+@available(tvOS, unavailable)
+@available(watchOS, unavailable)
 extension CommandLineTool {
     public typealias Argument<T> = _CommandLineToolParameter<T>
     public typealias Option<T> = _CommandLineToolParameter<T>
@@ -13,6 +18,11 @@ extension CommandLineTool {
     public typealias Parameter<T> = _CommandLineToolParameter<T>
 }
 
+@available(macOS 11.0, *)
+@available(iOS, unavailable)
+@available(macCatalyst, unavailable)
+@available(tvOS, unavailable)
+@available(watchOS, unavailable)
 public protocol _CommandLineToolParameterProtocol: PropertyWrapper, CommandLineToolInvocationSummary.InvocationSummaryValue {
     /// The name of the parameter as it will be passed in the actual command being invoked.
     var name: String? { get }
@@ -31,6 +41,11 @@ public protocol _CommandLineToolParameterProtocol: PropertyWrapper, CommandLineT
     var defaultPosition: _CommandLineToolArgumentPosition { get }
 }
 
+@available(macOS 11.0, *)
+@available(iOS, unavailable)
+@available(macCatalyst, unavailable)
+@available(tvOS, unavailable)
+@available(watchOS, unavailable)
 extension _CommandLineToolParameterProtocol {
     /// Positional hint for where this parameter should appear in the invocation.
     public var placement: CommandLineToolArgumentPlacement {
@@ -38,6 +53,11 @@ extension _CommandLineToolParameterProtocol {
     }
 }
 
+@available(macOS 11.0, *)
+@available(iOS, unavailable)
+@available(macCatalyst, unavailable)
+@available(tvOS, unavailable)
+@available(watchOS, unavailable)
 @propertyWrapper
 public struct _CommandLineToolParameter<WrappedValue>: _CommandLineToolParameterProtocol {
     final class Storage {

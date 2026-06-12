@@ -6,6 +6,11 @@
 import Darwin
 import Foundation
 
+@available(macOS 11.0, *)
+@available(macCatalyst, unavailable)
+@available(iOS, unavailable)
+@available(tvOS, unavailable)
+@available(watchOS, unavailable)
 extension _AsyncProcess {
     /// The exit status of a subprocess.
     public enum TerminationStatus: Sendable, Hashable {
@@ -18,6 +23,7 @@ extension _AsyncProcess {
         /// The subprocess terminated due to the given signal.
         case signaled(Code)
 
+        #if os(macOS) || targetEnvironment(macCatalyst)
         package init(
             _from process: Process
         ) {
@@ -30,6 +36,7 @@ extension _AsyncProcess {
                     self = .exited(process.terminationStatus)
             }
         }
+        #endif
 
         /// A Boolean value that indicates whether the termination was successful.
         public var isSuccess: Bool {
@@ -43,6 +50,11 @@ extension _AsyncProcess {
     }
 }
 
+@available(macOS 11.0, *)
+@available(macCatalyst, unavailable)
+@available(iOS, unavailable)
+@available(tvOS, unavailable)
+@available(watchOS, unavailable)
 extension _AsyncProcess.TerminationStatus: CustomStringConvertible, CustomDebugStringConvertible {
     /// A textual representation of this termination status.
     public var description: String {

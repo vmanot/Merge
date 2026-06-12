@@ -6,10 +6,25 @@
 import Foundation
 import Swallow
 
+@available(macOS 11.0, *)
+@available(iOS, unavailable)
+@available(macCatalyst, unavailable)
+@available(tvOS, unavailable)
+@available(watchOS, unavailable)
 extension CommandLineTool {
+    @available(macOS 11.0, *)
+    @available(iOS, unavailable)
+    @available(macCatalyst, unavailable)
+    @available(tvOS, unavailable)
+    @available(watchOS, unavailable)
     public typealias Flag<T: Equatable> = _CommandLineToolFlag<T>
 }
 
+@available(macOS 11.0, *)
+@available(iOS, unavailable)
+@available(macCatalyst, unavailable)
+@available(tvOS, unavailable)
+@available(watchOS, unavailable)
 public protocol _CommandLineToolFlagProtocol: PropertyWrapper, CommandLineToolInvocationSummary.InvocationSummaryValue {
     /// The representation of the `_CommandLineToolFlag`.
     ///
@@ -20,6 +35,11 @@ public protocol _CommandLineToolFlagProtocol: PropertyWrapper, CommandLineToolIn
     var defaultPosition: _CommandLineToolArgumentPosition { get }
 }
 
+@available(macOS 11.0, *)
+@available(iOS, unavailable)
+@available(macCatalyst, unavailable)
+@available(tvOS, unavailable)
+@available(watchOS, unavailable)
 extension _CommandLineToolFlagProtocol {
     @available(*, deprecated, renamed: "_representation")
     public var _representaton: _CommandLineToolFlagRepresentation {
@@ -64,6 +84,11 @@ public enum _CommandLineToolFlagRepresentation {
     }
 }
 
+@available(macOS 11.0, *)
+@available(iOS, unavailable)
+@available(macCatalyst, unavailable)
+@available(tvOS, unavailable)
+@available(watchOS, unavailable)
 @propertyWrapper
 public struct _CommandLineToolFlag<WrappedValue: Equatable>: _CommandLineToolFlagProtocol {
     var _wrappedValue: WrappedValue

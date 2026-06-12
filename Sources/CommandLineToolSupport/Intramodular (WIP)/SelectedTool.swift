@@ -20,6 +20,11 @@ open class AnyCommandLineToolWithSelectedTool: AnyCommandLineTool {
     }
 }
 
+@available(macOS 11.0, *)
+@available(iOS, unavailable)
+@available(macCatalyst, unavailable)
+@available(tvOS, unavailable)
+@available(watchOS, unavailable)
 extension AnyCommandLineToolWithSelectedTool {
     public struct ToolSelectionSemantics: CustomStringConvertible, CustomDebugStringConvertible, CustomReflectable, Hashable, Sendable {
         public enum Phase: Hashable, Sendable {

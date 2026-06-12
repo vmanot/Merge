@@ -14,11 +14,11 @@ import ShellScripting
 public enum _CommandLineToolExecutionSource: CustomStringConvertible, CustomDebugStringConvertible, CustomReflectable, Hashable, Sendable {
     case modeledInvocation(CommandLineToolInvocation)
     case shellCommandString(_ShellCommandString)
-
+    
     public var description: String {
         commandLine
     }
-
+    
     public var debugDescription: String {
         switch self {
             case .modeledInvocation(let invocation):
@@ -27,7 +27,7 @@ public enum _CommandLineToolExecutionSource: CustomStringConvertible, CustomDebu
                 "_CommandLineToolExecutionSource.shellCommandString(\(commandString.debugDescription))"
         }
     }
-
+    
     public var customMirror: Mirror {
         switch self {
             case .modeledInvocation(let invocation):
@@ -52,7 +52,7 @@ public enum _CommandLineToolExecutionSource: CustomStringConvertible, CustomDebu
                 )
         }
     }
-
+    
     public var commandLine: String {
         switch self {
             case .modeledInvocation(let invocation):
@@ -61,7 +61,7 @@ public enum _CommandLineToolExecutionSource: CustomStringConvertible, CustomDebu
                 commandString.rawValue
         }
     }
-
+    
     public var shellCommandString: _ShellCommandString? {
         switch self {
             case .modeledInvocation:
@@ -70,7 +70,7 @@ public enum _CommandLineToolExecutionSource: CustomStringConvertible, CustomDebu
                 commandString
         }
     }
-
+    
     public var invocation: CommandLineToolInvocation? {
         switch self {
             case .modeledInvocation(let invocation):
@@ -89,13 +89,13 @@ public enum _CommandLineToolExecutionSource: CustomStringConvertible, CustomDebu
 public struct _CommandLineToolExecutionRecord<Tool: AnyCommandLineTool>: CustomStringConvertible, CustomDebugStringConvertible, CustomReflectable {
     public let tool: Tool
     public let source: _CommandLineToolExecutionSource
-    public let processResult: Process.RunResult
+    public let processResult: _ProcessRunResult
     public let selectedToolInvocation: _CommandLineToolSelectedToolInvocation?
-
+    
     public init(
         tool: Tool,
         source: _CommandLineToolExecutionSource,
-        processResult: Process.RunResult,
+        processResult: _ProcessRunResult,
         selectedToolInvocation: _CommandLineToolSelectedToolInvocation? = nil
     ) {
         self.tool = tool
@@ -103,15 +103,15 @@ public struct _CommandLineToolExecutionRecord<Tool: AnyCommandLineTool>: CustomS
         self.processResult = processResult
         self.selectedToolInvocation = selectedToolInvocation
     }
-
+    
     public var description: String {
         commandLine
     }
-
+    
     public var debugDescription: String {
         "_CommandLineToolExecutionRecord(tool: \(String(reflecting: Tool.self)), commandLine: \(String(reflecting: commandLine)), selectedToolInvocation: \(selectedToolInvocation.debugDescription))"
     }
-
+    
     public var customMirror: Mirror {
         Mirror(
             self,
@@ -125,51 +125,51 @@ public struct _CommandLineToolExecutionRecord<Tool: AnyCommandLineTool>: CustomS
             displayStyle: .struct
         )
     }
-
+    
     public var commandLine: String {
         source.commandLine
     }
-
+    
     public var invocation: CommandLineToolInvocation? {
         source.invocation
     }
-
+    
     public var shellCommandString: _ShellCommandString? {
         source.shellCommandString
     }
-
+    
     public var stdout: Data? {
         processResult.stdout
     }
-
+    
     public var stderr: Data? {
         processResult.stderr
     }
-
+    
     public var stdoutString: String? {
         processResult.stdoutString
     }
-
+    
     public var stderrString: String? {
         processResult.stderrString
     }
-
+    
     public var terminationError: ProcessTerminationError? {
         processResult.terminationError
     }
-
+    
     public var isSelectedToolInvocation: Bool {
         selectedToolInvocation != nil
     }
-
+    
     public func validate() throws {
         try processResult.validate()
     }
-
+    
     public func toString() throws -> String {
         try processResult.toString()
     }
-
+    
     public func decode<T: Decodable>(
         _ type: T.Type,
         using decoder: JSONDecoder = .init()
@@ -191,7 +191,7 @@ public struct _CommandLineToolExecutionPlan<Tool: AnyCommandLineTool>: CustomStr
     public let configurationDifferences: [SystemShell.Configuration.Difference]
     public let selectedToolInvocation: _CommandLineToolSelectedToolInvocation?
     public let standardStreamWiring: StandardStreamWiring?
-
+    
     public init(
         tool: Tool,
         source: _CommandLineToolExecutionSource,
@@ -207,23 +207,23 @@ public struct _CommandLineToolExecutionPlan<Tool: AnyCommandLineTool>: CustomStr
         self.selectedToolInvocation = selectedToolInvocation
         self.standardStreamWiring = standardStreamWiring
     }
-
+    
     public var commandLine: String {
         source.commandLine
     }
-
+    
     public var invocation: CommandLineToolInvocation? {
         source.invocation
     }
-
+    
     public var description: String {
         commandLine
     }
-
+    
     public var debugDescription: String {
         "_CommandLineToolExecutionPlan(tool: \(String(reflecting: Tool.self)), commandLine: \(String(reflecting: commandLine)), selectedToolInvocation: \(selectedToolInvocation.debugDescription))"
     }
-
+    
     public var customMirror: Mirror {
         Mirror(
             self,
@@ -241,6 +241,11 @@ public struct _CommandLineToolExecutionPlan<Tool: AnyCommandLineTool>: CustomStr
     }
 }
 
+@available(macOS 11.0, *)
+@available(iOS, unavailable)
+@available(macCatalyst, unavailable)
+@available(tvOS, unavailable)
+@available(watchOS, unavailable)
 extension _CommandLineToolExecutionPlan {
     @discardableResult
     public func _run() async throws -> _CommandLineToolExecutionRecord<Tool> {
@@ -248,19 +253,19 @@ extension _CommandLineToolExecutionPlan {
             try await _run(using: shell)
         }
     }
-
+    
     @discardableResult
     public func _run(
         using shell: SystemShell
     ) async throws -> _CommandLineToolExecutionRecord<Tool> {
         try standardStreamWiring?.validate()
-
+        
         let startedAt = Date()
-
+        
         do {
             let (record, shellScopeID) = try await shell.withConfiguration(applying: configurationDifferences) { shell in
-                let processResult: Process.RunResult
-
+                let processResult: _ProcessRunResult
+                
                 switch source {
                     case .modeledInvocation(let invocation):
                         processResult = try await shell._run(
@@ -270,7 +275,7 @@ extension _CommandLineToolExecutionPlan {
                     case .shellCommandString(let commandString):
                         processResult = try await shell.run(command: commandString, input: standardInput)
                 }
-
+                
                 return (
                     _CommandLineToolExecutionRecord(
                         tool: tool,
@@ -281,7 +286,7 @@ extension _CommandLineToolExecutionPlan {
                     shell._shellScopeID
                 )
             }
-
+            
             await tool._internalState._appendExecutionAttempt(
                 _makeExecutionAttempt(
                     startedAt: startedAt,
@@ -290,7 +295,7 @@ extension _CommandLineToolExecutionPlan {
                     result: .success(record._erasingTool())
                 )
             )
-
+            
             return record
         } catch {
             await tool._internalState._appendExecutionAttempt(
@@ -301,11 +306,11 @@ extension _CommandLineToolExecutionPlan {
                     result: .failure(error)
                 )
             )
-
+            
             throw error
         }
     }
-
+    
     private func _makeExecutionAttempt(
         startedAt: Date,
         finishedAt: Date,
@@ -322,6 +327,11 @@ extension _CommandLineToolExecutionPlan {
     }
 }
 
+@available(macOS 11.0, *)
+@available(iOS, unavailable)
+@available(macCatalyst, unavailable)
+@available(tvOS, unavailable)
+@available(watchOS, unavailable)
 extension _CommandLineToolExecutionRecord {
     fileprivate func _erasingTool() -> _CommandLineToolExecutionRecord<AnyCommandLineTool> {
         _CommandLineToolExecutionRecord<AnyCommandLineTool>(
@@ -333,11 +343,16 @@ extension _CommandLineToolExecutionRecord {
     }
 }
 
+@available(macOS 11.0, *)
+@available(iOS, unavailable)
+@available(macCatalyst, unavailable)
+@available(tvOS, unavailable)
+@available(watchOS, unavailable)
 extension SystemShell {
     fileprivate func _run(
         invocation: CommandLineToolInvocation,
         prefersDirectExecution: Bool = true
-    ) async throws -> Process.RunResult {
+    ) async throws -> _ProcessRunResult {
         if prefersDirectExecution, let executableInvocation = invocation.executableInvocation {
             switch executableInvocation.executable {
                 case .name(let name):
@@ -352,7 +367,7 @@ extension SystemShell {
                     )
             }
         }
-
+        
         return try await run(command: invocation.renderedShellCommandString(using: .posixShellCommandLine))
     }
 }
@@ -376,7 +391,7 @@ extension CommandLineTool {
             standardStreamWiring: standardStreamWiring
         )
     }
-
+    
     @_disfavoredOverload
     public func _executionPlan(
         invocation: CommandLineToolInvocation,
@@ -389,7 +404,8 @@ extension CommandLineTool {
             applying: differences
         )
     }
-
+    
+    @available(iOS 16.0, macOS 13.0, tvOS 16.0, watchOS 9.0, *)
     public func _executionPlan(
         standardStreamWiring: _CommandLineToolExecutionPlan<Self>.StandardStreamWiring? = nil,
         applying differences: [SystemShell.Configuration.Difference] = []
@@ -400,7 +416,8 @@ extension CommandLineTool {
             applying: differences
         )
     }
-
+    
+    @available(iOS 16.0, macOS 13.0, tvOS 16.0, watchOS 9.0, *)
     @_disfavoredOverload
     public func _executionPlan(
         standardStreamWiring: _CommandLineToolExecutionPlan<Self>.StandardStreamWiring? = nil,
@@ -425,13 +442,13 @@ extension AnyCommandLineTool {
         applying differences: [SystemShell.Configuration.Difference] = []
     ) -> _CommandLineToolExecutionPlan<AnyCommandLineTool> {
         let selectedToolInvocation: _CommandLineToolSelectedToolInvocation?
-
+        
         if let command = self as? any CommandLineTool {
             selectedToolInvocation = _CommandLineToolCommandChain(resolvingOrSelf: command).selectedToolInvocation(renderedInvocation: invocation)
         } else {
             selectedToolInvocation = nil
         }
-
+        
         return _CommandLineToolExecutionPlan(
             tool: self,
             source: .modeledInvocation(invocation),
@@ -440,7 +457,7 @@ extension AnyCommandLineTool {
             standardStreamWiring: standardStreamWiring ?? _attachedStandardStreamWiring
         )
     }
-
+    
     @_disfavoredOverload
     public func _executionPlan(
         invocation: CommandLineToolInvocation,
@@ -453,7 +470,7 @@ extension AnyCommandLineTool {
             applying: differences
         )
     }
-
+    
     public func _executionPlan(
         command commandString: _ShellCommandString,
         input: String? = nil,
@@ -468,7 +485,7 @@ extension AnyCommandLineTool {
             standardStreamWiring: standardStreamWiring ?? _attachedStandardStreamWiring
         )
     }
-
+    
     public func _executionPlan(
         command commandLine: String,
         input: String? = nil,
@@ -482,7 +499,7 @@ extension AnyCommandLineTool {
             applying: differences
         )
     }
-
+    
     @_disfavoredOverload
     public func _executionPlan(
         command commandString: _ShellCommandString,
@@ -497,7 +514,7 @@ extension AnyCommandLineTool {
             applying: differences
         )
     }
-
+    
     @_disfavoredOverload
     public func _executionPlan(
         command commandLine: String,

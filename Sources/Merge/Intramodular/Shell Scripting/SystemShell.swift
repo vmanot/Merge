@@ -7,6 +7,11 @@ import Diagnostics
 import Foundation
 import Swallow
 
+@available(macOS 11.0, *)
+@available(iOS, unavailable)
+@available(macCatalyst, unavailable)
+@available(tvOS, unavailable)
+@available(watchOS, unavailable)
 public final class SystemShell: Logging, ObjectDidChangeObservableObject {
     package enum Ownership {
         case local
@@ -203,6 +208,11 @@ public final class SystemShell: Logging, ObjectDidChangeObservableObject {
     }
 }
 
+@available(macOS 11.0, *)
+@available(macCatalyst, unavailable)
+@available(iOS, unavailable)
+@available(tvOS, unavailable)
+@available(watchOS, unavailable)
 extension _AsyncProcessOption {
     package var _isStandardStreamForwardingOption: Bool {
         guard case ._forwardStdoutStderr = self else {
@@ -213,6 +223,11 @@ extension _AsyncProcessOption {
     }
 }
 
+@available(macOS 11.0, *)
+@available(macCatalyst, unavailable)
+@available(iOS, unavailable)
+@available(tvOS, unavailable)
+@available(watchOS, unavailable)
 extension SystemShell {
     package final class _BorrowedLease: @unchecked Sendable {
         private let lock = NSLock()

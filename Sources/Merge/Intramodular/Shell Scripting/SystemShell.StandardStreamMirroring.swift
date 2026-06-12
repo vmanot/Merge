@@ -4,6 +4,11 @@
 
 import Foundation
 
+@available(macOS 11.0, *)
+@available(iOS, unavailable)
+@available(macCatalyst, unavailable)
+@available(tvOS, unavailable)
+@available(watchOS, unavailable)
 extension SystemShell {
     public struct StandardStreamMirroring: Hashable, Sendable {
         public enum Target: Hashable, Sendable {
@@ -54,6 +59,11 @@ extension SystemShell {
     }
 }
 
+@available(macOS 11.0, *)
+@available(iOS, unavailable)
+@available(macCatalyst, unavailable)
+@available(tvOS, unavailable)
+@available(watchOS, unavailable)
 extension SystemShell.StandardStreamMirroring {
     package init(
         processStandardOutputSink sink: _ProcessStandardOutputSink

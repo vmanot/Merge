@@ -24,7 +24,8 @@ extension CommandLineTool {
         )
         ._run()
     }
-
+    
+    @available(iOS 16.0, macOS 13.0, tvOS 16.0, watchOS 9.0, *)
     @discardableResult
     public func _run(
         applying differences: [SystemShell.Configuration.Difference] = []
@@ -34,13 +35,15 @@ extension CommandLineTool {
             applying: differences
         )
     }
-
+    
+    @available(iOS 16.0, macOS 13.0, tvOS 16.0, watchOS 9.0, *)
     public func _invocation(
         appending arguments: CommandLineToolInvocation.Arguments
     ) throws -> CommandLineToolInvocation {
         try commandInvocation.appending(arguments)
     }
-
+    
+    @available(iOS 16.0, macOS 13.0, tvOS 16.0, watchOS 9.0, *)
     @discardableResult
     public func _run(
         appending arguments: CommandLineToolInvocation.Arguments,
@@ -51,7 +54,8 @@ extension CommandLineTool {
             applying: differences
         )
     }
-
+    
+    @available(iOS 16.0, macOS 13.0, tvOS 16.0, watchOS 9.0, *)
     @discardableResult
     public func _runCollectingOutput(
         appending arguments: CommandLineToolInvocation.Arguments = [],
@@ -62,7 +66,7 @@ extension CommandLineTool {
             applying: differences + [._collectingOutput]
         )
     }
-
+    
     @discardableResult
     public func _run(
         command commandString: _ShellCommandString,
@@ -74,7 +78,7 @@ extension CommandLineTool {
             input: input,
             applying: differences
         )
-
+        
         return _CommandLineToolExecutionRecord(
             tool: self,
             source: record.source,
@@ -82,7 +86,7 @@ extension CommandLineTool {
             selectedToolInvocation: record.selectedToolInvocation
         )
     }
-
+    
     @discardableResult
     public func _run(
         command commandLine: String,
@@ -95,5 +99,5 @@ extension CommandLineTool {
             applying: differences
         )
     }
-
+    
 }

@@ -26,7 +26,11 @@ extension _AsyncProcess {
 
     /// The process identifier of this subprocess.
     public var processIdentifier: ProcessIdentifier {
+        #if os(macOS)
         ProcessIdentifier(value: process.processIdentifier)
+        #else
+        fatalError(.unavailable)
+        #endif
     }
 }
 

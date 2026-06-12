@@ -472,6 +472,11 @@ extension CommandLineToolInvocation {
     }
 }
 
+@available(macOS 11.0, *)
+@available(iOS, unavailable)
+@available(macCatalyst, unavailable)
+@available(tvOS, unavailable)
+@available(watchOS, unavailable)
 extension CommandLineToolInvocation.Component {
     public func isOption(
         named name: String
@@ -624,6 +629,11 @@ extension CommandLineToolInvocation.Component {
     }
 }
 
+@available(macOS 11.0, *)
+@available(iOS, unavailable)
+@available(macCatalyst, unavailable)
+@available(tvOS, unavailable)
+@available(watchOS, unavailable)
 extension CommandLineToolInvocation.Component.Storage {
     public var kind: CommandLineToolInvocation.Component.Kind {
         switch self {

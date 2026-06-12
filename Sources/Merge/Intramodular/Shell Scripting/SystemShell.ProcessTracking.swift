@@ -18,19 +18,20 @@ extension SystemShell {
         }
     }
 
-    package var completedRunResults: [Process.RunResult] {
+    package var completedRunResults: [_ProcessRunResult] {
         get async {
             await _internalState.completedRunResults
         }
     }
 
+    @available(iOS 16.0, macOS 13.0, tvOS 16.0, watchOS 9.0, *)
     package func teardownRunningProcesses() async throws {
         _ = try await teardownRunningProcessesReporting()
     }
 
     package func _run(
         _ process: _AsyncProcess
-    ) async throws -> Process.RunResult {
+    ) async throws -> _ProcessRunResult {
         await _internalState.insertRunningProcess(process)
 
         do {
@@ -60,7 +61,7 @@ extension SystemShell {
 
         package private(set) var _shellScopes: IdentifierIndexingArrayOf<SystemShell._ShellScope> = []
         package private(set) var runningProcesses: [_AsyncProcess] = []
-        package private(set) var completedRunResults: [Process.RunResult] = []
+        package private(set) var completedRunResults: [_ProcessRunResult] = []
 
         package init() {
 
@@ -138,7 +139,7 @@ extension SystemShell {
         }
 
         package func appendCompletedRunResult(
-            _ result: Process.RunResult
+            _ result: _ProcessRunResult
         ) {
             objectWillChange.send()
             completedRunResults.append(result)

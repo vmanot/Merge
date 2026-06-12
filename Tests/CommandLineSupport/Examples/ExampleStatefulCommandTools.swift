@@ -114,7 +114,6 @@ final class ExampleSSHAddTool: AnyCommandLineTool, CommandLineTool {
             }
 
             Case(
-                condition:
                 InvocationSummaryCondition
                     .keyPath(\ExampleSSHAddTool.$identityPaths, .isPresent)
                     .and(!.keyPath(\ExampleSSHAddTool.$listIdentities, .equals(true)))

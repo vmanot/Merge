@@ -2,11 +2,15 @@
 // Copyright (c) Vatsal Manot
 //
 
-
 import Foundation
 import Swallow
 import Collections
 
+@available(macOS 11.0, *)
+@available(iOS, unavailable)
+@available(macCatalyst, unavailable)
+@available(tvOS, unavailable)
+@available(watchOS, unavailable)
 private extension CommandLineToolInvocation.Argument {
     init?(
         _resolvedInvocationScalar value: Any
@@ -31,59 +35,69 @@ private extension CommandLineToolInvocation.Argument {
     }
 }
 
+@available(macOS 11.0, *)
+@available(iOS, unavailable)
+@available(macCatalyst, unavailable)
+@available(tvOS, unavailable)
+@available(watchOS, unavailable)
 private enum _ResolvedInvocationValueLowering {
     static func scalarArgument(
         from value: Any
     ) -> CommandLineToolInvocation.Argument? {
         let value = _unwrapOptional(value)
-
+        
         guard let value else {
             return nil
         }
-
+        
         return CommandLineToolInvocation.Argument(_resolvedInvocationScalar: value)
     }
-
+    
     static func arguments(
         from value: Any
     ) -> CommandLineToolInvocation.Arguments {
         let value = _unwrapOptional(value)
-
+        
         guard let value else {
             return []
         }
-
+        
         if let scalar = CommandLineToolInvocation.Argument(_resolvedInvocationScalar: value) {
             return scalar.rawValue.isEmpty ? [] : [scalar]
         }
-
+        
         let mirror = Mirror(reflecting: value)
-
+        
         guard mirror.displayStyle == .collection else {
             return []
         }
-
+        
         return CommandLineToolInvocation.Arguments(
             mirror.children.flatMap { child in
                 arguments(from: child.value).elements
             }
         )
     }
-
+    
     private static func _unwrapOptional(
         _ value: Any
     ) -> Any? {
         let mirror = Mirror(reflecting: value)
-
+        
         guard mirror.displayStyle == .optional else {
             return value
         }
-
+        
         return mirror.children.first?.value
     }
 }
 
 /// The most granular and "resolved" representation of a command-line tool within some context.
+@available(macOS 11.0, *)
+@available(iOS, unavailable)
+@available(macCatalyst, unavailable)
+@available(tvOS, unavailable)
+@available(watchOS, unavailable)
 public struct _ResolvedCommandLineToolDescription: CustomStringConvertible, CustomDebugStringConvertible, CustomReflectable, MergeOperatable {
     public struct ArgumentID: CustomStringConvertible, CustomDebugStringConvertible, CustomReflectable, Hashable, Sendable {
         /// The reflected Swift property name for the argument wrapper.
@@ -97,7 +111,7 @@ public struct _ResolvedCommandLineToolDescription: CustomStringConvertible, Cust
             self.rawValue = rawValue
             self.commandName = commandName
         }
-
+        
         public init(
             rawValue: String,
             commandName: String
@@ -107,7 +121,7 @@ public struct _ResolvedCommandLineToolDescription: CustomStringConvertible, Cust
                 commandName: CommandLineTool.Name(commandName)
             )
         }
-
+        
         public var propertyName: String {
             rawValue
         }
@@ -133,6 +147,11 @@ public struct _ResolvedCommandLineToolDescription: CustomStringConvertible, Cust
         }
     }
     
+    @available(macOS 11.0, *)
+    @available(iOS, unavailable)
+    @available(macCatalyst, unavailable)
+    @available(tvOS, unavailable)
+    @available(watchOS, unavailable)
     public struct InvocationComponent: CustomStringConvertible, CustomDebugStringConvertible, CustomReflectable, Hashable, Sendable {
         public enum Kind: Hashable, Sendable {
             case positionalArgument
@@ -180,7 +199,7 @@ public struct _ResolvedCommandLineToolDescription: CustomStringConvertible, Cust
                 multiValueEncoding: multiValueEncoding
             )
         }
-
+        
         public static func option(
             key: CommandLineToolInvocation.Argument,
             separator: _CommandLineToolParameterKeyValueSeparator,
@@ -210,7 +229,7 @@ public struct _ResolvedCommandLineToolDescription: CustomStringConvertible, Cust
                     guard let key, let separator, !values.isEmpty else {
                         return []
                     }
-
+                    
                     return CommandLineToolInvocation.Component._encodeOptionArguments(
                         key: key,
                         separator: separator,
@@ -269,12 +288,17 @@ public struct _ResolvedCommandLineToolDescription: CustomStringConvertible, Cust
             )
         }
     }
-
+    
+    @available(macOS 11.0, *)
+    @available(iOS, unavailable)
+    @available(macCatalyst, unavailable)
+    @available(tvOS, unavailable)
+    @available(watchOS, unavailable)
     public struct IdentifiedInvocationComponent: CustomStringConvertible, CustomDebugStringConvertible, CustomReflectable, Hashable, Sendable {
         public var argumentID: ArgumentID
         public var defaultPosition: _CommandLineToolArgumentPosition?
         public var component: CommandLineToolInvocation.Component
-
+        
         public init(
             argumentID: ArgumentID,
             defaultPosition: _CommandLineToolArgumentPosition?,
@@ -284,15 +308,15 @@ public struct _ResolvedCommandLineToolDescription: CustomStringConvertible, Cust
             self.defaultPosition = defaultPosition
             self.component = component
         }
-
+        
         public var description: String {
             "\(argumentID): \(component)"
         }
-
+        
         public var debugDescription: String {
             "IdentifiedInvocationComponent(argumentID: \(argumentID.debugDescription), defaultPosition: \(String(describing: defaultPosition)), component: \(component.debugDescription))"
         }
-
+        
         public var customMirror: Mirror {
             Mirror(
                 self,
@@ -310,6 +334,11 @@ public struct _ResolvedCommandLineToolDescription: CustomStringConvertible, Cust
     public typealias ResolvedSubcommands = IdentifierIndexingArrayOf<Subcommand>
     
     /// A resolved argument.
+    @available(macOS 11.0, *)
+    @available(iOS, unavailable)
+    @available(macCatalyst, unavailable)
+    @available(tvOS, unavailable)
+    @available(watchOS, unavailable)
     public struct Argument: CustomStringConvertible, CustomDebugStringConvertible, CustomReflectable, _ResolvedCommandLineToolInvocationArgument {
         public let id: _ResolvedCommandLineToolDescription.ArgumentID
         public let defaultPosition: _CommandLineToolArgumentPosition
@@ -325,6 +354,11 @@ public struct _ResolvedCommandLineToolDescription: CustomStringConvertible, Cust
     }
     
     /// A resolved option.
+    @available(macOS 11.0, *)
+    @available(iOS, unavailable)
+    @available(macCatalyst, unavailable)
+    @available(tvOS, unavailable)
+    @available(watchOS, unavailable)
     public struct Option: CustomStringConvertible, CustomDebugStringConvertible, CustomReflectable, _ResolvedCommandLineToolInvocationArgument {
         public let id: _ResolvedCommandLineToolDescription.ArgumentID
         public let defaultPosition: _CommandLineToolArgumentPosition
@@ -344,11 +378,11 @@ public struct _ResolvedCommandLineToolDescription: CustomStringConvertible, Cust
             
             if let multiValueEncoding {
                 let values = _ResolvedInvocationValueLowering.arguments(from: value)
-
+                
                 guard !values.isEmpty else {
                     return []
                 }
-
+                
                 switch multiValueEncoding {
                     case .spaceSeparated:
                         assert(
@@ -390,6 +424,11 @@ public struct _ResolvedCommandLineToolDescription: CustomStringConvertible, Cust
     }
     
     /// A resolved boolean flag.
+    @available(macOS 11.0, *)
+    @available(iOS, unavailable)
+    @available(macCatalyst, unavailable)
+    @available(tvOS, unavailable)
+    @available(watchOS, unavailable)
     public struct BooleanFlag: CustomStringConvertible, CustomDebugStringConvertible, CustomReflectable, _ResolvedCommandLineToolInvocationArgument {
         public let id: _ResolvedCommandLineToolDescription.ArgumentID
         public let defaultPosition: _CommandLineToolArgumentPosition
@@ -419,6 +458,11 @@ public struct _ResolvedCommandLineToolDescription: CustomStringConvertible, Cust
     }
     
     /// A resolved simple flag.
+    @available(macOS 11.0, *)
+    @available(iOS, unavailable)
+    @available(macCatalyst, unavailable)
+    @available(tvOS, unavailable)
+    @available(watchOS, unavailable)
     public struct CounterFlag: CustomStringConvertible, CustomDebugStringConvertible, CustomReflectable, _ResolvedCommandLineToolInvocationArgument {
         public let id: _ResolvedCommandLineToolDescription.ArgumentID
         public let defaultPosition: _CommandLineToolArgumentPosition
@@ -443,6 +487,11 @@ public struct _ResolvedCommandLineToolDescription: CustomStringConvertible, Cust
     }
     
     /// A resolved custom flag.
+    @available(macOS 11.0, *)
+    @available(iOS, unavailable)
+    @available(macCatalyst, unavailable)
+    @available(tvOS, unavailable)
+    @available(watchOS, unavailable)
     public struct CustomFlag: CustomStringConvertible, CustomDebugStringConvertible, CustomReflectable, _ResolvedCommandLineToolInvocationArgument {
         public let id: _ResolvedCommandLineToolDescription.ArgumentID
         public let defaultPosition: _CommandLineToolArgumentPosition
@@ -494,6 +543,11 @@ public struct _ResolvedCommandLineToolDescription: CustomStringConvertible, Cust
     }
     
     /// A resolved subcommand.
+    @available(macOS 11.0, *)
+    @available(iOS, unavailable)
+    @available(macCatalyst, unavailable)
+    @available(tvOS, unavailable)
+    @available(watchOS, unavailable)
     public struct Subcommand: CustomStringConvertible, CustomDebugStringConvertible, CustomReflectable, Identifiable {
         public let id: _ResolvedCommandLineToolDescription.ArgumentID
         public let name: CommandLineTool.Name
@@ -523,7 +577,7 @@ public struct _ResolvedCommandLineToolDescription: CustomStringConvertible, Cust
     public var commandName: CommandLineTool.Name
     public var arguments: ResolvedArguments
     public var subcommands: ResolvedSubcommands
-
+    
     public init(
         commandName: CommandLineTool.Name,
         arguments: ResolvedArguments,
@@ -533,7 +587,7 @@ public struct _ResolvedCommandLineToolDescription: CustomStringConvertible, Cust
         self.arguments = arguments
         self.subcommands = subcommands
     }
-
+    
     public init(
         commandName: String,
         arguments: ResolvedArguments,

@@ -49,7 +49,7 @@ public class _AsyncProcess: Logging {
             _environmentVariables = newValue
         }
     }
-    private lazy var standardStreamsBuffer = _StandardStreamsBuffer(
+    package lazy var standardStreamsBuffer = _StandardStreamsBuffer(
         publishers: publishers,
         options: self.options
     )
@@ -80,23 +80,13 @@ public class _AsyncProcess: Logging {
         #endif
     }
 
-    public var _standardOutputString: String {
-        get async throws {
-            try await standardStreamsBuffer._standardOutputStringUsingUTF8()
-        }
-    }
-
-    public var _standardErrorString: String {
-        get async throws {
-            try await standardStreamsBuffer._standardErrorStringUsingUTF8()
-        }
-    }
-
-    #if os(macOS)
+    #if os(macOS) || targetEnvironment(macCatalyst)
+    @available(macCatalyst, unavailable)
     public init(
         existingProcess: Process?,
         options: [_AsyncProcess.Option]?
     ) throws {
+        #if os(macOS)
         let options: Set<_AsyncProcess.Option> = Set(options ?? [])
 
         if let existingProcess {
@@ -121,6 +111,9 @@ public class _AsyncProcess: Logging {
         self.environmentVariables = existingProcess?.environment.map(EnvironmentVariables.exact) ?? .inherited
 
         _registerAndSetUpIO(existingProcess: existingProcess)
+        #else
+        fatalError(.unavailable)
+        #endif
     }
 
     public init(
@@ -130,6 +123,7 @@ public class _AsyncProcess: Logging {
         currentDirectoryURL: URL?,
         options: [_AsyncProcess.Option]? = nil
     ) throws {
+        #if os(macOS)
         let options: Set<_AsyncProcess.Option> = Set(options ?? [])
 
         if options.contains(._useAuthorizationExecuteWithPrivileges) {
@@ -154,6 +148,9 @@ public class _AsyncProcess: Logging {
         self.environmentVariables = environmentVariables
 
         _registerAndSetUpIO(existingProcess: nil)
+        #else
+        fatalError(.unavailable)
+        #endif
     }
 
     public convenience init(
@@ -176,6 +173,15 @@ public class _AsyncProcess: Logging {
         throw Never.Reason.unavailable
     }
 
+    public init(
+        executableURL: URL?,
+        arguments: [String]?,
+        environmentVariables: EnvironmentVariables,
+        currentDirectoryURL: URL?,
+        options: [_AsyncProcess.Option]? = nil
+    ) throws {
+        throw Never.Reason.unsupported
+    }
 
     public init(
         executableURL: URL?,
@@ -200,14 +206,10 @@ public class _AsyncProcess: Logging {
     #endif
 }
 
-#if os(macOS)
+#if os(macOS) || targetEnvironment(macCatalyst)
 @available(macOS 11.0, iOS 14.0, watchOS 7.0, tvOS 14.0, *)
 @available(macCatalyst, unavailable)
 extension _AsyncProcess {
-    public var isRunning: Bool {
-        state == .running
-    }
-
     #if os(macOS)
     public var state: State {
         if process.isRunning {
@@ -312,6 +314,10 @@ extension _AsyncProcess {
 @available(tvOS, unavailable)
 @available(watchOS, unavailable)
 extension _AsyncProcess {
+    public var state: State {
+        return .notLaunch
+    }
+
     @available(iOS, unavailable)
     @available(macCatalyst, unavailable)
     @available(tvOS, unavailable)
@@ -321,6 +327,17 @@ extension _AsyncProcess {
     }
 }
 #endif
+
+@available(macOS 11.0, *)
+@available(iOS, unavailable)
+@available(macCatalyst, unavailable)
+@available(tvOS, unavailable)
+@available(watchOS, unavailable)
+extension _AsyncProcess {
+    public var isRunning: Bool {
+        state == .running
+    }
+}
 
 #if os(macOS)
 @available(macOS 11.0, iOS 14.0, watchOS 7.0, tvOS 14.0, *)
@@ -721,11 +738,16 @@ extension _AsyncProcess {
     }
 }
 
+@available(macOS 11.0, *)
+@available(macCatalyst 16.0, *)
+@available(iOS, unavailable)
+@available(tvOS, unavailable)
+@available(watchOS, unavailable)
 public enum _AsyncProcessOption: Hashable {
     case _useAppleScript
     case _useAuthorizationExecuteWithPrivileges
     case _forwardStdoutStderr(to: _ProcessStandardOutputSink)
-    case _teardown([_AsyncProcess.TeardownStep])
+    case _teardown([_AsyncProcessTeardownStep])
 
     public static var _forwardStdoutStderr: Self {
         ._forwardStdoutStderr(to: .terminal)
@@ -739,7 +761,7 @@ public enum _AsyncProcessOption: Hashable {
         return sink
     }
 
-    public var _teardownSequence: [_AsyncProcess.TeardownStep] {
+    public var _teardownSequence: [_AsyncProcessTeardownStep] {
         guard case let ._teardown(sequence) = self else {
             return []
         }

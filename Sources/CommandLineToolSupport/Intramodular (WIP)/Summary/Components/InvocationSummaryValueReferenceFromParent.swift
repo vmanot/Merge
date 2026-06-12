@@ -16,6 +16,11 @@ public protocol _InvocationSummarySubcommandWithParentCommand {
     associatedtype ParentCommand: CommandLineTool
 }
 
+@available(macOS 11.0, *)
+@available(iOS, unavailable)
+@available(macCatalyst, unavailable)
+@available(tvOS, unavailable)
+@available(watchOS, unavailable)
 extension _InvocationSummarySubcommandWithParentCommand where Self: AnyCommandLineTool {
     public subscript<Value>(
         dynamicMember keyPath: KeyPath<ParentCommand, Value>
@@ -201,6 +206,11 @@ extension CommandLineToolInvocationSummary.Omit where Command: _InvocationSummar
     }
 }
 
+@available(macOS 11.0, *)
+@available(iOS, unavailable)
+@available(macCatalyst, unavailable)
+@available(tvOS, unavailable)
+@available(watchOS, unavailable)
 private func _requireInvocationSummaryParent<Parent: AnyCommandLineTool, Command: AnyCommandLineTool>(
     _ parent: AnyCommandLineTool?,
     for command: Command.Type,

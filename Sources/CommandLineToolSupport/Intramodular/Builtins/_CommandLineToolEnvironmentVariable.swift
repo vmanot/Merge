@@ -9,6 +9,11 @@ extension CLT {
     public typealias EnvironmentVariable<Value: EnvironmentVariableValue> = _CommandLineToolEnvironmentVariable<Value>
 }
 
+@available(macOS 11.0, *)
+@available(iOS, unavailable)
+@available(macCatalyst, unavailable)
+@available(tvOS, unavailable)
+@available(watchOS, unavailable)
 extension CommandLineTool {
     public typealias EnvironmentVariable<T: CLT.EnvironmentVariableValue> = _CommandLineToolEnvironmentVariable<T>
 }

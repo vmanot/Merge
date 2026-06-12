@@ -3,7 +3,13 @@
 //
 
 import Foundation
+import Swallow
 
+@available(macOS 11.0, *)
+@available(iOS, unavailable)
+@available(macCatalyst, unavailable)
+@available(tvOS, unavailable)
+@available(watchOS, unavailable)
 extension SystemShell {
     public struct EnvironmentVariables: Hashable, Sendable {
         package enum Policy: Hashable, Sendable {
@@ -176,6 +182,11 @@ extension SystemShell {
     }
 }
 
+@available(macOS 11.0, *)
+@available(iOS, unavailable)
+@available(macCatalyst, unavailable)
+@available(tvOS, unavailable)
+@available(watchOS, unavailable)
 extension SystemShell.EnvironmentVariables: ExpressibleByDictionaryLiteral {
 
 }

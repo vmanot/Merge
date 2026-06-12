@@ -5,7 +5,17 @@
 import Foundation
 import Swallow
 
+@available(macOS 11.0, *)
+@available(iOS, unavailable)
+@available(macCatalyst, unavailable)
+@available(tvOS, unavailable)
+@available(watchOS, unavailable)
 extension SystemShell {
+    @available(macOS 11.0, *)
+    @available(iOS, unavailable)
+    @available(macCatalyst, unavailable)
+    @available(tvOS, unavailable)
+    @available(watchOS, unavailable)
     public struct Configuration: Hashable, Sendable {
         public var environmentVariables: EnvironmentVariables
         public var currentDirectoryURL: URL?
@@ -23,6 +33,11 @@ extension SystemShell {
     }
 }
 
+@available(macOS 11.0, *)
+@available(iOS, unavailable)
+@available(macCatalyst, unavailable)
+@available(tvOS, unavailable)
+@available(watchOS, unavailable)
 extension SystemShell.Configuration: Diffable {
     public struct Difference: Hashable, Sendable, _DiffableDifferenceType, ThrowingMergeOperatable {
         package var environmentVariables: Field<SystemShell.EnvironmentVariables>
@@ -124,6 +139,11 @@ extension SystemShell.Configuration: Diffable {
     }
 }
 
+@available(macOS 11.0, *)
+@available(iOS, unavailable)
+@available(macCatalyst, unavailable)
+@available(tvOS, unavailable)
+@available(watchOS, unavailable)
 extension SystemShell.Configuration.Difference {
     package enum Field<Value: Hashable & Sendable>: Hashable, Sendable, ThrowingMergeOperatable {
         case unchanged

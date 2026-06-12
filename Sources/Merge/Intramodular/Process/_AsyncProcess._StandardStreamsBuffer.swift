@@ -22,6 +22,7 @@ public actor _StandardInputOutputStreamsBuffer {
         self.options = options
     }
 
+    @available(iOS 16.0, macOS 13.0, tvOS 16.0, watchOS 9.0, *)
     func record(
         data: Data,
         forPipe pipe: Pipe,
@@ -45,6 +46,7 @@ public actor _StandardInputOutputStreamsBuffer {
         await forwardIfNecessary(data: data, forPipe: pipeName)
     }
 
+    @available(iOS 16.0, macOS 13.0, tvOS 16.0, watchOS 9.0, *)
     private func forwardIfNecessary(
         data: Data,
         forPipe pipe: _ProcessPipeName
@@ -58,6 +60,7 @@ public actor _StandardInputOutputStreamsBuffer {
         }
     }
 
+    @available(iOS 16.0, macOS 13.0, tvOS 16.0, watchOS 9.0, *)
     private func forward(
         data: Data,
         forPipe pipe: _ProcessPipeName,
@@ -93,6 +96,7 @@ public actor _StandardInputOutputStreamsBuffer {
         }
     }
 
+    @available(iOS 16.0, macOS 13.0, tvOS 16.0, watchOS 9.0, *)
     private func fileHandle(
         forPath path: String
     ) throws -> FileHandle {
@@ -120,6 +124,7 @@ public actor _StandardInputOutputStreamsBuffer {
         return result
     }
 
+    @available(iOS 16.0, macOS 13.0, tvOS 16.0, watchOS 9.0, *)
     func closeFileHandles() {
         for handle in fileHandles.values {
             do {
@@ -132,6 +137,7 @@ public actor _StandardInputOutputStreamsBuffer {
         fileHandles.removeAll()
     }
 
+    @available(iOS 16.0, macOS 13.0, tvOS 16.0, watchOS 9.0, *)
     private func _record(
         data: Data,
         forPipe pipe: _ProcessPipeName
@@ -150,11 +156,34 @@ public actor _StandardInputOutputStreamsBuffer {
         }
     }
 
+    @available(iOS 16.0, macOS 13.0, tvOS 16.0, watchOS 9.0, *)
     func _standardOutputStringUsingUTF8() throws -> String {
         try standardOutputBuffer.toString(encoding: .utf8)
     }
 
+    @available(iOS 16.0, macOS 13.0, tvOS 16.0, watchOS 9.0, *)
     func _standardErrorStringUsingUTF8() throws -> String {
         try standardErrorBuffer.toString(encoding: .utf8)
+    }
+}
+
+@available(macOS 11.0, *)
+@available(macCatalyst, unavailable)
+@available(iOS, unavailable)
+@available(tvOS, unavailable)
+@available(watchOS, unavailable)
+extension _AsyncProcess {
+    @available(iOS 16.0, macOS 13.0, tvOS 16.0, watchOS 9.0, *)
+    public var _standardOutputString: String {
+        get async throws {
+            try await standardStreamsBuffer._standardOutputStringUsingUTF8()
+        }
+    }
+    
+    @available(iOS 16.0, macOS 13.0, tvOS 16.0, watchOS 9.0, *)
+    public var _standardErrorString: String {
+        get async throws {
+            try await standardStreamsBuffer._standardErrorStringUsingUTF8()
+        }
     }
 }

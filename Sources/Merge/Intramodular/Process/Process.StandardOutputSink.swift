@@ -17,14 +17,9 @@ public enum _ProcessStandardOutputSink: Hashable {
     case null
 }
 
-#if os(macOS)
-extension Process {
-    public typealias StandardOutputSink = _ProcessStandardOutputSink
-}
-
 // MARK: - Initializers
 
-extension Process.StandardOutputSink {
+extension _ProcessStandardOutputSink {
     public static func file(
         _ url: URL
     ) -> Self {
@@ -34,6 +29,13 @@ extension Process.StandardOutputSink {
 
 // MARK: - Supplementary
 
+#if os(macOS) || targetEnvironment(macCatalyst)
+extension Process {
+    public typealias StandardOutputSink = _ProcessStandardOutputSink
+}
+#endif
+
+#if os(macOS)
 extension Process {
     @available(macOS 12.0, iOS 15.0, watchOS 8.0, tvOS 15.0, *)
     public func redirectAllOutput(

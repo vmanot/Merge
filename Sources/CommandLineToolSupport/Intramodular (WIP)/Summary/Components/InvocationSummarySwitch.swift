@@ -37,6 +37,26 @@ extension CommandLineToolInvocationSummary {
             self.location = SourceCodeLocation(fileID: fileID, function: function, line: line, column: column)
         }
 
+        public init<Content: InvocationSummary>(
+            _ condition: InvocationSummaryCondition<Command>,
+            label: String? = nil,
+            fileID: StaticString = #fileID,
+            function: StaticString = #function,
+            line: UInt = #line,
+            column: UInt? = nil,
+            @InvocationSummaryBuilder<Command> _ content: () -> Content
+        ) where Content.Command == Command {
+            self.init(
+                condition: condition,
+                label: label,
+                fileID: fileID,
+                function: function,
+                line: line,
+                column: column,
+                content
+            )
+        }
+
         public init<Value: InvocationSummaryValue, Content: InvocationSummary>(
             _ value: KeyPath<Command, Value>,
             _ predicate: InvocationSummaryValuePredicate<Value.WrappedValue>,
@@ -125,6 +145,7 @@ extension CommandLineToolInvocationSummary {
             }
         }
 
+        @available(iOS 16.0, macOS 13.0, tvOS 16.0, watchOS 9.0, *)
         public func makeInvocationComponents(
             command: Command,
             parent: AnyCommandLineTool?,
@@ -147,6 +168,7 @@ extension CommandLineToolInvocationSummary {
             self.content = content()
         }
 
+        @available(iOS 16.0, macOS 13.0, tvOS 16.0, watchOS 9.0, *)
         public func makeInvocationComponents(
             command: Command,
             parent: AnyCommandLineTool?,
@@ -219,6 +241,7 @@ extension CommandLineToolInvocationSummary {
             self.location = SourceCodeLocation(fileID: fileID, function: function, line: line, column: column)
         }
 
+        @available(iOS 16.0, macOS 13.0, tvOS 16.0, watchOS 9.0, *)
         public func makeInvocationArguments(
             command: Command,
             parent: AnyCommandLineTool?,
@@ -234,6 +257,7 @@ extension CommandLineToolInvocationSummary {
             )
         }
 
+        @available(iOS 16.0, macOS 13.0, tvOS 16.0, watchOS 9.0, *)
         public func makeInvocationComponents(
             command: Command,
             parent: AnyCommandLineTool?,

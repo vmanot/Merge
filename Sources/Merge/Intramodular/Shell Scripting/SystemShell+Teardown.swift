@@ -2,7 +2,6 @@
 // Copyright (c) Vatsal Manot
 //
 
-#if os(macOS)
 import Diagnostics
 import Foundation
 
@@ -12,8 +11,7 @@ import Foundation
 @available(tvOS, unavailable)
 @available(watchOS, unavailable)
 extension SystemShell {
-    package typealias TeardownStep = _AsyncProcess.TeardownStep
-
+    @available(iOS 16.0, macOS 13.0, tvOS 16.0, watchOS 9.0, *)
     package struct RunningProcess: Hashable, Sendable {
         package struct ID: Hashable, Sendable {
             package let rawValue: ObjectIdentifier
@@ -32,6 +30,7 @@ extension SystemShell {
         }
     }
 
+    @available(iOS 16.0, macOS 13.0, tvOS 16.0, watchOS 9.0, *)
     package struct RunningProcessTeardownReport: Sendable {
         package let processReports: [ProcessTeardownReport]
 
@@ -53,6 +52,7 @@ extension SystemShell {
         }
     }
 
+    @available(iOS 16.0, macOS 13.0, tvOS 16.0, watchOS 9.0, *)
     package struct ProcessTeardownReport: Sendable {
         package let processID: RunningProcess.ID
         package let processIdentifier: _AsyncProcess.ProcessIdentifier?
@@ -60,8 +60,9 @@ extension SystemShell {
         package let finalState: FinalState
     }
 
+    @available(iOS 16.0, macOS 13.0, tvOS 16.0, watchOS 9.0, *)
     package struct TeardownStepReport: Sendable {
-        package let step: TeardownStep
+        package let step: _AsyncProcessTeardownStep
         package let controlResult: ControlResult
         package let observedTerminationStatus: _AsyncProcess.TerminationStatus?
     }
@@ -73,9 +74,10 @@ extension SystemShell {
         case timedOut
     }
 
+    @available(iOS 16.0, macOS 13.0, tvOS 16.0, watchOS 9.0, *)
     package enum FinalState: Sendable, Hashable {
         case alreadyExited
-        case exitedAfterStep(TeardownStep)
+        case exitedAfterStep(_AsyncProcessTeardownStep)
         case killed
         case stillRunning
         case unknown
@@ -90,8 +92,9 @@ extension SystemShell {
         }
     }
 
+    @available(iOS 16.0, macOS 13.0, tvOS 16.0, watchOS 9.0, *)
     package func teardownRunningProcessesReporting(
-        using sequence: some Sequence<TeardownStep> & Sendable
+        using sequence: some Sequence<_AsyncProcessTeardownStep> & Sendable
     ) async throws -> RunningProcessTeardownReport {
         try _preconditionCanTeardownRunningProcesses()
 
@@ -105,6 +108,7 @@ extension SystemShell {
         return RunningProcessTeardownReport(processReports: reports)
     }
 
+    @available(iOS 16.0, macOS 13.0, tvOS 16.0, watchOS 9.0, *)
     package func teardownRunningProcessesReporting() async throws -> RunningProcessTeardownReport {
         try _preconditionCanTeardownRunningProcesses()
 
@@ -118,6 +122,7 @@ extension SystemShell {
         return RunningProcessTeardownReport(processReports: reports)
     }
 
+    @available(iOS 16.0, macOS 13.0, tvOS 16.0, watchOS 9.0, *)
     public func kill() async throws {
         _preconditionCanPerformOwnedShellOperation(.kill)
 
@@ -131,9 +136,10 @@ extension SystemShell {
         }
     }
 
+    @available(iOS 16.0, macOS 13.0, tvOS 16.0, watchOS 9.0, *)
     package static func _teardown(
         _ process: _AsyncProcess,
-        using sequence: some Sequence<TeardownStep> & Sendable
+        using sequence: some Sequence<_AsyncProcessTeardownStep> & Sendable
     ) async -> ProcessTeardownReport {
         let processID = RunningProcess.ID(process)
         let processIdentifier = process.state == .notLaunch ? nil : process.processIdentifier
@@ -219,6 +225,7 @@ extension SystemShell {
 @available(tvOS, unavailable)
 @available(watchOS, unavailable)
 extension SystemShell._InternalState {
+    @available(iOS 16.0, macOS 13.0, tvOS 16.0, watchOS 9.0, *)
     package func _teardownRunningProcessesReportingForOwningCommandLineTool() async -> SystemShell.RunningProcessTeardownReport {
         let processes = runningProcesses
         var reports: [SystemShell.ProcessTeardownReport] = []
@@ -238,12 +245,14 @@ extension SystemShell._InternalState {
 @available(watchOS, unavailable)
 extension _AsyncProcess {
     fileprivate var _observedTerminationStatus: _AsyncProcess.TerminationStatus? {
+        #if os(macOS)
         guard state.isTerminated else {
             return nil
         }
-
+        
         return _AsyncProcess.TerminationStatus(_from: process)
+        #else
+        fatalError(.unavailable)
+        #endif
     }
-
 }
-#endif
