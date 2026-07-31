@@ -79,6 +79,7 @@ var package = Package(
             name: "CommandLineToolSupport",
             dependencies: [
                 "CommandLineToolSupportMacros",
+                "EnvironmentVariableSupport",
                 "Merge",
                 "ShellScripting",
                 "Swallow",

@@ -6,7 +6,7 @@ import FoundationX
 import Swallow
 
 /// A type that represents the result of a running a `Process`.
-public struct _ProcessRunResult: Hashable, Logging, @unchecked Sendable {
+public struct _ProcessRunResult: Hashable, @unchecked Sendable {
     #if os(macOS)
     public let process: Process
     #endif
@@ -28,15 +28,17 @@ public struct _ProcessRunResult: Hashable, Logging, @unchecked Sendable {
     }
     #endif
 
-    @_transparent
     public func validate() throws {
         if let terminationError {
-            if let stderrString = stderrString {
-                logger.error(stderrString)
-            }
-
             throw terminationError
         }
+    }
+
+    @discardableResult
+    public func validated() throws -> Self {
+        try validate()
+
+        return self
     }
 }
 
@@ -51,9 +53,15 @@ extension _ProcessRunResult {
     }
     #endif
 
+    public var isSuccess: Bool {
+        terminationError == nil
+    }
+
     /// A convenience property to get lines of the standard output, whitespace and newline trimmed.
     public var lines: [String] {
         get throws {
+            try validate()
+
             let result = try stdout.unwrap().toStringTrimmingWhitespacesAndNewlines().unwrap().lines().map({ $0.trimmingCharacters(in: .whitespacesAndNewlines) })
 
             if result.count == 1, result.first.isNilOrEmpty {
@@ -90,6 +98,8 @@ extension _ProcessRunResult {
         _ type: T.Type,
         using decoder: JSONDecoder = .init()
     ) throws -> T {
+        try validate()
+
         do {
             let data: Data = try stdout.unwrap()
 

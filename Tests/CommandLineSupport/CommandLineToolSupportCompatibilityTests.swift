@@ -13,8 +13,27 @@ final class LegacyAnyCommandLineToolCompatibilityTool: AnyCommandLineTool {
     }
 }
 
+final class EnvironmentOverrideCompatibilityTool: AnyCommandLineTool, CommandLineTool {
+    override var commandName: CommandLineTool.Name? {
+        "env"
+    }
+
+    @CLT.EnvironmentVariable(name: "MERGE_COMMAND_LINE_TOOL_TEST_VALUE")
+    var modeledValue = "modeled"
+}
+
 @Suite
 struct CommandLineToolSupportCompatibilityTests {
+    @Test("Explicit environment configuration overrides modeled values")
+    func explicitEnvironmentConfigurationOverridesModeledValues() async throws {
+        let tool = EnvironmentOverrideCompatibilityTool()
+        tool.environmentVariables["MERGE_COMMAND_LINE_TOOL_TEST_VALUE"] = "configured"
+
+        let record = try await tool._runCollectingOutput()
+
+        #expect(try record.lines.contains("MERGE_COMMAND_LINE_TOOL_TEST_VALUE=configured"))
+    }
+
     @Test("AnyCommandLineTool _run(command:) records shell command lines")
     func anyCommandLineToolRunCommandRecordsShellCommandLine() async throws {
         let tool = LegacyAnyCommandLineToolCompatibilityTool()
@@ -148,7 +167,7 @@ struct CommandLineToolSupportCompatibilityTests {
     @Test("Borrowed SystemShell rejects owned process teardown")
     func borrowedSystemShellRejectsOwnedProcessTeardown() async throws {
         do {
-            try await LegacyAnyCommandLineToolCompatibilityTool().withUnsafeSystemShell { shell in
+            try await LegacyAnyCommandLineToolCompatibilityTool().withSystemShell { shell in
                 try await shell.teardownRunningProcesses()
             }
 
@@ -158,7 +177,7 @@ struct CommandLineToolSupportCompatibilityTests {
         } catch {
             Issue.record("Expected borrowedShellOwnedOperation, got \(error).")
             #expect(
-                String(describing: error).contains("withUnsafeSystemShell"),
+                String(describing: error).contains("withSystemShell"),
                 "The teardown failure should call out the borrowed-shell API boundary."
             )
         }
@@ -167,7 +186,7 @@ struct CommandLineToolSupportCompatibilityTests {
     @Test("Borrowed SystemShell kill is an owned operation")
     func borrowedSystemShellKillIsAnOwnedOperation() async throws {
         do {
-            try await LegacyAnyCommandLineToolCompatibilityTool().withUnsafeSystemShell { shell in
+            try await LegacyAnyCommandLineToolCompatibilityTool().withSystemShell { shell in
                 try shell._validateCanAttemptOwnedShellOperation(.kill)
             }
 
@@ -177,17 +196,17 @@ struct CommandLineToolSupportCompatibilityTests {
         } catch {
             Issue.record("Expected borrowedShellOwnedOperation, got \(error).")
             #expect(
-                String(describing: error).contains("withUnsafeSystemShell"),
+                String(describing: error).contains("withSystemShell"),
                 "The kill ownership failure should call out the borrowed-shell API boundary."
             )
         }
     }
 
-    @Test("Borrowed SystemShell rejects use after withUnsafeSystemShell returns")
+    @Test("Borrowed SystemShell rejects use after withSystemShell returns")
     func borrowedSystemShellRejectsUseAfterClosureReturns() async throws {
         var escapedShell: SystemShell?
 
-        try await LegacyAnyCommandLineToolCompatibilityTool().withUnsafeSystemShell { shell in
+        try await LegacyAnyCommandLineToolCompatibilityTool().withSystemShell { shell in
             escapedShell = shell
         }
 
@@ -201,9 +220,9 @@ struct CommandLineToolSupportCompatibilityTests {
         }
     }
 
-    @Test("Legacy sink wrapper uses scoped SystemShell configuration")
-    func legacySinkWrapperUsesScopedConfiguration() async throws {
-        let result = try await LegacyAnyCommandLineToolCompatibilityTool().withUnsafeSystemShell(sink: .null) { shell in
+    @Test("Sink wrapper uses scoped SystemShell configuration")
+    func sinkWrapperUsesScopedConfiguration() async throws {
+        let result = try await LegacyAnyCommandLineToolCompatibilityTool().withSystemShell(sink: .null) { shell in
             try await shell.run(command: "echo captured")
         }
 
@@ -218,7 +237,7 @@ struct CommandLineToolSupportCompatibilityTests {
         let tool = LegacyAnyCommandLineToolCompatibilityTool()
         var shellState: SystemShell._InternalState?
 
-        try await tool.withUnsafeSystemShell { shell in
+        try await tool.withSystemShell { shell in
             shellState = shell._internalState
 
             let toolScope = try #require(
@@ -289,7 +308,7 @@ struct CommandLineToolSupportCompatibilityTests {
             }
 
             Task {
-                try await tool.withUnsafeSystemShell { _ in
+                try await tool.withSystemShell { _ in
 
                 }
             }
@@ -311,7 +330,7 @@ struct CommandLineToolSupportCompatibilityTests {
         #expect(await tool._internalState._lifecycleStatus == .killed)
 
         do {
-            try await tool.withUnsafeSystemShell { _ in
+            try await tool.withSystemShell { _ in
 
             }
 
@@ -328,7 +347,7 @@ struct CommandLineToolSupportCompatibilityTests {
         var shellState: SystemShell._InternalState?
 
         let task = Task {
-            try await tool.withUnsafeSystemShell { shell in
+            try await tool.withSystemShell { shell in
                 shellState = shell._internalState
 
                 _ = try await shell.run(command: "trap 'exit 0' TERM; while true; do sleep 1; done")

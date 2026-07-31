@@ -157,6 +157,16 @@ public struct _CommandLineToolExecutionRecord<Tool: AnyCommandLineTool>: CustomS
     public var terminationError: ProcessTerminationError? {
         processResult.terminationError
     }
+
+    public var isSuccess: Bool {
+        processResult.isSuccess
+    }
+
+    public var lines: [String] {
+        get throws {
+            try processResult.lines
+        }
+    }
     
     public var isSelectedToolInvocation: Bool {
         selectedToolInvocation != nil
@@ -164,6 +174,13 @@ public struct _CommandLineToolExecutionRecord<Tool: AnyCommandLineTool>: CustomS
     
     public func validate() throws {
         try processResult.validate()
+    }
+
+    @discardableResult
+    public func validated() throws -> Self {
+        try validate()
+
+        return self
     }
     
     public func toString() throws -> String {
@@ -249,7 +266,7 @@ public struct _CommandLineToolExecutionPlan<Tool: AnyCommandLineTool>: CustomStr
 extension _CommandLineToolExecutionPlan {
     @discardableResult
     public func _run() async throws -> _CommandLineToolExecutionRecord<Tool> {
-        try await tool.withUnsafeSystemShell { shell in
+        try await tool.withSystemShell { shell in
             try await _run(using: shell)
         }
     }
@@ -356,12 +373,12 @@ extension SystemShell {
         if prefersDirectExecution, let executableInvocation = invocation.executableInvocation {
             switch executableInvocation.executable {
                 case .name(let name):
-                    return try await _runDirectly(
+                    return try await run(
                         executableName: name,
                         arguments: executableInvocation.arguments.rawValues
                     )
                 case .fileURL(let url):
-                    return try await _runDirectly(
+                    return try await run(
                         executableURL: url,
                         arguments: executableInvocation.arguments.rawValues
                     )

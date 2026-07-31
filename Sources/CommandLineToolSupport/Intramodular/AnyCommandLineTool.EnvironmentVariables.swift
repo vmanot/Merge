@@ -24,14 +24,14 @@ struct _CommandLineToolEnvironmentVariableResolver {
     var tool: AnyCommandLineTool
 
     func resolve() -> [String: any CLT.EnvironmentVariableValue] {
-        var result = tool.environmentVariables
+        var result: [String: any CLT.EnvironmentVariableValue] = [:]
 
         for variable in reflectedEnvironmentVariables() {
-            guard !tool.environmentVariables.contains(key: variable.name) else {
-                fatalError("conflict for \(variable.name)")
-            }
-
             result[variable.name] = variable.value
+        }
+
+        result.merge(tool.environmentVariables) { _, configuredValue in
+            configuredValue
         }
 
         return result

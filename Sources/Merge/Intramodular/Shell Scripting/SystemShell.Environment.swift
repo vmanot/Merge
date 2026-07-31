@@ -40,18 +40,6 @@ extension SystemShell {
 @available(watchOS, unavailable)
 extension SystemShell.Environment {
     public func resolve(
-        launchPath: String,
-        arguments: [String]
-    ) async throws -> (launchPath: String, arguments: [String]) {
-        /// Handle the case where the the provide path and arguments are `"/bin/zsh"` and `["-l", "-c", "..."].
-        if launchPath == self.launchPath, let lastArgument = arguments.last, arguments == self.deriveArguments(arguments.last!) {
-            return try await resolve(command: lastArgument)
-        } else {
-            return try await resolve(command: "\(launchPath) \(arguments.joined(separator: " "))")
-        }
-    }
-
-    public func resolve(
         command: String
     ) async throws -> (launchPath: String, arguments: [String]) {
         if let launchPath = launchPath {

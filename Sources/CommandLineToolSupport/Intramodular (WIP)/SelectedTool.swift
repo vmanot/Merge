@@ -342,10 +342,10 @@ public final class GenericSelectedCommandLineTool<SelectingTool, SelectedTool>: 
     }
 
     @inlinable
-    public override func withUnsafeSystemShell<R>(
+    public override func withSystemShell<R>(
         perform operation: (SystemShell) async throws -> R
     ) async throws -> R {
-        try await selectedTool.withUnsafeSystemShell(perform: operation)
+        try await selectedTool.withSystemShell(perform: operation)
     }
 }
 

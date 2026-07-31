@@ -10,13 +10,11 @@ import Merge
 extension SystemShell {
     public func run(
         executablePath: String,
-        arguments: [Process.ArgumentLiteral],
-        environment: Environment = .zsh
+        arguments: [Process.ArgumentLiteral]
     ) async throws -> Process.RunResult {
         try await run(
-            executableURL: try URL(string: executablePath).unwrap(),
-            arguments: arguments.map(\.rawValue),
-            environment: environment
+            executablePath: executablePath,
+            arguments: arguments.map(\.rawValue)
         )
     }
 }

@@ -12,6 +12,26 @@ import Merge
 @available(tvOS, unavailable)
 @available(watchOS, unavailable)
 open class AnyCommandLineTool: Logging, ObjectDidChangeObservableObject {
+    /// Defaults applied to every process started by this tool instance.
+    ///
+    /// An individual execution may override these values with a
+    /// ``SystemShell/Configuration/Difference``.
+    public struct ExecutionConfiguration: Sendable {
+        public var environmentVariables: [String: any CLT.EnvironmentVariableValue]
+        public var currentDirectoryURL: URL?
+        public var standardStreamMirroring: SystemShell.StandardStreamMirroring
+
+        public init(
+            environmentVariables: [String: any CLT.EnvironmentVariableValue] = [:],
+            currentDirectoryURL: URL? = nil,
+            standardStreamMirroring: SystemShell.StandardStreamMirroring = .terminal
+        ) {
+            self.environmentVariables = environmentVariables
+            self.currentDirectoryURL = currentDirectoryURL
+            self.standardStreamMirroring = standardStreamMirroring
+        }
+    }
+
     public lazy var logger = PassthroughLogger(source: self)
     package let _internalState = _InternalState()
     package var _commandNameOverrideStorage: CommandLineToolName? = nil
@@ -33,19 +53,38 @@ open class AnyCommandLineTool: Logging, ObjectDidChangeObservableObject {
         nil
     }
 
-    public init() {
+    public var executionConfiguration = ExecutionConfiguration()
 
+    public init() {
+    }
+
+    public convenience init(executionConfiguration: ExecutionConfiguration) {
+        self.init()
+        self.executionConfiguration = executionConfiguration
     }
 
     package var _attachedOutputFormatterToolStorage: (any CommandLineToolOutputFormatterTool)? = nil
     package var _attachedHostToolStorage: _AttachedToolHost? = nil
     package var _attachedStandardStreamWiringStorage: _CommandLineToolExecutionPlan<AnyCommandLineTool>.StandardStreamWiring? = nil
 
-    public var environmentVariables: [String: any CLT.EnvironmentVariableValue] = [:]
-    public var currentDirectoryURL: URL? = nil
+    public var environmentVariables: [String: any CLT.EnvironmentVariableValue] {
+        get { executionConfiguration.environmentVariables }
+        set { executionConfiguration.environmentVariables = newValue }
+    }
+
+    public var currentDirectoryURL: URL? {
+        get { executionConfiguration.currentDirectoryURL }
+        set { executionConfiguration.currentDirectoryURL = newValue }
+    }
+
+    /// The standard streams forwarded by executions that do not specify their own policy.
+    public var standardStreamMirroring: SystemShell.StandardStreamMirroring {
+        get { executionConfiguration.standardStreamMirroring }
+        set { executionConfiguration.standardStreamMirroring = newValue }
+    }
 
     @discardableResult
-    open func withUnsafeSystemShell<R>(
+    open func withSystemShell<R>(
         perform operation: (SystemShell) async throws -> R
     ) async throws -> R {
         let environmentVariables = _resolveEnvironmentVariables()
@@ -61,7 +100,7 @@ open class AnyCommandLineTool: Logging, ObjectDidChangeObservableObject {
             configuration: SystemShell.Configuration(
                 environmentVariables: .inherited(overriding: environmentVariables.compactMapValues(\.environmentVariableStringValue)),
                 currentDirectoryURL: currentDirectoryURL ?? URL(fileURLWithPath: FileManager.default.currentDirectoryPath),
-                standardStreamMirroring: .terminal
+                standardStreamMirroring: standardStreamMirroring
             ),
             internalState: shellState,
             ownership: .borrowedFromCommandLineTool,
@@ -93,11 +132,19 @@ open class AnyCommandLineTool: Logging, ObjectDidChangeObservableObject {
         }
     }
 
+    @available(*, deprecated, renamed: "withSystemShell(perform:)")
+    @discardableResult
     public func withUnsafeSystemShell<R>(
+        perform operation: (SystemShell) async throws -> R
+    ) async throws -> R {
+        try await withSystemShell(perform: operation)
+    }
+
+    public func withSystemShell<R>(
         sink: _ProcessStandardOutputSink,
         perform operation: (SystemShell) async throws -> R
     ) async throws -> R {
-        try await withUnsafeSystemShell { shell in
+        try await withSystemShell { shell in
             try await shell.withConfiguration(
                 applying: .standardStreamMirroring(
                     SystemShell.StandardStreamMirroring(processStandardOutputSink: sink)
@@ -105,5 +152,13 @@ open class AnyCommandLineTool: Logging, ObjectDidChangeObservableObject {
                 perform: operation
             )
         }
+    }
+
+    @available(*, deprecated, renamed: "withSystemShell(sink:perform:)")
+    public func withUnsafeSystemShell<R>(
+        sink: _ProcessStandardOutputSink,
+        perform operation: (SystemShell) async throws -> R
+    ) async throws -> R {
+        try await withSystemShell(sink: sink, perform: operation)
     }
 }

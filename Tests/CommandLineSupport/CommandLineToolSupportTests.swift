@@ -49,12 +49,6 @@ final class EchoNestedCompatibilityTool: AnyCommandLineTool, CommandLineTool {
     }
 }
 
-final class TrueCompatibilityTool: AnyCommandLineTool, CommandLineTool {
-    override var commandName: CommandLineTool.Name? {
-        "true"
-    }
-}
-
 final class FormatterCompatibilityTool: AnyCommandLineTool, CommandLineToolOutputFormatterTool {
     override var commandName: CommandLineTool.Name? {
         "formatter"
@@ -1714,11 +1708,14 @@ struct CommandLineToolSupportTests {
         #expect(quotedArgument.posixShellEscapedValue == "'it'\\''s here'")
     }
 
-    @Test("CommandLineTool callAsFunction still returns Process.RunResult")
-    func commandLineToolCallAsFunctionStillReturnsRawProcessRunResult() async throws {
-        let result: Process.RunResult = try await TrueCompatibilityTool().callAsFunction()
+    @Test("CommandLineTool callAsFunction preserves argument boundaries")
+    func commandLineToolCallAsFunctionPreservesArgumentBoundaries() async throws {
+        let tool = EchoCompatibilityTool().with(\.text, "direct; echo shell-was-used")
+        tool.standardStreamMirroring = .disabled
 
-        #expect(result.stdoutString == nil)
+        let result: Process.RunResult = try await tool.callAsFunction()
+
+        #expect(result.stdoutString == "direct; echo shell-was-used")
     }
 
     @Test("CommandLineTool _run records modeled invocations")
@@ -2620,14 +2617,14 @@ struct CommandLineToolSupportTests {
         #expect(tool._attachedOutputFormatterTool is FormatterCompatibilityTool)
     }
 
-    @Test("withUnsafeSystemShell clears transient execution attachments")
-    func withUnsafeSystemShellClearsTransientExecutionAttachments() async throws {
+    @Test("withSystemShell clears transient execution attachments")
+    func withSystemShellClearsTransientExecutionAttachments() async throws {
         let tool = CompatibilityLeafTool()
 
         try tool._attachOutputFormatterTool(FormatterCompatibilityTool())
         tool._attachedStandardStreamWiring = _CommandLineToolExecutionPlan<AnyCommandLineTool>.StandardStreamWiring()
 
-        try await tool.withUnsafeSystemShell { _ in
+        try await tool.withSystemShell { _ in
             #expect(tool._attachedOutputFormatterTool is FormatterCompatibilityTool)
             #expect(tool._attachedStandardStreamWiring != nil)
         }

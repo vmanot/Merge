@@ -106,16 +106,14 @@ public class GenericSubcommand<Parent, Command>: AnyCommandLineTool, CommandLine
     }
     
     @inlinable
-    public override func withUnsafeSystemShell<R>(
+    public override func withSystemShell<R>(
         perform operation: (SystemShell) async throws -> R
     ) async throws -> R {
-        try await command.withUnsafeSystemShell(perform: operation)
+        try await command.withSystemShell(perform: operation)
     }
     
     @available(iOS 16.0, macOS 13.0, tvOS 16.0, watchOS 9.0, *)
     public func callAsFunction() async throws -> _ProcessRunResult {
-        try await withUnsafeSystemShell { shell in
-            try await shell.run(command: self.invocation)
-        }
+        try await _run().processResult
     }
 }
