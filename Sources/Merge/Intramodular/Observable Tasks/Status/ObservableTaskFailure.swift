@@ -23,29 +23,19 @@ extension ObservableTaskFailure: ObservableTaskFailureProtocol {
 
 /// An enumeration that represents the source of task failure.
 @frozen
-public enum ObservableTaskFailure<Error: Swift.Error>: _ErrorX, HashEquatable {
+public enum ObservableTaskFailure<Error: Swift.Error>: Swift.Error, HashEquatable {
     case canceled
     case error(Error)
-    
-    public var traits: _ErrorTraits {
+
+    public var underlyingError: (any Swift.Error)? {
         switch self {
             case .canceled:
-                assertionFailure()
-                
-                return []
+                return CancellationError()
             case .error(let error):
-                return AnyError(erasing: error).traits
+                return error
         }
     }
-    
-    public init?(_catchAll error: AnyError) throws {
-        guard let _error = try cast(Error.self, to: (any _ErrorX.Type).self).init(_catchAll: error) else {
-            return nil
-        }
-        
-        self = try .error(cast(_error))
-    }
-    
+
     public func hash(into hasher: inout Hasher) {
         switch self {
             case .canceled:
