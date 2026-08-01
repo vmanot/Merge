@@ -17,15 +17,18 @@ open class AnyCommandLineTool: Logging, ObjectDidChangeObservableObject {
     /// An individual execution may override these values with a
     /// ``SystemShell/Configuration/Difference``.
     public struct ExecutionConfiguration: Sendable {
+        public var baseEnvironmentVariables: SystemShell.EnvironmentVariables
         public var environmentVariables: [String: any CLT.EnvironmentVariableValue]
         public var currentDirectoryURL: URL?
         public var standardStreamMirroring: SystemShell.StandardStreamMirroring
 
         public init(
+            baseEnvironmentVariables: SystemShell.EnvironmentVariables = .inherited,
             environmentVariables: [String: any CLT.EnvironmentVariableValue] = [:],
             currentDirectoryURL: URL? = nil,
             standardStreamMirroring: SystemShell.StandardStreamMirroring = .terminal
         ) {
+            self.baseEnvironmentVariables = baseEnvironmentVariables
             self.environmentVariables = environmentVariables
             self.currentDirectoryURL = currentDirectoryURL
             self.standardStreamMirroring = standardStreamMirroring
@@ -72,6 +75,13 @@ open class AnyCommandLineTool: Logging, ObjectDidChangeObservableObject {
         set { executionConfiguration.environmentVariables = newValue }
     }
 
+    /// The environment inherited or replaced before modeled and explicitly
+    /// configured tool variables are applied.
+    public var baseEnvironmentVariables: SystemShell.EnvironmentVariables {
+        get { executionConfiguration.baseEnvironmentVariables }
+        set { executionConfiguration.baseEnvironmentVariables = newValue }
+    }
+
     public var currentDirectoryURL: URL? {
         get { executionConfiguration.currentDirectoryURL }
         set { executionConfiguration.currentDirectoryURL = newValue }
@@ -98,7 +108,10 @@ open class AnyCommandLineTool: Logging, ObjectDidChangeObservableObject {
 
         let shell = SystemShell(
             configuration: SystemShell.Configuration(
-                environmentVariables: .inherited(overriding: environmentVariables.compactMapValues(\.environmentVariableStringValue)),
+                environmentVariables: baseEnvironmentVariables.merging(
+                    environmentVariables.compactMapValues(\.environmentVariableStringValue),
+                    uniquingKeysWith: { _, configuredValue in configuredValue }
+                ),
                 currentDirectoryURL: currentDirectoryURL ?? URL(fileURLWithPath: FileManager.default.currentDirectoryPath),
                 standardStreamMirroring: standardStreamMirroring
             ),
