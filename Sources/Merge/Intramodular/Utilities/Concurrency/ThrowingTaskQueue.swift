@@ -6,6 +6,20 @@ import Combine
 import Foundation
 import Swallow
 
+private enum _ThrowingTaskQueueOperationResult<Success> {
+    case success(Success)
+    case failure(any Error)
+
+    func get() throws -> Success {
+        switch self {
+        case .success(let value):
+            value
+        case .failure(let error):
+            throw error
+        }
+    }
+}
+
 public final class ThrowingTaskQueue: @unchecked Sendable {
     @_OSUnfairLocked
     public var _unsafeFlags: Set<_UnsafeFlag> = []
@@ -70,7 +84,9 @@ public final class ThrowingTaskQueue: @unchecked Sendable {
         }
         
         let semaphore = _AsyncActorSemaphore()
-        let resultBox = _UncheckedSendable(ReferenceBox<Result<T, AnyError>?>(nil))
+        let resultBox = _UncheckedSendable(
+            ReferenceBox<_ThrowingTaskQueueOperationResult<T>?>(nil)
+        )
         
         await semaphore.wait()
         
@@ -84,7 +100,7 @@ public final class ThrowingTaskQueue: @unchecked Sendable {
                 
                 resultBox.wrappedValue.wrappedValue = .success(result)
             } catch {
-                resultBox.wrappedValue.wrappedValue = .failure(.init(erasing: error))
+                resultBox.wrappedValue.wrappedValue = .failure(error)
             }
             
             await semaphore.signal()

@@ -9,6 +9,10 @@ import Testing
 
 @Suite
 struct ThrowingTaskQueueTests {
+    private enum ExpectedError: Error {
+        case failure
+    }
+
     @Test
     func testReentrancy() async throws {
         let queue = TaskQueue()
@@ -47,6 +51,17 @@ struct ThrowingTaskQueueTests {
         }
 
         try await queue.waitForAll()
+    }
+
+    @Test
+    func preservesOperationErrorType() async {
+        let queue = ThrowingTaskQueue()
+
+        await #expect(throws: ExpectedError.self) {
+            try await queue.perform {
+                throw ExpectedError.failure
+            }
+        }
     }
 
     @Test
