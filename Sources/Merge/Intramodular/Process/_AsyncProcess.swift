@@ -253,30 +253,41 @@ extension _AsyncProcess {
     @discardableResult
     public func run() async throws -> _ProcessRunResult {
         #if os(macOS)
-        if let _resolvedRunResult {
-            return try _resolvedRunResult.get()
-        }
-
-        guard state != .running else {
-            try await processDidExit.enter()
-
-            return try _resolvedRunResult.unwrap().get()
-        }
-
-        do {
-            try Task.checkCancellation()
-
-            try await _runUnconditionally()
-
-            await _spinUntilProcessExit()
-
-            return try _resolvedRunResult.unwrap().get()
-        } catch {
-            if !Task.isCancelled {
-                self._resolvedRunResult = .failure(error)
+        return try await withTaskCancellationHandler {
+            if let _resolvedRunResult {
+                return try _resolvedRunResult.get()
             }
 
-            throw error
+            guard state != .running else {
+                try await processDidExit.enter()
+
+                return try _resolvedRunResult.unwrap().get()
+            }
+
+            do {
+                try Task.checkCancellation()
+
+                try await _runUnconditionally()
+                try Task.checkCancellation()
+
+                await _spinUntilProcessExit()
+
+                return try _resolvedRunResult.unwrap().get()
+            } catch {
+                if Task.isCancelled {
+                    // Cancellation can arrive while `Process.run()` is still
+                    // assigning the PID. Retry the tree termination after the
+                    // launch continuation has unwound so descendants created
+                    // in that race are not left holding our pipes open.
+                    self._terminate()
+                } else {
+                    self._resolvedRunResult = .failure(error)
+                }
+
+                throw error
+            }
+        } onCancel: {
+            self._terminate()
         }
         #else
         fatalError(.unsupported)
@@ -307,9 +318,20 @@ extension _AsyncProcess {
     }
 
     public func _terminate() {
-        Task {
-            try await terminate()
+        #if os(macOS)
+        let processIdentifier = process.processIdentifier
+        guard processIdentifier > 1, processIdentifier != getpid() else {
+            return
         }
+
+        Task.detached(priority: .userInitiated) {
+            _ = await ProcessGroupTimeoutGuard.terminateProcessTree(
+                rootPID: processIdentifier,
+                gracePeriod: .milliseconds(100),
+                pollInterval: .milliseconds(10)
+            )
+        }
+        #endif
     }
 }
 #else
@@ -542,13 +564,11 @@ extension _AsyncProcess {
                 }
 
                 try await group.waitForAll()
-            }
-        } onCancel: {
-            Task {
-                try? await self.terminate()
+                }
+            } onCancel: {
+                self._terminate()
             }
         }
-    }
 
     private func __handleData(
         _ data: Data,
@@ -563,7 +583,7 @@ extension _AsyncProcess {
         assert(!process.isRunning)
 
         return Task.detached(priority: .userInitiated) { @MainActor in
-            while !Task.isCancelled && self.process.processIdentifier == 0 {
+            while !Task.isCancelled && !self.process.isRunning && self.process.processIdentifier == 0 {
                 await Task.yield()
 
                 try? await Task.sleep(.milliseconds(10))

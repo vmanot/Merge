@@ -4,6 +4,7 @@
 
 @testable import Merge
 
+import Darwin
 import Foundation
 import Swallow
 import Testing
@@ -445,10 +446,89 @@ struct _AsyncProcessTests {
 
             #expect(results.count == processes.count)
             for result in results {
-                #expect(result.stdoutString?.hasPrefix("stdout-") == true)
-                #expect(result.stderrString?.hasPrefix("stderr-") == true)
+                let identifier = result.stdoutString?.dropFirst("stdout-".count)
+                #expect(identifier != nil)
+                #expect(result.stdoutString == "stdout-\(identifier ?? "")")
+                #expect(result.stderrString == "stderr-\(identifier ?? "")")
             }
         }
+    }
+
+    @Test
+    func cancellingRunTerminatesRunningProcess() async throws {
+        let process: _AsyncProcess = try _AsyncProcess(
+            launchPath: "/bin/sh",
+            arguments: ["-c", "sleep 30"],
+            options: []
+        )
+        let runTask = Task {
+            try await process.run()
+        }
+
+        try await Task.sleep(for: .milliseconds(100))
+
+        runTask.cancel()
+        try await Task.sleep(for: .milliseconds(500))
+
+        if process.isRunning {
+            try await process.terminate()
+        }
+
+        _ = try? await runTask.value
+        #expect(!process.isRunning)
+    }
+
+    @Test
+    func cancellingRunTerminatesDescendantHoldingStandardOutputPipe() async throws {
+        let pidURL = URL(fileURLWithPath: NSTemporaryDirectory())
+            .appendingPathComponent("merge-async-process-child-\(UUID().uuidString).pid")
+        defer {
+            try? FileManager.default.removeItem(at: pidURL)
+        }
+
+        let process: _AsyncProcess = try _AsyncProcess(
+            launchPath: "/bin/sh",
+            arguments: [
+                "-c",
+                "sleep 30 & child=$!; printf '%s' \"$child\" > \"$1\"; wait",
+                "sh",
+                pidURL.path,
+            ],
+            options: []
+        )
+        let runTask = Task {
+            try await process.run()
+        }
+
+        var childPID: pid_t?
+        for _ in 0..<100 {
+            if let value = try? String(contentsOf: pidURL, encoding: .utf8),
+               let parsed = pid_t(value),
+               parsed > 1
+            {
+                childPID = parsed
+                break
+            }
+
+            try await Task.sleep(for: .milliseconds(10))
+        }
+
+        let pid = try #require(childPID)
+        runTask.cancel()
+        _ = try? await runTask.value
+
+        var childExited = false
+        for _ in 0..<100 {
+            if kill(pid, 0) == -1, errno == ESRCH {
+                childExited = true
+                break
+            }
+
+            try await Task.sleep(for: .milliseconds(10))
+        }
+
+        #expect(childExited)
+        #expect(!process.isRunning)
     }
 
     @Test

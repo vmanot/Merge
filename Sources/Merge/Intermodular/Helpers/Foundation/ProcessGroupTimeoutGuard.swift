@@ -30,6 +30,11 @@ import Foundation
 /// an authoritative per-process outcome rather than just the list of signals
 /// sent.
 ///
+/// The process-specific variant uses the same protocol against the PPID-visible
+/// tree rooted at a caller-owned subprocess. It does not claim to contain
+/// daemonized or reparented descendants; callers that need that guarantee must
+/// establish a dedicated process group before launching the workload.
+///
 /// ## Safety invariants
 ///
 /// - `getpid()` is never signalled — the caller keeps running.
@@ -198,6 +203,128 @@ public enum ProcessGroupTimeoutGuard {
         return (treeSnapshots + pgrpOnly)
             .filter { (snap: ProcessSnapshot) in _isSignallable(snap.pid) }
             .sorted { (lhs: ProcessSnapshot, rhs: ProcessSnapshot) -> Bool in lhs.pid < rhs.pid }
+    }
+
+    /// Returns the descendants of a specific process without including the
+    /// process itself. The root must be a subprocess owned by the caller; the
+    /// current process is rejected so this API cannot accidentally become a
+    /// second spelling of the process-wide cleanup operation.
+    public static func snapshotDescendants(of rootPID: pid_t) -> [ProcessSnapshot] {
+        guard rootPID > 1, rootPID != getpid(), _isOwnedByCaller(rootPID) else {
+            return []
+        }
+
+        return _walkDescendants(of: rootPID)
+            .filter { snapshot in _isSignallable(snapshot.pid) }
+            .sorted { lhs, rhs in lhs.pid < rhs.pid }
+    }
+
+    /// Terminates a specific subprocess and the descendants visible in the
+    /// process table. This is intentionally separate from
+    /// `terminateDescendantsThenKill()`, which protects the current process by
+    /// cleaning up work spawned by the test runner itself.
+    @discardableResult
+    public static func terminateProcessTree(
+        rootPID: pid_t,
+        gracePeriod: Duration = .seconds(2),
+        pollInterval: Duration = .milliseconds(100)
+    ) async -> TerminationReport {
+        guard rootPID > 1, rootPID != getpid(), _isOwnedByCaller(rootPID) else {
+            return TerminationReport(
+                outcomes: [:],
+                commandByPID: [:],
+                elapsed: .zero
+            )
+        }
+
+        let effectiveGracePeriod = gracePeriod < .zero ? .zero : gracePeriod
+        let effectivePollInterval = pollInterval <= .zero ? .milliseconds(1) : pollInterval
+        let clock = ContinuousClock()
+        let startedAt = clock.now
+        var outcomes: [pid_t: TerminationOutcome] = [:]
+        var commandByPID: [pid_t: String] = [:]
+
+        let initialTargets = Set(
+            [rootPID] + snapshotDescendants(of: rootPID).map(\.pid)
+        )
+        commandByPID.merge(
+            _processCommands(for: Array(initialTargets)),
+            uniquingKeysWith: { current, _ in current }
+        )
+
+        for pid in initialTargets where _isSignallable(pid) {
+            if kill(pid, SIGTERM) == 0 {
+                outcomes[pid] = .survived
+            } else if errno == ESRCH {
+                outcomes[pid] = .alreadyGone
+            }
+        }
+
+        let graceDeadline = startedAt.advanced(by: effectiveGracePeriod)
+        while clock.now < graceDeadline {
+            var anyStillAlive = false
+            for (pid, outcome) in outcomes where outcome == .survived {
+                if !_isAlive(pid) {
+                    outcomes[pid] = .terminatedGracefully
+                } else {
+                    anyStillAlive = true
+                }
+            }
+
+            if !anyStillAlive {
+                break
+            }
+
+            try? await Task.sleep(for: effectivePollInterval)
+        }
+
+        let currentTargets = Set(
+            [rootPID] + snapshotDescendants(of: rootPID).map(\.pid)
+        )
+        commandByPID.merge(
+            _processCommands(for: Array(currentTargets)),
+            uniquingKeysWith: { current, _ in current }
+        )
+
+        let survivors = Set(
+            outcomes.compactMap { pid, outcome in
+                outcome == .survived ? pid : nil
+            }
+        )
+        let sigkillTargets = survivors.union(currentTargets)
+        for pid in sigkillTargets where _isSignallable(pid) {
+            if kill(pid, SIGKILL) == 0 {
+                if outcomes[pid] == nil {
+                    outcomes[pid] = .survived
+                }
+            } else if errno == ESRCH, outcomes[pid] == nil {
+                outcomes[pid] = .alreadyGone
+            }
+        }
+
+        let verifyDeadline = clock.now.advanced(by: .milliseconds(500))
+        while clock.now < verifyDeadline {
+            var anyAlive = false
+            for (pid, outcome) in outcomes where outcome == .survived {
+                if !_isAlive(pid) {
+                    outcomes[pid] = .forciblyKilled
+                } else {
+                    anyAlive = true
+                }
+            }
+
+            if !anyAlive {
+                break
+            }
+
+            try? await Task.sleep(for: effectivePollInterval)
+        }
+
+        return TerminationReport(
+            outcomes: outcomes,
+            commandByPID: commandByPID,
+            elapsed: clock.now - startedAt
+        )
     }
 
     /// Sends `signal` to every descendant of this process and every member of
@@ -436,8 +563,10 @@ public enum ProcessGroupTimeoutGuard {
         var result: [ProcessSnapshot] = []
         var queue: [pid_t] = [root]
         var visited: Set<pid_t> = [root]
-        while let next: pid_t = queue.first {
-            queue.removeFirst()
+        var queueIndex = 0
+        while queueIndex < queue.count {
+            let next = queue[queueIndex]
+            queueIndex += 1
             for child: pid_t in childrenByParent[next] ?? [] where !visited.contains(child) {
                 visited.insert(child)
                 result.append(ProcessSnapshot(pid: child, ppid: next))
@@ -445,6 +574,23 @@ public enum ProcessGroupTimeoutGuard {
             }
         }
         return result
+    }
+
+    private static func _isOwnedByCaller(_ pid: pid_t) -> Bool {
+        guard let output = _runHelperSubprocess(
+            path: "/bin/ps",
+            arguments: ["-p", String(pid), "-o", "uid="]
+        ) else {
+            return false
+        }
+
+        return output
+            .trimmingCharacters(in: .whitespacesAndNewlines)
+            .split(whereSeparator: { $0.isWhitespace })
+            .first
+            .flatMap { UInt32($0) }
+            .map { $0 == getuid() }
+            ?? false
     }
 
     private static func _processCommands(for pids: [pid_t]) -> [pid_t: String] {
