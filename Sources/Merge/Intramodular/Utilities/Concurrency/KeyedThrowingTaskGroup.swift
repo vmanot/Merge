@@ -3,6 +3,7 @@
 //
 
 import Combine
+import Foundation
 import Swallow
 
 /// An actor that can manage a graph of running tasks.
@@ -13,7 +14,12 @@ public actor KeyedThrowingTaskGroup<Key: Hashable & Sendable>: Sendable {
         case unspecified
     }
     
-    private let tasks = MutexProtected(wrappedValue: [Key: OpaqueThrowingTask]())
+    private struct TaskEntry {
+        let id: UUID
+        let task: OpaqueThrowingTask
+    }
+
+    private let tasks = MutexProtected(wrappedValue: [Key: TaskEntry]())
     
     public init() {
         
@@ -23,8 +29,13 @@ public actor KeyedThrowingTaskGroup<Key: Hashable & Sendable>: Sendable {
         
     }
     
-    private func pruneTask(withKey key: Key) {
-        tasks.assignedValue.removeValue(forKey: key)
+    private nonisolated func pruneTask(withKey key: Key, id: UUID) {
+        tasks.mutate { tasks in
+            guard tasks[key]?.id == id else {
+                return
+            }
+            tasks.removeValue(forKey: key)
+        }
     }
     
     private nonisolated func insertTask<T: Sendable>(
@@ -33,53 +44,49 @@ public actor KeyedThrowingTaskGroup<Key: Hashable & Sendable>: Sendable {
         insertionPolicy: InsertPolicy = .unspecified,
         @_implicitSelfCapture operation: @escaping @Sendable () async throws -> T
     ) throws -> Task<T, Error> {
-        let existingTask = tasks.assignedValue[key]
-        
-        let result: Task<T, Error>
-        
-        switch insertionPolicy {
+        try tasks.mutate { tasks in
+            let existingTask: OpaqueThrowingTask? = tasks[key]?.task
+
+            func makeTask() -> (Task<T, Error>, TaskEntry) {
+                let id = UUID()
+                let task = Task.detached(priority: priority) {
+                    defer {
+                        self.pruneTask(withKey: key, id: id)
+                    }
+                    return try await operation()
+                }
+                return (
+                    task,
+                    TaskEntry(id: id, task: task.eraseToOpaqueThrowingTask())
+                )
+            }
+
+            switch insertionPolicy {
             case .discardPrevious:
                 existingTask?.cancel()
-                result = Task.detached(priority: priority) {
-                    let result = try await operation()
-                    
-                    await self.pruneTask(withKey: key)
-                    
-                    return result
-                }
+                let (task, entry) = makeTask()
+                tasks[key] = entry
+                return task
             case .useExisting:
                 if let existingTask = existingTask {
-                    result = Task.detached(priority: priority) {
+                    return Task.detached(priority: priority) {
                         try await cast(existingTask.value, to: T.self)
                     }
                 } else {
-                    result = Task.detached(priority: priority) {
-                        let result = try await operation()
-                        
-                        await self.pruneTask(withKey: key)
-                        
-                        return result
-                    }
-                    
-                    tasks.assignedValue[key] = result.eraseToOpaqueThrowingTask()
+                    let (task, entry) = makeTask()
+                    tasks[key] = entry
+                    return task
                 }
             case .unspecified:
                 if existingTask != nil {
                     throw _Error.insertPolicyUnspecified(for: key)
                 } else {
-                    result = Task.detached(priority: priority) {
-                        let result = try await operation()
-                        
-                        await self.pruneTask(withKey: key)
-                        
-                        return result
-                    }
-                    
-                    tasks.assignedValue[key] = result.eraseToOpaqueThrowingTask()
+                    let (task, entry) = makeTask()
+                    tasks[key] = entry
+                    return task
                 }
+            }
         }
-        
-        return result
     }
     
     @discardableResult
@@ -112,7 +119,8 @@ public actor KeyedThrowingTaskGroup<Key: Hashable & Sendable>: Sendable {
     }
     
     public func wait(on key: Key) async throws {
-        _ = try await tasks.assignedValue[key]?.value  // TODO: Track as a suspension elswhere
+        let task: OpaqueThrowingTask? = tasks.withCriticalScope { $0[key]?.task }
+        _ = try await task?.value  // TODO: Track as a suspension elswhere
     }
 }
 
