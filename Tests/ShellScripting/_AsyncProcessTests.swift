@@ -414,6 +414,44 @@ struct _AsyncProcessTests {
     }
 
     @Test
+    func testConcurrentProcessesCaptureMixedStandardStreams() async throws {
+        for round in 0..<8 {
+            let processes: [_AsyncProcess] = try (1...32).map { i in
+                let identifier = round * 32 + i
+
+                return try _AsyncProcess(
+                    launchPath: "/bin/sh",
+                    arguments: [
+                        "-c",
+                        "printf 'stdout-\(identifier)'; printf 'stderr-\(identifier)' >&2",
+                    ],
+                    options: []
+                )
+            }
+
+            let results: [_ProcessRunResult] = try await withThrowingTaskGroup(of: _ProcessRunResult.self) { group in
+                for process in processes {
+                    group.addTask {
+                        try await process.run()
+                    }
+                }
+
+                var results: [_ProcessRunResult] = []
+                for try await result in group {
+                    results.append(result)
+                }
+                return results
+            }
+
+            #expect(results.count == processes.count)
+            for result in results {
+                #expect(result.stdoutString?.hasPrefix("stdout-") == true)
+                #expect(result.stderrString?.hasPrefix("stderr-") == true)
+            }
+        }
+    }
+
+    @Test
     func testConcurrentLongRunningProcesses() async throws {
         let processes: [_AsyncProcess] = try (1...3).map { i in
             try _AsyncProcess(

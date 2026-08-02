@@ -57,48 +57,103 @@ extension Pipe {
 }
 
 extension Pipe {
+    final class _AsyncReader: @unchecked Sendable {
+        private let fileHandle: FileHandle
+        private let stream: AsyncStream<Data>
+        private let continuation: AsyncStream<Data>.Continuation
+
+        @MutexProtected
+        private var didFinish = false
+
+        init(fileHandle: FileHandle) {
+            self.fileHandle = fileHandle
+            (self.stream, self.continuation) = AsyncStream<Data>.makeStream()
+
+            fileHandle.readabilityHandler = { [weak self] handle in
+                self?.receiveData(from: handle)
+            }
+        }
+
+        deinit {
+            finish()
+        }
+
+        func readToEnd(
+            receiveData: @escaping (Data) async throws -> Void
+        ) async throws -> Data {
+            try await withTaskCancellationHandler {
+                var result = Data()
+
+                for await data in stream {
+                    result.append(data)
+                    try await receiveData(data)
+                }
+
+                return result
+            } onCancel: {
+                cancel()
+            }
+        }
+
+        private func cancel() {
+            finish()
+        }
+
+        private func receiveData(from handle: FileHandle) {
+            var reachedEndOfFile = false
+
+            $didFinish.withCriticalRegion { didFinish in
+                guard !didFinish else {
+                    return
+                }
+
+                let data = handle.availableData
+
+                if data.isEmpty {
+                    didFinish = true
+                    reachedEndOfFile = true
+                } else {
+                    continuation.yield(data)
+                }
+            }
+
+            if reachedEndOfFile {
+                handle.readabilityHandler = nil
+                continuation.finish()
+            }
+        }
+
+        private func finish() {
+            var shouldFinish = false
+
+            $didFinish.withCriticalRegion { didFinish in
+                guard !didFinish else {
+                    return
+                }
+
+                didFinish = true
+                shouldFinish = true
+            }
+
+            guard shouldFinish else {
+                return
+            }
+
+            fileHandle.readabilityHandler = nil
+            continuation.finish()
+        }
+    }
+
+    func _makeAsyncReader() -> _AsyncReader {
+        _AsyncReader(fileHandle: fileHandleForReading)
+    }
+
     /// Asynchronously reads the available data from the pipe until EOF.
     @discardableResult
     func _readToEnd(
         receiveData: @escaping (Data) async throws -> Void
     ) async throws -> Data {
-        let queue = ThrowingTaskQueue()
-        let fileHandle = self.fileHandleForReading
-        
-        @MutexProtected
-        var didExit: Bool = false
-        @MutexProtected
-        var result = Data()
-        
-        await withCheckedContinuation { (continuation: CheckedContinuation<Void, Never>) in
-            fileHandle.readabilityHandler = { fileHandle in
-                guard !$didExit.assignedValue else {
-                    return
-                }
-                
-                let data = fileHandle.availableData
-                
-                if data.isEmpty {
-                    $didExit.assignedValue = true
-                    
-                    continuation.resume()
-                } else {
-                    queue.addTask {
-                        try await receiveData(data)
-                    }
-                    
-                    $result.withCriticalRegion {
-                        $0.append(data)
-                    }
-                }
-            }
-        }
-        
-        fileHandle.readabilityHandler = nil
-        
-        try await queue.waitForAll()
-        
-        return result
+        try await _makeAsyncReader().readToEnd(receiveData: receiveData)
     }
 }
 

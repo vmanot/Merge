@@ -49,10 +49,7 @@ public class _AsyncProcess: Logging {
             _environmentVariables = newValue
         }
     }
-    package lazy var standardStreamsBuffer = _StandardStreamsBuffer(
-        publishers: publishers,
-        options: self.options
-    )
+    package let standardStreamsBuffer: _StandardStreamsBuffer
 
     private let publishers = _Publishers()
     package let processDidStart = _AsyncGate(initiallyOpen: false)
@@ -108,7 +105,11 @@ public class _AsyncProcess: Logging {
         }
 
         self.options = Set(options)
-        self.environmentVariables = existingProcess?.environment.map(EnvironmentVariables.exact) ?? .inherited
+        self._environmentVariables = existingProcess?.environment.map(EnvironmentVariables.exact) ?? .inherited
+        self.standardStreamsBuffer = _StandardStreamsBuffer(
+            publishers: publishers,
+            options: self.options
+        )
 
         _registerAndSetUpIO(existingProcess: existingProcess)
         #else
@@ -145,7 +146,11 @@ public class _AsyncProcess: Logging {
         }
 
         self.options = options
-        self.environmentVariables = environmentVariables
+        self._environmentVariables = environmentVariables
+        self.standardStreamsBuffer = _StandardStreamsBuffer(
+            publishers: publishers,
+            options: self.options
+        )
 
         _registerAndSetUpIO(existingProcess: nil)
         #else
@@ -399,20 +404,41 @@ extension _AsyncProcess {
 
             isWaiting = true
 
-            func readData() async throws {
-                if !options.contains(._useAuthorizationExecuteWithPrivileges) {
-                    try await _readStdoutStderrUntilEnd()
-                } else {
-                    try await _readStdoutStderrUntilEnd(ignoreStderr: true)
-                }
+            guard let standardOutputPipe = _standardOutputPipe,
+                let standardErrorPipe = _standardErrorPipe
+            else {
+                assertionFailure()
+
+                return
             }
 
-            let readStdoutStderrTask = Task<Void, Error>.detached(priority: .high) {
-                try await readData()
+            let standardOutputReader = standardOutputPipe._makeAsyncReader()
+            let standardErrorReader = standardErrorPipe._makeAsyncReader()
+
+            func readData() async throws {
+                if !options.contains(._useAuthorizationExecuteWithPrivileges) {
+                    try await _readStdoutStderrUntilEnd(
+                        standardOutputPipe: standardOutputPipe,
+                        standardErrorPipe: standardErrorPipe,
+                        standardOutputReader: standardOutputReader,
+                        standardErrorReader: standardErrorReader
+                    )
+                } else {
+                    try await _readStdoutStderrUntilEnd(
+                        standardOutputPipe: standardOutputPipe,
+                        standardErrorPipe: standardErrorPipe,
+                        standardOutputReader: standardOutputReader,
+                        standardErrorReader: standardErrorReader,
+                        ignoreStderr: true
+                    )
+                }
             }
 
             @MutexProtected
             var launchError: Error? = nil
+            let readStdoutStderrTask = Task<Void, Error>.detached(priority: .high) {
+                try await readData()
+            }
 
             do {
                 try await withCheckedThrowingContinuation { (continuation: CheckedContinuation<Void, Error>) in
@@ -491,89 +517,37 @@ extension _AsyncProcess {
     }
 
     private func _readStdoutStderrUntilEnd(
+        standardOutputPipe: Pipe,
+        standardErrorPipe: Pipe,
+        standardOutputReader: Pipe._AsyncReader,
+        standardErrorReader: Pipe._AsyncReader,
         ignoreStderr: Bool = false
     ) async throws {
-        guard let _standardOutputPipe, let _standardErrorPipe else {
-            assertionFailure()
-
-            return
-        }
-
-        @MutexProtected
-        var workItem: DispatchWorkItem? = nil
-
-        @Sendable
-        func interruptLater() -> Bool {
-            $workItem.withCriticalRegion { workItem in
-                workItem?.cancel()
-
-                workItem = DispatchWorkItem {
-                    guard self.process.isRunning else {
-                        runtimeIssue("Process has already exit, nothing to interrupt.")
-
-                        return
-                    }
-
-                    self.process.interrupt()
-                }
-
-                DispatchQueue.global().asyncAfter(deadline: .now() + 3000, execute: workItem!)
-
-                return true
-            }
-        }
-
-        @Sendable
-        func checkTask() -> Bool {
-            withUnsafeCurrentTask { task in
-                if task?.isCancelled == true {
-                    Task {
-                        try await self.terminate()
-                    }
-
-                    return false
-                }
-
-                return true
-            }
-        }
-
-        try await withThrowingTaskGroup(of: Void.self) { group in
-            group.addTask {
-                while checkTask(),
-                    interruptLater(),
-                    let data: Data = _standardOutputPipe.fileHandleForReading.availableData.nilIfEmpty()
-                {
-                    workItem?.cancel()
-
-                    try await self.__handleData(data, forPipe: _standardOutputPipe)
-
-                    await Task.yield()
-                }
-            }
-
-            if !ignoreStderr {
+        try await withTaskCancellationHandler {
+            try await withThrowingTaskGroup(of: Void.self) { group in
                 group.addTask {
-                    while _standardErrorPipe._fileDescriptorForReading._isOpen,
-                        checkTask(),
-                        interruptLater(),
-                        let data: Data = _standardErrorPipe.fileHandleForReading.availableData.nilIfEmpty()
-                    {
-                        workItem?.cancel()
-
-                        try await self.__handleData(data, forPipe: _standardErrorPipe)
-
-                        await Task.yield()
+                    _ = try await standardOutputReader.readToEnd { data in
+                        try await self.__handleData(data, forPipe: standardOutputPipe)
                     }
                 }
+
+                group.addTask {
+                    _ = try await standardErrorReader.readToEnd { data in
+                        guard !ignoreStderr else {
+                            return
+                        }
+
+                        try await self.__handleData(data, forPipe: standardErrorPipe)
+                    }
+                }
+
+                try await group.waitForAll()
             }
-
-            try await group.waitForAll()
-
-            await Task.yield()
+        } onCancel: {
+            Task {
+                try? await self.terminate()
+            }
         }
-
-        workItem?.cancel()
     }
 
     private func __handleData(
@@ -589,7 +563,7 @@ extension _AsyncProcess {
         assert(!process.isRunning)
 
         return Task.detached(priority: .userInitiated) { @MainActor in
-            while !Task.isCancelled && !self.process.isRunning {
+            while !Task.isCancelled && self.process.processIdentifier == 0 {
                 await Task.yield()
 
                 try? await Task.sleep(.milliseconds(10))
