@@ -237,93 +237,17 @@ public enum ProcessGroupTimeoutGuard {
             )
         }
 
-        let effectiveGracePeriod = gracePeriod < .zero ? .zero : gracePeriod
-        let effectivePollInterval = pollInterval <= .zero ? .milliseconds(1) : pollInterval
-        let clock = ContinuousClock()
-        let startedAt = clock.now
-        var outcomes: [pid_t: TerminationOutcome] = [:]
-        var commandByPID: [pid_t: String] = [:]
-
-        let initialTargets = Set(
-            [rootPID] + snapshotDescendants(of: rootPID).map(\.pid)
-        )
-        commandByPID.merge(
-            _processCommands(for: Array(initialTargets)),
-            uniquingKeysWith: { current, _ in current }
-        )
-
-        for pid in initialTargets where _isSignallable(pid) {
-            if kill(pid, SIGTERM) == 0 {
-                outcomes[pid] = .survived
-            } else if errno == ESRCH {
-                outcomes[pid] = .alreadyGone
-            }
-        }
-
-        let graceDeadline = startedAt.advanced(by: effectiveGracePeriod)
-        while clock.now < graceDeadline {
-            var anyStillAlive = false
-            for (pid, outcome) in outcomes where outcome == .survived {
-                if !_isAlive(pid) {
-                    outcomes[pid] = .terminatedGracefully
-                } else {
-                    anyStillAlive = true
-                }
-            }
-
-            if !anyStillAlive {
-                break
-            }
-
-            try? await Task.sleep(for: effectivePollInterval)
-        }
-
-        let currentTargets = Set(
-            [rootPID] + snapshotDescendants(of: rootPID).map(\.pid)
-        )
-        commandByPID.merge(
-            _processCommands(for: Array(currentTargets)),
-            uniquingKeysWith: { current, _ in current }
-        )
-
-        let survivors = Set(
-            outcomes.compactMap { pid, outcome in
-                outcome == .survived ? pid : nil
-            }
-        )
-        let sigkillTargets = survivors.union(currentTargets)
-        for pid in sigkillTargets where _isSignallable(pid) {
-            if kill(pid, SIGKILL) == 0 {
-                if outcomes[pid] == nil {
-                    outcomes[pid] = .survived
-                }
-            } else if errno == ESRCH, outcomes[pid] == nil {
-                outcomes[pid] = .alreadyGone
-            }
-        }
-
-        let verifyDeadline = clock.now.advanced(by: .milliseconds(500))
-        while clock.now < verifyDeadline {
-            var anyAlive = false
-            for (pid, outcome) in outcomes where outcome == .survived {
-                if !_isAlive(pid) {
-                    outcomes[pid] = .forciblyKilled
-                } else {
-                    anyAlive = true
-                }
-            }
-
-            if !anyAlive {
-                break
-            }
-
-            try? await Task.sleep(for: effectivePollInterval)
-        }
-
-        return TerminationReport(
-            outcomes: outcomes,
-            commandByPID: commandByPID,
-            elapsed: clock.now - startedAt
+        return await _terminateTargetsThenKill(
+            initialTargets: Set(
+                [rootPID] + snapshotDescendants(of: rootPID).map(\.pid)
+            ),
+            currentTargets: {
+                Set(
+                    [rootPID] + snapshotDescendants(of: rootPID).map(\.pid)
+                )
+            },
+            gracePeriod: gracePeriod,
+            pollInterval: pollInterval
         )
     }
 
@@ -360,76 +284,13 @@ public enum ProcessGroupTimeoutGuard {
         gracePeriod: Duration = .seconds(2),
         pollInterval: Duration = .milliseconds(100)
     ) async -> TerminationReport {
-        let clock: ContinuousClock = ContinuousClock()
-        let startedAt: ContinuousClock.Instant = clock.now
-
-        var outcomes: [pid_t: TerminationOutcome] = [:]
-
-        // Phase 1: SIGTERM the current tree.
-        var commandByPID: [pid_t: String] = [:]
-        let sigtermTargets: [pid_t] = snapshotDescendants().map { (snapshot: ProcessSnapshot) -> pid_t in snapshot.pid }
-        commandByPID.merge(_processCommands(for: sigtermTargets), uniquingKeysWith: { current, _ in current })
-        for pid: pid_t in sigtermTargets {
-            if kill(pid, SIGTERM) == 0 {
-                outcomes[pid] = .survived // tentative — may upgrade to graceful
-            } else if errno == ESRCH {
-                outcomes[pid] = .alreadyGone
-            }
-        }
-
-        // Phase 2: poll for natural death.
-        let graceDeadline: ContinuousClock.Instant = startedAt.advanced(by: gracePeriod)
-        while clock.now < graceDeadline {
-            var anyStillAlive: Bool = false
-            for (pid, outcome): (pid_t, TerminationOutcome) in outcomes where outcome == .survived {
-                if !_isAlive(pid) {
-                    outcomes[pid] = .terminatedGracefully
-                } else {
-                    anyStillAlive = true
-                }
-            }
-            if !anyStillAlive { break }
-            try? await Task.sleep(for: pollInterval)
-        }
-
-        // Phase 3: SIGKILL survivors + any new descendants that appeared during grace.
-        let survivors: [pid_t] = outcomes.compactMap { (pid: pid_t, outcome: TerminationOutcome) -> pid_t? in
-            outcome == .survived ? pid : nil
-        }
-        let currentTargets: Set<pid_t> = Set(snapshotDescendants().map { (snapshot: ProcessSnapshot) -> pid_t in snapshot.pid })
-        commandByPID.merge(_processCommands(for: Array(currentTargets)), uniquingKeysWith: { current, _ in current })
-        let sigkillTargets: Set<pid_t> = Set(survivors).union(currentTargets)
-        for pid: pid_t in sigkillTargets {
-            if kill(pid, SIGKILL) == 0 {
-                if outcomes[pid] == nil {
-                    outcomes[pid] = .survived // newly seen, tentative
-                }
-            } else if errno == ESRCH, outcomes[pid] == nil {
-                outcomes[pid] = .alreadyGone
-            }
-        }
-
-        // Phase 4: brief verification — SIGKILL is uncatchable, so a single
-        // short poll cycle suffices. If anything still appears alive, it's
-        // wedged in an uninterruptible kernel state (rare).
-        let verifyDeadline: ContinuousClock.Instant = clock.now.advanced(by: .milliseconds(500))
-        while clock.now < verifyDeadline {
-            var anyAlive: Bool = false
-            for (pid, outcome): (pid_t, TerminationOutcome) in outcomes where outcome == .survived {
-                if !_isAlive(pid) {
-                    outcomes[pid] = .forciblyKilled
-                } else {
-                    anyAlive = true
-                }
-            }
-            if !anyAlive { break }
-            try? await Task.sleep(for: pollInterval)
-        }
-
-        return TerminationReport(
-            outcomes: outcomes,
-            commandByPID: commandByPID,
-            elapsed: clock.now - startedAt
+        return await _terminateTargetsThenKill(
+            initialTargets: Set(snapshotDescendants().map(\.pid)),
+            currentTargets: {
+                Set(snapshotDescendants().map(\.pid))
+            },
+            gracePeriod: gracePeriod,
+            pollInterval: pollInterval
         )
     }
 
@@ -522,6 +383,102 @@ public enum ProcessGroupTimeoutGuard {
     /// complete in milliseconds; a multi-second timeout is a safety net
     /// against runaway forking or sysctl wedges.
     private static let _helperSubprocessTimeout: TimeInterval = 5
+
+    private static func _terminateTargetsThenKill(
+        initialTargets: Set<pid_t>,
+        currentTargets: @escaping @Sendable () -> Set<pid_t>,
+        gracePeriod: Duration,
+        pollInterval: Duration
+    ) async -> TerminationReport {
+        let effectiveGracePeriod: Duration = gracePeriod < .zero ? .zero : gracePeriod
+        let effectivePollInterval: Duration = pollInterval <= .zero ? .milliseconds(1) : pollInterval
+        let clock: ContinuousClock = ContinuousClock()
+        let startedAt: ContinuousClock.Instant = clock.now
+        var outcomes: [pid_t: TerminationOutcome] = [:]
+        var commandByPID: [pid_t: String] = [:]
+
+        let initialTargets: Set<pid_t> = Set(initialTargets.filter { (pid: pid_t) -> Bool in _isSignallable(pid) })
+        commandByPID.merge(
+            _processCommands(for: Array(initialTargets)),
+            uniquingKeysWith: { current, _ in current }
+        )
+
+        for pid: pid_t in initialTargets {
+            if kill(pid, SIGTERM) == 0 {
+                outcomes[pid] = .survived
+            } else if errno == ESRCH {
+                outcomes[pid] = .alreadyGone
+            } else if _isAlive(pid) {
+                outcomes[pid] = .survived
+            }
+        }
+
+        let graceDeadline: ContinuousClock.Instant = startedAt.advanced(by: effectiveGracePeriod)
+        while clock.now < graceDeadline {
+            var anyStillAlive: Bool = false
+            for (pid, outcome): (pid_t, TerminationOutcome) in outcomes where outcome == .survived {
+                if !_isAlive(pid) {
+                    outcomes[pid] = .terminatedGracefully
+                } else {
+                    anyStillAlive = true
+                }
+            }
+
+            if !anyStillAlive {
+                break
+            }
+
+            try? await Task.sleep(for: effectivePollInterval)
+        }
+
+        let targetsAfterGrace: Set<pid_t> = Set(currentTargets().filter { (pid: pid_t) -> Bool in _isSignallable(pid) })
+        commandByPID.merge(
+            _processCommands(for: Array(targetsAfterGrace)),
+            uniquingKeysWith: { current, _ in current }
+        )
+
+        let survivors: Set<pid_t> = Set(
+            outcomes.compactMap { (pid: pid_t, outcome: TerminationOutcome) -> pid_t? in
+                outcome == .survived ? pid : nil
+            }
+        )
+        let sigkillTargets: Set<pid_t> = survivors.union(targetsAfterGrace)
+        for pid: pid_t in sigkillTargets {
+            if kill(pid, SIGKILL) == 0 {
+                if outcomes[pid] == nil {
+                    outcomes[pid] = .survived
+                }
+            } else if errno == ESRCH, outcomes[pid] == nil {
+                outcomes[pid] = .alreadyGone
+            } else if outcomes[pid] == nil, _isAlive(pid) {
+                outcomes[pid] = .survived
+            }
+        }
+
+        let verificationDeadline: ContinuousClock.Instant = clock.now.advanced(by: .milliseconds(500))
+        while clock.now < verificationDeadline {
+            var anyAlive: Bool = false
+            for (pid, outcome): (pid_t, TerminationOutcome) in outcomes where outcome == .survived {
+                if !_isAlive(pid) {
+                    outcomes[pid] = .forciblyKilled
+                } else {
+                    anyAlive = true
+                }
+            }
+
+            if !anyAlive {
+                break
+            }
+
+            try? await Task.sleep(for: effectivePollInterval)
+        }
+
+        return TerminationReport(
+            outcomes: outcomes,
+            commandByPID: commandByPID,
+            elapsed: clock.now - startedAt
+        )
+    }
 
     private static func _isSignallable(_ pid: pid_t) -> Bool {
         pid != getpid() && !_untouchablePIDs.contains(pid) && pid > 0
