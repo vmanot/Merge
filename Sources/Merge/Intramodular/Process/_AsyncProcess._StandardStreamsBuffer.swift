@@ -162,8 +162,18 @@ public actor _StandardInputOutputStreamsBuffer {
     }
 
     @available(iOS 16.0, macOS 13.0, tvOS 16.0, watchOS 9.0, *)
+    func _standardOutputData() -> Data {
+        standardOutputBuffer
+    }
+
+    @available(iOS 16.0, macOS 13.0, tvOS 16.0, watchOS 9.0, *)
     func _standardErrorStringUsingUTF8() throws -> String {
         try standardErrorBuffer.toString(encoding: .utf8)
+    }
+
+    @available(iOS 16.0, macOS 13.0, tvOS 16.0, watchOS 9.0, *)
+    func _standardErrorData() -> Data {
+        standardErrorBuffer
     }
 }
 

@@ -20,19 +20,11 @@ extension SystemShell {
         let process = try _AsyncProcess(
             executableURL: executableURL,
             arguments: arguments,
-            currentDirectoryURL: configuration.currentDirectoryURL,
             environmentVariables: configuration.environmentVariables.resolvingForAsyncProcessLaunch(),
-            options: try _optionsForProcessLaunch()
+            currentDirectoryURL: configuration.currentDirectoryURL,
+            options: try _optionsForProcessLaunch(),
+            input: input
         )
-
-        if let input {
-            guard let inputHandle = process.standardInputPipe?.fileHandleForWriting else {
-                throw CocoaError(.fileNoSuchFile)
-            }
-
-            try inputHandle.write(contentsOf: input)
-            try inputHandle.close()
-        }
 
         return try await _run(process)
     }

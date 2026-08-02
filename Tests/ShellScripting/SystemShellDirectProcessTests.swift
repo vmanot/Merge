@@ -27,4 +27,17 @@ struct SystemShellDirectProcessTests {
         #expect(result.terminationError == nil)
         #expect(result.stdout == Data())
     }
+
+    @Test
+    func largeInputIsStreamedAfterLaunchWithoutDeadlockingThePipe() async throws {
+        let input = Data(repeating: 0xA5, count: 1_048_576)
+        let result = try await SystemShell().run(
+            executableURL: URL(fileURLWithPath: "/bin/cat"),
+            arguments: [],
+            input: input
+        )
+
+        #expect(result.terminationError == nil)
+        #expect(result.stdout == input)
+    }
 }

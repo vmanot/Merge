@@ -50,6 +50,7 @@ public class _AsyncProcess: Logging {
         }
     }
     package let standardStreamsBuffer: _StandardStreamsBuffer
+    package let inputData: Data?
 
     private let publishers = _Publishers()
     package let processDidStart = _AsyncGate(initiallyOpen: false)
@@ -81,7 +82,8 @@ public class _AsyncProcess: Logging {
     @available(macCatalyst, unavailable)
     public init(
         existingProcess: Process?,
-        options: [_AsyncProcess.Option]?
+        options: [_AsyncProcess.Option]?,
+        input: Data? = nil
     ) throws {
         #if os(macOS)
         let options: Set<_AsyncProcess.Option> = Set(options ?? [])
@@ -105,6 +107,7 @@ public class _AsyncProcess: Logging {
         }
 
         self.options = Set(options)
+        self.inputData = input
         self._environmentVariables = existingProcess?.environment.map(EnvironmentVariables.exact) ?? .inherited
         self.standardStreamsBuffer = _StandardStreamsBuffer(
             publishers: publishers,
@@ -112,6 +115,10 @@ public class _AsyncProcess: Logging {
         )
 
         _registerAndSetUpIO(existingProcess: existingProcess)
+        if input != nil {
+            _standardInputPipe = Pipe()
+            process.standardInput = _standardInputPipe
+        }
         #else
         fatalError(.unavailable)
         #endif
@@ -122,7 +129,8 @@ public class _AsyncProcess: Logging {
         arguments: [String]?,
         environmentVariables: EnvironmentVariables,
         currentDirectoryURL: URL?,
-        options: [_AsyncProcess.Option]? = nil
+        options: [_AsyncProcess.Option]? = nil,
+        input: Data? = nil
     ) throws {
         #if os(macOS)
         let options: Set<_AsyncProcess.Option> = Set(options ?? [])
@@ -146,6 +154,7 @@ public class _AsyncProcess: Logging {
         }
 
         self.options = options
+        self.inputData = input
         self._environmentVariables = environmentVariables
         self.standardStreamsBuffer = _StandardStreamsBuffer(
             publishers: publishers,
@@ -153,6 +162,10 @@ public class _AsyncProcess: Logging {
         )
 
         _registerAndSetUpIO(existingProcess: nil)
+        if input != nil {
+            _standardInputPipe = Pipe()
+            process.standardInput = _standardInputPipe
+        }
         #else
         fatalError(.unavailable)
         #endif
@@ -163,14 +176,16 @@ public class _AsyncProcess: Logging {
         arguments: [String]?,
         environment: [String: String]?,
         currentDirectoryURL: URL?,
-        options: [_AsyncProcess.Option]? = nil
+        options: [_AsyncProcess.Option]? = nil,
+        input: Data? = nil
     ) throws {
         try self.init(
             executableURL: executableURL,
             arguments: arguments,
             environmentVariables: environment.map(EnvironmentVariables.exact) ?? .inherited,
             currentDirectoryURL: currentDirectoryURL,
-            options: options
+            options: options,
+            input: input
         )
     }
     #else
@@ -183,7 +198,8 @@ public class _AsyncProcess: Logging {
         arguments: [String]?,
         environmentVariables: EnvironmentVariables,
         currentDirectoryURL: URL?,
-        options: [_AsyncProcess.Option]? = nil
+        options: [_AsyncProcess.Option]? = nil,
+        input: Data? = nil
     ) throws {
         throw Never.Reason.unsupported
     }
@@ -193,7 +209,8 @@ public class _AsyncProcess: Logging {
         arguments: [String]?,
         environment: [String: String]?,
         currentDirectoryURL: URL?,
-        options: [_AsyncProcess.Option]? = nil
+        options: [_AsyncProcess.Option]? = nil,
+        input: Data? = nil
     ) throws {
         throw Never.Reason.unsupported
     }
@@ -419,6 +436,8 @@ extension _AsyncProcess {
     }
 
     private func _runUnconditionally() async throws {
+        var inputWriterTask: Task<Void, Error>?
+
         do {
             guard !isWaiting else {
                 return
@@ -461,7 +480,6 @@ extension _AsyncProcess {
             let readStdoutStderrTask = Task<Void, Error>.detached(priority: .high) {
                 try await readData()
             }
-
             do {
                 try await withCheckedThrowingContinuation { (continuation: CheckedContinuation<Void, Error>) in
                     @MutexProtected
@@ -491,6 +509,20 @@ extension _AsyncProcess {
                         }
 
                         try process.run()
+
+                        if let inputData,
+                           let inputHandle = _standardInputPipe?.fileHandleForWriting
+                        {
+                            inputWriterTask = Task.detached(priority: .high) {
+                                do {
+                                    try inputHandle.write(contentsOf: inputData)
+                                    try inputHandle.close()
+                                } catch {
+                                    try? inputHandle.close()
+                                    throw error
+                                }
+                            }
+                        }
                     } catch {
                         $launchError.assignedValue = error
                         processWillRunTask.cancel()
@@ -520,18 +552,40 @@ extension _AsyncProcess {
 
             try await readStdoutStderrTask.value
 
+            if let inputWriterTask {
+                do {
+                    try await inputWriterTask.value
+                } catch {
+                    // A process that exits before consuming all input closes
+                    // the read end of the pipe. That is expected for commands
+                    // which intentionally stop reading early.
+                    if process.isRunning {
+                        throw error
+                    }
+                }
+            }
+
             assert(!process.isRunning)
 
             do {
                 try _standardOutputPipe?.fileHandleForReading.close()
                 try _standardErrorPipe?.fileHandleForReading.close()
-                try _standardInputPipe?.fileHandleForWriting.close()
+                if inputWriterTask == nil {
+                    try _standardInputPipe?.fileHandleForWriting.close()
+                }
             } catch {
                 runtimeIssue("Failed to close a pipe.")
             }
 
             await _stashRunResultAndTeardownProcess(error: nil)
         } catch {
+            if let inputWriterTask {
+                inputWriterTask.cancel()
+                try? _standardInputPipe?.fileHandleForWriting.close()
+                try? await inputWriterTask.value
+            } else {
+                try? _standardInputPipe?.fileHandleForWriting.close()
+            }
             await _stashRunResultAndTeardownProcess(error: error)
 
             throw error
@@ -625,13 +679,15 @@ extension _AsyncProcess {
         } else {
             result = await Result(
                 catching: { () -> Process.RunResult in
-                    let stdout: String? = try? await self.standardStreamsBuffer._standardOutputStringUsingUTF8()
-                    let stderr: String? = try? await self.standardStreamsBuffer._standardErrorStringUsingUTF8()
+                    let stdoutData = await self.standardStreamsBuffer._standardOutputData()
+                    let stderrData = await self.standardStreamsBuffer._standardErrorData()
+                    let stdout = String(data: stdoutData, encoding: .utf8)
+                    let stderr = String(data: stderrData, encoding: .utf8)
 
-                    let result = try Process.RunResult(
+                    let result = Process.RunResult(
                         process: process,
-                        stdout: stdout,
-                        stderr: stderr,
+                        stdout: stdoutData,
+                        stderr: stderrData,
                         terminationError: process.terminationError.map {
                             ProcessTerminationError(
                                 _from: $0.process,
