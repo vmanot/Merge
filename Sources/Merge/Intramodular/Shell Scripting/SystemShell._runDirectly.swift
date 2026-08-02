@@ -12,7 +12,8 @@ extension SystemShell {
     /// Launches an executable directly, preserving every argument as one argv entry.
     public func run(
         executableURL: URL,
-        arguments: [String]
+        arguments: [String],
+        input: Data? = nil
     ) async throws -> Process.RunResult {
         try _validateBorrowedLease()
 
@@ -24,44 +25,59 @@ extension SystemShell {
             options: try _optionsForProcessLaunch()
         )
 
+        if let input {
+            guard let inputHandle = process.standardInputPipe?.fileHandleForWriting else {
+                throw CocoaError(.fileNoSuchFile)
+            }
+
+            try inputHandle.write(contentsOf: input)
+            try inputHandle.close()
+        }
+
         return try await _run(process)
     }
 
     /// Resolves an executable through `env`, then launches it without shell parsing.
     public func run(
         executableName: String,
-        arguments: [String]
+        arguments: [String],
+        input: Data? = nil
     ) async throws -> Process.RunResult {
         try await run(
             executableURL: URL(fileURLWithPath: "/usr/bin/env"),
-            arguments: [executableName] + arguments
+            arguments: [executableName] + arguments,
+            input: input
         )
     }
 
     public func run(
         executablePath: String,
-        arguments: [String]
+        arguments: [String],
+        input: Data? = nil
     ) async throws -> Process.RunResult {
         try await run(
             executableURL: URL(fileURLWithPath: executablePath),
-            arguments: arguments
+            arguments: arguments,
+            input: input
         )
     }
 
     @available(*, deprecated, renamed: "run(executableURL:arguments:)")
     public func _runDirectly(
         executableURL: URL,
-        arguments: [String]
+        arguments: [String],
+        input: Data? = nil
     ) async throws -> Process.RunResult {
-        try await run(executableURL: executableURL, arguments: arguments)
+        try await run(executableURL: executableURL, arguments: arguments, input: input)
     }
 
     @available(*, deprecated, renamed: "run(executableName:arguments:)")
     public func _runDirectly(
         executableName: String,
-        arguments: [String]
+        arguments: [String],
+        input: Data? = nil
     ) async throws -> Process.RunResult {
-        try await run(executableName: executableName, arguments: arguments)
+        try await run(executableName: executableName, arguments: arguments, input: input)
     }
 }
 #else
@@ -73,21 +89,24 @@ extension SystemShell {
 extension SystemShell {
     public func run(
         executableURL: URL,
-        arguments: [String]
+        arguments: [String],
+        input: Data? = nil
     ) async throws -> _ProcessRunResult {
         throw Never.Reason.unsupported
     }
 
     public func run(
         executableName: String,
-        arguments: [String]
+        arguments: [String],
+        input: Data? = nil
     ) async throws -> _ProcessRunResult {
         throw Never.Reason.unsupported
     }
 
     public func run(
         executablePath: String,
-        arguments: [String]
+        arguments: [String],
+        input: Data? = nil
     ) async throws -> _ProcessRunResult {
         throw Never.Reason.unsupported
     }
@@ -95,17 +114,19 @@ extension SystemShell {
     @available(*, deprecated, renamed: "run(executableURL:arguments:)")
     public func _runDirectly(
         executableURL: URL,
-        arguments: [String]
+        arguments: [String],
+        input: Data? = nil
     ) async throws -> _ProcessRunResult {
-        try await run(executableURL: executableURL, arguments: arguments)
+        try await run(executableURL: executableURL, arguments: arguments, input: input)
     }
 
     @available(*, deprecated, renamed: "run(executableName:arguments:)")
     public func _runDirectly(
         executableName: String,
-        arguments: [String]
+        arguments: [String],
+        input: Data? = nil
     ) async throws -> _ProcessRunResult {
-        try await run(executableName: executableName, arguments: arguments)
+        try await run(executableName: executableName, arguments: arguments, input: input)
     }
 }
 #endif
