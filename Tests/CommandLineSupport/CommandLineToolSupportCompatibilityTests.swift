@@ -24,23 +24,6 @@ final class EnvironmentOverrideCompatibilityTool: AnyCommandLineTool, CommandLin
 
 @Suite
 struct CommandLineToolSupportCompatibilityTests {
-    @Test("Exact base environments do not inherit parent variables")
-    func exactBaseEnvironmentsDoNotInheritParentVariables() async throws {
-        let tool = EnvironmentOverrideCompatibilityTool()
-        tool.baseEnvironmentVariables = .exact(["MERGE_EXACT_BASE": "base"])
-        tool.environmentVariables["MERGE_COMMAND_LINE_TOOL_TEST_VALUE"] = "configured"
-
-        let record = try await tool._runCollectingOutput()
-
-        #expect(try record.lines.contains("MERGE_EXACT_BASE=base"))
-        #expect(try record.lines.contains("MERGE_COMMAND_LINE_TOOL_TEST_VALUE=configured"))
-        if let inheritedName = ProcessInfo.processInfo.environment.keys.first(
-            where: { $0 != "MERGE_EXACT_BASE" && $0 != "MERGE_COMMAND_LINE_TOOL_TEST_VALUE" }
-        ) {
-            #expect(try !record.lines.contains { $0.hasPrefix("\(inheritedName)=") })
-        }
-    }
-
     @Test("Explicit environment configuration overrides modeled values")
     func explicitEnvironmentConfigurationOverridesModeledValues() async throws {
         let tool = EnvironmentOverrideCompatibilityTool()

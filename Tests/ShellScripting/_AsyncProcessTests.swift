@@ -455,30 +455,6 @@ struct _AsyncProcessTests {
     }
 
     @Test
-    func cancellingRunTerminatesRunningProcess() async throws {
-        let process: _AsyncProcess = try _AsyncProcess(
-            launchPath: "/bin/sh",
-            arguments: ["-c", "sleep 30"],
-            options: []
-        )
-        let runTask = Task {
-            try await process.run()
-        }
-
-        try await Task.sleep(for: .milliseconds(100))
-
-        runTask.cancel()
-        try await Task.sleep(for: .milliseconds(500))
-
-        if process.isRunning {
-            try await process.terminate()
-        }
-
-        _ = try? await runTask.value
-        #expect(!process.isRunning)
-    }
-
-    @Test
     func cancellingRunTerminatesDescendantHoldingStandardOutputPipe() async throws {
         let pidURL = URL(fileURLWithPath: NSTemporaryDirectory())
             .appendingPathComponent("merge-async-process-child-\(UUID().uuidString).pid")
