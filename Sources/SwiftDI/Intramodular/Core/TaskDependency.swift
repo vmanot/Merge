@@ -25,7 +25,7 @@ public struct TaskDependency<Value>: _TaskDependenciesConsuming, _TaskDependency
     let initialTaskDependencies: TaskDependencies
     let resolveValue: @Sendable (TaskDependencies) throws -> Value?
     var assignedValue: Value?
-    let deferredAssignedValue = ReferenceBox<Value?>(nil)
+    let deferredAssignedValue = ReferenceBox<Value?>(wrappedValue: nil)
     
     public var wrappedValue: Value {
         get {
