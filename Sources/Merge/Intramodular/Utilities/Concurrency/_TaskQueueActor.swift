@@ -9,7 +9,9 @@ actor _TaskQueueActor: Sendable {
     let id: (any Hashable & Sendable) = UUID()
     let policy: TaskQueuePolicy
     
-    nonisolated let previousTaskBox: _OSUnfairLocked<OpaqueThrowingTask?> = nil
+    nonisolated let previousTaskBox: _OSUnfairLocked<OpaqueThrowingTask?> = .init(
+        wrappedValue: nil
+    )
     
     public nonisolated var isReentrantScope: Bool {
         Self.queueID?.erasedAsAnyHashable == id.erasedAsAnyHashable
