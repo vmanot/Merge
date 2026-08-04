@@ -5,13 +5,19 @@
 import Foundation
 import Swallow
 
+/// A nested command in a command-line tool declaration.
+public typealias CommandLineToolSubcommand<
+    Parent: AnyCommandLineTool,
+    Command: AnyCommandLineTool & CommandLineTool
+> = _CommandLineToolSubcommand<Parent, Command>
+
 @available(macOS 11.0, *)
 @available(iOS, unavailable)
 @available(macCatalyst, unavailable)
 @available(tvOS, unavailable)
 @available(watchOS, unavailable)
 extension CommandLineTool {
-    public typealias Subcommand = _CommandLineToolSubcommand
+    public typealias Subcommand = CommandLineToolSubcommand
 }
 
 @available(macOS 11.0, *)

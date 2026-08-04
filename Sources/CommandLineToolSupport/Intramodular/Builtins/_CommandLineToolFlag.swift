@@ -6,6 +6,9 @@
 import Foundation
 import Swallow
 
+/// A flag in a command-line tool declaration.
+public typealias CommandLineToolFlag<Value: Equatable> = _CommandLineToolFlag<Value>
+
 @available(macOS 11.0, *)
 @available(iOS, unavailable)
 @available(macCatalyst, unavailable)
@@ -17,7 +20,7 @@ extension CommandLineTool {
     @available(macCatalyst, unavailable)
     @available(tvOS, unavailable)
     @available(watchOS, unavailable)
-    public typealias Flag<T: Equatable> = _CommandLineToolFlag<T>
+    public typealias Flag<T: Equatable> = CommandLineToolFlag<T>
 }
 
 @available(macOS 11.0, *)

@@ -5,6 +5,9 @@
 import Foundation
 import Swallow
 
+/// An environment variable in a command-line tool declaration.
+public typealias CommandLineToolEnvironmentVariable<Value: CLT.EnvironmentVariableValue> = _CommandLineToolEnvironmentVariable<Value>
+
 extension CLT {
     public typealias EnvironmentVariable<Value: EnvironmentVariableValue> = _CommandLineToolEnvironmentVariable<Value>
 }
@@ -15,7 +18,7 @@ extension CLT {
 @available(tvOS, unavailable)
 @available(watchOS, unavailable)
 extension CommandLineTool {
-    public typealias EnvironmentVariable<T: CLT.EnvironmentVariableValue> = _CommandLineToolEnvironmentVariable<T>
+    public typealias EnvironmentVariable<T: CLT.EnvironmentVariableValue> = CommandLineToolEnvironmentVariable<T>
 }
 
 public protocol _CommandLineToolEnvironmentVariableProtocol: PropertyWrapper where WrappedValue: CLT.EnvironmentVariableValue {
@@ -78,4 +81,3 @@ extension CommandLineTool {
 public struct _CommandLineTool_DefaultEnvironmentVariables {
     
 }
-

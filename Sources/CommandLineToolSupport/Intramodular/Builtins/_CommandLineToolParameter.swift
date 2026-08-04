@@ -5,14 +5,20 @@
 import Foundation
 import Swallow
 
+/// A keyed option in a command-line tool declaration.
+public typealias CommandLineToolOption<Value> = _CommandLineToolParameter<Value>
+
+/// A positional argument in a command-line tool declaration.
+public typealias CommandLineToolArgument<Value> = _CommandLineToolParameter<Value>
+
 @available(macOS 11.0, *)
 @available(iOS, unavailable)
 @available(macCatalyst, unavailable)
 @available(tvOS, unavailable)
 @available(watchOS, unavailable)
 extension CommandLineTool {
-    public typealias Argument<T> = _CommandLineToolParameter<T>
-    public typealias Option<T> = _CommandLineToolParameter<T>
+    public typealias Argument<T> = CommandLineToolArgument<T>
+    public typealias Option<T> = CommandLineToolOption<T>
 
     @available(*, deprecated, message: "Use @Argument for positional arguments or @Option for keyed options.")
     public typealias Parameter<T> = _CommandLineToolParameter<T>
