@@ -1,5 +1,5 @@
 {
-  "originHash" : "742ebfc9d4b2bbe0622148b006256b169b381689887cce2eaf449185e69d003e",
+  "originHash" : "b1bf12047526932df73f8c73dcc1a643251699e9f329d3a05bcdc4882394de02",
   "pins" : [
     {
       "identity" : "swallow",
@@ -33,8 +33,8 @@
       "kind" : "remoteSourceControl",
       "location" : "https://github.com/preternatural-fork/swift-subprocess.git",
       "state" : {
-        "revision" : "45581612c9a4e2a982065d1e1ee11f1d2399aa4c",
-        "version" : "0.4.1"
+        "revision" : "82b2f88c77a035f387364ccd3f531225f24a75cd",
+        "version" : "0.4.2"
       }
     },
     {
