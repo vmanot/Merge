@@ -85,7 +85,7 @@ public final class ThrowingTaskQueue: @unchecked Sendable {
         
         let semaphore = _AsyncActorSemaphore()
         let resultBox = _UncheckedSendable(
-            ReferenceBox<_ThrowingTaskQueueOperationResult<T>?>(nil)
+            ReferenceBox<_ThrowingTaskQueueOperationResult<T>?>(wrappedValue: nil)
         )
         
         await semaphore.wait()
